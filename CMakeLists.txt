@@ -15,6 +15,15 @@ include_directories(${EIGEN_DIRECTORY})
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+#Sources files
+set(SOURCES_FILES
+    CartWalk/CartWalk.cpp  
+    CartWalk/linear_algebra.cpp  
+    CartWalk/math_basics.cpp  
+    CartWalk/math_log.cpp  
+    CartWalk/SigmabanLeg.cpp
+)
+
 #Tests
-add_executable(testVectorLabel Tests/testVectorLabel.cpp)
+add_executable(testVectorLabel Tests/testVectorLabel.cpp ${SOURCES_FILES})
 
