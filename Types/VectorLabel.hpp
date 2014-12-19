@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <Eigen/Dense>
@@ -27,6 +28,7 @@ class VectorLabel
         typedef std::map<std::string, size_t> LabelContainer;
         typedef std::vector<std::string> IndexContainer;
         typedef std::vector<std::string> LabelList;
+        typedef std::vector<std::pair<std::string, double>> PairList;
         typedef Eigen::VectorXd EigenContainer;
 
         /**
@@ -67,7 +69,7 @@ class VectorLabel
             _labelToIndex(),
             _indexToLabel(labels)
         {
-            if (labels.size() != vect.size()) {
+            if (labels.size() != (size_t)vect.size()) {
                 throw std::logic_error("VectorLabel size invalid");
             }
             for (size_t i=0;i<_indexToLabel.size();i++) {
@@ -77,11 +79,20 @@ class VectorLabel
                 _labelToIndex[_indexToLabel[i]] = i;
             }
         }
-
-        /**
-         * Assignement operator is forgiden
-         */
-        VectorLabel& operator=(const VectorLabel&) = delete;
+        VectorLabel(const PairList& pairs) :
+            _eigenVector(pairs.size()),
+            _labelToIndex(),
+            _indexToLabel()
+        {
+            for (size_t i=0;i<pairs.size();i++) {
+                if (_labelToIndex.count(pairs[i].first) != 0) {
+                    throw std::logic_error("VectorLabel label error");
+                }
+                _eigenVector(i) = pairs[i].second;
+                _labelToIndex[pairs[i].first] = i;
+                _indexToLabel.push_back(pairs[i].first);
+            }
+        }
 
         /**
          * Direct access to Eigen vector
@@ -128,15 +139,38 @@ class VectorLabel
         }
 
         /**
+         * Return true if the given labels
+         * is registered
+         */
+        inline bool exist(const std::string& label) const
+        {
+            return (_labelToIndex.count(label) > 0);
+        }
+
+        /**
          * Access to named vector element
          */
         inline const double& operator()(const std::string& label) const
         {
-            return _eigenVector(_labelToIndex.at(label));
+            size_t index;
+            try {
+                index = _labelToIndex.at(label);
+            } catch (const std::out_of_range& err) {
+                throw std::logic_error("VectorLabel invalid label: " + label);
+            }
+
+            return _eigenVector(index);
         }
         inline double& operator()(const std::string& label)
         {
-            return _eigenVector(_labelToIndex.at(label));
+            size_t index;
+            try {
+                index = _labelToIndex.at(label);
+            } catch (const std::out_of_range& err) {
+                throw std::logic_error("VectorLabel invalid label: " + label);
+            }
+
+            return _eigenVector(index);
         }
 
         /**
@@ -156,10 +190,29 @@ class VectorLabel
          */
         inline void print(std::ostream& os = std::cout) const
         {
+            unsigned int maxLength = 0;
+            unsigned int maxDigit = _indexToLabel.size() > 10 ? 2 : 1;
             for (size_t i=0;i<_indexToLabel.size();i++) {
-                os << "[" << i << ":" << _indexToLabel[i] << "] ";
-                os << _eigenVector(i) << std::endl;
+                if (_indexToLabel[i].length() > maxLength) {
+                    maxLength = _indexToLabel[i].length();
+                }
             }
+            for (size_t i=0;i<_indexToLabel.size();i++) {
+                os << "[" << std::left << std::setw(maxDigit) << i << ":" 
+                   << std::left << std::setw(maxLength) << _indexToLabel[i] << "]" 
+                   << " " << _eigenVector(i) << std::endl;
+            }
+        }
+
+        /**
+         * Print values in CSV format
+         */
+        inline void printToCSV(std::ostream& os = std::cout) const
+        {
+            for (size_t i=0;i<_indexToLabel.size();i++) {
+                os << _eigenVector(i) << " ";
+            }
+            os << std::endl;
         }
 
     private:
@@ -185,9 +238,9 @@ class VectorLabel
         /**
          * Build up default label
          */
-        void defaultLabels()
+        inline void defaultLabels()
         {
-            for (size_t i=0;i<_eigenVector.size();i++) {
+            for (size_t i=0;i<(size_t)_eigenVector.size();i++) {
                 std::ostringstream oss; 
                 oss << "label " << i;
                 _labelToIndex[oss.str()]  = i;
@@ -199,7 +252,7 @@ class VectorLabel
 /**
  * Overload stream operator
  */
-std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
+inline std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
 {
     vect.print(os);
     return os;
