@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstdlib>
 #include <math.h>
 #include "CartWalk.h"
@@ -16,9 +17,6 @@
 #define CARTSMOOTHING   0.97
 #define CARTSMOOTH(oldV, newV)   (((oldV)*CARTSMOOTHING)+((newV)*(1-CARTSMOOTHING)))
 
-static double sLX, sLY, sLZ;
-static double sRX, sRY, sRZ;
-
 namespace Rhoban
 {
     /**
@@ -33,13 +31,10 @@ namespace Rhoban
         stepGain(0.0), lateralStepGain(0.0),
         turn(0.0), armsGain(0)
     {
-        sLX = sLY = sLZ = sRX = sRY = sRZ = 0.0;
-        smoothing = 0.2;
         swingForce = 0.0;
         riseRatio = 0.5;
         riseStepPhase = 0.0;
         isEnabled = false;
-        enabledRatio = 0.0;
     }
 
     void CartWalk::setLength(double L1, double L2)
@@ -65,22 +60,41 @@ namespace Rhoban
             printf("Nan as input!!!!!!!!!\n");
             return;
         }
+            
+        double sLX, sLY, sLZ, sRX, sRY, sRZ;
+        sLX = sLY = sLZ = sRX = sRY = sRZ = 0.0;
+        
+        double smoothing = 0.2;
 
         float rotationSpeed = turn/timeGain;
         float speed = stepGain/timeGain;
         float lateralSpeed = lateralStepGain/timeGain;
+            
+        // Speeds to flush
+        float l_rotationSpeed, l_speed, l_lateralSpeed;
+        float r_rotationSpeed, r_speed, r_lateralSpeed;
+        float l_stepGain, r_stepGain;
 
+        //XXX REMOVING SMOOTHING FOR STATELESS
+        /*
         if (isEnabled) {
-        l_rotationSpeed = CARTSMOOTH(l_rotationSpeed, rotationSpeed);
-        l_speed = CARTSMOOTH(l_speed, speed);
-        l_lateralSpeed = CARTSMOOTH(l_lateralSpeed, lateralSpeed);
-        r_rotationSpeed = CARTSMOOTH(r_rotationSpeed, rotationSpeed);
-        r_speed = CARTSMOOTH(r_speed, speed);
-        r_lateralSpeed = CARTSMOOTH(r_lateralSpeed, lateralSpeed);
+            l_rotationSpeed = CARTSMOOTH(l_rotationSpeed, rotationSpeed);
+            l_speed = CARTSMOOTH(l_speed, speed);
+            l_lateralSpeed = CARTSMOOTH(l_lateralSpeed, lateralSpeed);
+            r_rotationSpeed = CARTSMOOTH(r_rotationSpeed, rotationSpeed);
+            r_speed = CARTSMOOTH(r_speed, speed);
+            r_lateralSpeed = CARTSMOOTH(r_lateralSpeed, lateralSpeed);
         } else {
             l_speed = l_lateralSpeed = l_rotationSpeed = 0;
             r_speed = r_lateralSpeed = r_rotationSpeed = 0;
         }
+        */
+        l_rotationSpeed = rotationSpeed;
+        l_speed = speed;
+        l_lateralSpeed = lateralSpeed;
+        r_rotationSpeed = rotationSpeed;
+        r_speed = speed;
+        r_lateralSpeed = lateralSpeed;
         
         // Swinging
         swing.clear();
@@ -120,7 +134,8 @@ namespace Rhoban
         double lX, lY, lZ, rX, rY, rZ;
         double swingValue = swing.getMod(t+swingPhase);
 
-        // Walk enabling
+        // Walk enabling XXX REMOVING SMOOTHING FOR STATELESS
+        /*
         if (isEnabled) {
             enabledRatio += 0.02;
         } else {
@@ -132,6 +147,8 @@ namespace Rhoban
         if (enabledRatio < 0.0) {
             enabledRatio = 0.0;
         }
+        */
+        double enabledRatio = 1.0;
 
         // Computing X, Y & Z
         lX = xOffset + enabledRatio*step.getMod(t)*l_stepGain;

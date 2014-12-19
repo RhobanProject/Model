@@ -47,9 +47,7 @@ namespace Rhoban
             // Lateral stepping
             double lateralStepGain;
 
-            double sLX, sLY, sLZ, sRX, sRY, sRZ;
             double swingForce;
-            double smoothing;
             double riseRatio;
             double riseStepPhase;
 
@@ -58,12 +56,6 @@ namespace Rhoban
 
             // Walk enabling
             bool isEnabled;
-            double enabledRatio;
-
-            // Speeds to flush
-            float l_rotationSpeed, l_speed, l_lateralSpeed;
-            float r_rotationSpeed, r_speed, r_lateralSpeed;
-            float l_stepGain, r_stepGain;
 
             virtual void tick(double elapsed);
 
