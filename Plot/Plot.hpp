@@ -70,21 +70,22 @@ class Plot
             }
 
             if (yAxis == "all") {
-                for (const auto& label : _database.back().labels()) {
-                    if (label.first != xAxis) {
-                        plot(xAxis, label.first, style);
+                for (size_t i=0;i<_database.size();i++) {
+                    for (const auto& label : _database[i].labels()) {
+                        if (label.first != xAxis) {
+                            plot(xAxis, label.first, style);
+                        }
                     }
                 }
                 return *this;
+            } else {
+                Plot2D request;
+                request.xAxis = xAxis;
+                request.yAxis = yAxis;
+                request.style = style;
+                _plots2D.push_back(request);
+                return *this;
             }
-
-            Plot2D request;
-            request.xAxis = xAxis;
-            request.yAxis = yAxis;
-            request.style = style;
-            _plots2D.push_back(request);
-
-            return *this;
         }
         
         /**
