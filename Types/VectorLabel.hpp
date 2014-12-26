@@ -97,6 +97,13 @@ class VectorLabel
          * Variadic template label, value
          * mapping initialization
          */
+        VectorLabel(const std::string& label, double value) :
+            _eigenVector(),
+            _labelToIndex(),
+            _indexToLabel()
+        {
+            appendAux(label, value);
+        }
         template <class ... LabelsValues>
         VectorLabel(const std::string& label, double value, LabelsValues... labelsValues) :
             _eigenVector(),
