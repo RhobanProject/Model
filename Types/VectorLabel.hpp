@@ -94,6 +94,35 @@ class VectorLabel
         }
 
         /**
+         * Variadic template label, value
+         * mapping initialization
+         */
+        template <class ... LabelsValues>
+        VectorLabel(const std::string& label, double value, LabelsValues... labelsValues) :
+            _eigenVector(),
+            _labelToIndex(),
+            _indexToLabel()
+        {
+            appendAux(label, value);
+            append(labelsValues...);
+        }
+
+        /**
+         * Append given label and optional value
+         * to the vector container
+         */
+        inline void append(const std::string& label, double value = 0.0)
+        {
+            appendAux(label, value);
+        }
+        template <class ... LabelsValues>
+        inline void append(const std::string& label, double value, LabelsValues... labelsValues)
+        {
+            appendAux(label, value);
+            append(labelsValues...);
+        }
+
+        /**
          * Direct access to Eigen vector
          */
         inline const Vector& vect() const
@@ -245,6 +274,21 @@ class VectorLabel
                 _labelToIndex[oss.str()]  = i;
                 _indexToLabel.push_back(oss.str());
             }
+        }
+        
+        /**
+         * Append implementation
+         */
+        inline void appendAux(const std::string& label, double value)
+        {
+            if (_labelToIndex.count(label) != 0) {
+                throw std::logic_error("VectorLabel label error");
+            }
+            size_t len = size();
+            _eigenVector.conservativeResize(len+1, Eigen::NoChange_t());
+            _eigenVector(len) = value;
+            _labelToIndex[label] = len;
+            _indexToLabel.push_back(label);
         }
 };
 
