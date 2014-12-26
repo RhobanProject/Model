@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <stdexcept>
 #include <sstream>
-#include <Eigen/Dense>
+#include "Types/types.h"
 
 namespace Leph {
 
@@ -29,7 +29,6 @@ class VectorLabel
         typedef std::vector<std::string> IndexContainer;
         typedef std::vector<std::string> LabelList;
         typedef std::vector<std::pair<std::string, double>> PairList;
-        typedef Eigen::VectorXd EigenContainer;
 
         /**
          * Initialization
@@ -56,7 +55,7 @@ class VectorLabel
                 _labelToIndex[_indexToLabel[i]] = i;
             }
         }
-        VectorLabel(const EigenContainer& vect) :
+        VectorLabel(const Vector& vect) :
             _eigenVector(vect),
             _labelToIndex(),
             _indexToLabel()
@@ -64,7 +63,7 @@ class VectorLabel
             defaultLabels();
         }
         VectorLabel(const LabelList& labels, 
-            const EigenContainer& vect) :
+            const Vector& vect) :
             _eigenVector(vect),
             _labelToIndex(),
             _indexToLabel(labels)
@@ -97,11 +96,11 @@ class VectorLabel
         /**
          * Direct access to Eigen vector
          */
-        inline const EigenContainer& vect() const
+        inline const Vector& vect() const
         {
             return _eigenVector;
         }
-        inline EigenContainer& vect()
+        inline Vector& vect()
         {
             return _eigenVector;
         }
@@ -221,7 +220,7 @@ class VectorLabel
          * Double dynamic Eigen values
          * container vector
          */
-        EigenContainer _eigenVector;
+        Vector _eigenVector;
 
         /**
          * String label to index mapping
