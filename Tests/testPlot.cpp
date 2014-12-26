@@ -15,7 +15,9 @@ int main()
         plot.add(vect);
     }
     plot.rangeX(0.0, 10.0).rangeY(-2.0, 2.0)
-        .plot("index", "all").plot("index", "titi").render();
+        .plot("index", "titi", Leph::Plot::Points)
+        .plot("index", "all")
+        .render();
 
     return 0;
 }

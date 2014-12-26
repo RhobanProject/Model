@@ -24,6 +24,15 @@ class Plot
     public:
 
         /**
+         * Plot style enumeration
+         */
+        enum Style {
+            Points,
+            Lines,
+            LinesPoints,
+        };
+
+        /**
          * Initialization
          */
         Plot() :
@@ -51,7 +60,8 @@ class Plot
          * Y axis could be "all"
          */
         inline Plot& plot(const std::string& xAxis, 
-            const std::string& yAxis)
+            const std::string& yAxis, 
+            const Style style = LinesPoints)
         {
             for (size_t i=0;i<_plots2D.size();i++) {
                 if (_plots2D[i].xAxis == xAxis && _plots2D[i].yAxis == yAxis) {
@@ -62,7 +72,7 @@ class Plot
             if (yAxis == "all") {
                 for (const auto& label : _database.back().labels()) {
                     if (label.first != xAxis) {
-                        plot(xAxis, label.first);
+                        plot(xAxis, label.first, style);
                     }
                 }
                 return *this;
@@ -71,6 +81,7 @@ class Plot
             Plot2D request;
             request.xAxis = xAxis;
             request.yAxis = yAxis;
+            request.style = style;
             _plots2D.push_back(request);
 
             return *this;
@@ -178,6 +189,7 @@ class Plot
         struct Plot2D {
             std::string xAxis;
             std::string yAxis;
+            Style style;
         };
         struct Plot3D {
             std::string xAxis;
@@ -309,7 +321,16 @@ class Plot
                     commands += ", ";
                 }
                 isFirst = false;
-                commands += "'-' using 1:2 with linespoints";
+                commands += "'-' using 1:2 with ";
+                if (_plots2D[i].style == Points) {
+                    commands += "points";
+                }
+                if (_plots2D[i].style == Lines) {
+                    commands += "lines";
+                }
+                if (_plots2D[i].style == LinesPoints) {
+                    commands += "linespoints";
+                }
                 commands += " title '" + _plots2D[i].xAxis + " --> " + _plots2D[i].yAxis + "' ";
                 for (size_t j=0;j<_database.size();j++) {
                     if (
