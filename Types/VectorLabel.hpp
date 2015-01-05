@@ -35,6 +35,12 @@ class VectorLabel
          * If label are not given, default labes
          * are used
          */
+        VectorLabel() :
+            _eigenVector(),
+            _labelToIndex(),
+            _indexToLabel()
+        {
+        }
         VectorLabel(size_t size) :
             _eigenVector(size),
             _labelToIndex(),
@@ -105,7 +111,8 @@ class VectorLabel
             appendAux(label, value);
         }
         template <class ... LabelsValues>
-        VectorLabel(const std::string& label, double value, LabelsValues... labelsValues) :
+        VectorLabel(const std::string& label, 
+            double value, LabelsValues... labelsValues) :
             _eigenVector(),
             _labelToIndex(),
             _indexToLabel()
@@ -123,7 +130,8 @@ class VectorLabel
             appendAux(label, value);
         }
         template <class ... LabelsValues>
-        inline void append(const std::string& label, double value, LabelsValues... labelsValues)
+        inline void append(const std::string& label, 
+            double value, LabelsValues... labelsValues)
         {
             appendAux(label, value);
             append(labelsValues...);
@@ -221,6 +229,23 @@ class VectorLabel
         }
 
         /**
+         * Merge the two given VectorLabel and concat
+         * them
+         */
+        static inline VectorLabel merge(const VectorLabel& v1, 
+            const VectorLabel& v2)
+        {
+            VectorLabel merged = v1;
+            for (const auto& label : v2.labels()) {
+                if (!merged.exist(label.first)) {
+                    merged.append(label.first, v2(label.first));
+                } 
+            }
+
+            return merged;
+        }
+
+        /**
          * Print utility
          */
         inline void print(std::ostream& os = std::cout) const
@@ -306,6 +331,14 @@ inline std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
 {
     vect.print(os);
     return os;
+}
+
+/**
+ * Merge operator
+ */
+inline VectorLabel operator+(const VectorLabel& v1, const VectorLabel& v2)
+{
+    return VectorLabel::merge(v1, v2);
 }
 
 }

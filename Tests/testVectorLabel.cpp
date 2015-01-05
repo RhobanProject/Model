@@ -12,6 +12,10 @@ int main()
     std::cout << vect3 << std::endl;
     Leph::VectorLabel vect4({"l1", "l2", "l3"}, Eigen::VectorXd(3));
     std::cout << vect4 << std::endl;
+
+    std::cout << Leph::VectorLabel::merge(vect1, vect2) << std::endl;
+    std::cout << Leph::VectorLabel::merge(vect1, vect1) << std::endl;
+    std::cout << vect1 + vect2 << std::endl;
     
     Leph::VectorLabel vect5({
         std::make_pair("ll1", 1.0), 
