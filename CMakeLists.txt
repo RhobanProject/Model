@@ -23,10 +23,12 @@ set(SOURCES_FILES
     CartWalk/math_log.cpp  
     CartWalk/SigmabanLeg.cpp
     CartWalk/CartWalkProxy.cpp  
+    LinearRegression/SimpleLinearRegression.cpp
 )
 
 #Tests
 add_executable(testVectorLabel Tests/testVectorLabel.cpp ${SOURCES_FILES})
 add_executable(testCartWalkProxy Tests/testCartWalkProxy.cpp ${SOURCES_FILES})
 add_executable(testPlot Tests/testPlot.cpp ${SOURCES_FILES})
+add_executable(testSimpleLinearRegression Tests/testSimpleLinearRegression.cpp ${SOURCES_FILES})
 
