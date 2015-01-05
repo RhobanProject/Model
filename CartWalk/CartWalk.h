@@ -61,6 +61,8 @@ namespace Rhoban
 
             float a_l_hip_pitch, a_l_knee, a_l_foot_pitch, a_l_arm, a_l_hip_roll, a_l_hip_yaw, a_l_foot_roll;
             float a_r_hip_pitch, a_r_knee, a_r_foot_pitch, a_r_arm, a_r_hip_roll, a_r_hip_yaw, a_r_foot_roll;
+        
+            double sLX, sLY, sLZ, sRX, sRY, sRZ;
 
         protected:
             SigmabanLeg legModel;

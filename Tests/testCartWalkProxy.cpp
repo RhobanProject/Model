@@ -11,15 +11,16 @@ int main()
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
 
     dynamicParams("enabled") = 1;
-    
+    dynamicParams("step") = 10;
+        
     std::cout << outputs << std::endl;
     std::cout << staticParams << std::endl;
     std::cout << dynamicParams << std::endl;
 
     Leph::Plot plot;
     for (size_t i=0;i<50*5;i++) {
-        outputs = walk.exec(0.02, dynamicParams, staticParams);
-        plot.add(outputs);
+        walk.exec(0.02, dynamicParams, staticParams);
+        plot.add(walk.lastOutputs() + walk.lastInfo());
     }
     plot.plot("index", "all").render();
 

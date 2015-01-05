@@ -21,50 +21,61 @@ void CartWalkProxy::setPhase(double phase)
 
 VectorLabel CartWalkProxy::buildOutputs() const
 {
-    return VectorLabel({
-        std::make_pair("phase", 0.0),
-        std::make_pair("left hip pitch", 0.0),
-        std::make_pair("left hip roll", 0.0),
-        std::make_pair("left hip yaw", 0.0),
-        std::make_pair("left knee", 0.0),
-        std::make_pair("left foot pitch", 0.0),
-        std::make_pair("left foot roll", 0.0),
-        std::make_pair("left arm", 0.0),
-        std::make_pair("right hip pitch", 0.0),
-        std::make_pair("right hip roll", 0.0),
-        std::make_pair("right hip yaw", 0.0),
-        std::make_pair("right knee", 0.0),
-        std::make_pair("right foot pitch", 0.0),
-        std::make_pair("right foot roll", 0.0),
-        std::make_pair("right arm", 0.0)
-    });
+    return VectorLabel(
+        "left hip pitch", 0.0,
+        "left hip roll", 0.0,
+        "left hip yaw", 0.0,
+        "left knee", 0.0,
+        "left foot pitch", 0.0,
+        "left foot roll", 0.0,
+        "left arm", 0.0,
+        "right hip pitch", 0.0,
+        "right hip roll", 0.0,
+        "right hip yaw", 0.0,
+        "right knee", 0.0,
+        "right foot pitch", 0.0,
+        "right foot roll", 0.0,
+        "right arm", 0.0
+    );
+}
+VectorLabel CartWalkProxy::buildInfo() const
+{
+    return VectorLabel(
+        "phase", 0.0,
+        "left spline X", 0.0,
+        "left spline Y", 0.0,
+        "left spline Z", 0.0,
+        "right spline X", 0.0,
+        "right spline Y", 0.0,
+        "right spline Z", 0.0
+    );
 }
 VectorLabel CartWalkProxy::buildStaticParams() const
 {
-    return VectorLabel({
-        std::make_pair("timeGain", 2.75),
-        std::make_pair("riseGain", 2.7),
-        std::make_pair("swingGain", 0.4),
-        std::make_pair("swingPhase", 0.0),
-        std::make_pair("swingHeight", 0.0),
-        std::make_pair("armsGain", 0.0),
-        std::make_pair("xOffset", -0.7),
-        std::make_pair("yOffset", 1.0),
-        std::make_pair("zOffset", 4.0),
-        std::make_pair("yLat", 0.0),
-        std::make_pair("swingForce", 0.0),
-        std::make_pair("riseRatio", 0.5),
-        std::make_pair("riseStepPhase", 0.0)
-    });
+    return VectorLabel(
+        "timeGain", 2.75,
+        "riseGain", 2.7,
+        "swingGain", 0.4,
+        "swingPhase", 0.0,
+        "swingHeight", 0.0,
+        "armsGain", 0.0,
+        "xOffset", -0.7,
+        "yOffset", 1.0,
+        "zOffset", 4.0,
+        "yLat", 0.0,
+        "swingForce", 0.0,
+        "riseRatio", 0.5,
+        "riseStepPhase", 0.0
+    );
 }
 VectorLabel CartWalkProxy::buildDynamicParams() const
 {
-    return VectorLabel({
-        std::make_pair("enabled", 0),
-        std::make_pair("step", 0.0),
-        std::make_pair("lateral", 0.0),
-        std::make_pair("turn", 0.0)
-    });
+    return VectorLabel(
+        "enabled", 0,
+        "step", 0.0,
+        "lateral", 0.0,
+        "turn", 0.0
+    );
 }
         
 VectorLabel CartWalkProxy::exec(
@@ -94,7 +105,6 @@ VectorLabel CartWalkProxy::exec(
     _walk.tick(deltaTime);
     
     VectorLabel outputs = buildOutputs();
-    outputs("phase") = _walk.t;
     outputs("left hip pitch") = _walk.a_l_hip_pitch;
     outputs("left hip roll") = _walk.a_l_hip_roll;
     outputs("left hip yaw") = _walk.a_l_hip_yaw;
@@ -109,8 +119,29 @@ VectorLabel CartWalkProxy::exec(
     outputs("right foot pitch") = _walk.a_r_foot_pitch;
     outputs("right foot roll") = _walk.a_r_foot_roll;
     outputs("right arm") = _walk.a_r_arm;
+    
+    VectorLabel info = buildInfo();
+    info("phase") = _walk.t;
+    info("left spline X") = _walk.sLX;
+    info("left spline Y") = _walk.sLY;
+    info("left spline Z") = _walk.sLZ;
+    info("right spline X") = _walk.sRX;
+    info("right spline Y") = _walk.sRY;
+    info("right spline Z") = _walk.sRZ;
+
+    _lastOutputs = outputs;
+    _lastInfo = info;
 
     return outputs;
+}
+        
+VectorLabel CartWalkProxy::lastOutputs() const
+{
+    return _lastOutputs;
+}
+VectorLabel CartWalkProxy::lastInfo() const
+{
+    return _lastInfo;
 }
 
 }

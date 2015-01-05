@@ -61,7 +61,6 @@ namespace Rhoban
             return;
         }
             
-        double sLX, sLY, sLZ, sRX, sRY, sRZ;
         sLX = sLY = sLZ = sRX = sRY = sRZ = 0.0;
         
         double smoothing = 0.2;
@@ -148,7 +147,7 @@ namespace Rhoban
             enabledRatio = 0.0;
         }
         */
-        double enabledRatio = 1.0;
+        double enabledRatio = isEnabled;
 
         // Computing X, Y & Z
         lX = xOffset + enabledRatio*step.getMod(t)*l_stepGain;
