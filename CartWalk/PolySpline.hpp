@@ -160,6 +160,9 @@ class PolySpline
             */
 
             for (size_t i=1;i<_points.size();i++) {
+                if (fabs(_points[i-1].position - _points[i].position) < 0.00001) {
+                    continue;
+                }
                 struct Spline spline = {
                     polynomFit(
                         _points[i-1].value, _points[i-1].delta,
