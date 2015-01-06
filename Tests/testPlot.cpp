@@ -18,8 +18,9 @@ int main()
     plot.add(Leph::VectorLabel("tutu", 0.0));
     plot
         .rangeX(0.0, 120.0).rangeY(-20.0, 20.0)
-        .plot("index", "titi", Leph::Plot::Points)
         .plot("index", "all")
+        .plot("index", "titi", Leph::Plot::Points)
+        .plot("index", "tata", Leph::Plot::Points, "toto")
         .render();
 
     return 0;

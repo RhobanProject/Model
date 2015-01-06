@@ -61,10 +61,15 @@ class Plot
          */
         inline Plot& plot(const std::string& xAxis, 
             const std::string& yAxis, 
-            const Style style = LinesPoints)
+            const Style style = LinesPoints,
+            const std::string& palette = "")
         {
             for (size_t i=0;i<_plots2D.size();i++) {
                 if (_plots2D[i].xAxis == xAxis && _plots2D[i].yAxis == yAxis) {
+                    _plots2D[i].xAxis = xAxis;
+                    _plots2D[i].yAxis = yAxis;
+                    _plots2D[i].style = style;
+                    _plots2D[i].palette = palette;
                     return *this;
                 }
             }
@@ -73,7 +78,7 @@ class Plot
                 for (size_t i=0;i<_database.size();i++) {
                     for (const auto& label : _database[i].labels()) {
                         if (label.first != xAxis) {
-                            plot(xAxis, label.first, style);
+                            plot(xAxis, label.first, style, palette);
                         }
                     }
                 }
@@ -83,6 +88,7 @@ class Plot
                 request.xAxis = xAxis;
                 request.yAxis = yAxis;
                 request.style = style;
+                request.palette = palette;
                 _plots2D.push_back(request);
                 return *this;
             }
@@ -94,23 +100,43 @@ class Plot
          * Y axis could be "index"
          */
         inline Plot& plot(const std::string& xAxis, 
-            const std::string& yAxis, const std::string& zAxis)
+            const std::string& yAxis, const std::string& zAxis,
+            const Style style = Points,
+            const std::string& palette = "")
         {
-            for (size_t i=0;i<_plots2D.size();i++) {
+            for (size_t i=0;i<_plots3D.size();i++) {
                 if (_plots3D[i].xAxis == xAxis && 
                     _plots3D[i].yAxis == yAxis &&
-                    _plots3D[i].zAxis == zAxis) {
+                    _plots3D[i].zAxis == zAxis
+                ) {
+                    _plots3D[i].xAxis = xAxis;
+                    _plots3D[i].yAxis = yAxis;
+                    _plots3D[i].zAxis = zAxis;
+                    _plots3D[i].style = style;
+                    _plots3D[i].palette = palette;
                     return *this;
                 }
             }
 
-            Plot3D request;
-            request.xAxis = xAxis;
-            request.yAxis = yAxis;
-            request.zAxis = zAxis;
-            _plots3D.push_back(request);
-            
-            return *this;
+            if (zAxis == "all") {
+                for (size_t i=0;i<_database.size();i++) {
+                    for (const auto& label : _database[i].labels()) {
+                        if (label.first != xAxis && label.first != yAxis) {
+                            plot(xAxis, yAxis, label.first, style, palette);
+                        }
+                    }
+                }
+                return *this;
+            } else {
+                Plot3D request;
+                request.xAxis = xAxis;
+                request.yAxis = yAxis;
+                request.zAxis = zAxis;
+                request.style = style;
+                request.palette = palette;
+                _plots3D.push_back(request);
+                return *this;
+            }
         }
 
         /**
@@ -191,11 +217,14 @@ class Plot
             std::string xAxis;
             std::string yAxis;
             Style style;
+            std::string palette;
         };
         struct Plot3D {
             std::string xAxis;
             std::string yAxis;
             std::string zAxis;
+            Style style;
+            std::string palette;
         };
 
         /**
@@ -318,11 +347,16 @@ class Plot
             
             bool isFirst = true;
             for (size_t i=0;i<_plots2D.size();i++) {
+                bool isPalette = _plots2D[i].palette != "";
                 if (!isFirst) {
                     commands += ", ";
                 }
                 isFirst = false;
-                commands += "'-' using 1:2 with ";
+                if (isPalette) {
+                    commands += "'-' using 1:2:3 palette with ";
+                } else {
+                    commands += "'-' using 1:2 with ";
+                }
                 if (_plots2D[i].style == Points) {
                     commands += "points";
                 }
@@ -332,12 +366,21 @@ class Plot
                 if (_plots2D[i].style == LinesPoints) {
                     commands += "linespoints";
                 }
-                commands += " title '" + _plots2D[i].xAxis + " --> " + _plots2D[i].yAxis + "' ";
+                if (isPalette) {
+                    commands += " title '" + _plots2D[i].xAxis 
+                        + " --> " + _plots2D[i].yAxis + " // " + _plots2D[i].palette + "' ";
+                } else {
+                    commands += " title '" + _plots2D[i].xAxis 
+                        + " --> " + _plots2D[i].yAxis + "' ";
+                }
                 for (size_t j=0;j<_database.size();j++) {
                     if (
                         (_plots2D[i].xAxis != "index" &&
                         !_database[j].exist(_plots2D[i].xAxis)) || 
-                        !_database[j].exist(_plots2D[i].yAxis)
+                        !_database[j].exist(_plots2D[i].yAxis) ||
+                        (isPalette && 
+                        _plots2D[i].palette != "index" &&
+                        !_database[j].exist(_plots2D[i].palette))
                     ) {
                         continue;
                     }
@@ -348,24 +391,54 @@ class Plot
                         oss << _database[j](_plots2D[i].xAxis) << " " 
                             << _database[j](_plots2D[i].yAxis);
                     }
+                    if (isPalette) {
+                        if (_plots2D[i].palette == "index") {
+                            oss << " " << j;
+                        } else {
+                            oss << " " << _database[j](_plots2D[i].palette);
+                        }
+                    }
                     data += oss.str() + "\n";
                 }
                 data += "end\n";
             }
             for (size_t i=0;i<_plots3D.size();i++) {
+                bool isPalette = _plots3D[i].palette != "";
                 if (!isFirst) {
                     commands += ", ";
                 }
                 isFirst = false;
-                commands += "'-' using 1:2:3 with points";
-                commands += " title '" + _plots3D[i].xAxis + "," + _plots3D[i].yAxis + " --> " + _plots3D[i].zAxis + "' ";
+                if (isPalette) {
+                    commands += "'-' using 1:2:3:4 palette with ";
+                } else {
+                    commands += "'-' using 1:2:3 with ";
+                }
+                if (_plots3D[i].style == Points) {
+                    commands += "points";
+                }
+                if (_plots3D[i].style == Lines) {
+                    commands += "lines";
+                }
+                if (_plots3D[i].style == LinesPoints) {
+                    commands += "linespoints";
+                }
+                if (isPalette) {
+                    commands += " title '" + _plots3D[i].xAxis + "," + _plots3D[i].yAxis 
+                        + " --> " + _plots3D[i].zAxis + " // " + _plots3D[i].palette + "' ";
+                } else {
+                    commands += " title '" + _plots3D[i].xAxis + "," + _plots3D[i].yAxis 
+                        + " --> " + _plots3D[i].zAxis + "' ";
+                }
                 for (size_t j=0;j<_database.size();j++) {
                     if (
                         (_plots3D[i].xAxis != "index" &&
                         !_database[j].exist(_plots3D[i].xAxis)) || 
                         (_plots3D[i].yAxis != "index" &&
                         !_database[j].exist(_plots3D[i].yAxis)) || 
-                        !_database[j].exist(_plots3D[i].zAxis)
+                        !_database[j].exist(_plots3D[i].zAxis) ||
+                        (isPalette && 
+                        _plots3D[i].palette != "index" &&
+                        !_database[j].exist(_plots3D[i].palette))
                     ) {
                         continue;
                     }
@@ -381,6 +454,13 @@ class Plot
                         oss << _database[j](_plots3D[i].yAxis) << " ";
                     }
                     oss << _database[j](_plots3D[i].zAxis);
+                    if (isPalette) {
+                        if (_plots3D[i].palette == "index") {
+                            oss << " " << j;
+                        } else {
+                            oss << " " << _database[j](_plots3D[i].palette);
+                        }
+                    }
                     data += oss.str() + "\n";
                 }
                 data += "end\n";
