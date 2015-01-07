@@ -186,7 +186,7 @@ class Plot
             createGnuplotInstance();
             doPlotting();
             waitCloseGnuplotInstance();
-            clear();
+            clearPlots();
         }
 
         /**
