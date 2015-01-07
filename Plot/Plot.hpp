@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <stdexcept>
+#include <iostream>
+#include <fstream>
 #include <sstream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -169,7 +171,7 @@ class Plot
          * Render the plot
          * Wait until plot window is closed
          */
-        inline void render()
+        inline void render(const std::string& exportFile = "")
         {
             if (_plots2D.size() > 0 && _plots3D.size() > 0) {
                 throw std::logic_error("Plot error 2d and 3d request");
@@ -178,14 +180,22 @@ class Plot
                 return;
             }
 
-            if (_plots2D.size() > 0) {
-            }
-            if (_plots3D.size() > 0) {
+            std::string commands = generatePlotting();
+            
+            if (exportFile == "") {
+                createGnuplotInstance();
+                if (_pipeFd <= 0) {
+                    throw std::logic_error("Plot closed pipe fd");
+                }
+                write(_pipeFd, commands.c_str(), commands.length());
+                waitCloseGnuplotInstance();
+            } else {
+                std::ofstream file;
+                file.open(exportFile);
+                file << commands;
+                file.close();
             }
             
-            createGnuplotInstance();
-            doPlotting();
-            waitCloseGnuplotInstance();
             clearPlots();
         }
 
@@ -309,34 +319,30 @@ class Plot
         }
 
         /**
-         * Send data and plot commands to GnuPlot instance
+         * Generate and return Gnuplot commands and data
          */
-        inline void doPlotting()
+        inline std::string generatePlotting()
         {
-            if (_pipeFd <= 0) {
-                throw std::logic_error("Plot closed pipe fd");
-            }
-            
             std::string commands;
             std::string data;
 
-            commands += "set grid;";
+            commands += "set grid;\n";
             if (_rangeMinX < _rangeMaxX) {
                 std::ostringstream oss;
                 oss << "set xrange[" << _rangeMinX;
-                oss << ":" << _rangeMaxX << "];";
+                oss << ":" << _rangeMaxX << "];\n";
                 commands += oss.str();
             }
             if (_rangeMinY < _rangeMaxY) {
                 std::ostringstream oss;
                 oss << "set yrange[" << _rangeMinY;
-                oss << ":" << _rangeMaxY << "];";
+                oss << ":" << _rangeMaxY << "];\n";
                 commands += oss.str();
             }
             if (_rangeMinZ < _rangeMaxZ) {
                 std::ostringstream oss;
                 oss << "set zrange[" << _rangeMinZ;
-                oss << ":" << _rangeMaxZ << "];";
+                oss << ":" << _rangeMaxZ << "];\n";
                 commands += oss.str();
             }
 
@@ -470,9 +476,7 @@ class Plot
             commands += ";\n";
             data += "pause mouse close;\nquit;\nquit;\n";
 
-            //Sending commands and data to GnuPlot
-            write(_pipeFd, commands.c_str(), commands.length());
-            write(_pipeFd, data.c_str(), data.length());
+            return commands + data;
         }
 };
 

@@ -22,6 +22,12 @@ int main()
         .plot("index", "titi", Leph::Plot::Points)
         .plot("index", "tata", Leph::Plot::Points, "toto")
         .render();
+    plot
+        .rangeX(0.0, 120.0).rangeY(-20.0, 20.0)
+        .plot("index", "all")
+        .plot("index", "titi", Leph::Plot::Points)
+        .plot("index", "tata", Leph::Plot::Points, "toto")
+        .render("/tmp/plot");
 
     return 0;
 }
