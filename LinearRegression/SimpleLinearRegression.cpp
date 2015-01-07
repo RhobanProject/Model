@@ -88,23 +88,36 @@ double SimpleLinearRegression::correlationCoefficient() const
     
     Vector sumSquared = _outputs - meanVect;
     Vector residuals = _outputs - (_params.transpose()*_inputs).transpose();
-    
-    return 1.0 - residuals.squaredNorm()/sumSquared.squaredNorm();
+    double ss = sumSquared.squaredNorm();
+
+    if (fabs(ss) < 0.0001) {
+        return 1.0;
+    } else {
+        return 1.0 - residuals.squaredNorm()/ss;
+    }
 }
 
 double SimpleLinearRegression::variance() const
 {
-    if (count() <= dimension() ) {
-        throw std::logic_error("SimpleLinearRegression not enough data");
+    if (count() == 0 || dimension() == 0) {
+        throw std::logic_error("SimpleLinearRegression empty data");
     }
     
-    Vector residuals = _outputs - (_params.transpose()*_inputs).transpose();
-    return residuals.squaredNorm()/(count()-dimension()-1);
+    if (count() > 1) {
+        Vector residuals = _outputs - (_params.transpose()*_inputs).transpose();
+        return residuals.squaredNorm()/(count()-1.0);
+    } else {
+        return 0.0;
+    }
 }
 
 double SimpleLinearRegression::predictionBound(const Vector& input, 
     bool withVariance) const
 {
+    if (count() == 0 || dimension() == 0) {
+        throw std::logic_error("SimpleLinearRegression empty data");
+    }
+
     double var = variance();
 
     Vector meanInput = Vector::Zero(dimension());
@@ -118,12 +131,32 @@ double SimpleLinearRegression::predictionBound(const Vector& input,
         sumX += (_inputs.col(i) - meanInput).squaredNorm();
     }
 
-    //1.7 is about 95% confidence bound for 20 learning data point (Students law)
-    return 1.7*sqrt(
-        var*(
-        (withVariance ? 1.0 : 0.0) + 
-        1.0/count() + 
-        (input - meanInput).squaredNorm()/sumX));
+    if (fabs(sumX) < 0.0001) {
+        //1.7 is about 95% confidence bound for 20 learning data point (Students law)
+        return 1.7*sqrt(
+            var*(
+            (withVariance ? 1.0 : 0.0) + 
+            1.0/count()));
+    } else {
+        //1.7 is about 95% confidence bound for 20 learning data point (Students law)
+        return 1.7*sqrt(
+            var*(
+            (withVariance ? 1.0 : 0.0) + 
+            1.0/count() + 
+            (input - meanInput).squaredNorm()/sumX));
+    }
+}
+        
+void SimpleLinearRegression::print(std::ostream& os) const
+{
+    os << "SimpleLinearRegression count=" << count() 
+        << " dim=" << dimension() << std::endl;
+    os << "Parameters: " << _params.transpose() << std::endl;
+    os << "MSE: " << meanSquaredError() << std::endl;
+    os << "RMSE: " << rootMeanSquaredError() << std::endl;
+    os << "R^2: " << correlationCoefficient() << std::endl;
+    os << "Var: " << variance() << std::endl;
+    os << "Std: " << sqrt(variance()) << std::endl;
 }
 
 

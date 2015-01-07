@@ -2,6 +2,7 @@
 #define LEPH_SIMPLELINEARREGRESSION_HPP
 
 #include <vector>
+#include <iostream>
 #include "Types/types.h"
 
 namespace Leph {
@@ -85,6 +86,13 @@ class SimpleLinearRegression
          */
         double predictionBound(const Vector& input, 
             bool withVariance = true) const;
+
+        /**
+         * Print regression informations
+         * (only available after the 
+         * regression is done)
+         */
+        void print(std::ostream& os = std::cout) const;
 
     private:
 

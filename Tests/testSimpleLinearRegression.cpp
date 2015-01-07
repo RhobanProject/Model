@@ -36,19 +36,16 @@ int main()
             "boundsLower", reg.prediction(input)-reg.predictionBound(input, false),
             "target", function(x))); 
     }
+    
+    reg.print();
+    
     plot
+        .plot("x", "all", Leph::Plot::Points)
         .plot("x", "boundsUpperNoise", Leph::Plot::Lines)
         .plot("x", "boundsLowerNoise", Leph::Plot::Lines)
         .plot("x", "boundsUpper", Leph::Plot::Lines)
         .plot("x", "boundsLower", Leph::Plot::Lines)
-        .plot("x", "all", Leph::Plot::Points)
         .render();
-    std::cout << "parameters: " << std::endl << parameters << std::endl;
-    std::cout << "meanSquaredError:" << reg.meanSquaredError() << std::endl;
-    std::cout << "rootMeanSquaredError:" << reg.rootMeanSquaredError() << std::endl;
-    std::cout << "correlationCoefficient: " << reg.correlationCoefficient() << std::endl;
-    std::cout << "variance:" << reg.variance() << std::endl;
-    std::cout << "deviation:" << sqrt(reg.variance()) << std::endl;
 
     return 0;
 }
