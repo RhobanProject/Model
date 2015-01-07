@@ -6,6 +6,7 @@
 #include <sstream>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "Types/VectorLabel.hpp"
@@ -166,6 +167,7 @@ class Plot
 
         /**
          * Render the plot
+         * Wait until plot window is closed
          */
         inline void render()
         {
@@ -181,10 +183,9 @@ class Plot
             if (_plots3D.size() > 0) {
             }
             
-            closeGnuplotInstance();
             createGnuplotInstance();
             doPlotting();
-            closeGnuplotInstance();
+            waitCloseGnuplotInstance();
             clear();
         }
 
@@ -288,18 +289,19 @@ class Plot
                     throw std::runtime_error("Plot failed to dup2");
                 }
                 //Calling Gnuplot
-                execlp("gnuplot", "gnuplot", "-p", "-", NULL);
+                execlp("gnuplot", "gnuplot", "-", NULL);
             } else {
                 throw std::runtime_error("Plot failed to fork");
             }
         }
 
         /**
-         * Close the openned pipe to GnuPlot window instance
-         * (Gnuplot window is not close)
+         * Wait for end of gnuplot session and
+         * close the openned pipe to GnuPlot window instance
          */
-        inline void closeGnuplotInstance()
+        inline void waitCloseGnuplotInstance()
         {
+            waitpid(-1, NULL, 0);
             if (_pipeFd != -1) {
                 close(_pipeFd);
                 _pipeFd = -1;
@@ -466,6 +468,7 @@ class Plot
                 data += "end\n";
             }
             commands += ";\n";
+            data += "pause mouse close;\nquit;\nquit;\n";
 
             //Sending commands and data to GnuPlot
             write(_pipeFd, commands.c_str(), commands.length());
