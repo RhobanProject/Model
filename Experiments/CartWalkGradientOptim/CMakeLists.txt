@@ -19,6 +19,9 @@ set(SDK_BUILD_DIRECTORY "/home/rhoban/Edu/build" CACHE STRING "RhobanSdkBuild di
 set(SOURCES
     main.cpp
 )
+
+#Enable C++11
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
    
 # Header includes
 include_directories(
