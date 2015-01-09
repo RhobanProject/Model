@@ -3,17 +3,34 @@ project(ExperimentCartWalkGradientOptim)
 
 #Rhoban dependencies repositories paths for headers inclusion
 set(RHOBAN_MATH_DIRECTORY
-    "/home/rhoban/Math/" CACHE STRING "RhobanMath directory")
+    "/home/rhoban/Math/" 
+    CACHE STRING "RhobanMath directory")
 set(RHOBAN_COMMON_DIRECTORY
-    "/home/rhoban/Common/" CACHE STRING "RhobanCommon directory")
+    "/home/rhoban/Common/" 
+    CACHE STRING "RhobanCommon directory")
 set(RHOBAN_UTILS_DIRECTORY
-    "/home/rhoban/Utils/" CACHE STRING "RhobanUtils directory")
+    "/home/rhoban/Utils/" 
+    CACHE STRING "RhobanUtils directory")
 
 #Rhoban C++ SDK directory path
-set(RHOBAN_SDK_DIRECTORY "/home/rhoban/Edu/sdk/cpp" CACHE STRING "RhobanSdk cpp directory")
+set(RHOBAN_SDK_DIRECTORY 
+    "/home/rhoban/Edu/sdk/cpp" 
+    CACHE STRING "RhobanSdk cpp directory")
 
 #Path to a SDK build directory (with SDK, Utils, Common and library binaries)
-set(SDK_BUILD_DIRECTORY "/home/rhoban/Edu/build" CACHE STRING "RhobanSdkBuild directory")
+set(SDK_BUILD_DIRECTORY 
+    "/home/rhoban/Edu/build" 
+    CACHE STRING "RhobanSdkBuild directory")
+
+#Thesis Code directory
+set(LEPH_CODE_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    CACHE STRING "LephCode directory")
+
+#Eigen linear algebra library directory
+set(EIGEN_DIRECTORY
+    ${RHOBAN_UTILS_DIRECTORY}/eigen-3.2/
+    CACHE STRING "Eigen library directory")
 
 #Experiment source files
 set(SOURCES
@@ -31,6 +48,8 @@ include_directories(
     ${RHOBAN_SDK_DIRECTORY}
     ${RHOBAN_SDK_DIRECTORY}/rhoban
     ${SDK_BUILD_DIRECTORY}/common/
+    ${LEPH_CODE_DIRECTORY}
+    ${EIGEN_DIRECTORY}
 )
 
 link_directories(
@@ -41,8 +60,13 @@ link_directories(
     ${SDK_BUILD_DIRECTORY}/utils/xml/TinyXml
 )
 
+#Build Leph Code
+add_subdirectory(${LEPH_CODE_DIRECTORY} ${CMAKE_CURRENT_BINARY_DIR}/LephCode)
+
+#Build Experiment
 add_executable(ExperimentCartWalkGradientOptim ${SOURCES})
 target_link_libraries(ExperimentCartWalkGradientOptim 
+    LephCode
     RhobanSDKMain 
     RhobanCommon 
     RhobanUtils
