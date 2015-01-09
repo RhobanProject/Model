@@ -6,6 +6,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(Thesis)
 
+#Option for compiling the tests
+option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
+
+#Include sources directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 #Include Eigen (linear algebra template library)
@@ -25,12 +29,31 @@ set(SOURCES_FILES
     CartWalk/CartWalkProxy.cpp  
     CartWalk/CartWalkGradient.cpp  
     LinearRegression/SimpleLinearRegression.cpp
+    Gradient/FiniteDifferenceGradient.cpp
+    Utils/GeometricMedian.cpp
 )
 
-#Tests
-add_executable(testVectorLabel Tests/testVectorLabel.cpp ${SOURCES_FILES})
-add_executable(testCartWalkProxy Tests/testCartWalkProxy.cpp ${SOURCES_FILES})
-add_executable(testPlot Tests/testPlot.cpp ${SOURCES_FILES})
-add_executable(testSimpleLinearRegression Tests/testSimpleLinearRegression.cpp ${SOURCES_FILES})
-add_executable(testCartWalkGradient Tests/testCartWalkGradient.cpp ${SOURCES_FILES})
+#Tests main files
+set(TESTS_FILES
+    testVectorLabel
+    testCartWalkProxy
+    testPlot
+    testSimpleLinearRegression
+    testCartWalkGradient
+    testFiniteDifferenceGradient
+    testReweightedLinearRegression
+    testGeometricMedian
+    testMedianLinearRegression
+)
+
+#Build Code as static library
+add_library(LephCode STATIC ${SOURCES_FILES})
+
+#Build Tests
+if (BUILD_LEPH_CODE_TESTS)
+    foreach (TEST ${TESTS_FILES})
+        add_executable(${TEST} Tests/${TEST}.cpp)
+        target_link_libraries(${TEST} LephCode)
+    endforeach ()
+endif (BUILD_LEPH_CODE_TESTS)
 
