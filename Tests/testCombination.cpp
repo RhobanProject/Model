@@ -1,3 +1,4 @@
+#include <limits>
 #include <iostream>
 #include <cassert>
 #include "Utils/Combination.hpp"
@@ -20,6 +21,15 @@ int main()
         count++;
     }
     assert(count == 10);
+    
+    std::cout << combination.binomialCoefficient(15, 100) << std::endl;
+    std::cout << std::numeric_limits<unsigned long>::max() << std::endl;
+    try {
+        std::cout << combination.binomialCoefficient(18, 100) << std::endl;
+        assert(false);
+    } catch (...) {
+        std::cout << "Exception Overflow OK" << std::endl;
+    }
 
     return 0;
 }

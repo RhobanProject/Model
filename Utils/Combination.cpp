@@ -1,3 +1,4 @@
+#include <limits>
 #include <stdexcept>
 #include "Utils/Combination.hpp"
 
@@ -22,9 +23,16 @@ unsigned long Combination::binomialCoefficient(
 
     Pair pair(k, n);
     if (_pascalTriangle.count(pair) == 0) {
-        _pascalTriangle[pair] = 
-            binomialCoefficient(k-1, n-1) + 
-            binomialCoefficient(k, n-1);
+        unsigned long val1 = binomialCoefficient(k-1, n-1);
+        unsigned long val2 = binomialCoefficient(k, n-1);
+        unsigned long test = 
+            std::numeric_limits<unsigned long>::max()
+            - val1;
+        if (val2 < test) {
+            _pascalTriangle[pair] = val1 + val2;
+        } else {
+            throw std::runtime_error("Combination overflow");
+        }
     }
 
     return _pascalTriangle[pair];

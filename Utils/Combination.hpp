@@ -43,15 +43,14 @@ class Combination
         /**
          * Typedefs
          */
-        typedef unsigned long bigInt;
-        typedef std::pair<bigInt, bigInt> Pair;
+        typedef std::pair<unsigned long, unsigned long> Pair;
         typedef std::vector<size_t> Comb;
 
         /**
          * Hold (n choose k) number of possible 
          * combinations for dynamic programming
          */
-        std::map<Pair, bigInt> _pascalTriangle;
+        std::map<Pair, unsigned long> _pascalTriangle;
 
         /**
          * Current indexes container and
