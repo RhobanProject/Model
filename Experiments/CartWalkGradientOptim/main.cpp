@@ -12,6 +12,9 @@
 #include "Types/VectorLabel.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
 
+//UTILS
+#include "MotionCapture.hpp"
+
 void forwardMotorsOrders(Rhoban::Motors* motors, const Leph::VectorLabel& outputs)
 {
     motors->get("Pied G")->setAngle(outputs("left foot roll"));
@@ -65,6 +68,11 @@ int main()
     Leph::VectorLabel staticParams = walk.buildStaticParams();
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
     std::cout << (staticParams+dynamicParams) << std::endl;
+
+    Rhoban::MotionCapture motionCapture;
+    motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
+    motionCapture.averageCoefPos = 0.9;
+    motionCapture.maxInvalidTick = 3;
     
     try {
         std::cout << "Connection..." << std::endl;
@@ -95,7 +103,13 @@ int main()
 
         const double freq = 5.0;
         for (double t=0.0;t<=60.0;t+=1.0/freq) {
+            motionCapture.tick(1.0/freq);
             std::cout << retrieveMotorsAngle(motors) << std::endl;
+            std::cout << motionCapture.pos.isValid << std::endl;
+            std::cout << motionCapture.pos.x << " " 
+                      << motionCapture.pos.y << " "
+                      << motionCapture.pos.z << " "
+                      << motionCapture.pos.azimuth << std::endl;
             std::this_thread::sleep_for(
                     std::chrono::milliseconds((int)(1000/freq)));
         }
