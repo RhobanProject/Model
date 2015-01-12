@@ -120,7 +120,7 @@ int main()
         double deltaStep = 0.0;
         double deltaLateral = 0.0;
         double deltaTurn = 0.0;
-        double discountCoef = 0.9;
+        double discountCoef = 0.85;
         while (!askedExit) {
             motionCapture.tick(1.0/freq);
             bool isValid = motionCapture.pos.isValid;
@@ -131,25 +131,26 @@ int main()
             if (isValid) {
                 deltaStep = discountCoef*deltaStep + (1.0-discountCoef)*10.0*forwardError;
                 deltaLateral = discountCoef*deltaLateral + (1.0-discountCoef)*50.0*lateralError;
-                deltaTurn = discountCoef*deltaTurn + (1.0-discountCoef)*1.0*turnError;
+                deltaTurn = discountCoef*deltaTurn + (1.0-discountCoef)*5.0*turnError;
             }
 
             if (isValid) {
                 std::cout << deltaStep << " " << deltaLateral << " " << deltaTurn << std::endl;
+                std::cout << motionCapture.pos.azimuth << " ---> " << turnError << std::endl;
             } else {
                 std::cout << "No motion capture" << std::endl;
             }
 
             dynamicParams("step") = 6.0; //Treadmill speed=4
             dynamicParams("turn") = -4.0 + deltaTurn;
-            dynamicParams("lateral") = 0.0;
+            dynamicParams("lateral") = 0.0 + deltaLateral;
 
             if (dynamicParams("step") > 12.0) dynamicParams("step") = 12.0;
             if (dynamicParams("step") < 2.0) dynamicParams("step") = 2.0;
             if (dynamicParams("lateral") > 8.0) dynamicParams("lateral") = 8.0;
             if (dynamicParams("lateral") < -8.0) dynamicParams("lateral") = -8.0;
-            if (dynamicParams("turn") > 30.0) dynamicParams("turn") = 30.0;
-            if (dynamicParams("turn") < -30.0) dynamicParams("turn") = -30.0;
+            if (dynamicParams("turn") > 50.0) dynamicParams("turn") = 50.0;
+            if (dynamicParams("turn") < -50.0) dynamicParams("turn") = -50.0;
 
             walk.exec(1.0/freq, dynamicParams, staticParams);
             Leph::VectorLabel outputs = walk.lastOutputs();
