@@ -69,10 +69,12 @@ int main()
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
     std::cout << (staticParams+dynamicParams) << std::endl;
 
+    /*
     Rhoban::MotionCapture motionCapture;
     motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
     motionCapture.averageCoefPos = 0.9;
     motionCapture.maxInvalidTick = 3;
+    */
     
     try {
         std::cout << "Connection..." << std::endl;
@@ -87,20 +89,22 @@ int main()
         std::cout << "Starting motors dispatcher" << std::endl;
         motors->start(100);
         std::this_thread::sleep_for(std::chrono::seconds(2));
-
-        /*
-        std::cout << "Walk enable=0" << std::endl;
-        dynamicParams("enabled") = 0;
+        
+        dynamicParams("step") = 6;
         staticParams("zOffset") = 3;
         staticParams("riseGain") = 4;
-        runWalk(motors, walk, staticParams, dynamicParams, 3.0);
-        dynamicParams("enabled") = 1;
-        dynamicParams("step") = 6;
-        runWalk(motors, walk, staticParams, dynamicParams, 6.0);
+
+        std::cout << "Walk disabled" << std::endl;
         dynamicParams("enabled") = 0;
         runWalk(motors, walk, staticParams, dynamicParams, 3.0);
-        */
+        std::cout << "Walk enabled" << std::endl;
+        dynamicParams("enabled") = 1;
+        runWalk(motors, walk, staticParams, dynamicParams, 8.0);
+        std::cout << "Walk disabled" << std::endl;
+        dynamicParams("enabled") = 0;
+        runWalk(motors, walk, staticParams, dynamicParams, 3.0);
 
+        /*
         const double freq = 5.0;
         for (double t=0.0;t<=60.0;t+=1.0/freq) {
             motionCapture.tick(1.0/freq);
@@ -113,6 +117,7 @@ int main()
             std::this_thread::sleep_for(
                     std::chrono::milliseconds((int)(1000/freq)));
         }
+        */
         
         /*
         std::cout << "Walk enable=1" << std::endl;
