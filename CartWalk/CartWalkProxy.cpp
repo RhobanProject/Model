@@ -65,7 +65,8 @@ VectorLabel CartWalkProxy::buildStaticParams() const
         "yLat", 0.0,
         "swingForce", 0.0,
         "riseRatio", 0.5,
-        "riseStepPhase", 0.0
+        "riseStepPhase", 0.0,
+        "hipOffset", -17
     );
 }
 VectorLabel CartWalkProxy::buildDynamicParams() const
@@ -75,6 +76,63 @@ VectorLabel CartWalkProxy::buildDynamicParams() const
         "step", 0.0,
         "lateral", 0.0,
         "turn", 0.0
+    );
+}
+
+VectorLabel CartWalkProxy::buildStaticParamsMin() const
+{
+    return VectorLabel(
+        "timeGain", 1.0,
+        "riseGain", 1.0,
+        "swingGain", 0.0,
+        "swingPhase", 0.0,
+        "swingHeight", 0.0,
+        "armsGain", -20.0,
+        "xOffset", -0.7,
+        "yOffset", 1.0,
+        "zOffset", 4.0,
+        "yLat", 0.0,
+        "swingForce", 0.0,
+        "riseRatio", 0.5,
+        "riseStepPhase", 0.0,
+        "hipOffset", 0.0
+    );
+}
+VectorLabel CartWalkProxy::buildStaticParamsMax() const
+{
+    return VectorLabel(
+        "timeGain", 3.0,
+        "riseGain", 4.0,
+        "swingGain", 2.0,
+        "swingPhase", 7.0,
+        "swingHeight", 0.0,
+        "armsGain", 20.0,
+        "xOffset", -0.7,
+        "yOffset", 1.0,
+        "zOffset", 4.0,
+        "yLat", 0.0,
+        "swingForce", 0.0,
+        "riseRatio", 0.5,
+        "riseStepPhase", 0.0,
+        "hipOffset", 0.0
+    );
+}
+VectorLabel CartWalkProxy::buildDynamicParamsMin() const
+{
+    return VectorLabel(
+        "enabled", 0,
+        "step", -4.0,
+        "lateral", -10.0,
+        "turn", -40.0
+    );
+}
+VectorLabel CartWalkProxy::buildDynamicParamsMax() const
+{
+    return VectorLabel(
+        "enabled", 1,
+        "step", 10.0,
+        "lateral", 10.0,
+        "turn", 40.0
     );
 }
         
@@ -119,6 +177,9 @@ VectorLabel CartWalkProxy::exec(
     outputs("right foot pitch") = _walk.a_r_foot_pitch;
     outputs("right foot roll") = _walk.a_r_foot_roll;
     outputs("right arm") = _walk.a_r_arm;
+
+    outputs("left hip pitch") += staticParams("hipOffset");
+    outputs("right hip pitch") += staticParams("hipOffset");
     
     VectorLabel info = buildInfo();
     info("phase") = _walk.t;
