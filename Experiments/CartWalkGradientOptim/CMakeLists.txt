@@ -29,12 +29,18 @@ set(LEPH_CODE_DIRECTORY
 
 #Eigen linear algebra library directory
 set(EIGEN_DIRECTORY
-    ${RHOBAN_UTILS_DIRECTORY}/eigen-3.2/
+    ${RHOBAN_UTILS_DIRECTORY}/eigen-3.2
     CACHE STRING "Eigen library directory")
+
+#ZMQ communication library directory
+set(ZMQ_DIRECTORY
+    ${RHOBAN_UTILS_DIRECTORY}/zmq3.2
+    CACHE STRING "ZMQ library directory")
 
 #Experiment source files
 set(SOURCES
     main.cpp
+    ../Utils/MotionCapture.cpp
 )
 
 #Enable C++11
@@ -49,7 +55,9 @@ include_directories(
     ${RHOBAN_SDK_DIRECTORY}/rhoban
     ${SDK_BUILD_DIRECTORY}/common/
     ${LEPH_CODE_DIRECTORY}
+    ${LEPH_CODE_DIRECTORY}/Experiments/Utils
     ${EIGEN_DIRECTORY}
+    ${ZMQ_DIRECTORY}/include
 )
 
 link_directories(
@@ -58,6 +66,7 @@ link_directories(
     ${SDK_BUILD_DIRECTORY}/utils
     ${SDK_BUILD_DIRECTORY}/utils/yaml-cpp
     ${SDK_BUILD_DIRECTORY}/utils/xml/TinyXml
+    ${SDK_BUILD_DIRECTORY}/utils/zmq3.2
 )
 
 #Build Leph Code
@@ -73,5 +82,6 @@ target_link_libraries(ExperimentCartWalkGradientOptim
     pthread
     yaml-cpp
     TinyXml
+    ZeroMQ
 )
 
