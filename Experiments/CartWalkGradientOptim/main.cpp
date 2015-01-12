@@ -28,6 +28,23 @@ void forwardMotorsOrders(Rhoban::Motors* motors, const Leph::VectorLabel& output
     motors->get("Hanche D Rot")->setAngle(outputs("right hip yaw"));
 }
 
+Leph::VectorLabel retrieveMotorsAngle(Rhoban::Motors* motors)
+{
+    return Leph::VectorLabel(
+        "left foot roll", motors->get("Pied G")->getRelAngle(),
+        "left foot pitch", motors->get("Cheville G")->getRelAngle(),
+        "left knee", motors->get("Genou G")->getRelAngle(),
+        "left hip pitch", motors->get("Cuisse G")->getRelAngle(),
+        "left hip roll", motors->get("Hanche G Lat")->getRelAngle(),
+        "left hip yaw", motors->get("Hanche G Rot")->getRelAngle(),
+        "right foot roll", motors->get("Pied D")->getRelAngle(),
+        "right foot pitch", motors->get("Cheville D")->getRelAngle(),
+        "right knee", motors->get("Genou D")->getRelAngle(),
+        "right hip pitch", motors->get("Cuisse D")->getRelAngle(),
+        "right hip roll", motors->get("Hanche D Lat")->getRelAngle(),
+        "right hip yaw", motors->get("Hanche D Rot")->getRelAngle());
+}
+
 void runWalk(Rhoban::Motors* motors, Leph::CartWalkProxy& walk, 
     const Leph::VectorLabel& staticParams, const Leph::VectorLabel& dynamicParams, 
     double duration)
@@ -47,8 +64,7 @@ int main()
     Leph::CartWalkProxy walk;
     Leph::VectorLabel staticParams = walk.buildStaticParams();
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
-    
-    dynamicParams("enabled") = 0;
+    std::cout << (staticParams+dynamicParams) << std::endl;
     
     try {
         std::cout << "Connection..." << std::endl;
@@ -64,21 +80,38 @@ int main()
         motors->start(100);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
+        /*
         std::cout << "Walk enable=0" << std::endl;
         dynamicParams("enabled") = 0;
-        runWalk(motors, walk, staticParams, dynamicParams, 5.0);
+        staticParams("zOffset") = 3;
+        staticParams("riseGain") = 4;
+        runWalk(motors, walk, staticParams, dynamicParams, 3.0);
+        dynamicParams("enabled") = 1;
+        dynamicParams("step") = 6;
+        runWalk(motors, walk, staticParams, dynamicParams, 6.0);
+        dynamicParams("enabled") = 0;
+        runWalk(motors, walk, staticParams, dynamicParams, 3.0);
+        */
+
+        const double freq = 5.0;
+        for (double t=0.0;t<=60.0;t+=1.0/freq) {
+            std::cout << retrieveMotorsAngle(motors) << std::endl;
+            std::this_thread::sleep_for(
+                    std::chrono::milliseconds((int)(1000/freq)));
+        }
+        
+        /*
         std::cout << "Walk enable=1" << std::endl;
         dynamicParams("enabled") = 1;
         runWalk(motors, walk, staticParams, dynamicParams, 5.0);
         std::cout << "Walk enable=0" << std::endl;
         dynamicParams("enabled") = 0;
         runWalk(motors, walk, staticParams, dynamicParams, 5.0);
+        */
 
-        std::cout << "Going to init" << std::endl;
-        motors->goToInit(2.0);
-        std::this_thread::sleep_for(std::chrono::seconds(2));
         std::cout << "Stopping" << std::endl;
         motors->stop();
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     } catch (std::string err) {
         std::cout << "Exception : " << err << std::endl;
     }
