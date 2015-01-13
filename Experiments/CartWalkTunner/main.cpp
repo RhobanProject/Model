@@ -21,7 +21,10 @@ void drawTitleWin(WINDOW* titleWin)
     mvwprintw(titleWin, 3, 1, "q:      quit");
     mvwprintw(titleWin, 4, 1, "i:      init position");
     mvwprintw(titleWin, 5, 1, "space:  toggle enabled");
-    mvwprintw(titleWin, 6, 1, "escape: emergency");
+    mvwprintw(titleWin, 6, 1, "delete: emergency");
+    mvwprintw(titleWin, 7, 1, "up/down: select parameter");
+    mvwprintw(titleWin, 8, 1, "left/right: decr/incr selected parameter");
+    mvwprintw(titleWin, 9, 1, "+/-: incr/decr delta parameter");
     wrefresh(titleWin);
 }
 
@@ -112,25 +115,29 @@ int main()
     //Hide cursor
     curs_set(0);
 
-    move(0, COLS/2-35/2);
-    refresh();
-
+    //Creating ncurses windows
     WINDOW* titleWin = newwin(8, 38, 1, 1);
     drawTitleWin(titleWin);
-    
-    WINDOW* statusWin = newwin(6, 38, 10, 1);
+    WINDOW* statusWin = newwin(12, 38, 10, 1);
     drawStatusWin(statusWin, dynamicParams("enabled"), 0.2);
-    
     WINDOW* paramsWin = newwin(
         dynamicParams.size() + staticParams.size() + 7, 40, 1, 40);
     drawParamsWin(paramsWin, staticParams, dynamicParams, 0);
 
+    //Main loop
     int selected = 0;
     double delta = 0.2;
     while (true) {
         const double freq = 50.0;
+        //Generate walk orders
+        walk.exec(1.0/freq, dynamicParams, staticParams);
+        Leph::VectorLabel outputs = walk.lastOutputs();
+        //Sending them to the robot
+        sdkConnection.setMotorAngles(outputs);
+        //Waiting
         std::this_thread::sleep_for(
             std::chrono::milliseconds((int)(1000/freq)));
+        //Handling keyboards inputs
         int input = getch();
         if (input == 'q') {
             break;
@@ -172,9 +179,14 @@ int main()
                 dynamicParams(selected) = 0.0;
             } 
             drawParamsWin(paramsWin, staticParams, dynamicParams, selected);
+        } else if (input == 'i') {
+            sdkConnection.init();
+        } else if (input == KEY_DC) {
+            sdkConnection.compliant();
         }
     }
     
+    //Free ncurses
     delwin(titleWin);
     delwin(statusWin);
     delwin(paramsWin);

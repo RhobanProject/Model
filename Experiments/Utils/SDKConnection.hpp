@@ -45,6 +45,13 @@ class SDKConnection
          */
         Leph::VectorLabel getMotorAngles();
 
+        /**
+         * Forward to SDK init and compliant 
+         * (emergency) request
+         */
+        void init();
+        void compliant();
+
     private:
 
         /**

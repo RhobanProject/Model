@@ -66,5 +66,15 @@ Leph::VectorLabel SDKConnection::getMotorAngles()
         "right hip yaw", motors->get("Hanche D Rot")->getRelAngle());
 }
 
+void SDKConnection::init()
+{
+    _robot.getMotors()->goToInit(5, true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+}
+void SDKConnection::compliant()
+{
+    _robot.emergency();
+}
+
 }
 
