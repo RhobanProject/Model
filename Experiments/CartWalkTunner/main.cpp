@@ -23,24 +23,29 @@ void drawTitleWin(WINDOW* titleWin)
     mvwprintw(titleWin, 5, 1, "space:  toggle enabled");
     mvwprintw(titleWin, 6, 1, "delete: emergency");
     mvwprintw(titleWin, 7, 1, "up/down: select parameter");
-    mvwprintw(titleWin, 8, 1, "left/right: decr/incr selected parameter");
+    mvwprintw(titleWin, 8, 1, "left/right: decr/incr parameter");
     mvwprintw(titleWin, 9, 1, "+/-: incr/decr delta parameter");
     wrefresh(titleWin);
 }
 
-void drawStatusWin(WINDOW* statusWin, bool isEnabled, double delta)
+void drawStatusWin(WINDOW* statusWin, bool isEnabled, double delta, bool isInit)
 {
     wclear(statusWin);
     wborder(statusWin, ACS_VLINE, ACS_VLINE, ACS_HLINE, ACS_HLINE, '+', '+', '+', '+');
     wattrset(statusWin, A_BOLD);
     mvwprintw(statusWin, 1, 1, "Status");
     wattrset(statusWin, A_NORMAL);
-    if (isEnabled) {
-        mvwprintw(statusWin, 3, 1, "Enabled: TRUE");
+    if (isInit) {
+        mvwprintw(statusWin, 3, 1, "Init: TRUE");
     } else {
-        mvwprintw(statusWin, 3, 1, "Enabled: FALSE");
+        mvwprintw(statusWin, 3, 1, "Init: FALSE");
     }
-    mvwprintw(statusWin, 4, 1, "Delta: %0.3f", delta);
+    if (isEnabled) {
+        mvwprintw(statusWin, 4, 1, "Enabled: TRUE");
+    } else {
+        mvwprintw(statusWin, 4, 1, "Enabled: FALSE");
+    }
+    mvwprintw(statusWin, 5, 1, "Delta: %0.3f", delta);
     wrefresh(statusWin);
 }
 
@@ -115,25 +120,30 @@ int main()
     //Hide cursor
     curs_set(0);
 
+    refresh();
+
     //Creating ncurses windows
-    WINDOW* titleWin = newwin(8, 38, 1, 1);
+    WINDOW* titleWin = newwin(11, 38, 1, 1);
     drawTitleWin(titleWin);
-    WINDOW* statusWin = newwin(12, 38, 10, 1);
-    drawStatusWin(statusWin, dynamicParams("enabled"), 0.2);
+    WINDOW* statusWin = newwin(7, 38, 13, 1);
+    drawStatusWin(statusWin, dynamicParams("enabled"), 0.2, false);
     WINDOW* paramsWin = newwin(
         dynamicParams.size() + staticParams.size() + 7, 40, 1, 40);
     drawParamsWin(paramsWin, staticParams, dynamicParams, 0);
 
     //Main loop
+    bool isInit = false;
     int selected = 0;
     double delta = 0.2;
     while (true) {
         const double freq = 50.0;
-        //Generate walk orders
-        walk.exec(1.0/freq, dynamicParams, staticParams);
-        Leph::VectorLabel outputs = walk.lastOutputs();
-        //Sending them to the robot
-        sdkConnection.setMotorAngles(outputs);
+        if (isInit) {
+            //Generate walk orders
+            walk.exec(1.0/freq, dynamicParams, staticParams);
+            Leph::VectorLabel outputs = walk.lastOutputs();
+            //Sending them to the robot
+            sdkConnection.setMotorAngles(outputs);
+        }
         //Waiting
         std::this_thread::sleep_for(
             std::chrono::milliseconds((int)(1000/freq)));
@@ -153,13 +163,13 @@ int main()
             }
         } else if (input == ' ') {
             dynamicParams("enabled") = !dynamicParams("enabled");
-            drawStatusWin(statusWin, dynamicParams("enabled"), delta);
+            drawStatusWin(statusWin, dynamicParams("enabled"), delta, isInit);
         } else if (input == '+') {
             delta *= 2.0;
-            drawStatusWin(statusWin, dynamicParams("enabled"), delta);
+            drawStatusWin(statusWin, dynamicParams("enabled"), delta, isInit);
         } else if (input == '-') {
             delta /= 2.0;
-            drawStatusWin(statusWin, dynamicParams("enabled"), delta);
+            drawStatusWin(statusWin, dynamicParams("enabled"), delta, isInit);
         } else if (input == KEY_LEFT) {
             if (selected < dynamicParams.size()) {
                 dynamicParams(selected) -= delta;
@@ -180,9 +190,13 @@ int main()
             } 
             drawParamsWin(paramsWin, staticParams, dynamicParams, selected);
         } else if (input == 'i') {
+            isInit = true;
             sdkConnection.init();
+            drawStatusWin(statusWin, dynamicParams("enabled"), delta, isInit);
         } else if (input == KEY_DC) {
+            isInit = false;
             sdkConnection.compliant();
+            drawStatusWin(statusWin, dynamicParams("enabled"), delta, isInit);
         }
     }
     
@@ -191,6 +205,10 @@ int main()
     delwin(statusWin);
     delwin(paramsWin);
     endwin();
+
+    //Printing last used parameters
+    std::cout << dynamicParams << std::endl;
+    std::cout << staticParams << std::endl;
 
     return 0;
 }
