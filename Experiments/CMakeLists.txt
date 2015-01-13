@@ -24,7 +24,7 @@ set(SDK_BUILD_DIRECTORY
 
 #Thesis Code directory
 set(LEPH_CODE_DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
     CACHE STRING "LephCode directory")
 
 #Eigen linear algebra library directory
@@ -36,12 +36,6 @@ set(EIGEN_DIRECTORY
 set(ZMQ_DIRECTORY
     ${RHOBAN_UTILS_DIRECTORY}/zmq3.2
     CACHE STRING "ZMQ library directory")
-
-#Experiment source files
-set(SOURCES
-    main.cpp
-    ../Utils/MotionCapture.cpp
-)
 
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -72,9 +66,8 @@ link_directories(
 #Build Leph Code
 add_subdirectory(${LEPH_CODE_DIRECTORY} ${CMAKE_CURRENT_BINARY_DIR}/LephCode)
 
-#Build Experiment
-add_executable(ExperimentCartWalkGradientOptim ${SOURCES})
-target_link_libraries(ExperimentCartWalkGradientOptim 
+#Lists of linked library
+set(LINKED_LIBRARIES
     LephCode
     RhobanSDKMain 
     RhobanCommon 
@@ -83,5 +76,17 @@ target_link_libraries(ExperimentCartWalkGradientOptim
     yaml-cpp
     TinyXml
     ZeroMQ
+    ncurses
 )
+
+#Build Experiments
+add_executable(ExperimentCartWalkGradientOptim 
+    CartWalkGradientOptim/main.cpp
+    Utils/MotionCapture.cpp
+)
+target_link_libraries(ExperimentCartWalkGradientOptim ${LINKED_LIBRARIES})
+add_executable(CartWalkTunner
+    CartWalkTunner/main.cpp
+)
+target_link_libraries(CartWalkTunner ${LINKED_LIBRARIES})
 
