@@ -52,17 +52,17 @@ VectorLabel CartWalkProxy::buildStaticParams() const
 {
     return VectorLabel(
         "timeGain", 2.35,
-        "riseGain", 1.7,
+        "riseGain", 2.3,
         "swingGain", 0.7,
-        "swingPhase", 0.35,
+        "swingPhase", 0.5,
         "swingHeight", 0.0,
         "xOffset", -0.05,
-        "yOffset", 0.65,
+        "yOffset", 1.25,
         "zOffset", 2.2,
-        "hipOffset", 20.5,
-        "yLat", 0.65,
+        "hipOffset", 16.0,
+        "yLat", 0.0,
         "swingForce", 0.8,
-        "riseRatio", 0.8,
+        "riseRatio", 0.7,
         "riseStepPhase", 0.0
     );
 }
