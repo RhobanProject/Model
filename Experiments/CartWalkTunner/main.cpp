@@ -18,13 +18,14 @@ void drawTitleWin(WINDOW* titleWin)
     wattrset(titleWin, A_BOLD | A_UNDERLINE);
     mvwprintw(titleWin, 1, 1, "CartWalk Tunner (NCurses)");
     wattrset(titleWin, A_NORMAL);
-    mvwprintw(titleWin, 3, 1, "q:      quit");
-    mvwprintw(titleWin, 4, 1, "i:      init position");
-    mvwprintw(titleWin, 5, 1, "space:  toggle enabled");
-    mvwprintw(titleWin, 6, 1, "delete: emergency");
-    mvwprintw(titleWin, 7, 1, "up/down: select parameter");
+    mvwprintw(titleWin, 3, 1, "q:          quit");
+    mvwprintw(titleWin, 4, 1, "i:          init position");
+    mvwprintw(titleWin, 5, 1, "space:      toggle enabled");
+    mvwprintw(titleWin, 6, 1, "delete:     emergency");
+    mvwprintw(titleWin, 7, 1, "up/down:    select parameter");
     mvwprintw(titleWin, 8, 1, "left/right: decr/incr parameter");
-    mvwprintw(titleWin, 9, 1, "+/-: incr/decr delta parameter");
+    mvwprintw(titleWin, 9, 1, "+/-:        incr/decr delta param");
+    mvwprintw(titleWin, 10, 1,"0:          set parameter to 0");
     wrefresh(titleWin);
 }
 
@@ -123,9 +124,9 @@ int main()
     refresh();
 
     //Creating ncurses windows
-    WINDOW* titleWin = newwin(11, 38, 1, 1);
+    WINDOW* titleWin = newwin(12, 38, 1, 1);
     drawTitleWin(titleWin);
-    WINDOW* statusWin = newwin(7, 38, 13, 1);
+    WINDOW* statusWin = newwin(7, 38, 14, 1);
     drawStatusWin(statusWin, dynamicParams("enabled"), 0.2, false);
     WINDOW* paramsWin = newwin(
         dynamicParams.size() + staticParams.size() + 7, 40, 1, 40);
@@ -187,7 +188,9 @@ int main()
         } else if (input == '0') {
             if (selected < dynamicParams.size()) {
                 dynamicParams(selected) = 0.0;
-            } 
+            } else {
+                staticParams(selected-dynamicParams.size()) = 0.0;
+            }
             drawParamsWin(paramsWin, staticParams, dynamicParams, selected);
         } else if (input == 'i') {
             isInit = true;
