@@ -29,10 +29,11 @@ set(SOURCES_FILES
     CartWalk/CartWalkProxy.cpp  
     CartWalk/CartWalkGradient.cpp  
     LinearRegression/SimpleLinearRegression.cpp
+    LinearRegression/MedianLinearRegression.cpp
     Gradient/FiniteDifferenceGradient.cpp
     Utils/GeometricMedian.cpp
     Utils/Combination.cpp
-    LinearRegression/MedianLinearRegression.cpp
+    Utils/CircularBuffer.cpp
     Ncurses/InterfaceCLI.cpp
 )
 
@@ -49,6 +50,7 @@ set(TESTS_FILES
     testMedianLinearRegression
     testCombination
     testInterfaceCLI
+    testCircularBuffer
 )
 
 #Build Code as static library
