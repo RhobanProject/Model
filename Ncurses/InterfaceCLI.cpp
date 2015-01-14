@@ -81,7 +81,7 @@ void InterfaceCLI::addMonitors(const std::string& sectionName,
     if (_monitorsWin != NULL) {
         delwin(_monitorsWin);
     }
-    _monitorsWin = newwin(_sumMonitors+4+_monitors.size(), 38, 17, 1);
+    _monitorsWin = newwin(_sumMonitors+4+_monitors.size(), 38, 1, 81);
 
     drawMonitorsWin(); 
 }
@@ -95,12 +95,6 @@ void InterfaceCLI::addBinding(int key, const std::string& helpMsg,
     delwin(_statusWin);
     _titleWin = newwin(9 + _userBindings.size(), 38, 1, 1);
     _statusWin = newwin(5 + _userStatus.size(), 38, 11 + _userBindings.size(), 1);
-
-    if (_monitorsWin != NULL) {
-        delwin(_monitorsWin);
-        _monitorsWin = newwin(_sumMonitors+4+_monitors.size(), 38, 
-            17 + _userBindings.size() + _userStatus.size(), 1);
-    }
 
     clear();
     refresh();
@@ -116,12 +110,6 @@ void InterfaceCLI::addStatus(std::string& line)
     
     delwin(_statusWin);
     _statusWin = newwin(5 + _userStatus.size(), 38, 11 + _userBindings.size(), 1);
-
-    if (_monitorsWin != NULL) {
-        delwin(_monitorsWin);
-        _monitorsWin = newwin(_sumMonitors+4+_monitors.size(), 38, 
-            17 + _userBindings.size() + _userStatus.size(), 1);
-    }
 
     clear();
     refresh();
