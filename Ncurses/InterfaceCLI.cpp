@@ -61,15 +61,10 @@ void InterfaceCLI::addParameters(const std::string& sectionName,
     _parameters[sectionName] = &vector;
     _sumParams += vector.size();
 
-    size_t line = 4;
-    for (auto vector : _parameters) {
-        line += 3 + vector.second->size();
-    }
-
     if (_paramsWin != NULL) {
         delwin(_paramsWin);
     }
-    _paramsWin = newwin(line, 40, 1, 40);
+    _paramsWin = newwin(_sumParams+4+_parameters.size(), 40, 1, 40);
 
     drawParamsWin(); 
 }
@@ -203,6 +198,7 @@ void InterfaceCLI::drawTitleWin()
 
 void InterfaceCLI::drawStatusWin()
 {
+    wclear(_statusWin);
     wborder(_statusWin, 
         ACS_VLINE, ACS_VLINE, ACS_HLINE, ACS_HLINE, 
         ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER);
@@ -230,7 +226,7 @@ void InterfaceCLI::drawParamsWin()
         wattrset(_paramsWin, A_BOLD);
         mvwprintw(_paramsWin, line, 1, vector.first.c_str());
         wattrset(_paramsWin, A_NORMAL);
-        line += 2;
+        line ++;
         for (size_t i=0;i<vector.second->size();i++) {
             if (_selected == sumIndex) {
                 wattrset(_paramsWin, A_STANDOUT);
@@ -246,7 +242,6 @@ void InterfaceCLI::drawParamsWin()
             sumIndex++;
             line++;
         }
-        line++;
     }
 
     wrefresh(_paramsWin);
