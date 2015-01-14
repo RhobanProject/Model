@@ -12,6 +12,12 @@
 #include "MotionCapture.hpp"
 #include "SDKConnection.hpp"
 #include "SDKInterface.hpp"
+  
+unsigned long now()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 int main()
 {
@@ -82,22 +88,18 @@ int main()
     });
 
     //Init circular buffer
-    Leph::CircularBuffer buffer1(50*10);
-    Leph::CircularBuffer buffer2(50*20);
-    Leph::CircularBuffer buffer3(50*30);
+    Leph::CircularBuffer buffer(50*20);
 
     //Init VectorLabel for fitness
-    Leph::VectorLabel fitness1(5);
-    Leph::VectorLabel fitness2(5);
-    Leph::VectorLabel fitness3(5);
-    interface.addMonitors("Fitness 1", fitness1);
-    interface.addMonitors("Fitness 2", fitness2);
-    interface.addMonitors("Fitness 3", fitness3);
+    Leph::VectorLabel fitness(5);
+    interface.addMonitors("Fitness", fitness);
     
     //Main loop
     const double freq = 50.0;
     unsigned int countLoop = 0;
-    while (interface.tick((countLoop % 10) == 0)) {
+    unsigned long timerOld = now();
+    unsigned long timerNew = now();
+    while (interface.tick((countLoop % 20) == 0)) {
         //Update sensors
         sensors = sdkConnection.getSensorValues();
         //Update motion capture
@@ -110,21 +112,17 @@ int main()
         //Compute fitness candidates
         if (mocapIsValid("isValid")) {
             Leph::VectorLabel fitnessData(
-                "mocap lateral", motionCapture.pos.x,
+                "mocap lateral", motionCapture.pos.x*100,
                 "mocap turn", motionCapture.pos.azimuth,
                 "sensors x", sensors("GyroX"),
                 "sensors y", sensors("GyroY"),
                 "sensors z", sensors("GyroZ"));
-            buffer1.add(fitnessData);
-            buffer2.add(fitnessData);
-            buffer3.add(fitnessData);
+            buffer.add(fitnessData);
         }
 
         //Update fitness candidates
-        if (buffer1.count() > 0) {
-            fitness1 = buffer1.variance();
-            fitness2 = buffer2.variance();
-            fitness3 = buffer3.variance();
+        if (buffer.count() > 0 && countLoop % 50 == 0) {
+            fitness = buffer.variance();
         }
 
         //Update delta (proportional servo and smoothing)
@@ -148,8 +146,11 @@ int main()
         sdkConnection.setMotorAngles(outputs);
 
         //Wait for scheduling
+        timerNew = now();
+        unsigned long waitDelay = 1000/freq - (timerNew - timerOld);
         std::this_thread::sleep_for(
                 std::chrono::milliseconds((int)(1000/freq)));
+        timerOld = now();
         countLoop++;
     }
 
