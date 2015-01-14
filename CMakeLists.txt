@@ -31,6 +31,9 @@ set(SOURCES_FILES
     LinearRegression/SimpleLinearRegression.cpp
     Gradient/FiniteDifferenceGradient.cpp
     Utils/GeometricMedian.cpp
+    Utils/Combination.cpp
+    LinearRegression/MedianLinearRegression.cpp
+    Ncurses/InterfaceCLI.cpp
 )
 
 #Tests main files
@@ -44,10 +47,13 @@ set(TESTS_FILES
     testReweightedLinearRegression
     testGeometricMedian
     testMedianLinearRegression
+    testCombination
+    testInterfaceCLI
 )
 
 #Build Code as static library
 add_library(LephCode STATIC ${SOURCES_FILES})
+target_link_libraries(LephCode ncurses)
 
 #Build Tests
 if (BUILD_LEPH_CODE_TESTS)
