@@ -37,13 +37,18 @@ class SDKConnection
          * Send given reference relative
          * angles to motors
          */
-        void setMotorAngles(const Leph::VectorLabel& outputs);
+        void setMotorAngles(const VectorLabel& outputs);
 
         /**
          * Retrieve current motors 
          * relative angles
          */
-        Leph::VectorLabel getMotorAngles();
+        VectorLabel getMotorAngles();
+
+        /**
+         * Retrieve current sensors values
+         */
+        VectorLabel getSensorValues();
 
         /**
          * Forward to SDK init and compliant 

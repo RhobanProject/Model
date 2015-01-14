@@ -18,6 +18,8 @@ SDKConnection::SDKConnection() :
         
         Rhoban::Motors* motors = _robot.getMotors();
         motors->start(100);
+        Rhoban::Sensors* sensors = _robot.getSensors();
+        sensors->start(100);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     } catch (const std::string exception) {
         throw std::runtime_error("SDKConnection exception: " + exception);
@@ -31,7 +33,7 @@ SDKConnection::~SDKConnection()
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
         
-void SDKConnection::setMotorAngles(const Leph::VectorLabel& outputs)
+void SDKConnection::setMotorAngles(const VectorLabel& outputs)
 {
     Rhoban::Motors* motors = _robot.getMotors();
     motors->get("Pied G")->setAngle(outputs("left foot roll"));
@@ -48,10 +50,10 @@ void SDKConnection::setMotorAngles(const Leph::VectorLabel& outputs)
     motors->get("Hanche D Rot")->setAngle(outputs("right hip yaw"));
 }
         
-Leph::VectorLabel SDKConnection::getMotorAngles()
+VectorLabel SDKConnection::getMotorAngles()
 {
     Rhoban::Motors* motors = _robot.getMotors();
-    return Leph::VectorLabel(
+    return VectorLabel(
         "left foot roll", motors->get("Pied G")->getRelAngle(),
         "left foot pitch", motors->get("Cheville G")->getRelAngle(),
         "left knee", motors->get("Genou G")->getRelAngle(),
@@ -64,6 +66,19 @@ Leph::VectorLabel SDKConnection::getMotorAngles()
         "right hip pitch", motors->get("Cuisse D")->getRelAngle(),
         "right hip roll", motors->get("Hanche D Lat")->getRelAngle(),
         "right hip yaw", motors->get("Hanche D Rot")->getRelAngle());
+}
+        
+VectorLabel SDKConnection::getSensorValues()
+{
+    Rhoban::Sensors* sensors = _robot.getSensors();
+    VectorLabel vectSensors;
+    for (const auto& sensor : sensors->getSensors()) {
+        vectSensors.append(
+            sensor.second->getName(), 
+            sensor.second->getValue());
+    }
+
+    return vectSensors;
 }
 
 void SDKConnection::init()
