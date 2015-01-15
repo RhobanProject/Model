@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cassert>
 #include "Types/VectorLabel.hpp"
 
@@ -61,6 +62,23 @@ int main()
     vect2(1) = 2.0;
     assert(vect2(1) == 2.0);
     std::cout << vect2 << std::endl;
+
+    vect2.writeToCSV();
+    std::ofstream file("/tmp/testVectorLabel.csv");
+    vect2.writeToCSV(file);
+
+    vect2("l1") = 666;
+    std::string csvStr = "#t1 t2 l3\n0.1 0.2 42.0\n\n";
+    vect2.readFromCSV(csvStr);
+    vect2.writeToCSV(file);
+    std::cout << vect2 << std::endl;
+    file.close();
+    
+    std::ifstream fileIn("/tmp/testVectorLabel.csv");
+    while (vect2.readFromCSV(fileIn)) {
+        std::cout << vect2 << std::endl;
+    }
+    fileIn.close();
 
     return 0;
 }

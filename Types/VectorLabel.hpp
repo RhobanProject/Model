@@ -265,14 +265,87 @@ class VectorLabel
         }
 
         /**
-         * Print values in CSV format
+         * Write values in CSV format to given stream
          */
-        inline void printToCSV(std::ostream& os = std::cout) const
+        inline void writeToCSV(std::ostream& os = std::cout) const
         {
+            os << "# ";
+            for (size_t i=0;i<_indexToLabel.size();i++) {
+                os << _indexToLabel[i] << " ";
+            }
+            os << std::endl;
             for (size_t i=0;i<_indexToLabel.size();i++) {
                 os << _eigenVector(i) << " ";
             }
             os << std::endl;
+        }
+
+        /**
+         * Read and load values in CSV format from 
+         * given string
+         */
+        inline void readFromCSV(const std::string& str)
+        {
+            //Skip empty input
+            if (str.length() == 0) return;
+            //Check labels line is commented
+            if (str[0] != '#') throw std::logic_error(
+                "VectorLabel invalid CSV format (first comment line): " + str);
+            //Find first label
+            size_t index = 0;
+            index = str.find_first_not_of(std::string("# "), index);
+            if (index == std::string::npos) throw std::logic_error(
+                "VectorLabel invalid CSV format (no label): " + str);
+            //Init extracted labels and CSV index mapping
+            std::map<size_t, std::string> mapping;
+            size_t labelIndex = 0;
+            //Extract all labels until newline
+            while (index != std::string::npos && str[index] != '\n') {
+                size_t endLabel = str.find_first_of(std::string(" \n"), index);
+                std::string label = str.substr(index, endLabel-index);
+                if (!exist(label)) {
+                    append(label, 0.0);
+                } 
+                mapping[labelIndex] = label;
+                index = str.find_first_not_of(std::string(" "), endLabel);
+                labelIndex++;
+            }
+            //Go through new line
+            index = str.find_first_not_of(std::string("\n\r"), index);
+            //Extract all values
+            labelIndex = 0;
+            while (index != std::string::npos && str[index] != '\n') {
+                size_t endLabel = str.find_first_of(std::string(" \n"), index);
+                std::string value = str.substr(index, endLabel-index);
+                if (mapping.count(labelIndex) == 0) throw std::logic_error(
+                    "VectorLabel invalid CSV format (mismatch values labels): " + str);
+                operator()(mapping.at(labelIndex)) = std::atof(value.c_str());
+                index = str.find_first_not_of(std::string(" "), endLabel);
+                labelIndex++;
+            }
+            //Check labels and values match
+            if (labelIndex != mapping.size()) throw std::logic_error(
+                "VectorLabel invalid CSV format (mismatch values labels): " + str);
+        }
+        
+        /**
+         * Read one vector label data (two lines) from
+         * given stream.
+         * Return false when given stream is not good anymore
+         * else return true.
+         */
+        inline bool readFromCSV(std::istream& is)
+        {
+            std::string line1;
+            std::string line2;
+            getline(is, line1);
+            getline(is, line2);
+           
+            if (line1.length() != 0 || line2.length() != 0) {
+                readFromCSV(line1 + "\n" + line2);
+            } 
+                
+            return is.good();
         }
 
     private:
@@ -314,7 +387,7 @@ class VectorLabel
         inline void appendAux(const std::string& label, double value)
         {
             if (_labelToIndex.count(label) != 0) {
-                throw std::logic_error("VectorLabel label error");
+                throw std::logic_error("VectorLabel label already exists");
             }
             size_t len = size();
             _eigenVector.conservativeResize(len+1, Eigen::NoChange_t());
