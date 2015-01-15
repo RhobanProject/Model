@@ -328,7 +328,7 @@ class VectorLabel
             }
             os << std::endl;
             for (size_t i=0;i<_indexToLabel.size();i++) {
-                os << _eigenVector(i) << " ";
+                os << std::setprecision(10) << _eigenVector(i) << " ";
             }
             os << std::endl;
         }
