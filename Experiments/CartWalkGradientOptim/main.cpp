@@ -3,6 +3,9 @@
 #include <chrono>
 #include <thread>
 #include <random>
+#include <fstream>
+#include <sstream>
+#include <ctime>
 
 //CODE
 #include "Types/VectorLabel.hpp"
@@ -62,11 +65,31 @@ Leph::VectorLabel randDeltaStaticParams(
     return deltas;
 }
 
+std::string currentDate()
+{
+    std::ostringstream oss;
+    time_t t = time(0);
+    struct tm* now = localtime(&t);
+    oss << now->tm_year + 1900 << "-";
+    oss << std::setfill('0') << std::setw(2);
+    oss << now->tm_mon + 1 << "-";
+    oss << std::setfill('0') << std::setw(2);
+    oss << now->tm_mday << "-";
+    oss << std::setfill('0') << std::setw(2);
+    oss << now->tm_hour << ":";
+    oss << std::setfill('0') << std::setw(2);
+    oss << now->tm_min << ":";
+    oss << std::setfill('0') << std::setw(2);
+    oss << now->tm_sec;
+
+    return oss.str();
+}
+
 int main()
 {
     //Init SDK connection
     Leph::SDKConnection sdkConnection;
-    
+
     //Init CartWalk
     Leph::CartWalkProxy walk;
     Leph::VectorLabel allStaticParams = walk.buildStaticParams();
@@ -102,9 +125,9 @@ int main()
 
     //Servo target reference
     Leph::VectorLabel posReferences(
-        "forward", -0.336085,
-        "lateral", -0.0763521,
-        "turn", 0.0);
+        "forward", -0.3861,
+        "lateral", 0.1736,
+        "turn", -1.6);
     //Servo proportional gain
     Leph::VectorLabel servoGains(
         "forward", 20.0,
@@ -150,13 +173,31 @@ int main()
             statusEnabled = "Walk is Disabled";
         }
     });
+    interface.addBinding('r', "Generate random params", [&staticParams, &interface, 
+        &staticParamsDelta, &allStaticParamsMin, &allStaticParamsMax] () {
+        Leph::VectorLabel deltas = randDeltaStaticParams(staticParamsDelta);
+        staticParams.vect() += deltas.vect();
+        boundParameters(staticParams, allStaticParamsMin, allStaticParamsMax);
+        interface.drawParamsWin();
+    });
 
     //Init circular buffer
     Leph::CircularBuffer buffer(50*20);
 
     //Init VectorLabel for fitness
-    Leph::VectorLabel fitness(5);
+    Leph::VectorLabel fitness({
+        "var mocap lateral", 
+        "var mocap turn", 
+        "var gyro x", 
+        "var gyro y",
+        "var gyro z"});
     interface.addMonitors("Fitness", fitness);
+
+    //Init VectorLabel for timestamp
+    Leph::VectorLabel timestamp("timestamp", now());
+    
+    //Open loging file
+    std::ofstream logFile("log-" + currentDate() + ".csv");
     
     //Main loop
     const double freq = 50.0;
@@ -176,15 +217,17 @@ int main()
         mocapPosError("forward") = motionCapture.pos.z - posReferences("forward");
         mocapPosError("lateral") = motionCapture.pos.x - posReferences("lateral");
         mocapPosError("turn") = motionCapture.pos.azimuth - posReferences("turn");
+        //Update timestamp
+        timestamp("timestamp") = now();
 
         //Compute fitness candidates
         if (mocapIsValid("isValid")) {
             Leph::VectorLabel fitnessData(
-                "mocap lateral", motionCapture.pos.x*100,
-                "mocap turn", motionCapture.pos.azimuth,
-                "sensors x", sensors("GyroX"),
-                "sensors y", sensors("GyroY"),
-                "sensors z", sensors("GyroZ"));
+                "var mocap lateral", motionCapture.pos.x*100,
+                "var mocap turn", motionCapture.pos.azimuth,
+                "var gyro x", sensors("GyroX"),
+                "var gyro y", sensors("GyroY"),
+                "var gyro z", sensors("GyroZ"));
             buffer.add(fitnessData);
         }
 
@@ -214,6 +257,13 @@ int main()
         Leph::VectorLabel outputs = walk.lastOutputs();
         sdkConnection.setMotorAngles(outputs);
 
+        //Writing log
+        (timestamp + 
+            tmpDynamicParams + 
+            staticParams + 
+            allStaticParams + 
+            fitness + 
+            sensors).writeToCSV(logFile);
         //Wait for scheduling
         timerNew = now();
         unsigned long waitDelay = 1000/freq - (timerNew - timerOld);
@@ -223,6 +273,9 @@ int main()
         countLoop++;
     }
     interface.quit();
+
+    //Closing loging file
+    logFile.close();
 
     return 0;
 }
