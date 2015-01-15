@@ -41,15 +41,27 @@ InterfaceCLI::InterfaceCLI(const std::string& title) :
         
 InterfaceCLI::~InterfaceCLI()
 {
+    quit();
+}
+        
+void InterfaceCLI::quit()
+{
     //Free ncurses windows
     if (_paramsWin != NULL) {
         delwin(_paramsWin);
+        _paramsWin = NULL;
     }
     if (_monitorsWin != NULL) {
         delwin(_monitorsWin);
+        _monitorsWin = NULL;
     }
-    delwin(_titleWin);
-    endwin();
+    if (_titleWin != NULL || _statusWin != NULL) {
+        delwin(_titleWin);
+        delwin(_statusWin);
+        _titleWin = NULL;
+        _statusWin = NULL;
+        endwin();
+    }
 }
         
 void InterfaceCLI::addParameters(const std::string& sectionName,
@@ -153,6 +165,7 @@ bool InterfaceCLI::tick(bool updateAll)
     for (size_t i=0;i<_userBindings.size();i++) {
         if (input == _userBindings[i].key) {
             _userBindings[i].handler();
+            drawStatusWin();
         }
     }
 

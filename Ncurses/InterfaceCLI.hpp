@@ -32,6 +32,12 @@ class InterfaceCLI
         ~InterfaceCLI();
 
         /**
+         * Explicitly exit NCurses interface end 
+         * go back the terminal
+         */
+        void quit();
+
+        /**
          * Add a VectorLabel under given section name
          * for write parameters as reference
          * Vector pointer are used. Do no destruct
@@ -75,6 +81,30 @@ class InterfaceCLI
          * false (save up terminal update time).
          */
         bool tick(bool updateAll = true);
+
+        /**
+         * Draw Ncurses title windows
+         * (Force window refresh)
+         */
+        void drawTitleWin();
+
+        /**
+         * Draw Ncurses status windows
+         * (Force window refresh)
+         */
+        void drawStatusWin();
+
+        /**
+         * Draw Ncurses parameters windows
+         * (Force window refresh)
+         */
+        void drawParamsWin();
+        
+        /**
+         * Draw Ncurses monitors windows
+         * (Force window refresh)
+         */
+        void drawMonitorsWin();
 
     private:
 
@@ -139,26 +169,6 @@ class InterfaceCLI
          * User defined status
          */
         std::vector<std::string*> _userStatus;
-
-        /**
-         * Draw Ncurses title windows
-         */
-        void drawTitleWin();
-
-        /**
-         * Draw Ncurses status windows
-         */
-        void drawStatusWin();
-
-        /**
-         * Draw Ncurses parameters windows
-         */
-        void drawParamsWin();
-        
-        /**
-         * Draw Ncurses monitors windows
-         */
-        void drawMonitorsWin();
 
         /**
          * Return a reference to selected
