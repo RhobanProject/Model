@@ -80,7 +80,7 @@ VectorLabel CartWalkProxy::buildStaticParamsMin() const
 {
     return VectorLabel(
         "timeGain", 1.0,
-        "riseGain", 1.0,
+        "riseGain", 0.0,
         "swingGain", 0.0,
         "swingPhase", 0.0,
         "swingHeight", 0.0,
@@ -98,7 +98,7 @@ VectorLabel CartWalkProxy::buildStaticParamsMax() const
 {
     return VectorLabel(
         "timeGain", 3.0,
-        "riseGain", 4.0,
+        "riseGain", 10.0,
         "swingGain", 2.0,
         "swingPhase", 7.0,
         "swingHeight", 0.0,
@@ -116,18 +116,18 @@ VectorLabel CartWalkProxy::buildDynamicParamsMin() const
 {
     return VectorLabel(
         "enabled", 0,
-        "step", -4.0,
-        "lateral", -10.0,
-        "turn", -40.0
+        "step", -10.0,
+        "lateral", -25.0,
+        "turn", -60.0
     );
 }
 VectorLabel CartWalkProxy::buildDynamicParamsMax() const
 {
     return VectorLabel(
         "enabled", 1,
-        "step", 10.0,
-        "lateral", 10.0,
-        "turn", 40.0
+        "step", 30.0,
+        "lateral", 25.0,
+        "turn", 60.0
     );
 }
         
