@@ -2,6 +2,7 @@
 #include <cmath>
 #include <chrono>
 #include <thread>
+#include <random>
 
 //CODE
 #include "Types/VectorLabel.hpp"
@@ -12,6 +13,9 @@
 #include "MotionCapture.hpp"
 #include "SDKConnection.hpp"
 #include "SDKInterface.hpp"
+
+//Global random generator
+std::mt19937 randomGenerator;
   
 /**
  * Return current time in milliseconds
@@ -23,6 +27,41 @@ unsigned long now()
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
+/**
+ * Bound given static parameters between 
+ * allowed min and max value
+ */
+void boundParameters(Leph::VectorLabel& staticParams, 
+    const Leph::VectorLabel min,
+    const Leph::VectorLabel max)
+{
+    for (size_t i=0;i<staticParams.size();i++) {
+        if (staticParams(i) < min(staticParams.getLabel(i))) {
+            staticParams(i) = min(staticParams.getLabel(i));
+        }
+        if (staticParams(i) > max(staticParams.getLabel(i))) {
+            staticParams(i) = max(staticParams.getLabel(i));
+        }
+    }
+}
+
+/**
+ * Return random generated delta static parameters
+ * with variance given by coef*typical parameter length scale
+ */
+Leph::VectorLabel randDeltaStaticParams(
+    const Leph::VectorLabel staticParamsDelta, double coef = 1.0)
+{
+    Leph::VectorLabel deltas = staticParamsDelta;
+    for (size_t i=0;i<staticParamsDelta.size();i++) {
+        std::normal_distribution<double> 
+            normalDist(0.0, coef*staticParamsDelta(i));
+        deltas(i) = normalDist(randomGenerator);
+    }
+
+    return deltas;
+}
+
 int main()
 {
     //Init SDK connection
@@ -30,11 +69,15 @@ int main()
     
     //Init CartWalk
     Leph::CartWalkProxy walk;
-    Leph::VectorLabel staticParams = walk.buildStaticParams();
+    Leph::VectorLabel allStaticParams = walk.buildStaticParams();
+    Leph::VectorLabel allStaticParamsMin = walk.buildStaticParamsMin();
+    Leph::VectorLabel allStaticParamsMax = walk.buildStaticParamsMax();
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
+    Leph::VectorLabel allStaticParamsDelta = walk.buildStaticParamsDelta();
+    dynamicParams("step") = 12.0;
 
     //Select subset of all static parameters
-    Leph::VectorLabel usedPameters({
+    Leph::VectorLabel staticParams({
         "timeGain", 
         "riseGain",
         "swingGain",
@@ -43,10 +86,13 @@ int main()
         "yOffset",
         "zOffset",
         "hipOffset",
-        "yLat",
-        "swingForce",
-        "riseRatio"});
-    dynamicParams("step") = 12.0;
+        //"yLat",
+        //"swingForce",
+        //"riseRatio",
+    });
+    staticParams.mergeInter(allStaticParams);
+    Leph::VectorLabel staticParamsDelta = staticParams;
+    staticParamsDelta.mergeInter(allStaticParamsDelta);
     
     //Init Motion Capture
     Rhoban::MotionCapture motionCapture;
@@ -117,7 +163,11 @@ int main()
     unsigned int countLoop = 0;
     unsigned long timerOld = now();
     unsigned long timerNew = now();
-    while (interface.tick((countLoop % 20) == 0)) {
+    while (interface.tick(false)) {
+        //Update interface
+        if (countLoop%25 == 0) {
+            interface.drawMonitorsWin();
+        }
         //Update sensors
         sensors = sdkConnection.getSensorValues();
         //Update motion capture
@@ -158,7 +208,8 @@ int main()
         tmpDynamicParams("turn") += deltas("turn");
 
         //Generate walk angle outputs
-        walk.exec(1.0/freq, tmpDynamicParams, staticParams);
+        walk.exec(1.0/freq, tmpDynamicParams, 
+            staticParams + allStaticParams);
         //Send orders to motors
         Leph::VectorLabel outputs = walk.lastOutputs();
         sdkConnection.setMotorAngles(outputs);
@@ -171,6 +222,7 @@ int main()
         timerOld = now();
         countLoop++;
     }
+    interface.quit();
 
     return 0;
 }
