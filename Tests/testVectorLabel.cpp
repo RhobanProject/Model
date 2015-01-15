@@ -14,9 +14,18 @@ int main()
     Leph::VectorLabel vect4({"l1", "l2", "l3"}, Eigen::VectorXd(3));
     std::cout << vect4 << std::endl;
 
-    std::cout << Leph::VectorLabel::merge(vect1, vect2) << std::endl;
-    std::cout << Leph::VectorLabel::merge(vect1, vect1) << std::endl;
+    std::cout << Leph::VectorLabel::mergeUnion(vect1, vect2) << std::endl;
+    std::cout << Leph::VectorLabel::mergeUnion(vect1, vect1) << std::endl;
     std::cout << vect1 + vect2 << std::endl;
+
+    std::cout << "Vect2" << std::endl;
+    std::cout << vect2 << std::endl;
+    std::cout << "Vect4" << std::endl;
+    std::cout << vect4 << std::endl;
+    std::cout << "Inter 2-4" << std::endl;
+    std::cout << Leph::VectorLabel::mergeInter(vect2, vect4) << std::endl;
+    std::cout << "Inter 4-4" << std::endl;
+    std::cout << Leph::VectorLabel::mergeInter(vect4, vect4) << std::endl;
     
     Leph::VectorLabel vect5({
         std::make_pair("ll1", 1.0), 
@@ -79,6 +88,19 @@ int main()
         std::cout << vect2 << std::endl;
     }
     fileIn.close();
+
+    std::cout << "Vect2" << std::endl;
+    std::cout << vect2 << std::endl;
+    std::cout << "Vect3" << std::endl;
+    vect3.append("l3", 69);
+    std::cout << vect3 << std::endl;
+    std::cout << "Vect3 union 2" << std::endl;
+    vect3.mergeUnion(vect2);
+    std::cout << vect3 << std::endl;
+    std::cout << "Vect2 inter 3" << std::endl;
+    vect3("l2") = 100.0;
+    vect2.mergeInter(vect3);
+    std::cout << vect2 << std::endl;
 
     return 0;
 }

@@ -42,7 +42,7 @@ class VectorLabel
         {
         }
         VectorLabel(size_t size) :
-            _eigenVector(size),
+            _eigenVector(Vector::Zero(size)),
             _labelToIndex(),
             _indexToLabel()
         {
@@ -50,7 +50,7 @@ class VectorLabel
         }
 
         VectorLabel(const LabelList& labels) :
-            _eigenVector(labels.size()),
+            _eigenVector(Vector::Zero(labels.size())),
             _labelToIndex(),
             _indexToLabel(labels)
         {
@@ -229,16 +229,69 @@ class VectorLabel
         }
 
         /**
-         * Merge the two given VectorLabel and concat
-         * them
+         * Merge the given VectorLabel to this
+         * Value priority to given VectorLabel
+         * Result labels are the union of given vector and this
+         * (All values in given vector are created or update in this)
          */
-        static inline VectorLabel merge(const VectorLabel& v1, 
+        inline void mergeUnion(const VectorLabel& v)
+        {
+            for (const auto& label : v.labels()) {
+                if (!exist(label.first)) {
+                    append(label.first, v(label.first));
+                } else {
+                    operator()(label.first) = v(label.first);
+                }
+            }
+        }
+        
+        /**
+         * Merge the given VectorLabel to this
+         * Value priority to given VectorLabel
+         * Result labels are the intersection of given 
+         * vector and this and union of this.
+         * (Only values present in this and given vector
+         * are updated. Others are not update either deleted)
+         */
+        inline void mergeInter(const VectorLabel& v)
+        {
+            for (const auto& label : v.labels()) {
+                if (exist(label.first)) {
+                    operator()(label.first) = v(label.first);
+                } 
+            }
+        }
+
+        /**
+         * Merge the two given VectorLabel and concat
+         * them (value priority to first parameter)
+         * Result labels are the union of given vectors labels
+         */
+        static inline VectorLabel mergeUnion(const VectorLabel& v1, 
             const VectorLabel& v2)
         {
             VectorLabel merged = v1;
             for (const auto& label : v2.labels()) {
                 if (!merged.exist(label.first)) {
                     merged.append(label.first, v2(label.first));
+                } 
+            }
+
+            return merged;
+        }
+        
+        /**
+         * Merge the two given VectorLabel 
+         * (value priority to first parameter)
+         * Result labels are the intersection of given vectors labels
+         */
+        static inline VectorLabel mergeInter(const VectorLabel& v1, 
+            const VectorLabel& v2)
+        {
+            VectorLabel merged;
+            for (const auto& label : v1.labels()) {
+                if (v2.exist(label.first)) {
+                    merged.append(label.first, v1(label.first));
                 } 
             }
 
@@ -407,11 +460,11 @@ inline std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
 }
 
 /**
- * Merge operator
+ * Merge union operator
  */
 inline VectorLabel operator+(const VectorLabel& v1, const VectorLabel& v2)
 {
-    return VectorLabel::merge(v1, v2);
+    return VectorLabel::mergeUnion(v1, v2);
 }
 
 }
