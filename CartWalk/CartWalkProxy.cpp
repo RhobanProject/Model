@@ -61,7 +61,7 @@ VectorLabel CartWalkProxy::buildStaticParams() const
         "zOffset", 2.2,
         "hipOffset", 16.0,
         "yLat", 0.0,
-        "swingForce", 0.8,
+        "swingForce", 0.1,
         "riseRatio", 0.7,
         "riseStepPhase", 0.0
     );
@@ -82,33 +82,33 @@ VectorLabel CartWalkProxy::buildStaticParamsMin() const
         "timeGain", 1.0,
         "riseGain", 0.0,
         "swingGain", 0.0,
-        "swingPhase", 0.0,
+        "swingPhase", -0.5,
         "swingHeight", 0.0,
-        "xOffset", -0.7,
-        "yOffset", 1.0,
-        "zOffset", 4.0,
-        "hipOffset", 0.0,
-        "yLat", 0.0,
+        "xOffset", -5.0,
+        "yOffset", -1.0,
+        "zOffset", 0.0,
+        "hipOffset", -5.0,
+        "yLat", -3.0,
         "swingForce", 0.0,
-        "riseRatio", 0.5,
+        "riseRatio", 0.1,
         "riseStepPhase", 0.0
     );
 }
 VectorLabel CartWalkProxy::buildStaticParamsMax() const
 {
     return VectorLabel(
-        "timeGain", 3.0,
-        "riseGain", 10.0,
-        "swingGain", 2.0,
-        "swingPhase", 7.0,
+        "timeGain", 3.5,
+        "riseGain", 12.0,
+        "swingGain", 6.0,
+        "swingPhase", 1.5,
         "swingHeight", 0.0,
-        "xOffset", -0.7,
-        "yOffset", 1.0,
-        "zOffset", 4.0,
-        "hipOffset", 0.0,
-        "yLat", 0.0,
-        "swingForce", 0.0,
-        "riseRatio", 0.5,
+        "xOffset", 5.0,
+        "yOffset", 3.0,
+        "zOffset", 6.0,
+        "hipOffset", 25.0,
+        "yLat", 3.0,
+        "swingForce", 1.25,
+        "riseRatio", 0.9,
         "riseStepPhase", 0.0
     );
 }
