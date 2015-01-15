@@ -13,6 +13,10 @@
 #include "SDKConnection.hpp"
 #include "SDKInterface.hpp"
   
+/**
+ * Return current time in milliseconds
+ * (Relative to system start)
+ */
 unsigned long now()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -28,6 +32,20 @@ int main()
     Leph::CartWalkProxy walk;
     Leph::VectorLabel staticParams = walk.buildStaticParams();
     Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
+
+    //Select subset of all static parameters
+    Leph::VectorLabel usedPameters({
+        "timeGain", 
+        "riseGain",
+        "swingGain",
+        "swingPhase",
+        "xOffset",
+        "yOffset",
+        "zOffset",
+        "hipOffset",
+        "yLat",
+        "swingForce",
+        "riseRatio"});
     dynamicParams("step") = 12.0;
     
     //Init Motion Capture
