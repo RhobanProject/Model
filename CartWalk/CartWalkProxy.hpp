@@ -53,6 +53,13 @@ class CartWalkProxy
         VectorLabel buildStaticParamsMax() const;
         VectorLabel buildDynamicParamsMin() const;
         VectorLabel buildDynamicParamsMax() const;
+        
+        /**
+         * Return VectorLabel with typical delta
+         * length scale for all static parameters
+         * (1/50 of max-min range)
+         */
+        VectorLabel buildStaticParamsDelta() const;
 
         /**
          * Return a labeled vector of motor outputs

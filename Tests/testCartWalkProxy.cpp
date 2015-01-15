@@ -24,6 +24,9 @@ int main()
     }
     plot.plot("index", "all").render();
 
+    std::cout << "CartWalk static params typical deltas" << std::endl;
+    std::cout << walk.buildStaticParamsDelta() << std::endl;
+
     return 0;
 }
 

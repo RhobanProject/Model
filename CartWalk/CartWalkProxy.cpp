@@ -131,6 +131,16 @@ VectorLabel CartWalkProxy::buildDynamicParamsMax() const
     );
 }
         
+VectorLabel CartWalkProxy::buildStaticParamsDelta() const
+{
+    VectorLabel max = buildStaticParamsMax();
+    VectorLabel min = buildStaticParamsMin();
+
+    max.vect() -= min.vect();
+    max.vect() *= (1.0/50.0);
+    return max;
+}
+        
 VectorLabel CartWalkProxy::exec(
     double deltaTime,
     const VectorLabel& dynamicParams, 
