@@ -48,6 +48,7 @@ int main()
         std::this_thread::sleep_for(
             std::chrono::milliseconds((int)(1000/freq)));
     }
+    interface.quit();
     
     //Printing last used parameters
     std::cout << dynamicParams << std::endl;
