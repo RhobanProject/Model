@@ -176,7 +176,7 @@ int main()
     interface.addBinding('r', "Generate random params", [&staticParams, &interface, 
         &staticParamsDelta, &allStaticParamsMin, &allStaticParamsMax] () {
         Leph::VectorLabel deltas = randDeltaStaticParams(staticParamsDelta);
-        staticParams.vect() += deltas.vect();
+        staticParams += deltas;
         boundParameters(staticParams, allStaticParamsMin, allStaticParamsMax);
         interface.drawParamsWin();
     });
@@ -238,10 +238,11 @@ int main()
 
         //Update delta (proportional servo and smoothing)
         if (mocapIsValid("isValid")) {
-            Leph::Vector tmp1 = discountCoef("coef")*deltas.vect();
-            Leph::Vector tmp2 = (1.0-discountCoef("coef"))
-                *(servoGains.vect().array() * mocapPosError.vect().array());
-            deltas.vect() = tmp1 + tmp2;
+            deltas *= discountCoef("coef");
+            Leph::VectorLabel tmp = servoGains;
+            tmp *= mocapPosError;
+            tmp *= (1.0-discountCoef("coef"));
+            deltas += tmp;
         }
 
         //Current dynamic walk parameters

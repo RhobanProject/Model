@@ -69,13 +69,13 @@ VectorLabel CircularBuffer::mean() const
     size_t index = _begin;
     size_t nb = 0;
     while (index != _end) {
-        sum.vect() += _buffer[index].vect();
+        sum += _buffer[index];
         index++;
         if (index == size()) index = 0;
         nb++;
     }
 
-    sum.vect() *= (1.0/nb);
+    sum *= (1.0/nb);
     return sum;
 }
 VectorLabel CircularBuffer::variance() const
@@ -101,7 +101,7 @@ VectorLabel CircularBuffer::variance() const
     }
 
     sum *= (1.0/nb);
-    sum2.vect() *= (1.0/nb);
+    sum2 *= (1.0/nb);
     
     Vector mean2 = sum.array()*sum.array();
     sum2.vect() -= mean2;
