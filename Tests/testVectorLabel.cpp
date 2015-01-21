@@ -7,11 +7,11 @@ int main()
 {
     Leph::VectorLabel vect1(4);
     std::cout << vect1 << std::endl;
-    Leph::VectorLabel vect2({"l1", "l2", "l3", "l4"});
+    Leph::VectorLabel vect2({"l1", "l2", "l4", "l3"});
     std::cout << vect2 << std::endl;
     Leph::VectorLabel vect3(Eigen::VectorXd(3));
     std::cout << vect3 << std::endl;
-    Leph::VectorLabel vect4({"l1", "l2", "l3"}, Eigen::VectorXd(3));
+    Leph::VectorLabel vect4({"l3", "l2", "l1"}, Eigen::VectorXd(3));
     std::cout << vect4 << std::endl;
 
     std::cout << Leph::VectorLabel::mergeUnion(vect1, vect2) << std::endl;
@@ -27,15 +27,6 @@ int main()
     std::cout << "Inter 4-4" << std::endl;
     std::cout << Leph::VectorLabel::mergeInter(vect4, vect4) << std::endl;
     
-    Leph::VectorLabel vect5({
-        std::make_pair("ll1", 1.0), 
-        std::make_pair("ll2", 2.0),
-        std::make_pair("ll3", 3.0)
-    });
-    std::cout << vect5 << std::endl;
-    assert(vect5.exist("ll2"));
-    assert(!vect5.exist("ll4"));
-
     Leph::VectorLabel vect6(
         "test label 1", 1.0,
         "test label 2", 2.0);

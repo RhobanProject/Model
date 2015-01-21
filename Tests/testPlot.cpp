@@ -6,12 +6,12 @@ int main()
 {
     Leph::Plot plot;
     for (int i=0;i<100;i++) {
-        Leph::VectorLabel vect({
-            std::make_pair("toto", i),
-            std::make_pair("titi", -i),
-            std::make_pair("tata", 1.0),
-            std::make_pair("tete", -0.5*i)
-        });
+        Leph::VectorLabel vect(
+            "toto", i,
+            "titi", -i,
+            "tata", 1.0,
+            "tete", -0.5*i
+        );
         plot.add(vect);
     }
     plot.add(Leph::VectorLabel("tutu", 0.0));

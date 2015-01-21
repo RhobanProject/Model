@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -28,7 +29,6 @@ class VectorLabel
         typedef std::map<std::string, size_t> LabelContainer;
         typedef std::vector<std::string> IndexContainer;
         typedef std::vector<std::string> LabelList;
-        typedef std::vector<std::pair<std::string, double>> PairList;
 
         /**
          * Initialization
@@ -60,6 +60,7 @@ class VectorLabel
                 }
                 _labelToIndex[_indexToLabel[i]] = i;
             }
+            sortLabels();
         }
         VectorLabel(const Vector& vect) :
             _eigenVector(vect),
@@ -67,6 +68,7 @@ class VectorLabel
             _indexToLabel()
         {
             defaultLabels();
+            sortLabels();
         }
         VectorLabel(const LabelList& labels, 
             const Vector& vect) :
@@ -83,20 +85,7 @@ class VectorLabel
                 }
                 _labelToIndex[_indexToLabel[i]] = i;
             }
-        }
-        VectorLabel(const PairList& pairs) :
-            _eigenVector(pairs.size()),
-            _labelToIndex(),
-            _indexToLabel()
-        {
-            for (size_t i=0;i<pairs.size();i++) {
-                if (_labelToIndex.count(pairs[i].first) != 0) {
-                    throw std::logic_error("VectorLabel label error");
-                }
-                _eigenVector(i) = pairs[i].second;
-                _labelToIndex[pairs[i].first] = i;
-                _indexToLabel.push_back(pairs[i].first);
-            }
+            sortLabels();
         }
 
         /**
@@ -447,6 +436,25 @@ class VectorLabel
             _eigenVector(len) = value;
             _labelToIndex[label] = len;
             _indexToLabel.push_back(label);
+            sortLabels();
+        }
+
+        /**
+         * Resort all labels and associated
+         * data structure and values in standart
+         * lexicographic label order
+         */
+        inline void sortLabels()
+        {
+            Vector tmp = _eigenVector;
+
+            std::sort(_indexToLabel.begin(), _indexToLabel.end());
+            for (size_t i=0;i<_indexToLabel.size();i++) {
+                size_t newIndex = i;
+                size_t oldIndex = _labelToIndex[_indexToLabel[newIndex]];
+                _labelToIndex[_indexToLabel[newIndex]] = newIndex;
+                _eigenVector[newIndex] = tmp[oldIndex];
+            }
         }
 };
 
