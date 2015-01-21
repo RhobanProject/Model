@@ -258,11 +258,11 @@ int main()
         sdkConnection.setMotorAngles(outputs);
 
         //Writing log
-        (timestamp + 
-            tmpDynamicParams + 
-            staticParams + 
-            allStaticParams + 
-            fitness + 
+        (timestamp & 
+            tmpDynamicParams & 
+            staticParams & 
+            allStaticParams & 
+            fitness & 
             sensors).writeToCSV(logFile);
         //Wait for scheduling
         timerNew = now();

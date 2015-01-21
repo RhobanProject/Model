@@ -20,7 +20,7 @@ int main()
     Leph::Plot plot;
     for (size_t i=0;i<50*5;i++) {
         walk.exec(0.02, dynamicParams, staticParams);
-        plot.add(walk.lastOutputs() + walk.lastInfo());
+        plot.add(walk.lastOutputs() & walk.lastInfo());
     }
     plot.plot("index", "all").render();
 

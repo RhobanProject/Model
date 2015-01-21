@@ -389,6 +389,28 @@ class VectorLabel
                 
             return is.good();
         }
+        
+        /**
+         * Arithmetic coefficient wise operation
+         * No labels matching
+         * VectorLabel must be same size and same labels
+         */
+        inline void operator+=(const VectorLabel& vect)
+        {
+            _eigenVector += vect.vect();
+        }
+        inline void operator-=(const VectorLabel& vect)
+        {
+            _eigenVector -= vect.vect();
+        }
+        inline void operator*=(const VectorLabel& vect)
+        {
+            _eigenVector = _eigenVector.array() * vect.vect().array();
+        }
+        inline void operator*=(double val)
+        {
+            _eigenVector *= val;
+        }
 
     private:
 
@@ -470,7 +492,7 @@ inline std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
 /**
  * Merge union operator
  */
-inline VectorLabel operator+(const VectorLabel& v1, const VectorLabel& v2)
+inline VectorLabel operator&(const VectorLabel& v1, const VectorLabel& v2)
 {
     return VectorLabel::mergeUnion(v1, v2);
 }

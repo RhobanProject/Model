@@ -16,7 +16,7 @@ int main()
 
     std::cout << Leph::VectorLabel::mergeUnion(vect1, vect2) << std::endl;
     std::cout << Leph::VectorLabel::mergeUnion(vect1, vect1) << std::endl;
-    std::cout << vect1 + vect2 << std::endl;
+    std::cout << (vect1 & vect2) << std::endl;
 
     std::cout << "Vect2" << std::endl;
     std::cout << vect2 << std::endl;
@@ -91,6 +91,13 @@ int main()
     std::cout << "Vect2 inter 3" << std::endl;
     vect3("l2") = 100.0;
     vect2.mergeInter(vect3);
+    std::cout << vect2 << std::endl;
+    
+    vect2 += vect2;
+    std::cout << vect2 << std::endl;
+    vect2 *= 0.5;
+    std::cout << vect2 << std::endl;
+    vect2 *= vect2;
     std::cout << vect2 << std::endl;
 
     return 0;
