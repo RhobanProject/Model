@@ -85,10 +85,10 @@ VectorLabel CartWalkProxy::buildStaticParamsMin() const
         "swingPhase", -0.5,
         "swingHeight", 0.0,
         "xOffset", -5.0,
-        "yOffset", -1.0,
+        "yOffset", 0.0,
         "zOffset", 0.0,
         "hipOffset", -5.0,
-        "yLat", -3.0,
+        "yLat", -2.0,
         "swingForce", 0.0,
         "riseRatio", 0.1,
         "riseStepPhase", 0.0
@@ -98,15 +98,15 @@ VectorLabel CartWalkProxy::buildStaticParamsMax() const
 {
     return VectorLabel(
         "timeGain", 3.5,
-        "riseGain", 12.0,
-        "swingGain", 6.0,
+        "riseGain", 6.0,
+        "swingGain", 4.0,
         "swingPhase", 1.5,
         "swingHeight", 0.0,
         "xOffset", 5.0,
-        "yOffset", 3.0,
-        "zOffset", 6.0,
+        "yOffset", 4.0,
+        "zOffset", 5.0,
         "hipOffset", 25.0,
-        "yLat", 3.0,
+        "yLat", 2.0,
         "swingForce", 1.25,
         "riseRatio", 0.9,
         "riseStepPhase", 0.0
@@ -116,18 +116,18 @@ VectorLabel CartWalkProxy::buildDynamicParamsMin() const
 {
     return VectorLabel(
         "enabled", 0,
-        "step", -10.0,
-        "lateral", -25.0,
-        "turn", -60.0
+        "step", -5.0,
+        "lateral", -12.0,
+        "turn", -50.0
     );
 }
 VectorLabel CartWalkProxy::buildDynamicParamsMax() const
 {
     return VectorLabel(
         "enabled", 1,
-        "step", 30.0,
-        "lateral", 25.0,
-        "turn", 60.0
+        "step", 16.0,
+        "lateral", 12.0,
+        "turn", 50.0
     );
 }
         
