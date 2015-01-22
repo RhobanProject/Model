@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -38,53 +39,63 @@ class VectorLabel
          */
         VectorLabel() :
             _eigenVector(),
-            _labelToIndex(),
-            _indexToLabel()
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>();
         }
         VectorLabel(size_t size) :
             _eigenVector(Vector::Zero(size)),
-            _labelToIndex(),
-            _indexToLabel()
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>();
             defaultLabels();
         }
 
         VectorLabel(const LabelList& labels) :
             _eigenVector(Vector::Zero(labels.size())),
-            _labelToIndex(),
-            _indexToLabel(labels)
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
-            for (size_t i=0;i<_indexToLabel.size();i++) {
-                if (_labelToIndex.count(_indexToLabel[i]) != 0) {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>(labels);
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                if (_labelToIndex->count((*_indexToLabel)[i]) != 0) {
                     throw std::logic_error("VectorLabel label error");
                 }
-                _labelToIndex[_indexToLabel[i]] = i;
+                (*_labelToIndex)[(*_indexToLabel)[i]] = i;
             }
             sortLabels();
         }
         VectorLabel(const Vector& vect) :
             _eigenVector(vect),
-            _labelToIndex(),
-            _indexToLabel()
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>();
             defaultLabels();
             sortLabels();
         }
         VectorLabel(const LabelList& labels, 
             const Vector& vect) :
             _eigenVector(vect),
-            _labelToIndex(),
-            _indexToLabel(labels)
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>(labels);
             if (labels.size() != (size_t)vect.size()) {
                 throw std::logic_error("VectorLabel size invalid");
             }
-            for (size_t i=0;i<_indexToLabel.size();i++) {
-                if (_labelToIndex.count(_indexToLabel[i]) != 0) {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                if (_labelToIndex->count((*_indexToLabel)[i]) != 0) {
                     throw std::logic_error("VectorLabel label error");
                 }
-                _labelToIndex[_indexToLabel[i]] = i;
+                (*_labelToIndex)[(*_indexToLabel)[i]] = i;
             }
             sortLabels();
         }
@@ -95,18 +106,22 @@ class VectorLabel
          */
         VectorLabel(const std::string& label, double value) :
             _eigenVector(),
-            _labelToIndex(),
-            _indexToLabel()
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>();
             appendAux(label, value);
         }
         template <class ... LabelsValues>
         VectorLabel(const std::string& label, 
             double value, LabelsValues... labelsValues) :
             _eigenVector(),
-            _labelToIndex(),
-            _indexToLabel()
+            _labelToIndex(nullptr),
+            _indexToLabel(nullptr)
         {
+            _labelToIndex = std::make_shared<LabelContainer>();
+            _indexToLabel = std::make_shared<IndexContainer>();
             appendAux(label, value);
             append(labelsValues...);
         }
@@ -144,7 +159,7 @@ class VectorLabel
          */
         inline const LabelContainer& labels() const
         {
-            return _labelToIndex;
+            return *_labelToIndex;
         }
         
         /**
@@ -154,11 +169,11 @@ class VectorLabel
         inline size_t size(const std::string& filter = "") const
         {
             if (filter == "") {
-                return _labelToIndex.size();
+                return _labelToIndex->size();
             } else {
                 size_t sum = 0;
-                for (size_t i=0;i<_indexToLabel.size();i++) {
-                    if (toSection(_indexToLabel[i]) == filter) {
+                for (size_t i=0;i<_indexToLabel->size();i++) {
+                    if (toSection(_indexToLabel->at(i)) == filter) {
                         sum++;
                     }
                 }
@@ -175,11 +190,11 @@ class VectorLabel
                 throw std::logic_error("VectorLabel unbound index");
             }
 
-            return _indexToLabel[index];
+            return _indexToLabel->at(index);
         }
         inline size_t getIndex(const std::string& label) const
         {
-            return _labelToIndex.at(label);
+            return _labelToIndex->at(label);
         }
 
         /**
@@ -188,7 +203,7 @@ class VectorLabel
          */
         inline bool exist(const std::string& label) const
         {
-            return (_labelToIndex.count(label) > 0);
+            return (_labelToIndex->count(label) > 0);
         }
 
         /**
@@ -198,7 +213,7 @@ class VectorLabel
         {
             size_t index;
             try {
-                index = _labelToIndex.at(label);
+                index = _labelToIndex->at(label);
             } catch (const std::out_of_range& err) {
                 throw std::logic_error("VectorLabel invalid label: " + label);
             }
@@ -209,7 +224,7 @@ class VectorLabel
         {
             size_t index;
             try {
-                index = _labelToIndex.at(label);
+                index = _labelToIndex->at(label);
             } catch (const std::out_of_range& err) {
                 throw std::logic_error("VectorLabel invalid label: " + label);
             }
@@ -314,15 +329,15 @@ class VectorLabel
         inline void print(std::ostream& os = std::cout) const
         {
             unsigned int maxLength = 0;
-            unsigned int maxDigit = _indexToLabel.size() > 10 ? 2 : 1;
-            for (size_t i=0;i<_indexToLabel.size();i++) {
-                if (_indexToLabel[i].length() > maxLength) {
-                    maxLength = _indexToLabel[i].length();
+            unsigned int maxDigit = _indexToLabel->size() > 10 ? 2 : 1;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                if (_indexToLabel->at(i).length() > maxLength) {
+                    maxLength = _indexToLabel->at(i).length();
                 }
             }
-            for (size_t i=0;i<_indexToLabel.size();i++) {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
                 os << "[" << std::left << std::setw(maxDigit) << i << ":" 
-                   << std::left << std::setw(maxLength) << _indexToLabel[i] << "]" 
+                   << std::left << std::setw(maxLength) << _indexToLabel->at(i) << "]" 
                    << " " << _eigenVector(i) << std::endl;
             }
         }
@@ -333,11 +348,11 @@ class VectorLabel
         inline void writeToCSV(std::ostream& os = std::cout) const
         {
             os << "# ";
-            for (size_t i=0;i<_indexToLabel.size();i++) {
-                os << "'" << _indexToLabel[i] << "' ";
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                os << "'" << _indexToLabel->at(i) << "' ";
             }
             os << std::endl;
-            for (size_t i=0;i<_indexToLabel.size();i++) {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
                 os << std::setprecision(10) << _eigenVector(i) << " ";
             }
             os << std::endl;
@@ -422,8 +437,8 @@ class VectorLabel
             const std::string& filterSrc = "",
             const std::string& filterDst = "")
         {
-            for (size_t i=0;i<vect._indexToLabel.size();i++) {
-                const std::string& srcLabel = vect._indexToLabel[i];
+            for (size_t i=0;i<vect._indexToLabel->size();i++) {
+                const std::string& srcLabel = vect._indexToLabel->at(i);
                 std::string dstLabel;
                 if (filterDst != "") {
                     dstLabel = filterDst + ":" + toName(srcLabel);
@@ -434,7 +449,7 @@ class VectorLabel
                 if (exist(dstLabel) && 
                     (filterSrc == "" || toSection(srcLabel) == filterSrc)
                 ) {
-                    size_t index = _labelToIndex.at(dstLabel);
+                    size_t index = _labelToIndex->at(dstLabel);
                     func(_eigenVector(index), vect._eigenVector(i));
                 }
             }
@@ -469,59 +484,61 @@ class VectorLabel
         inline void mulOp(double val, 
             const std::string& filter = "")
         {
-            for (size_t i=0;i<_indexToLabel.size();i++) {
-                const std::string& label = _indexToLabel[i];
-                if (
-                    (filter == "" || 
-                    toSection(label) == filter)
-                ) {
-                    _eigenVector(i) *= val;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                    const std::string& label = _indexToLabel->at(i);
+                    if (
+                        (filter == "" || 
+                        toSection(label) == filter)
+                    ) {
+                        _eigenVector(i) *= val;
+                    }
                 }
             }
-        }
 
-        /**
-         * Return the name part and section part from
-         * given string label (separator is ":")
-         */
-        static inline std::string toName(const std::string& label)
-        {
-            size_t index = label.find_first_of(std::string(":"));
-            if (index != std::string::npos) {
-                return label.substr(index+1);
-            } else {
-                return label;
+            /**
+             * Return the name part and section part from
+             * given string label (separator is ":")
+             */
+            static inline std::string toName(const std::string& label)
+            {
+                size_t index = label.find_first_of(std::string(":"));
+                if (index != std::string::npos) {
+                    return label.substr(index+1);
+                } else {
+                    return label;
+                }
             }
-        }
-        static inline std::string toSection(const std::string& label)
-        {
-            size_t index = label.find_first_of(std::string(":"));
-            if (index != std::string::npos) {
-                return label.substr(0, index);
-            } else {
-                return "";
+            static inline std::string toSection(const std::string& label)
+            {
+                size_t index = label.find_first_of(std::string(":"));
+                if (index != std::string::npos) {
+                    return label.substr(0, index);
+                } else {
+                    return "";
+                }
             }
-        }
 
-    private:
+        private:
 
-        /**
-         * Double dynamic Eigen values
-         * container vector
-         */
-        Vector _eigenVector;
+            /**
+             * Double dynamic Eigen values
+             * container vector
+             */
+            Vector _eigenVector;
 
-        /**
-         * String label to index mapping
-         * container
-         */
-        LabelContainer _labelToIndex;
+            /**
+             * String label to index mapping
+             * container
+             */
+            //LabelContainer* _labelToIndex;
+            std::shared_ptr<LabelContainer> _labelToIndex;
 
-        /**
-         * Index to string label mapping
-         * container
-         */
-        IndexContainer _indexToLabel;
+            /**
+             * Index to string label mapping
+             * container
+             */
+            //IndexContainer* _indexToLabel;
+        std::shared_ptr<IndexContainer> _indexToLabel;
 
         /**
          * Build up default label
@@ -531,8 +548,8 @@ class VectorLabel
             for (size_t i=0;i<(size_t)_eigenVector.size();i++) {
                 std::ostringstream oss; 
                 oss << "label " << i;
-                _labelToIndex[oss.str()]  = i;
-                _indexToLabel.push_back(oss.str());
+                (*_labelToIndex)[oss.str()]  = i;
+                _indexToLabel->push_back(oss.str());
             }
         }
         
@@ -541,14 +558,18 @@ class VectorLabel
          */
         inline void appendAux(const std::string& label, double value)
         {
-            if (_labelToIndex.count(label) != 0) {
+            if (_labelToIndex->count(label) != 0) {
                 throw std::logic_error("VectorLabel label already exists");
             }
+            //Copy labels mapping container on modification
+            _labelToIndex = std::make_shared<LabelContainer>(*_labelToIndex);
+            _indexToLabel = std::make_shared<IndexContainer>(*_indexToLabel);
+            //Then append a new 
             size_t len = size();
             _eigenVector.conservativeResize(len+1, Eigen::NoChange_t());
             _eigenVector(len) = value;
-            _labelToIndex[label] = len;
-            _indexToLabel.push_back(label);
+            (*_labelToIndex)[label] = len;
+            _indexToLabel->push_back(label);
             sortLabels();
         }
 
@@ -561,11 +582,11 @@ class VectorLabel
         {
             Vector tmp = _eigenVector;
 
-            std::sort(_indexToLabel.begin(), _indexToLabel.end());
-            for (size_t i=0;i<_indexToLabel.size();i++) {
+            std::sort(_indexToLabel->begin(), _indexToLabel->end());
+            for (size_t i=0;i<_indexToLabel->size();i++) {
                 size_t newIndex = i;
-                size_t oldIndex = _labelToIndex[_indexToLabel[newIndex]];
-                _labelToIndex[_indexToLabel[newIndex]] = newIndex;
+                size_t oldIndex = _labelToIndex->at(_indexToLabel->at(newIndex));
+                (*_labelToIndex)[_indexToLabel->at(newIndex)] = newIndex;
                 _eigenVector[newIndex] = tmp[oldIndex];
             }
         }
