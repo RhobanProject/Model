@@ -61,6 +61,7 @@ class Plot
          * Request a 2D plot with X and Y axis
          * X axis could be "index"
          * Y axis could be "all"
+         * Y axis could be "filter:*"
          */
         inline Plot& plot(const std::string& xAxis, 
             const std::string& yAxis, 
@@ -86,6 +87,22 @@ class Plot
                     }
                 }
                 return *this;
+            } else if (yAxis.size() > 2 && 
+                yAxis[yAxis.size()-1] == '*' && 
+                yAxis[yAxis.size()-2] == ':'
+            ) {
+                std::string filter = yAxis.substr(0, 
+                    yAxis.find_first_of(':'));
+                for (size_t i=0;i<_database.size();i++) {
+                    for (const auto& label : _database[i].labels()) {
+                        if (label.first != xAxis && 
+                            VectorLabel::toSection(label.first) == filter
+                        ) {
+                            plot(xAxis, label.first, style, palette);
+                        }
+                    }
+                }
+                return *this;
             } else {
                 Plot2D request;
                 request.xAxis = xAxis;
@@ -101,6 +118,8 @@ class Plot
          * Request a 3D plot with X, Y and Z axis 
          * X axis could be "index"
          * Y axis could be "index"
+         * Z axis could be "all"
+         * Z axis could be "filter:*"
          */
         inline Plot& plot(const std::string& xAxis, 
             const std::string& yAxis, const std::string& zAxis,
@@ -125,6 +144,22 @@ class Plot
                 for (size_t i=0;i<_database.size();i++) {
                     for (const auto& label : _database[i].labels()) {
                         if (label.first != xAxis && label.first != yAxis) {
+                            plot(xAxis, yAxis, label.first, style, palette);
+                        }
+                    }
+                }
+                return *this;
+            } else if (zAxis.size() > 2 && 
+                zAxis[zAxis.size()-1] == '*' && 
+                zAxis[zAxis.size()-2] == ':'
+            ) {
+                std::string filter = zAxis.substr(0, 
+                    zAxis.find_first_of(':'));
+                for (size_t i=0;i<_database.size();i++) {
+                    for (const auto& label : _database[i].labels()) {
+                        if (label.first != xAxis && 
+                            VectorLabel::toSection(label.first) == filter
+                        ) {
                             plot(xAxis, yAxis, label.first, style, palette);
                         }
                     }

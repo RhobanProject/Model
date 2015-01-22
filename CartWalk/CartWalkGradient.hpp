@@ -20,18 +20,17 @@ class CartWalkGradient
 
         /**
          * Numerical differentiation of CartWalk
-         * outputs with respect to static parameters
+         * outputs with respect to parameters
          * at given phase, static and dynamic parameters.
          * Return a jacobian Matrix with outputs in rows
-         * and static parameters differentiation in cols.
+         * and parameters differentiation in cols.
          * Rows and Cols are indexed with respect to
          * walk VectorLabel indexes.
          * Used differentiation step could be given
          */
         Matrix differentiation(
             double phase,
-            const VectorLabel& staticParams,
-            const VectorLabel& dynamicParams,
+            const VectorLabel& params,
             double diffStep = 0.0001);
 
     private:

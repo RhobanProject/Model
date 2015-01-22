@@ -35,31 +35,27 @@ class CartWalkProxy
 
         /**
          * Return initialized label vector
-         * for motor outputs, walk information, 
-         * static parameters, and dynamic parameters 
+         * for motor outputs and walk information, 
+         * static parameters and dynamic parameters 
          * with default values
          */
         VectorLabel buildOutputs() const;
-        VectorLabel buildInfo() const;
-        VectorLabel buildStaticParams() const;
-        VectorLabel buildDynamicParams() const;
+        VectorLabel buildParams() const;
 
         /**
          * Return label vector with minimum
          * and maximum bound for static and
          * dynamic parameters
          */
-        VectorLabel buildStaticParamsMin() const;
-        VectorLabel buildStaticParamsMax() const;
-        VectorLabel buildDynamicParamsMin() const;
-        VectorLabel buildDynamicParamsMax() const;
+        VectorLabel buildParamsMin() const;
+        VectorLabel buildParamsMax() const;
         
         /**
          * Return VectorLabel with typical delta
-         * length scale for all static parameters
+         * length scale for all parameters
          * (1/50 of max-min range)
          */
-        VectorLabel buildStaticParamsDelta() const;
+        VectorLabel buildParamsDelta() const;
 
         /**
          * Return a labeled vector of motor outputs
@@ -68,15 +64,13 @@ class CartWalkProxy
          */
         VectorLabel exec(
             double deltaTime,
-            const VectorLabel& dynamicParams, 
-            const VectorLabel& staticParams);
+            const VectorLabel& params);
 
         /**
          * Return last computed VectorLabel
          * outputs and info (walk information)
          */
         VectorLabel lastOutputs() const;
-        VectorLabel lastInfo() const;
 
     private:
 
@@ -90,7 +84,6 @@ class CartWalkProxy
          * and Info
          */
         VectorLabel _lastOutputs;
-        VectorLabel _lastInfo;
 };
 
 }

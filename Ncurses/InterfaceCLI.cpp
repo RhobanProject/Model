@@ -65,13 +65,13 @@ void InterfaceCLI::quit()
 }
         
 void InterfaceCLI::addParameters(const std::string& sectionName,
-    VectorLabel& vector)
+    VectorLabel& vector, const std::string& filter)
 {
     if (_parameters.count(sectionName) > 0) {
         throw std::logic_error("InterfaceCLI already use section");
     }
-    _parameters[sectionName] = &vector;
-    _sumParams += vector.size();
+    _parameters[sectionName] = FilteredVectorLabel(&vector, filter);
+    _sumParams += vector.size(filter);
 
     if (_paramsWin != NULL) {
         delwin(_paramsWin);
@@ -82,13 +82,13 @@ void InterfaceCLI::addParameters(const std::string& sectionName,
 }
 
 void InterfaceCLI::addMonitors(const std::string& sectionName,
-    VectorLabel& vector)
+    VectorLabel& vector, const std::string& filter)
 {
     if (_monitors.count(sectionName) > 0) {
         throw std::logic_error("InterfaceCLI already use section");
     }
-    _monitors[sectionName] = &vector;
-    _sumMonitors += vector.size();
+    _monitors[sectionName] = FilteredVectorLabel(&vector, filter);
+    _sumMonitors += vector.size(filter);
 
     if (_monitorsWin != NULL) {
         delwin(_monitorsWin);
@@ -228,17 +228,23 @@ void InterfaceCLI::drawParamsWin()
         mvwprintw(_paramsWin, line, 1, vector.first.c_str());
         wattrset(_paramsWin, A_NORMAL);
         line ++;
-        for (size_t i=0;i<vector.second->size();i++) {
+        for (size_t i=0;i<vector.second.first->size();i++) {
+            if (vector.second.second != "" && 
+                VectorLabel::toSection(vector.second.first->getLabel(i)) 
+                != vector.second.second
+            ) {
+                continue;
+            }
             if (_selected == sumIndex) {
                 wattrset(_paramsWin, A_STANDOUT);
-                std::string label = "- " + vector.second->getLabel(i);
+                std::string label = "- " + vector.second.first->getLabel(i);
                 mvwprintw(_paramsWin, line, 2, label.c_str());
-                mvwprintw(_paramsWin, line, 25, "%.4f", (*vector.second)(i));
+                mvwprintw(_paramsWin, line, 25, "%.4f", (*vector.second.first)(i));
                 wattrset(_paramsWin, A_NORMAL);
             } else {
-                std::string label = "- " + vector.second->getLabel(i);
+                std::string label = "- " + vector.second.first->getLabel(i);
                 mvwprintw(_paramsWin, line, 2, label.c_str());
-                mvwprintw(_paramsWin, line, 25, "%.4f", (*vector.second)(i));
+                mvwprintw(_paramsWin, line, 25, "%.4f", (*vector.second.first)(i));
             }
             sumIndex++;
             line++;
@@ -262,10 +268,16 @@ void InterfaceCLI::drawMonitorsWin()
         mvwprintw(_monitorsWin, line, 1, vector.first.c_str());
         wattrset(_monitorsWin, A_NORMAL);
         line += 1;
-        for (size_t i=0;i<vector.second->size();i++) {
-            std::string label = "- " + vector.second->getLabel(i);
+        for (size_t i=0;i<vector.second.first->size();i++) {
+            if (vector.second.second != "" && 
+                VectorLabel::toSection(vector.second.first->getLabel(i)) 
+                != vector.second.second
+            ) {
+                continue;
+            }
+            std::string label = "- " + vector.second.first->getLabel(i);
             mvwprintw(_monitorsWin, line, 2, label.c_str());
-            mvwprintw(_monitorsWin, line, 25, "%.4f", (*vector.second)(i));
+            mvwprintw(_monitorsWin, line, 25, "%.4f", (*vector.second.first)(i));
             line++;
         }
     }
@@ -277,9 +289,9 @@ double& InterfaceCLI::getSelected()
 {
     size_t sumIndex = 0;
     for (auto vector : _parameters) {
-        for (size_t i=0;i<vector.second->size();i++) {
+        for (size_t i=0;i<vector.second.first->size();i++) {
             if (_selected == sumIndex) {
-                return (*vector.second)(i);
+                return (*vector.second.first)(i);
             }
             sumIndex++;
         }

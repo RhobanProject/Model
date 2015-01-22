@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -148,10 +149,21 @@ class VectorLabel
         
         /**
          * Return the vector size
+         * (Optionaly filtered with given section)
          */
-        inline size_t size() const
+        inline size_t size(const std::string& filter = "") const
         {
-            return _labelToIndex.size();
+            if (filter == "") {
+                return _labelToIndex.size();
+            } else {
+                size_t sum = 0;
+                for (size_t i=0;i<_indexToLabel.size();i++) {
+                    if (toSection(_indexToLabel[i]) == filter) {
+                        sum++;
+                    }
+                }
+                return sum;
+            }
         }
 
         /**
@@ -219,35 +231,44 @@ class VectorLabel
 
         /**
          * Merge the given VectorLabel to this
-         * Value priority to given VectorLabel
-         * Result labels are the union of given vector and this
-         * (All values in given vector are created or update in this)
+         * Value priority to given other
+         * Result labels are the union of given 
+         * (filtered with given section) vector and this
+         * (All (filtered) values in given vector are created 
+         * or update in this)
          */
-        inline void mergeUnion(const VectorLabel& v)
+        inline void mergeUnion(const VectorLabel& v, 
+            const std::string& filter = "")
         {
             for (const auto& label : v.labels()) {
-                if (!exist(label.first)) {
-                    append(label.first, v(label.first));
-                } else {
-                    operator()(label.first) = v(label.first);
+                if (filter == "" || toSection(label.first) == filter) {
+                    if (!exist(label.first)) {
+                        append(label.first, v(label.first));
+                    } else {
+                        operator()(label.first) = v(label.first);
+                    }
                 }
             }
         }
         
         /**
          * Merge the given VectorLabel to this
-         * Value priority to given VectorLabel
+         * Value priority to given other
          * Result labels are the intersection of given 
-         * vector and this and union of this.
-         * (Only values present in this and given vector
+         * (filtered with given section) vector and this and 
+         * others labels of this.
+         * (Only values present in this and given (filtered) vector
          * are updated. Others are not update either deleted)
          */
-        inline void mergeInter(const VectorLabel& v)
+        inline void mergeInter(const VectorLabel& v, 
+            const std::string& filter = "")
         {
             for (const auto& label : v.labels()) {
-                if (exist(label.first)) {
-                    operator()(label.first) = v(label.first);
-                } 
+                if (filter == "" || toSection(label.first) == filter) {
+                    if (exist(label.first)) {
+                        operator()(label.first) = v(label.first);
+                    }
+                }
             }
         }
 
@@ -389,27 +410,97 @@ class VectorLabel
                 
             return is.good();
         }
-        
+
         /**
-         * Arithmetic coefficient wise operation
-         * No labels matching
-         * VectorLabel must be same size and same labels
+         * Apply the operation "func" on all labels of given VectorLabel
+         * filtered by filterSrc section and write the result on either
+         * same label in this or filteredDst section and same name
          */
-        inline void operator+=(const VectorLabel& vect)
+        inline void op(
+            const VectorLabel& vect, 
+            std::function<void(double& self, const double& other)> func,
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
         {
-            _eigenVector += vect.vect();
+            for (size_t i=0;i<vect._indexToLabel.size();i++) {
+                const std::string& srcLabel = vect._indexToLabel[i];
+                std::string dstLabel;
+                if (filterDst != "") {
+                    dstLabel = filterDst + ":" + toName(srcLabel);
+                } else {
+                    dstLabel = srcLabel;
+                }
+
+                if (exist(dstLabel) && 
+                    (filterSrc == "" || toSection(srcLabel) == filterSrc)
+                ) {
+                    size_t index = _labelToIndex.at(dstLabel);
+                    func(_eigenVector(index), vect._eigenVector(i));
+                }
+            }
         }
-        inline void operator-=(const VectorLabel& vect)
+
+        /**
+         * Coefficient wise addition, substraction, multiplication
+         * and scalar multiplication with optional source and destination
+         * section filter
+         */
+        inline void addOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
         {
-            _eigenVector -= vect.vect();
+            op(vect, [](double& self, const double& other){ 
+                self += other; }, filterSrc, filterDst);
         }
-        inline void operator*=(const VectorLabel& vect)
+        inline void subOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
         {
-            _eigenVector = _eigenVector.array() * vect.vect().array();
+            op(vect, [](double& self, const double& other){ 
+                self -= other; }, filterSrc, filterDst);
         }
-        inline void operator*=(double val)
+        inline void mulOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
         {
-            _eigenVector *= val;
+            op(vect, [](double& self, const double& other){ 
+                self *= other; }, filterSrc, filterDst);
+        }
+        inline void mulOp(double val, 
+            const std::string& filter = "")
+        {
+            for (size_t i=0;i<_indexToLabel.size();i++) {
+                const std::string& label = _indexToLabel[i];
+                if (
+                    (filter == "" || 
+                    toSection(label) == filter)
+                ) {
+                    _eigenVector(i) *= val;
+                }
+            }
+        }
+
+        /**
+         * Return the name part and section part from
+         * given string label (separator is ":")
+         */
+        static inline std::string toName(const std::string& label)
+        {
+            size_t index = label.find_first_of(std::string(":"));
+            if (index != std::string::npos) {
+                return label.substr(index+1);
+            } else {
+                return label;
+            }
+        }
+        static inline std::string toSection(const std::string& label)
+        {
+            size_t index = label.find_first_of(std::string(":"));
+            if (index != std::string::npos) {
+                return label.substr(0, index);
+            } else {
+                return "";
+            }
         }
 
     private:
@@ -487,14 +578,6 @@ inline std::ostream& operator<<(std::ostream& os, const VectorLabel& vect)
 {
     vect.print(os);
     return os;
-}
-
-/**
- * Merge union operator
- */
-inline VectorLabel operator&(const VectorLabel& v1, const VectorLabel& v2)
-{
-    return VectorLabel::mergeUnion(v1, v2);
 }
 
 }

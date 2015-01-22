@@ -7,25 +7,23 @@ int main()
 {
     Leph::InterfaceCLI cli("Test interface");
 
-    Leph::VectorLabel param1(
-        "label 1", 1.0,
-        "label 2", 2.0,
-        "label 3", 3.0);
-    Leph::VectorLabel param2(
-        "label2 1", 4.0,
-        "label2 2", 5.0);
-    Leph::VectorLabel values1(
-        "value 1", 1.0,
-        "value 2", 2.0,
-        "value 3", 3.0);
-    Leph::VectorLabel values2(
-        "value 1", 4.0,
-        "value 2", 5.0);
+    Leph::VectorLabel param(
+        "aa:label 1", 1.0,
+        "aa:label 2", 2.0,
+        "aa:label 3", 3.0,
+        "bb:label2 1", 4.0,
+        "bb:label2 2", 5.0);
+    Leph::VectorLabel values(
+        "cc:value 1", 1.0,
+        "cc:value 2", 2.0,
+        "cc:value 3", 3.0,
+        "dd:value 1", 4.0,
+        "dd:value 2", 5.0);
 
-    cli.addParameters("Params 1", param1);
-    cli.addParameters("Params 2", param2);
-    cli.addMonitors("Values 1", values1);
-    cli.addMonitors("Values 2", values2);
+    cli.addParameters("Params 1 (aa)", param, "aa");
+    cli.addParameters("Params 2 (bb)", param, "bb");
+    cli.addMonitors("Values 1 (cc)", values, "cc");
+    cli.addMonitors("Values 2 (dd)", values, "dd");
 
     std::string status1 = "Pouet";
     std::string status2 = "Incr Disable";
@@ -44,9 +42,9 @@ int main()
 
     while (cli.tick()) {
         if (doIncr) {
-            values1(1) += 0.1;
-            values1(2) -= 0.2;
-            values2(0) *= 1.01;
+            values(1) += 0.1;
+            values(2) -= 0.2;
+            values(3) *= 1.01;
         }
         std::this_thread::sleep_for(
             std::chrono::milliseconds(20));

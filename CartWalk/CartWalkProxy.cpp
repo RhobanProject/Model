@@ -22,176 +22,153 @@ void CartWalkProxy::setPhase(double phase)
 VectorLabel CartWalkProxy::buildOutputs() const
 {
     return VectorLabel(
-        "left hip pitch", 0.0,
-        "left hip roll", 0.0,
-        "left hip yaw", 0.0,
-        "left knee", 0.0,
-        "left foot pitch", 0.0,
-        "left foot roll", 0.0,
-        "right hip pitch", 0.0,
-        "right hip roll", 0.0,
-        "right hip yaw", 0.0,
-        "right knee", 0.0,
-        "right foot pitch", 0.0,
-        "right foot roll", 0.0
+        "output:left hip pitch", 0.0,
+        "output:left hip roll", 0.0,
+        "output:left hip yaw", 0.0,
+        "output:left knee", 0.0,
+        "output:left foot pitch", 0.0,
+        "output:left foot roll", 0.0,
+        "output:right hip pitch", 0.0,
+        "output:right hip roll", 0.0,
+        "output:right hip yaw", 0.0,
+        "output:right knee", 0.0,
+        "output:right foot pitch", 0.0,
+        "output:right foot roll", 0.0,
+        "info:phase", 0.0,
+        "info:left spline X", 0.0,
+        "info:left spline Y", 0.0,
+        "info:left spline Z", 0.0,
+        "info:right spline X", 0.0,
+        "info:right spline Y", 0.0,
+        "info:right spline Z", 0.0
     );
 }
-VectorLabel CartWalkProxy::buildInfo() const
+VectorLabel CartWalkProxy::buildParams() const
 {
     return VectorLabel(
-        "phase", 0.0,
-        "left spline X", 0.0,
-        "left spline Y", 0.0,
-        "left spline Z", 0.0,
-        "right spline X", 0.0,
-        "right spline Y", 0.0,
-        "right spline Z", 0.0
-    );
-}
-VectorLabel CartWalkProxy::buildStaticParams() const
-{
-    return VectorLabel(
-        "timeGain", 2.68,
-        "riseGain", 1.5,
-        "swingGain", 1.0,
-        "swingPhase", -0.05,
-        "swingHeight", 0.0,
-        "xOffset", 1.5,
-        "yOffset", 1.5,
-        "zOffset", 2.2,
-        "hipOffset", 15.0,
-        "yLat", 0.0,
-        "swingForce", 0.1,
-        "riseRatio", 0.6,
-        "riseStepPhase", 0.0
-    );
-}
-VectorLabel CartWalkProxy::buildDynamicParams() const
-{
-    return VectorLabel(
-        "enabled", 0,
-        "step", 0.0,
-        "lateral", 0.0,
-        "turn", 0.0
+        "static:timeGain", 2.68,
+        "static:riseGain", 1.5,
+        "static:swingGain", 1.0,
+        "static:swingPhase", -0.05,
+        "static:swingHeight", 0.0,
+        "static:xOffset", 1.5,
+        "static:yOffset", 1.5,
+        "static:zOffset", 2.2,
+        "static:hipOffset", 15.0,
+        "static:yLat", 0.0,
+        "static:swingForce", 0.1,
+        "static:riseRatio", 0.6,
+        "static:riseStepPhase", 0.0,
+        "dynamic:enabled", 0,
+        "dynamic:step", 0.0,
+        "dynamic:lateral", 0.0,
+        "dynamic:turn", 0.0
     );
 }
 
-VectorLabel CartWalkProxy::buildStaticParamsMin() const
+VectorLabel CartWalkProxy::buildParamsMin() const
 {
     return VectorLabel(
-        "timeGain", 1.0,
-        "riseGain", 0.0,
-        "swingGain", 0.0,
-        "swingPhase", -0.5,
-        "swingHeight", 0.0,
-        "xOffset", -5.0,
-        "yOffset", 0.0,
-        "zOffset", 0.0,
-        "hipOffset", -5.0,
-        "yLat", -2.0,
-        "swingForce", 0.0,
-        "riseRatio", 0.1,
-        "riseStepPhase", 0.0
+        "static:timeGain", 1.0,
+        "static:riseGain", 0.0,
+        "static:swingGain", 0.0,
+        "static:swingPhase", -0.5,
+        "static:swingHeight", 0.0,
+        "static:xOffset", -5.0,
+        "static:yOffset", 0.0,
+        "static:zOffset", 0.0,
+        "static:hipOffset", -5.0,
+        "static:yLat", -2.0,
+        "static:swingForce", 0.0,
+        "static:riseRatio", 0.1,
+        "static:riseStepPhase", 0.0,
+        "dynamic:enabled", 0,
+        "dynamic:step", -5.0,
+        "dynamic:lateral", -12.0,
+        "dynamic:turn", -50.0
     );
 }
-VectorLabel CartWalkProxy::buildStaticParamsMax() const
+VectorLabel CartWalkProxy::buildParamsMax() const
 {
     return VectorLabel(
-        "timeGain", 3.5,
-        "riseGain", 6.0,
-        "swingGain", 4.0,
-        "swingPhase", 1.5,
-        "swingHeight", 0.0,
-        "xOffset", 5.0,
-        "yOffset", 4.0,
-        "zOffset", 5.0,
-        "hipOffset", 25.0,
-        "yLat", 2.0,
-        "swingForce", 1.25,
-        "riseRatio", 0.9,
-        "riseStepPhase", 0.0
-    );
-}
-VectorLabel CartWalkProxy::buildDynamicParamsMin() const
-{
-    return VectorLabel(
-        "enabled", 0,
-        "step", -5.0,
-        "lateral", -12.0,
-        "turn", -50.0
-    );
-}
-VectorLabel CartWalkProxy::buildDynamicParamsMax() const
-{
-    return VectorLabel(
-        "enabled", 1,
-        "step", 16.0,
-        "lateral", 12.0,
-        "turn", 50.0
+        "static:timeGain", 3.5,
+        "static:riseGain", 6.0,
+        "static:swingGain", 4.0,
+        "static:swingPhase", 1.5,
+        "static:swingHeight", 0.0,
+        "static:xOffset", 5.0,
+        "static:yOffset", 4.0,
+        "static:zOffset", 5.0,
+        "static:hipOffset", 25.0,
+        "static:yLat", 2.0,
+        "static:swingForce", 1.25,
+        "static:riseRatio", 0.9,
+        "static:riseStepPhase", 0.0,
+        "dynamic:enabled", 1,
+        "dynamic:step", 16.0,
+        "dynamic:lateral", 12.0,
+        "dynamic:turn", 50.0
     );
 }
         
-VectorLabel CartWalkProxy::buildStaticParamsDelta() const
+VectorLabel CartWalkProxy::buildParamsDelta() const
 {
-    VectorLabel max = buildStaticParamsMax();
-    VectorLabel min = buildStaticParamsMin();
+    VectorLabel max = buildParamsMax();
+    VectorLabel min = buildParamsMin();
 
-    max -= min;
-    max *= (1.0/50.0);
+    max.subOp(min);
+    max.mulOp(1.0/50.0);
     return max;
 }
         
 VectorLabel CartWalkProxy::exec(
     double deltaTime,
-    const VectorLabel& dynamicParams, 
-    const VectorLabel& staticParams)
+    const VectorLabel& params)
 {
-    _walk.timeGain = staticParams("timeGain");
-    _walk.riseGain = staticParams("riseGain");
-    _walk.swingGain = staticParams("swingGain");
-    _walk.swingPhase = staticParams("swingPhase");
-    _walk.swingHeight = staticParams("swingHeight");
-    _walk.xOffset = staticParams("xOffset");
-    _walk.yOffset = staticParams("yOffset");
-    _walk.zOffset = staticParams("zOffset");
-    _walk.hipOffset = staticParams("hipOffset");
-    _walk.yLat = staticParams("yLat");
-    _walk.swingForce = staticParams("swingForce");
-    _walk.riseRatio = staticParams("riseRatio");
-    _walk.riseStepPhase = staticParams("riseStepPhase");
+    _walk.timeGain = params("static:timeGain");
+    _walk.riseGain = params("static:riseGain");
+    _walk.swingGain = params("static:swingGain");
+    _walk.swingPhase = params("static:swingPhase");
+    _walk.swingHeight = params("static:swingHeight");
+    _walk.xOffset = params("static:xOffset");
+    _walk.yOffset = params("static:yOffset");
+    _walk.zOffset = params("static:zOffset");
+    _walk.hipOffset = params("static:hipOffset");
+    _walk.yLat = params("static:yLat");
+    _walk.swingForce = params("static:swingForce");
+    _walk.riseRatio = params("static:riseRatio");
+    _walk.riseStepPhase = params("static:riseStepPhase");
 
-    _walk.stepGain = dynamicParams("step");
-    _walk.lateralStepGain = dynamicParams("lateral");
-    _walk.turn = dynamicParams("turn");
-    _walk.isEnabled = dynamicParams("enabled");
+    _walk.stepGain = params("dynamic:step");
+    _walk.lateralStepGain = params("dynamic:lateral");
+    _walk.turn = params("dynamic:turn");
+    _walk.isEnabled = params("dynamic:enabled");
     
     _walk.tick(deltaTime);
     
     VectorLabel outputs = buildOutputs();
-    outputs("left hip pitch") = _walk.a_l_hip_pitch;
-    outputs("left hip roll") = _walk.a_l_hip_roll;
-    outputs("left hip yaw") = _walk.a_l_hip_yaw;
-    outputs("left knee") = _walk.a_l_knee;
-    outputs("left foot pitch") = _walk.a_l_foot_pitch;
-    outputs("left foot roll") = _walk.a_l_foot_roll;
-    outputs("right hip pitch") = _walk.a_r_hip_pitch;
-    outputs("right hip roll") = _walk.a_r_hip_roll;
-    outputs("right hip yaw") = _walk.a_r_hip_yaw;
-    outputs("right knee") = _walk.a_r_knee;
-    outputs("right foot pitch") = _walk.a_r_foot_pitch;
-    outputs("right foot roll") = _walk.a_r_foot_roll;
+    outputs("output:left hip pitch") = _walk.a_l_hip_pitch;
+    outputs("output:left hip roll") = _walk.a_l_hip_roll;
+    outputs("output:left hip yaw") = _walk.a_l_hip_yaw;
+    outputs("output:left knee") = _walk.a_l_knee;
+    outputs("output:left foot pitch") = _walk.a_l_foot_pitch;
+    outputs("output:left foot roll") = _walk.a_l_foot_roll;
+    outputs("output:right hip pitch") = _walk.a_r_hip_pitch;
+    outputs("output:right hip roll") = _walk.a_r_hip_roll;
+    outputs("output:right hip yaw") = _walk.a_r_hip_yaw;
+    outputs("output:right knee") = _walk.a_r_knee;
+    outputs("output:right foot pitch") = _walk.a_r_foot_pitch;
+    outputs("output:right foot roll") = _walk.a_r_foot_roll;
 
-    VectorLabel info = buildInfo();
-    info("phase") = _walk.t;
-    info("left spline X") = _walk.sLX;
-    info("left spline Y") = _walk.sLY;
-    info("left spline Z") = _walk.sLZ;
-    info("right spline X") = _walk.sRX;
-    info("right spline Y") = _walk.sRY;
-    info("right spline Z") = _walk.sRZ;
+    outputs("info:phase") = _walk.t;
+    outputs("info:left spline X") = _walk.sLX;
+    outputs("info:left spline Y") = _walk.sLY;
+    outputs("info:left spline Z") = _walk.sLZ;
+    outputs("info:right spline X") = _walk.sRX;
+    outputs("info:right spline Y") = _walk.sRY;
+    outputs("info:right spline Z") = _walk.sRZ;
 
     _lastOutputs = outputs;
-    _lastInfo = info;
 
     return outputs;
 }
@@ -199,10 +176,6 @@ VectorLabel CartWalkProxy::exec(
 VectorLabel CartWalkProxy::lastOutputs() const
 {
     return _lastOutputs;
-}
-VectorLabel CartWalkProxy::lastInfo() const
-{
-    return _lastInfo;
 }
 
 }

@@ -43,9 +43,11 @@ class InterfaceCLI
          * Vector pointer are used. Do no destruct
          * the given vector before the end of InterfaceCLI
          * instance life
+         * (Optional section filter can be given)
          */
         void addParameters(const std::string& sectionName,
-            VectorLabel& vector);
+            VectorLabel& vector,
+            const std::string& filter = "");
 
         /**
          * Add a VectorLabel under given section name
@@ -53,9 +55,11 @@ class InterfaceCLI
          * Vector pointer are used. Do no destruct
          * the given vector before the end of InterfaceCLI
          * instance life
+         * (Optional section filter can be given)
          */
         void addMonitors(const std::string& sectionName,
-            VectorLabel& vector);
+            VectorLabel& vector,
+            const std::string& filter = "");
 
         /**
          * Add an user defined input binding with
@@ -118,6 +122,13 @@ class InterfaceCLI
         };
 
         /**
+         * Typedef for parameters and monitor
+         * First is VectorLabel
+         * Second is optional filter
+         */
+        typedef std::pair<VectorLabel*, std::string> FilteredVectorLabel;
+
+        /**
          * Ncurses windows pointer to
          * title, status, parameters and
          * monitors windows
@@ -138,7 +149,7 @@ class InterfaceCLI
          * associated with section name
          * And sum of parameter
          */
-        std::map<std::string,VectorLabel*> _parameters;
+        std::map<std::string, FilteredVectorLabel> _parameters;
         size_t _sumParams;
 
         /**
@@ -147,7 +158,7 @@ class InterfaceCLI
          * associated with section name
          * And sum of monitor
          */
-        std::map<std::string,VectorLabel*> _monitors;
+        std::map<std::string, FilteredVectorLabel> _monitors;
         size_t _sumMonitors;
 
         /**

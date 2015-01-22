@@ -16,7 +16,6 @@ int main()
 
     std::cout << Leph::VectorLabel::mergeUnion(vect1, vect2) << std::endl;
     std::cout << Leph::VectorLabel::mergeUnion(vect1, vect1) << std::endl;
-    std::cout << (vect1 & vect2) << std::endl;
 
     std::cout << "Vect2" << std::endl;
     std::cout << vect2 << std::endl;
@@ -80,25 +79,47 @@ int main()
     }
     fileIn.close();
 
-    std::cout << "Vect2" << std::endl;
-    std::cout << vect2 << std::endl;
-    std::cout << "Vect3" << std::endl;
-    vect3.append("l3", 69);
-    std::cout << vect3 << std::endl;
-    std::cout << "Vect3 union 2" << std::endl;
-    vect3.mergeUnion(vect2);
-    std::cout << vect3 << std::endl;
-    std::cout << "Vect2 inter 3" << std::endl;
-    vect3("l2") = 100.0;
-    vect2.mergeInter(vect3);
-    std::cout << vect2 << std::endl;
-    
-    vect2 += vect2;
-    std::cout << vect2 << std::endl;
-    vect2 *= 0.5;
-    std::cout << vect2 << std::endl;
-    vect2 *= vect2;
-    std::cout << vect2 << std::endl;
+    std::cout << Leph::VectorLabel::toSection("section:name") << std::endl;
+    std::cout << Leph::VectorLabel::toSection("sectionname") << std::endl;
+    std::cout << Leph::VectorLabel::toName("section:name") << std::endl;
+    std::cout << Leph::VectorLabel::toName("sectionname") << std::endl;
+    std::cout << std::endl;
+
+    Leph::VectorLabel vect7(
+        "a:x", 1.0,
+        "b:x", 2.0,
+        "b:y", 3.0);
+    Leph::VectorLabel vect8(
+        "a:x", 10.0,
+        "b:y", 20.0);
+    vect7.addOp(vect8, "b");
+    std::cout << vect7 << std::endl;
+    vect7.mulOp(0.5);
+    std::cout << vect7 << std::endl;
+    vect7.subOp(vect8, "a");
+    std::cout << vect7 << std::endl;
+    vect7.addOp(vect7, "b", "a");
+    std::cout << vect7 << std::endl;
+
+    Leph::VectorLabel vect9(
+        "a:x", 1.0,
+        "a:y", 2.0,
+        "b:x", 3.0);
+    Leph::VectorLabel vect10(
+        "a:x", 1.0,
+        "a:y", 4.0,
+        "b:x", 6.0,
+        "b:y", 5.0);
+    std::cout << "Vect9" << std::endl;
+    std::cout << vect9 << std::endl;
+    std::cout << "Vect10" << std::endl;
+    std::cout << vect10 << std::endl;
+    vect9.mergeInter(vect10, "b");
+    std::cout << "Vect9 union 10" << std::endl;
+    std::cout << vect9 << std::endl;
+    vect9.mergeUnion(vect10);
+    std::cout << "Vect9 inter 10" << std::endl;
+    std::cout << vect9 << std::endl;
 
     return 0;
 }
