@@ -313,7 +313,7 @@ class VectorLabel
         {
             os << "# ";
             for (size_t i=0;i<_indexToLabel.size();i++) {
-                os << _indexToLabel[i] << " ";
+                os << "'" << _indexToLabel[i] << "' ";
             }
             os << std::endl;
             for (size_t i=0;i<_indexToLabel.size();i++) {
@@ -335,7 +335,7 @@ class VectorLabel
                 "VectorLabel invalid CSV format (first comment line): " + str);
             //Find first label
             size_t index = 0;
-            index = str.find_first_not_of(std::string("# "), index);
+            index = str.find_first_of(std::string("'"), index);
             if (index == std::string::npos) throw std::logic_error(
                 "VectorLabel invalid CSV format (no label): " + str);
             //Init extracted labels and CSV index mapping
@@ -343,17 +343,17 @@ class VectorLabel
             size_t labelIndex = 0;
             //Extract all labels until newline
             while (index != std::string::npos && str[index] != '\n') {
-                size_t endLabel = str.find_first_of(std::string(" \n"), index);
-                std::string label = str.substr(index, endLabel-index);
+                size_t endLabel = str.find_first_of(std::string("'\n"), index+1);
+                std::string label = str.substr(index+1, endLabel-index-1);
                 if (!exist(label)) {
                     append(label, 0.0);
                 } 
                 mapping[labelIndex] = label;
-                index = str.find_first_not_of(std::string(" "), endLabel);
+                index = str.find_first_of(std::string("'\n"), endLabel+1);
                 labelIndex++;
             }
             //Go through new line
-            index = str.find_first_not_of(std::string("\n\r"), index);
+            index = str.find_first_not_of(std::string("' \n\r"), index);
             //Extract all values
             labelIndex = 0;
             while (index != std::string::npos && str[index] != '\n') {
