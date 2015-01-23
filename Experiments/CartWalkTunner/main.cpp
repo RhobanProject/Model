@@ -15,8 +15,7 @@ int main()
 {
     //Initialisation of CartWalk parameters
     Leph::CartWalkProxy walk;
-    Leph::VectorLabel staticParams = walk.buildStaticParams();
-    Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
+    Leph::VectorLabel params = walk.buildParams();
 
     //Initialize the connection
     Leph::SDKConnection sdkConnection;
@@ -24,12 +23,12 @@ int main()
     //Initialize the interface
     std::string statusEnabled = "Walk is Disabled";
     Leph::SDKInterface interface(sdkConnection, "CartWalk Tunner");
-    interface.addParameters("Dynamic Parameters", dynamicParams);
-    interface.addParameters("Static Parameter", staticParams);
+    interface.addParameters("Dynamic Parameters", params, "dynamic");
+    interface.addParameters("Static Parameter", params, "static");
     interface.addStatus(statusEnabled);
-    interface.addBinding(' ', "Toggle walk enable", [&dynamicParams, &statusEnabled](){
-        dynamicParams("enabled") = !dynamicParams("enabled");
-        if (dynamicParams("enabled")) {
+    interface.addBinding(' ', "Toggle walk enable", [&params, &statusEnabled](){
+        params("dynamic:enabled") = !params("dynamic:enabled");
+        if (params("dynamic:enabled")) {
             statusEnabled = "Walk is Enabled";
         } else {
             statusEnabled = "Walk is Disabled";
@@ -40,7 +39,7 @@ int main()
     while (interface.tick()) {
         const double freq = 50.0;
         //Generate walk orders
-        walk.exec(1.0/freq, dynamicParams, staticParams);
+        walk.exec(1.0/freq, params);
         Leph::VectorLabel outputs = walk.lastOutputs();
         //Sending them to the robot
         sdkConnection.setMotorAngles(outputs);
@@ -51,8 +50,7 @@ int main()
     interface.quit();
     
     //Printing last used parameters
-    std::cout << dynamicParams << std::endl;
-    std::cout << staticParams << std::endl;
+    std::cout << params << std::endl;
 
     return 0;
 }

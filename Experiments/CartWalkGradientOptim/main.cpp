@@ -31,34 +31,35 @@ unsigned long now()
 }
 
 /**
- * Bound given static parameters between 
+ * Bound given parameters between 
  * allowed min and max value
  */
-void boundParameters(Leph::VectorLabel& staticParams, 
-    const Leph::VectorLabel min,
-    const Leph::VectorLabel max)
+void boundParameters(Leph::VectorLabel& params, 
+    const Leph::VectorLabel& min,
+    const Leph::VectorLabel& max)
 {
-    for (size_t i=0;i<staticParams.size();i++) {
-        if (staticParams(i) < min(staticParams.getLabel(i))) {
-            staticParams(i) = min(staticParams.getLabel(i));
+    for (size_t i=0;i<min.size();i++) {
+        const std::string& label = min.getLabel(i);
+        if (params.exist(label) && params(label) < min(i)) {
+            params(label) = min(i);
         }
-        if (staticParams(i) > max(staticParams.getLabel(i))) {
-            staticParams(i) = max(staticParams.getLabel(i));
+        if (params.exist(label) && params(label) > max(i)) {
+            params(label) = max(i);
         }
     }
 }
 
 /**
- * Return random generated delta static parameters
+ * Return random generated delta parameters
  * with variance given by coef*typical parameter length scale
  */
-Leph::VectorLabel randDeltaStaticParams(
-    const Leph::VectorLabel staticParamsDelta, double coef = 1.0)
+Leph::VectorLabel randDeltaParams(
+    const Leph::VectorLabel paramsDelta, double coef = 1.0)
 {
-    Leph::VectorLabel deltas = staticParamsDelta;
-    for (size_t i=0;i<staticParamsDelta.size();i++) {
+    Leph::VectorLabel deltas = paramsDelta;
+    for (size_t i=0;i<paramsDelta.size();i++) {
         std::normal_distribution<double> 
-            normalDist(0.0, coef*staticParamsDelta(i));
+            normalDist(0.0, coef*paramsDelta(i));
         deltas(i) = normalDist(randomGenerator);
     }
 
@@ -90,32 +91,93 @@ int main()
     //Init SDK connection
     Leph::SDKConnection sdkConnection;
 
-    //Init CartWalk
+    //Init CartWalk and parameters default, min, max and deltas
     Leph::CartWalkProxy walk;
-    Leph::VectorLabel allStaticParams = walk.buildStaticParams();
-    Leph::VectorLabel allStaticParamsMin = walk.buildStaticParamsMin();
-    Leph::VectorLabel allStaticParamsMax = walk.buildStaticParamsMax();
-    Leph::VectorLabel dynamicParams = walk.buildDynamicParams();
-    Leph::VectorLabel allStaticParamsDelta = walk.buildStaticParamsDelta();
-    dynamicParams("step") = 12.0;
+    Leph::VectorLabel allParams = walk.buildParams();
+    Leph::VectorLabel allParamsMin = walk.buildParamsMin();
+    Leph::VectorLabel allParamsMax = walk.buildParamsMax();
+    Leph::VectorLabel allParamsDelta = walk.buildParamsDelta();
 
+    //Parameters
+    Leph::VectorLabel params;
     //Select subset of all static parameters
-    Leph::VectorLabel staticParams({
-        "timeGain", 
-        "riseGain",
-        "swingGain",
-        "swingPhase",
-        "xOffset",
-        "yOffset",
-        "zOffset",
-        "hipOffset",
-        //"yLat",
-        //"swingForce",
-        //"riseRatio",
-    });
-    staticParams.mergeInter(allStaticParams);
-    Leph::VectorLabel staticParamsDelta = staticParams;
-    staticParamsDelta.mergeInter(allStaticParamsDelta);
+    params.append(
+        "static:timeGain", 0.0,
+        "static:riseGain", 0.0,
+        "static:swingGain", 0.0,
+        "static:swingPhase", 0.0,
+        "static:xOffset", 0.0,
+        "static:yOffset", 0.0,
+        "static:zOffset", 0.0,
+        "static:hipOffset", 0.0
+        //"static:yLat", 0.0,
+        //"static:swingForce", 0.0,
+        //"static:riseRatio", 0.0
+    );
+    //Get all dynamic parameters
+    params.mergeUnion(allParams, "dynamic");
+    //Get all selecled static parameters values
+    params.mergeInter(allParams);
+    //Init dynamic parameters values
+    params("dynamic:step") = 5.0;
+    
+    //Servo target reference
+    params.append(
+        "refpos:step", -0.3861,
+        "refpos:lateral", 0.1736,
+        "refpos:turn", -1.6
+    );
+    //Servo proportional gain
+    params.append(
+        "gain:step", 20.0,
+        "gain:lateral", 125.0,
+        "gain:turn", 1.25
+    );
+    //Delta smoothing coefficient
+    params.append(
+        "smooth:coef", 0.8
+    );
+    //Parameters random exploration coefficient
+    params.append(
+        "exploration:coef", 2.0
+    );
+
+    //Monitors
+    Leph::VectorLabel monitors;
+    //Walk orders delta
+    monitors.append(
+        "delta:step", 0.0,
+        "delta:lateral", 0.0,
+        "delta:turn", 0.0
+    );
+    //Motion capture error from target
+    monitors.append(
+        "error:step", 0.0,
+        "error:lateral", 0.0,
+        "error:turn", 0.0
+    );
+    //Is motion capture valid
+    monitors.append(
+        "mocap:isValid", 0
+    );
+    //Init sensors retrieving
+    monitors.mergeUnion(sdkConnection.getSensorValues());
+    //Init VectorLabel for fitness
+    monitors.append(
+        "fitness:mocap lateral", 0.0,
+        "fitness:mocap turn", 0.0,
+        "fitness:gyro x", 0.0,
+        "fitness:gyro y", 0.0,
+        "fitness:gyro z", 0.0
+    );
+    //Init VectorLabel for timestamp
+    monitors.append(
+        "time:timestamp", now()
+    );
+    //Init main loop delay
+    monitors.append(
+        "time:delay", 0.0
+    );
     
     //Init Motion Capture
     Rhoban::MotionCapture motionCapture;
@@ -123,82 +185,44 @@ int main()
     motionCapture.averageCoefPos = 0.7;
     motionCapture.maxInvalidTick = 20;
 
-    //Servo target reference
-    Leph::VectorLabel posReferences(
-        "forward", -0.3861,
-        "lateral", 0.1736,
-        "turn", -1.6);
-    //Servo proportional gain
-    Leph::VectorLabel servoGains(
-        "forward", 20.0,
-        "lateral", 125.0,
-        "turn", 1.25);
-    //Walk orders delta
-    Leph::VectorLabel deltas(
-        "forward", 0.0,
-        "lateral", 0.0,
-        "turn", 0.0);
-    //Delta smoothing coefficient
-    Leph::VectorLabel discountCoef(
-        "coef", 0.8);
-    //Motion capture error from target
-    Leph::VectorLabel mocapPosError(
-        "forward", 0.0,
-        "lateral", 0.0,
-        "turn", 0.0);
-    //Is motion capture valid
-    Leph::VectorLabel mocapIsValid(
-        "isValid", 0);
-
-    //Init sensors retrieving
-    Leph::VectorLabel sensors = sdkConnection.getSensorValues();
-    
     //Init CLI interface
     std::string statusEnabled = "Walk is Disabled";
     Leph::SDKInterface interface(sdkConnection, "CartWalk Gradient Optim");
-    interface.addParameters("Dynamic walk parameters", dynamicParams);
-    interface.addParameters("Static walk parameters", staticParams);
-    interface.addParameters("Servo gain", servoGains);
-    interface.addParameters("Reference positions", posReferences);
-    interface.addMonitors("Motion Capture isValid", mocapIsValid);
-    interface.addMonitors("Motion Capture position error", mocapPosError);
-    interface.addMonitors("Deltas", deltas);
-    interface.addMonitors("Sensors", sensors);
+    interface.addParameters("Dynamic walk parameters", params, "dynamic");
+    interface.addParameters("Static walk parameters", params, "static");
+    interface.addParameters("Servo gain", params, "gain");
+    interface.addParameters("Reference positions", params, "refpos");
+    interface.addParameters("Learning", params, "exploration");
+    interface.addMonitors("Motion Capture", monitors, "mocap");
+    interface.addMonitors("Motion Capture position error", monitors, "error");
+    interface.addMonitors("Deltas", monitors, "delta");
+    interface.addMonitors("Sensors", monitors, "sensor");
+    interface.addMonitors("Fitness", monitors, "fitness");
+    interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
-    interface.addBinding(' ', "Toggle walk enable", [&dynamicParams, &statusEnabled](){
-        dynamicParams("enabled") = !dynamicParams("enabled");
-        if (dynamicParams("enabled")) {
+    interface.addBinding(' ', "Toggle walk enable", [&params, &statusEnabled](){
+        params("dynamic:enabled") = !params("dynamic:enabled");
+        if (params("dynamic:enabled")) {
             statusEnabled = "Walk is Enabled";
         } else {
             statusEnabled = "Walk is Disabled";
         }
     });
-    interface.addBinding('r', "Generate random params", [&staticParams, &interface, 
-        &staticParamsDelta, &allStaticParamsMin, &allStaticParamsMax] () {
-        Leph::VectorLabel deltas = randDeltaStaticParams(staticParamsDelta);
-        staticParams += deltas;
-        boundParameters(staticParams, allStaticParamsMin, allStaticParamsMax);
+    interface.addBinding('r', "Generate random params", [&params, &interface, 
+        &allParamsDelta, &allParamsMin, &allParamsMax] () {
+        Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
+            params("exploration:coef"));
+        params.addOp(deltas, "static");
+        boundParameters(params, allParamsMin, allParamsMax);
         interface.drawParamsWin();
     });
 
     //Init circular buffer
     Leph::CircularBuffer buffer(50*20);
 
-    //Init VectorLabel for fitness
-    Leph::VectorLabel fitness({
-        "var mocap lateral", 
-        "var mocap turn", 
-        "var gyro x", 
-        "var gyro y",
-        "var gyro z"});
-    interface.addMonitors("Fitness", fitness);
-
-    //Init VectorLabel for timestamp
-    Leph::VectorLabel timestamp("timestamp", now());
-    
     //Open loging file
     std::ofstream logFile("log-" + currentDate() + ".csv");
-    
+            
     //Main loop
     const double freq = 50.0;
     unsigned int countLoop = 0;
@@ -210,64 +234,61 @@ int main()
             interface.drawMonitorsWin();
         }
         //Update sensors
-        sensors = sdkConnection.getSensorValues();
+        monitors.mergeUnion(sdkConnection.getSensorValues());
+        
         //Update motion capture
         motionCapture.tick(1.0/freq);
-        mocapIsValid("isValid") = motionCapture.pos.isValid;
-        mocapPosError("forward") = motionCapture.pos.z - posReferences("forward");
-        mocapPosError("lateral") = motionCapture.pos.x - posReferences("lateral");
-        mocapPosError("turn") = motionCapture.pos.azimuth - posReferences("turn");
+        monitors("mocap:isValid") = motionCapture.pos.isValid;
+        monitors("error:step") = motionCapture.pos.z - params("refpos:step");
+        monitors("error:lateral") = motionCapture.pos.x - params("refpos:lateral");
+        monitors("error:turn") = motionCapture.pos.azimuth - params("refpos:turn");
         //Update timestamp
-        timestamp("timestamp") = now();
+        monitors("time:timestamp") = now();
 
         //Compute fitness candidates
-        if (mocapIsValid("isValid")) {
+        if (monitors("mocap:isValid")) {
             Leph::VectorLabel fitnessData(
-                "var mocap lateral", motionCapture.pos.x*100,
-                "var mocap turn", motionCapture.pos.azimuth,
-                "var gyro x", sensors("GyroX"),
-                "var gyro y", sensors("GyroY"),
-                "var gyro z", sensors("GyroZ"));
+                "fitness:mocap lateral", motionCapture.pos.x*100,
+                "fitness:mocap turn", motionCapture.pos.azimuth,
+                "fitness:gyro x", monitors("sensor:GyroX"),
+                "fitness:gyro y", monitors("sensor:GyroY"),
+                "fitness:gyro z", monitors("sensor:GyroZ"));
             buffer.add(fitnessData);
         }
-
+        
         //Update fitness candidates
         if (buffer.count() > 0 && countLoop % 50 == 0) {
-            fitness = buffer.variance();
+            monitors.mergeUnion(buffer.variance());
         }
-
+        
         //Update delta (proportional servo and smoothing)
-        if (mocapIsValid("isValid")) {
-            deltas *= discountCoef("coef");
-            Leph::VectorLabel tmp = servoGains;
-            tmp *= mocapPosError;
-            tmp *= (1.0-discountCoef("coef"));
-            deltas += tmp;
+        if (monitors("mocap:isValid")) {
+            monitors.mulOp(params("smooth:coef"), "delta");
+            Leph::VectorLabel tmp;
+            tmp.mergeUnion(monitors, "error");
+            tmp.mulOp(params, "gain", "error");
+            tmp.mulOp((1.0-params("smooth:coef")));
+            monitors.addOp(tmp, "error", "delta");
         }
-
+        
         //Current dynamic walk parameters
-        Leph::VectorLabel tmpDynamicParams = dynamicParams;
-        tmpDynamicParams("step") += deltas("forward");
-        tmpDynamicParams("lateral") += deltas("lateral");
-        tmpDynamicParams("turn") += deltas("turn");
-
+        Leph::VectorLabel tmpParams = allParams;
+        tmpParams.mergeUnion(params);
+        tmpParams.addOp(monitors, "delta", "dynamic");
+        
         //Generate walk angle outputs
-        walk.exec(1.0/freq, tmpDynamicParams, 
-            staticParams + allStaticParams);
+        walk.exec(1.0/freq, tmpParams);
         //Send orders to motors
         Leph::VectorLabel outputs = walk.lastOutputs();
         sdkConnection.setMotorAngles(outputs);
 
         //Writing log
-        (timestamp & 
-            tmpDynamicParams & 
-            staticParams & 
-            allStaticParams & 
-            fitness & 
-            sensors).writeToCSV(logFile);
+        //Leph::VectorLabel::mergeUnion(params, monitors).writeToCSV(logFile);
         //Wait for scheduling
         timerNew = now();
         unsigned long waitDelay = 1000/freq - (timerNew - timerOld);
+        monitors("time:delay") *= 0.8;
+        monitors("time:delay") += 0.2*(timerNew - timerOld);
         std::this_thread::sleep_for(
                 std::chrono::milliseconds((int)(1000/freq)));
         timerOld = now();
