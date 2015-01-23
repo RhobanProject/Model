@@ -162,6 +162,8 @@ int main()
     );
     //Init sensors retrieving
     monitors.mergeUnion(sdkConnection.getSensorValues());
+    //Init motors retrieving
+    monitors.mergeUnion(sdkConnection.getMotorAngles());
     //Init VectorLabel for fitness
     monitors.append(
         "fitness:mocap lateral", 0.0,
@@ -242,8 +244,9 @@ int main()
         if (countLoop%25 == 0) {
             interface.drawMonitorsWin();
         }
-        //Update sensors
-        monitors.mergeUnion(sdkConnection.getSensorValues());
+        //Update sensors and motors
+        monitors.mergeInter(sdkConnection.getSensorValues());
+        monitors.mergeInter(sdkConnection.getMotorAngles());
         
         //Update motion capture
         motionCapture.tick(1.0/freq);
