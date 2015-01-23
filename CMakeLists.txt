@@ -51,6 +51,7 @@ set(TESTS_FILES
     testCombination
     testInterfaceCLI
     testCircularBuffer
+    benchVectorLabel
 )
 
 #Build Code as static library

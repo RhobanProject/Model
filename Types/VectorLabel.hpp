@@ -133,6 +133,7 @@ class VectorLabel
         inline void append(const std::string& label, double value = 0.0)
         {
             appendAux(label, value);
+            sortLabels();
         }
         template <class ... LabelsValues>
         inline void append(const std::string& label, 
@@ -258,12 +259,13 @@ class VectorLabel
             for (const auto& label : v.labels()) {
                 if (filter == "" || toSection(label.first) == filter) {
                     if (!exist(label.first)) {
-                        append(label.first, v(label.first));
+                        appendAux(label.first, v(label.first));
                     } else {
                         operator()(label.first) = v(label.first);
                     }
                 }
             }
+            sortLabels();
         }
         
         /**
@@ -298,9 +300,10 @@ class VectorLabel
             VectorLabel merged = v1;
             for (const auto& label : v2.labels()) {
                 if (!merged.exist(label.first)) {
-                    merged.append(label.first, v2(label.first));
+                    merged.appendAux(label.first, v2(label.first));
                 } 
             }
+            merged.sortLabels();
 
             return merged;
         }
@@ -316,9 +319,10 @@ class VectorLabel
             VectorLabel merged;
             for (const auto& label : v1.labels()) {
                 if (v2.exist(label.first)) {
-                    merged.append(label.first, v1(label.first));
+                    merged.appendAux(label.first, v1(label.first));
                 } 
             }
+            merged.sortLabels();
 
             return merged;
         }
@@ -570,7 +574,6 @@ class VectorLabel
             _eigenVector(len) = value;
             (*_labelToIndex)[label] = len;
             _indexToLabel->push_back(label);
-            sortLabels();
         }
 
         /**
