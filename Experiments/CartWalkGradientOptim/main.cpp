@@ -179,6 +179,15 @@ int main()
         "time:delay", 0.0
     );
     
+    //Current used parameters
+    Leph::VectorLabel currentParams = allParams;
+    currentParams.mergeUnion(params);
+
+    //All log VectorLabel
+    Leph::VectorLabel log = currentParams;
+    log.mergeUnion(monitors);
+    log.mergeUnion(walk.buildOutputs());
+    
     //Init Motion Capture
     Rhoban::MotionCapture motionCapture;
     motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
@@ -272,25 +281,28 @@ int main()
         }
         
         //Current dynamic walk parameters
-        Leph::VectorLabel tmpParams = allParams;
-        tmpParams.mergeUnion(params);
-        tmpParams.addOp(monitors, "delta", "dynamic");
+        currentParams.mergeInter(params);
+        currentParams.addOp(monitors, "delta", "dynamic");
         
         //Generate walk angle outputs
-        walk.exec(1.0/freq, tmpParams);
+        walk.exec(1.0/freq, currentParams);
         //Send orders to motors
         Leph::VectorLabel outputs = walk.lastOutputs();
         sdkConnection.setMotorAngles(outputs);
 
         //Writing log
-        //Leph::VectorLabel::mergeUnion(params, monitors).writeToCSV(logFile);
+        log.mergeInter(currentParams);
+        log.mergeInter(monitors);
+        log.mergeInter(outputs);
+        log.writeToCSV(logFile);
+        
         //Wait for scheduling
         timerNew = now();
         unsigned long waitDelay = 1000/freq - (timerNew - timerOld);
         monitors("time:delay") *= 0.8;
         monitors("time:delay") += 0.2*(timerNew - timerOld);
         std::this_thread::sleep_for(
-                std::chrono::milliseconds((int)(1000/freq)));
+            std::chrono::milliseconds(waitDelay));
         timerOld = now();
         countLoop++;
     }
