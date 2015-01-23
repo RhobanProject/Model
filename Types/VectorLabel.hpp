@@ -256,16 +256,20 @@ class VectorLabel
         inline void mergeUnion(const VectorLabel& v, 
             const std::string& filter = "")
         {
+            bool isAppended = false;
             for (const auto& label : v.labels()) {
                 if (filter == "" || toSection(label.first) == filter) {
                     if (!exist(label.first)) {
                         appendAux(label.first, v(label.first));
+                        isAppended = true;
                     } else {
                         operator()(label.first) = v(label.first);
                     }
                 }
             }
-            sortLabels();
+            if (isAppended) {
+                sortLabels();
+            }
         }
         
         /**
@@ -297,13 +301,17 @@ class VectorLabel
         static inline VectorLabel mergeUnion(const VectorLabel& v1, 
             const VectorLabel& v2)
         {
+            bool isAppended = false;
             VectorLabel merged = v1;
             for (const auto& label : v2.labels()) {
                 if (!merged.exist(label.first)) {
                     merged.appendAux(label.first, v2(label.first));
+                    isAppended = true;
                 } 
             }
-            merged.sortLabels();
+            if (isAppended) {
+                merged.sortLabels();
+            }
 
             return merged;
         }
@@ -316,13 +324,17 @@ class VectorLabel
         static inline VectorLabel mergeInter(const VectorLabel& v1, 
             const VectorLabel& v2)
         {
+            bool isAppended = false;
             VectorLabel merged;
             for (const auto& label : v1.labels()) {
                 if (v2.exist(label.first)) {
                     merged.appendAux(label.first, v1(label.first));
+                    isAppended = true;
                 } 
             }
-            merged.sortLabels();
+            if (isAppended) {
+                merged.sortLabels();
+            }
 
             return merged;
         }
