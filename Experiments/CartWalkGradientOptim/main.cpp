@@ -166,11 +166,12 @@ int main()
     monitors.mergeUnion(sdkConnection.getMotorAngles());
     //Init VectorLabel for fitness
     monitors.append(
-        "fitness:mocap lateral", 0.0,
-        "fitness:mocap turn", 0.0,
+        //TODO "fitness:mocap lateral", 0.0,
+        //TODO "fitness:mocap turn", 0.0,
         "fitness:gyro x", 0.0,
-        "fitness:gyro y", 0.0,
-        "fitness:gyro z", 0.0
+        "fitness:gyro z", 0.0,
+        "fitness:pitch", 0.0,
+        "fitness:roll", 0.0
     );
     //Init VectorLabel for timestamp
     monitors.append(
@@ -221,9 +222,10 @@ int main()
         }
     });
     interface.addBinding('r', "Generate random params", [&params, &interface, 
-        &allParamsDelta, &allParamsMin, &allParamsMax] () {
+        &allParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
+        params.mergeInter(allParams, "static");
         params.addOp(deltas, "static");
         boundParameters(params, allParamsMin, allParamsMax);
         interface.drawParamsWin();
@@ -259,6 +261,7 @@ int main()
         monitors("time:timestamp") = now();
 
         //Compute fitness candidates
+        /* TODO
         if (monitors("mocap:isValid")) {
             Leph::VectorLabel fitnessData(
                 "fitness:mocap lateral", motionCapture.pos.x*100,
@@ -268,6 +271,13 @@ int main()
                 "fitness:gyro z", monitors("sensor:GyroZ"));
             buffer.add(fitnessData);
         }
+        */
+        Leph::VectorLabel fitnessData(
+                "fitness:gyro x", monitors("sensor:GyroX"),
+                "fitness:gyro z", monitors("sensor:GyroZ"),
+                "fitness:pitch", monitors("sensor:Pitch"),
+                "fitness:roll", monitors("sensor:Roll"));
+        buffer.add(fitnessData);
         
         //Update fitness candidates
         if (buffer.count() > 0 && countLoop % 50 == 0) {
