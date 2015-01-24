@@ -178,7 +178,8 @@ int main()
     );
     //Init main loop delay
     monitors.append(
-        "time:delay", 0.0
+        "time:delay", 0.0,
+        "time:error", 0.0
     );
     
     //Current used parameters
@@ -301,9 +302,15 @@ int main()
         
         //Wait for scheduling
         timerNew = now();
-        unsigned long waitDelay = 1000/freq - (timerNew - timerOld);
+        unsigned long waitDelay = 0;
+        unsigned long timerDiff = timerNew - timerOld;
+        if (timerDiff <= 1000/freq) {
+            waitDelay = 1000/freq - timerDiff;
+        } else {
+            monitors("time:error") += 1.0;
+        }
         monitors("time:delay") *= 0.8;
-        monitors("time:delay") += 0.2*(timerNew - timerOld);
+        monitors("time:delay") += 0.2*timerDiff;
         std::this_thread::sleep_for(
             std::chrono::milliseconds(waitDelay));
         timerOld = now();
