@@ -290,6 +290,12 @@ double& InterfaceCLI::getSelected()
     size_t sumIndex = 0;
     for (auto vector : _parameters) {
         for (size_t i=0;i<vector.second.first->size();i++) {
+            if (vector.second.second != "" && 
+                VectorLabel::toSection(vector.second.first->getLabel(i)) 
+                != vector.second.second
+            ) {
+                continue;
+            }
             if (_selected == sumIndex) {
                 return (*vector.second.first)(i);
             }
