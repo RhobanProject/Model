@@ -125,7 +125,7 @@ int main()
     params.append(
         "refpos:step", -0.3861,
         "refpos:lateral", 0.1736,
-        "refpos:turn", -1.6
+        "refpos:turn", 0.0
     );
     //Servo proportional gain
     params.append(
@@ -166,8 +166,8 @@ int main()
     monitors.mergeUnion(sdkConnection.getMotorAngles());
     //Init VectorLabel for fitness
     monitors.append(
-        //TODO "fitness:mocap lateral", 0.0,
-        //TODO "fitness:mocap turn", 0.0,
+        "fitness:mocap lateral", 0.0,
+        "fitness:mocap turn", 0.0,
         "fitness:gyro x", 0.0,
         "fitness:gyro z", 0.0,
         "fitness:pitch", 0.0,
@@ -182,6 +182,8 @@ int main()
         "time:delay", 0.0,
         "time:error", 0.0
     );
+    //Is real robot is stable
+    monitors.append("fitness:isValid", 0.0);
     
     //Current used parameters
     Leph::VectorLabel currentParams = allParams;
@@ -200,6 +202,7 @@ int main()
 
     //Init CLI interface
     std::string statusEnabled = "Walk is Disabled";
+    std::string statusStable = "Real robot is not stable";
     Leph::SDKInterface interface(sdkConnection, "CartWalk Gradient Optim");
     interface.addParameters("Dynamic walk parameters", params, "dynamic");
     interface.addParameters("Static walk parameters", params, "static");
@@ -213,12 +216,21 @@ int main()
     interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
+    interface.addStatus(statusStable);
     interface.addBinding(' ', "Toggle walk enable", [&params, &statusEnabled](){
         params("dynamic:enabled") = !params("dynamic:enabled");
         if (params("dynamic:enabled")) {
             statusEnabled = "Walk is Enabled";
         } else {
             statusEnabled = "Walk is Disabled";
+        }
+    });
+    interface.addBinding('f', "Toggle robot stable", [&monitors, &statusStable](){
+        monitors("fitness:isValid") = !monitors("fitness:isValid");
+        if (monitors("fitness:isValid")) {
+            statusStable = "Real robot is STABLE";
+        } else {
+            statusStable = "Real robot is not stable";
         }
     });
     interface.addBinding('r', "Generate random params", [&params, &interface, 
@@ -261,23 +273,16 @@ int main()
         monitors("time:timestamp") = now();
 
         //Compute fitness candidates
-        /* TODO
         if (monitors("mocap:isValid")) {
             Leph::VectorLabel fitnessData(
                 "fitness:mocap lateral", motionCapture.pos.x*100,
                 "fitness:mocap turn", motionCapture.pos.azimuth,
                 "fitness:gyro x", monitors("sensor:GyroX"),
-                "fitness:gyro y", monitors("sensor:GyroY"),
-                "fitness:gyro z", monitors("sensor:GyroZ"));
-            buffer.add(fitnessData);
-        }
-        */
-        Leph::VectorLabel fitnessData(
-                "fitness:gyro x", monitors("sensor:GyroX"),
                 "fitness:gyro z", monitors("sensor:GyroZ"),
                 "fitness:pitch", monitors("sensor:Pitch"),
                 "fitness:roll", monitors("sensor:Roll"));
-        buffer.add(fitnessData);
+            buffer.add(fitnessData);
+        }
         
         //Update fitness candidates
         if (buffer.count() > 0 && countLoop % 50 == 0) {
