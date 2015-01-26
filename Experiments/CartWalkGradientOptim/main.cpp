@@ -130,12 +130,12 @@ int main()
     //Servo proportional gain
     params.append(
         "gain:step", 20.0,
-        "gain:lateral", 125.0,
-        "gain:turn", 1.25
+        "gain:lateral", 100.0,
+        "gain:turn", 1.0
     );
     //Delta smoothing coefficient
     params.append(
-        "smooth:coef", 0.8
+        "smooth:coef", 0.95
     );
     //Parameters random exploration coefficient
     params.append(
