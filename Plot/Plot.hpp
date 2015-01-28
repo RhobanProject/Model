@@ -33,6 +33,7 @@ class Plot
             Points,
             Lines,
             LinesPoints,
+            None,
         };
 
         /**
@@ -390,6 +391,9 @@ class Plot
             
             bool isFirst = true;
             for (size_t i=0;i<_plots2D.size();i++) {
+                if (_plots2D[i].style == None) {
+                    continue;
+                }
                 bool isPalette = _plots2D[i].palette != "";
                 if (!isFirst) {
                     commands += ", ";
@@ -446,6 +450,9 @@ class Plot
                 data += "end\n";
             }
             for (size_t i=0;i<_plots3D.size();i++) {
+                if (_plots3D[i].style == None) {
+                    continue;
+                }
                 bool isPalette = _plots3D[i].palette != "";
                 if (!isFirst) {
                     commands += ", ";
