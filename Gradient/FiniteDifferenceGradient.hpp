@@ -42,11 +42,6 @@ class FiniteDifferenceGradient
          */
         Vector gradient() const;
 
-        /**
-         *
-         */
-        double convergenceCriterion() const;
-
     private:
 
         /**

@@ -25,9 +25,9 @@ double diffFunction(double x, double y)
 
 int main()
 {
-    double noiseLevel = 100.0;
-    double deltaLen = 4.0;
-    double learningRate = 0.1;
+    double noiseLevel = 50.0;
+    double deltaLen = 3.0;
+    double learningRate = 0.2;
 
     Leph::Plot plot;
     for (double x=-10.0;x<=10.0;x+=0.5) {
@@ -36,7 +36,6 @@ int main()
                 "x", x, 
                 "y", y, 
                 "fitness", function(x, y)));
-                //"fitness", noisedFunction(x, y, noiseLevel)));
         }
     }
 
@@ -51,7 +50,7 @@ int main()
         "x", point(0), 
         "y", point(1), 
         "state", function(point(0), point(1))));
-    for (int l=0;l<10;l++) {
+    for (int l=0;l<5;l++) {
         Leph::FiniteDifferenceGradient gradient;
         double fitnessMean = 0.0;
         int count = 0;
@@ -62,15 +61,13 @@ int main()
                 double len = delta.norm();
                 if (len <= deltaLen) break;
             }
-            std::cout << "Delta: " << delta.transpose() << std::endl;
+            std::cout << "    Delta: " << delta.transpose() << std::endl;
             double x = point(0) + delta(0);
             double y = point(1) + delta(1);
-            std::cout << "Point: " << point.transpose() << std::endl;
-            std::cout << "Sample: " << x << " " << y << std::endl;
             fitness = noisedFunction(x, y, noiseLevel);
             fitnessMean += fitness;
             count++;
-            std::cout << "sample: " << fitness << std::endl;
+            std::cout << "    Sample: " << (point+delta).transpose() << " --> " << fitness << std::endl;
             plot.add(Leph::VectorLabel(
                 "x", x, 
                 "y", y, 
@@ -83,14 +80,13 @@ int main()
             "x", point(0), 
             "y", point(1), 
             "state", function(point(0), point(1))));
+        std::cout << "State: " << point.transpose() << std::endl;
         std::cout << "Mean: " << fitnessMean/count << std::endl;
     }
     plot
         .plot("x", "y", "fitness")
-        .plot("x", "y", "sample")
         .plot("x", "y", "state", Leph::Plot::LinesPoints)
         .plot("x", "y", "sample", Leph::Plot::Points, "loop")
-        //.plot("x", "y", "sample", Leph::Plot::Points)
         .render();
 
     return 0;
