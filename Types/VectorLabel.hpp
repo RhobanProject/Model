@@ -354,7 +354,7 @@ class VectorLabel
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 os << "[" << std::left << std::setw(maxDigit) << i << ":" 
                    << std::left << std::setw(maxLength) << _indexToLabel->at(i) << "]" 
-                   << " " << _eigenVector(i) << std::endl;
+                   << " " << std::setprecision(10) << _eigenVector(i) << std::endl;
             }
         }
 
@@ -405,7 +405,7 @@ class VectorLabel
                 labelIndex++;
             }
             //Go through new line
-            index = str.find_first_not_of(std::string("' \n\r"), index);
+            index = str.find_first_not_of(std::string("' \n"), index);
             //Extract all values
             labelIndex = 0;
             while (index != std::string::npos && str[index] != '\n') {
@@ -498,62 +498,69 @@ class VectorLabel
                 self *= other; }, filterSrc, filterDst);
         }
         inline void mulOp(double val, 
-            const std::string& filter = "")
+                const std::string& filter = "")
         {
             for (size_t i=0;i<_indexToLabel->size();i++) {
-                    const std::string& label = _indexToLabel->at(i);
-                    if (
+                const std::string& label = _indexToLabel->at(i);
+                if (
                         (filter == "" || 
-                        toSection(label) == filter)
-                    ) {
-                        _eigenVector(i) *= val;
-                    }
+                         toSection(label) == filter)
+                   ) {
+                    _eigenVector(i) *= val;
                 }
             }
+        }
+        inline void divOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            op(vect, [](double& self, const double& other){ 
+                self /= other; }, filterSrc, filterDst);
+        }
 
-            /**
-             * Return the name part and section part from
-             * given string label (separator is ":")
-             */
-            static inline std::string toName(const std::string& label)
-            {
-                size_t index = label.find_first_of(std::string(":"));
-                if (index != std::string::npos) {
-                    return label.substr(index+1);
-                } else {
-                    return label;
-                }
+        /**
+         * Return the name part and section part from
+         * given string label (separator is ":")
+         */
+        static inline std::string toName(const std::string& label)
+        {
+            size_t index = label.find_first_of(std::string(":"));
+            if (index != std::string::npos) {
+                return label.substr(index+1);
+            } else {
+                return label;
             }
-            static inline std::string toSection(const std::string& label)
-            {
-                size_t index = label.find_first_of(std::string(":"));
-                if (index != std::string::npos) {
-                    return label.substr(0, index);
-                } else {
-                    return "";
-                }
+        }
+        static inline std::string toSection(const std::string& label)
+        {
+            size_t index = label.find_first_of(std::string(":"));
+            if (index != std::string::npos) {
+                return label.substr(0, index);
+            } else {
+                return "";
             }
+        }
 
-        private:
+    private:
 
-            /**
-             * Double dynamic Eigen values
-             * container vector
-             */
-            Vector _eigenVector;
+        /**
+         * Double dynamic Eigen values
+         * container vector
+         */
+        Vector _eigenVector;
 
-            /**
-             * String label to index mapping
-             * container
-             */
-            //LabelContainer* _labelToIndex;
-            std::shared_ptr<LabelContainer> _labelToIndex;
+        /**
+         * String label to index mapping
+         * container
+         */
+        //LabelContainer* _labelToIndex;
+        std::shared_ptr<LabelContainer> _labelToIndex;
 
-            /**
-             * Index to string label mapping
-             * container
-             */
-            //IndexContainer* _indexToLabel;
+        /**
+         * Index to string label mapping
+         * container
+         */
+        //IndexContainer* _indexToLabel;
         std::shared_ptr<IndexContainer> _indexToLabel;
 
         /**
