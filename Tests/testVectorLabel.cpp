@@ -100,6 +100,13 @@ int main()
     std::cout << vect7 << std::endl;
     vect7.addOp(vect7, "b", "a");
     std::cout << vect7 << std::endl;
+    vect7.addOp(100.0, "b");
+    vect7.subOp(100.0, "b");
+    vect7.mulOp(100.0, "b");
+    vect7.divOp(100.0, "b");
+    vect7.squareOp("b");
+    vect7.sqrtOp("b");
+    std::cout << vect7 << std::endl;
 
     Leph::VectorLabel vect9(
         "a:x", 1.0,
@@ -120,6 +127,11 @@ int main()
     vect9.mergeUnion(vect10);
     std::cout << "Vect9 inter 10" << std::endl;
     std::cout << vect9 << std::endl;
+
+
+    vect10("a:x")++;
+    assert(Leph::VectorLabel::isEqualInter(vect9, vect10) == 0);
+    assert(Leph::VectorLabel::isEqualInter(vect9, vect10, "b") == 1);
 
     return 0;
 }

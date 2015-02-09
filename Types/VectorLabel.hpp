@@ -443,6 +443,18 @@ class VectorLabel
         }
 
         /**
+         * Return a sub VectorLabel with only labels
+         * filtered with given section
+         */
+        inline VectorLabel extract(const std::string& filter)
+        {
+            VectorLabel tmp;
+            tmp.mergeUnion(*this, filter);
+
+            return tmp;
+        }
+
+        /**
          * Apply the operation "func" on all labels of given VectorLabel
          * filtered by filterSrc section and write the result on either
          * same label in this or filteredDst section and same name
@@ -467,6 +479,45 @@ class VectorLabel
                 ) {
                     size_t index = _labelToIndex->at(dstLabel);
                     func(_eigenVector(index), vect._eigenVector(i));
+                }
+            }
+        }
+
+        /**
+         * Apply the operation "func" with scalar argument value 
+         * on all labels of this VectorLabel filtered by filter 
+         */
+        inline void op(
+            double value,
+            std::function<void(double& self, double value)> func,
+            const std::string& filter = "")
+        {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                const std::string& label = _indexToLabel->at(i);
+                if (
+                    (filter == "" || 
+                    toSection(label) == filter)
+                ) {
+                    func(_eigenVector(i), value);
+                }
+            }
+        }
+
+        /**
+         * Apply the unary operation "func" on all labels of 
+         * this VectorLabel filtered by filter 
+         */
+        inline void op(
+            std::function<void(double& self)> func,
+            const std::string& filter = "")
+        {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                const std::string& label = _indexToLabel->at(i);
+                if (
+                    (filter == "" || 
+                    toSection(label) == filter)
+                ) {
+                    func(_eigenVector(i));
                 }
             }
         }
@@ -497,25 +548,57 @@ class VectorLabel
             op(vect, [](double& self, const double& other){ 
                 self *= other; }, filterSrc, filterDst);
         }
-        inline void mulOp(double val, 
-                const std::string& filter = "")
-        {
-            for (size_t i=0;i<_indexToLabel->size();i++) {
-                const std::string& label = _indexToLabel->at(i);
-                if (
-                        (filter == "" || 
-                         toSection(label) == filter)
-                   ) {
-                    _eigenVector(i) *= val;
-                }
-            }
-        }
         inline void divOp(const VectorLabel& vect, 
             const std::string& filterSrc = "",
             const std::string& filterDst = "")
         {
             op(vect, [](double& self, const double& other){ 
                 self /= other; }, filterSrc, filterDst);
+        }
+        inline void addOp(double val, 
+                const std::string& filter = "")
+        {
+            op(val, [](double& self, double value){
+                self += value; }, filter);
+        }
+        inline void subOp(double val, 
+                const std::string& filter = "")
+        {
+            op(val, [](double& self, double value){
+                self -= value; }, filter);
+        }
+        inline void mulOp(double val, 
+                const std::string& filter = "")
+        {
+            op(val, [](double& self, double value){
+                self *= value; }, filter);
+        }
+        inline void divOp(double val, 
+                const std::string& filter = "")
+        {
+            op(val, [](double& self, double value){
+                self /= value; }, filter);
+        }
+        inline void powerOp(double val, 
+                const std::string& filter = "")
+        {
+            op(val, [](double& self, double value){
+                self = pow(self, value); }, filter);
+        }
+        inline void squareOp(const std::string& filter = "")
+        {
+            op([](double& self){
+                self *= self; }, filter);
+        }
+        inline void sqrtOp(const std::string& filter = "")
+        {
+            op([](double& self){
+                self = sqrt(self); }, filter);
+        }
+        inline void zeroOp(const std::string& filter = "")
+        {
+            op([](double& self){
+                self = 0.0; }, filter);
         }
 
         /**
@@ -539,6 +622,34 @@ class VectorLabel
             } else {
                 return "";
             }
+        }
+
+        /**
+         * Return true if all (filtered) labels
+         * in vect1 equals existing same label in vect2
+         * (Condition threshold can given)
+         */
+        static inline bool isEqualInter(
+            const VectorLabel& vect1, 
+            const VectorLabel& vect2, 
+            const std::string& filter = "",
+            double threshold = 0.000001)
+        {
+            bool equals = true;
+            for (size_t i=0;i<vect1._indexToLabel->size();i++) {
+                const std::string& label = vect1._indexToLabel->at(i);
+                if (
+                    vect2.exist(label) &&
+                    (filter == "" || 
+                    toSection(label) == filter) &&
+                    fabs(vect1(label)-vect2(label)) > threshold
+                ) {
+                    equals = false;
+                    break;
+                }
+            }
+
+            return equals;
         }
 
     private:
