@@ -31,6 +31,13 @@ class MatrixLabel
         {
             _container = std::make_shared<Container>();
         }
+        MatrixLabel(size_t size) :
+            _container(),
+            _indexBegin(0),
+            _indexEnd(size-1)
+        {
+            _container = std::make_shared<Container>(size);
+        }
 
         /**
          * Explicitely forbid assignement
@@ -218,6 +225,98 @@ class MatrixLabel
         }
 
         /**
+         * VectorLabel coefficient wise operation
+         * apply on all contained points
+         * (Beware if used VectorLabel vect is part
+         * of the container itself because of reference aliasing)
+         */
+        inline void addOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).addOp(vect, filterSrc, filterDst);
+            }
+        }
+        inline void subOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).subOp(vect, filterSrc, filterDst);
+            }
+        }
+        inline void mulOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).mulOp(vect, filterSrc, filterDst);
+            }
+        }
+        inline void divOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).divOp(vect, filterSrc, filterDst);
+            }
+        }
+        inline void addOp(double val, 
+                const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).addOp(val, filter);
+            }
+        }
+        inline void subOp(double val, 
+                const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).subOp(val, filter);
+            }
+        }
+        inline void mulOp(double val, 
+                const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).mulOp(val, filter);
+            }
+        }
+        inline void divOp(double val, 
+                const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).divOp(val, filter);
+            }
+        }
+        inline void powerOp(double val, 
+                const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).powerOp(val, filter);
+            }
+        }
+        inline void squareOp(const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).squareOp(filter);
+            }
+        }
+        inline void sqrtOp(const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).sqrtOp(filter);
+            }
+        }
+        inline void zeroOp(const std::string& filter = "")
+        {
+            for (size_t i=_indexBegin;i<=_indexEnd;i++) {
+                _container->at(i).zeroOp(filter);
+            }
+        }
+
+        /**
          * Compute the mean, variance and standard
          * deviation of this MatrixLabel view
          */
@@ -276,6 +375,7 @@ class MatrixLabel
 
         /**
          * Normalize the current view
+         * by mean and standard deviation
          */
         inline void normalize()
         {
