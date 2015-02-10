@@ -52,6 +52,16 @@ class MatrixLabel
             return MatrixLabel(std::make_shared<Container>(*_container), 
                 _indexBegin, _indexEnd);
         }
+        
+        /**
+         * Empty and reset the container
+         */
+        inline void clear()
+        {
+            _container->clear();
+            _indexBegin = 0;
+            _indexEnd = (size_t)-1;
+        }
 
         /**
          * Write and save given MatrixLabel view into

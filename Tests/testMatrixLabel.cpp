@@ -37,6 +37,10 @@ int main()
     assert(serie3.size() == serie.size());
     serie3.save("/tmp/testMatrixLabel.csv");
     serie3.plot().plot("index", "all").render();
+    
+    serie.clear();
+    assert(serie.size() == 0);
+    assert(serie.dimension() == 0);
 
     return 0;
 }
