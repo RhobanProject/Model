@@ -128,10 +128,14 @@ int main()
     std::cout << "Vect9 inter 10" << std::endl;
     std::cout << vect9 << std::endl;
 
-
     vect10("a:x")++;
     assert(Leph::VectorLabel::isEqualInter(vect9, vect10) == 0);
     assert(Leph::VectorLabel::isEqualInter(vect9, vect10, "b") == 1);
+
+    assert(vect9.sum() == 16.0);
+    assert(vect9.sum("a") == 5.0);
+    assert(vect9.mean() == 4.0);
+    std::cout << vect9.rename("a", "c") << std::endl;
 
     return 0;
 }

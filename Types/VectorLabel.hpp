@@ -455,6 +455,33 @@ class VectorLabel
         }
 
         /**
+         * Return a VectorLabel with all labels matching
+         * filterSrc rename to filterDst section name
+         */
+        inline VectorLabel rename(const std::string& filterSrc, 
+            const std::string& filterDst) const
+        {
+            VectorLabel tmp;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                const std::string& label = _indexToLabel->at(i);
+                std::string dstLabel = filterDst + ":" + toName(label);
+                if (toSection(label) == filterSrc) {
+                    dstLabel = filterDst + ":" + toName(label);
+                } else {
+                    dstLabel = label;
+                }
+                if (!tmp.exist(dstLabel)) {
+                    tmp.appendAux(dstLabel, _eigenVector(i));
+                } else {
+                    tmp(dstLabel) = _eigenVector(i);
+                }
+            }
+            tmp.sortLabels();
+
+            return tmp;
+        }
+
+        /**
          * Apply the operation "func" on all labels of given VectorLabel
          * filtered by filterSrc section and write the result on either
          * same label in this or filteredDst section and same name
@@ -599,6 +626,51 @@ class VectorLabel
         {
             op([](double& self){
                 self = 0.0; }, filter);
+        }
+
+        /**
+         * Return the mean of (filtered) 
+         * contained values
+         */
+        inline double mean(const std::string& filter = "")
+        {
+            double sum = 0.0;
+            int count = 0;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                const std::string& label = _indexToLabel->at(i);
+                if (
+                    (filter == "" || 
+                    toSection(label) == filter)
+                ) {
+                    sum += _eigenVector(i);
+                    count++;
+                }
+            }
+
+            if (count > 0) {
+                sum /= (double)count;
+            }
+            return sum;
+        }
+        
+        /**
+         * Return the sum of (filtered) 
+         * contained values
+         */
+        inline double sum(const std::string& filter = "")
+        {
+            double sum = 0.0;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                const std::string& label = _indexToLabel->at(i);
+                if (
+                    (filter == "" || 
+                    toSection(label) == filter)
+                ) {
+                    sum += _eigenVector(i);
+                }
+            }
+
+            return sum;
         }
 
         /**
