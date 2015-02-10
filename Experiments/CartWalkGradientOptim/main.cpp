@@ -9,8 +9,9 @@
 
 //CODE
 #include "Types/VectorLabel.hpp"
+#include "Types/MatrixLabel.hpp"
+#include "Gradient/FiniteDifferenceGradient.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
-#include "Utils/CircularBuffer.hpp"
 
 //UTILS
 #include "MotionCapture.hpp"
@@ -66,6 +67,9 @@ Leph::VectorLabel randDeltaParams(
     return deltas;
 }
 
+/**
+ * Return the current date formated string
+ */
 std::string currentDate()
 {
     std::ostringstream oss;
@@ -93,15 +97,12 @@ int main()
 
     //Init CartWalk and parameters default, min, max and deltas
     Leph::CartWalkProxy walk;
-    Leph::VectorLabel allParams = walk.buildParams();
-    Leph::VectorLabel allParamsMin = walk.buildParamsMin();
-    Leph::VectorLabel allParamsMax = walk.buildParamsMax();
-    Leph::VectorLabel allParamsDelta = walk.buildParamsDelta();
-
-    //Parameters
-    Leph::VectorLabel params;
-    //Select subset of all static parameters
-    params.append(
+    const Leph::VectorLabel allParamsMin = walk.buildParamsMin();
+    const Leph::VectorLabel allParamsMax = walk.buildParamsMax();
+    const Leph::VectorLabel allParamsDelta = walk.buildParamsDelta();
+    
+    //Init a subset of static parameters
+    Leph::VectorLabel stateParams(
         "static:timeGain", 0.0,
         "static:riseGain", 0.0,
         "static:swingGain", 0.0,
@@ -114,10 +115,13 @@ int main()
         //"static:swingForce", 0.0,
         //"static:riseRatio", 0.0
     );
+    //Load default values
+    stateParams.mergeInter(walk.buildParams());
+
+    //Parameters
+    Leph::VectorLabel params;
     //Get all dynamic parameters
-    params.mergeUnion(allParams, "dynamic");
-    //Get all selecled static parameters values
-    params.mergeInter(allParams);
+    params.mergeUnion(walk.buildParams(), "dynamic");
     //Init dynamic parameters values
     params("dynamic:step") = 5.0;
     
@@ -140,6 +144,14 @@ int main()
     //Parameters random exploration coefficient
     params.append(
         "exploration:coef", 2.0
+    );
+    //Fitness unstable value
+    //Fitness stable time length (seconds)
+    //Fitness number of stable evaluation sequences
+    params.append(
+        "fitness:unstableValue", 4.0,
+        "fitness:timeLength", 30.0,
+        "fitness:countSeq", 10.0
     );
 
     //Monitors
@@ -164,15 +176,6 @@ int main()
     monitors.mergeUnion(sdkConnection.getSensorValues());
     //Init motors retrieving
     monitors.mergeUnion(sdkConnection.getMotorAngles());
-    //Init VectorLabel for fitness
-    monitors.append(
-        "fitness:mocap lateral", 0.0,
-        "fitness:mocap turn", 0.0,
-        "fitness:gyro x", 0.0,
-        "fitness:gyro z", 0.0,
-        "fitness:pitch", 0.0,
-        "fitness:roll", 0.0
-    );
     //Init VectorLabel for timestamp
     monitors.append(
         "time:timestamp", now()
@@ -182,33 +185,45 @@ int main()
         "time:delay", 0.0,
         "time:error", 0.0
     );
+    //Time length of stable ongoing sequence
+    monitors.append(
+        "time:length", 0.0
+    );
     //Is real robot is stable
-    monitors.append("fitness:isValid", 0.0);
+    monitors.append("fitness:isStable", 0.0);
     
-    //Current used parameters
-    Leph::VectorLabel currentParams = allParams;
-    currentParams.mergeUnion(params);
+    //Current used parameters 
+    //(static params and dynamic params control)
+    Leph::VectorLabel currentParams = walk.buildParams();
 
     //All log VectorLabel
     Leph::VectorLabel log = currentParams;
     log.mergeUnion(monitors);
+    log.mergeUnion(stateParams);
     log.mergeUnion(walk.buildOutputs());
     
     //Init Motion Capture
     Rhoban::MotionCapture motionCapture;
     motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
     motionCapture.averageCoefPos = 0.7;
-    motionCapture.maxInvalidTick = 20;
+    motionCapture.maxInvalidTick = 50;
+    
+    //Init stable serie Matrix Label container
+    Leph::MatrixLabel stableSerie;
+    //Init stable sequence fitness container
+    Leph::MatrixLabel fitnessesStable;
+    //Init nonstable sequence fitness container
+    Leph::MatrixLabel fitnessesUnstable;
 
     //Init CLI interface
     std::string statusEnabled = "Walk is Disabled";
     std::string statusStable = "Real robot is not stable";
     Leph::SDKInterface interface(sdkConnection, "CartWalk Gradient Optim");
     interface.addParameters("Dynamic walk parameters", params, "dynamic");
-    interface.addParameters("Static walk parameters", params, "static");
     interface.addParameters("Servo gain", params, "gain");
     interface.addParameters("Reference positions", params, "refpos");
     interface.addParameters("Learning", params, "exploration");
+    interface.addParameters("Fitness", params, "fitness");
     interface.addMonitors("Motion Capture", monitors, "mocap");
     interface.addMonitors("Motion Capture position error", monitors, "error");
     interface.addMonitors("Deltas", monitors, "delta");
@@ -226,25 +241,26 @@ int main()
         }
     });
     interface.addBinding('f', "Toggle robot stable", [&monitors, &statusStable](){
-        monitors("fitness:isValid") = !monitors("fitness:isValid");
-        if (monitors("fitness:isValid")) {
+        monitors("fitness:isStable") = !monitors("fitness:isStable");
+        if (monitors("fitness:isStable")) {
             statusStable = "Real robot is STABLE";
         } else {
             statusStable = "Real robot is not stable";
         }
     });
-    interface.addBinding('r', "Generate random params", [&params, &interface, 
-        &allParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
+    interface.addBinding('r', "Generate random params", [&currentParams, &interface, 
+        &stateParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
-        params.mergeInter(allParams, "static");
-        params.addOp(deltas, "static");
-        boundParameters(params, allParamsMin, allParamsMax);
+        currentParams.addOp(deltas, "static");
+        boundParameters(currentParams, allParamsMin, allParamsMax);
         interface.drawParamsWin();
     });
-
-    //Init circular buffer
-    Leph::CircularBuffer buffer(50*20);
+    interface.addBinding('u', "Set sequence to non stable", [&fitnessesUnstable, &params](){
+        Leph::VectorLabel tmpFitness = params.extract("static");
+        tmpFitness.append("fitness:sum", params("fitness:unstableValue"));
+        fitnessesUnstable.append(tmpFitness);
+    });
 
     //Open loging file
     std::ofstream logFile("log-" + currentDate() + ".csv");
@@ -273,20 +289,59 @@ int main()
         monitors("time:timestamp") = now();
 
         //Compute fitness candidates
-        if (monitors("mocap:isValid")) {
-            Leph::VectorLabel fitnessData(
-                "fitness:mocap lateral", motionCapture.pos.x*100,
-                "fitness:mocap turn", motionCapture.pos.azimuth,
-                "fitness:gyro x", monitors("sensor:GyroX"),
-                "fitness:gyro z", monitors("sensor:GyroZ"),
-                "fitness:pitch", monitors("sensor:Pitch"),
-                "fitness:roll", monitors("sensor:Roll"));
-            buffer.add(fitnessData);
+        if (monitors("fitness:isStable") && monitors("mocap:isValid")) {
+            stableSerie.append(Leph::VectorLabel(
+                "fitness:lateral", monitors("error:lateral")*100,
+                "fitness:AccX", monitors("sensor:AccX"),
+                "fitness:AccY", monitors("sensor:AccY"),
+                "fitness:AccZ", monitors("sensor:AccZ"),
+                "fitness:GyroX", monitors("sensor:GyroX"),
+                "fitness:GyroY", monitors("sensor:GyroY"),
+                "fitness:Roll", monitors("sensor:Roll"),
+                "fitness:Pitch", monitors("sensor:Pitch")
+            ));
+            monitors("time:length") += 1.0/freq;
+        } else {
+            stableSerie.clear();
+            monitors("time:length") = 0.0;
         }
-        
-        //Update fitness candidates
-        if (buffer.count() > 0 && countLoop % 50 == 0) {
-            monitors.mergeUnion(buffer.variance());
+
+        //Stop stable sequence when enough time is captured
+        //Compute fitness
+        if (monitors("time:length") >= params("fitness:timeLength")) {
+            //Compute fitness (sensors variance)
+            Leph::VectorLabel tmpFitness = currentParams.extract("static");
+            tmpFitness.mergeUnion(stableSerie.stdDev());
+            fitnessesStable.append(tmpFitness);
+            //Reset stable sequence
+            monitors("time:length") = 0.0;
+            monitors("fitness:isStable") = 0.0;
+            statusStable = "Real robot is not stable";
+            stableSerie.clear();
+            interface.drawMonitorsWin();
+            interface.drawStatusWin();
+        }
+
+        //Gradient update
+        if (fitnessesStable.size() >= params("fitness:countSeq")) {
+            Leph::FiniteDifferenceGradient gradient;
+            //Stable fitness normalization
+            Leph::VectorLabel initFitness = fitnessesStable[0];
+            fitnessesStable.subOp(initFitness);
+            Leph::VectorLabel stddevFitness = fitnessesStable.stdDev();
+            fitnessesStable.divOp(stddevFitness);
+            for (size_t i=0;i<fitnessesStable.size();i++) {
+                fitnessesStable[i].append("fitness:sum", fitnessesStable.mean("fitness"));
+                gradient.addExperiment(
+                    Leph::VectorLabel::mergeInter(fitnessesStable[i].vect(), stateParams), 
+                    fitnessesStable[i]("fitness:sum"));
+            }
+            //Unsable fitness processing
+
+            //
+            //Clear fitness container
+            fitnessesStable.clear();
+            fitnessesUnstable.clear();
         }
         
         //Update delta (proportional servo and smoothing)
@@ -300,7 +355,7 @@ int main()
         }
         
         //Current dynamic walk parameters
-        currentParams.mergeInter(params);
+        currentParams.mergeInter(params, "dynamic");
         currentParams.addOp(monitors, "delta", "dynamic");
         
         //Generate walk angle outputs
@@ -311,6 +366,7 @@ int main()
 
         //Writing log
         log.mergeInter(currentParams);
+        log.mergeInter(stateParams.rename("static", "state"));
         log.mergeInter(monitors);
         log.mergeInter(outputs);
         log.writeToCSV(logFile);
