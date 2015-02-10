@@ -104,12 +104,12 @@ int main()
     //Init a subset of static parameters
     Leph::VectorLabel stateParams(
         "static:timeGain", 0.0,
-        "static:riseGain", 0.0,
+        //"static:riseGain", 0.0,
         "static:swingGain", 0.0,
         "static:swingPhase", 0.0,
-        "static:xOffset", 0.0,
-        "static:yOffset", 0.0,
-        "static:zOffset", 0.0,
+        //"static:xOffset", 0.0,
+        //"static:yOffset", 0.0,
+        //"static:zOffset", 0.0,
         "static:hipOffset", 0.0
         //"static:yLat", 0.0,
         //"static:swingForce", 0.0,
@@ -227,7 +227,7 @@ int main()
     interface.addMonitors("Motion Capture", monitors, "mocap");
     interface.addMonitors("Motion Capture position error", monitors, "error");
     interface.addMonitors("Deltas", monitors, "delta");
-    interface.addMonitors("Sensors", monitors, "sensor");
+    interface.addMonitors("State", stateParams);
     interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
@@ -248,7 +248,7 @@ int main()
             statusStable = "Real robot is not stable";
         }
     });
-    interface.addBinding('r', "Generate random params", [&currentParams, &interface, 
+    interface.addBinding('r', "Generate random params", [&currentParams, &params, &interface, 
         &stateParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
@@ -310,7 +310,8 @@ int main()
         //Compute fitness
         if (monitors("time:length") >= params("fitness:timeLength")) {
             //Compute fitness (sensors variance)
-            Leph::VectorLabel tmpFitness = currentParams.extract("static");
+            Leph::VectorLabel tmpFitness = Leph::VectorLabel::mergeInter(
+                currentParams, stateParams);
             tmpFitness.mergeUnion(stableSerie.stdDev());
             fitnessesStable.append(tmpFitness);
             //Reset stable sequence
@@ -326,14 +327,18 @@ int main()
         if (fitnessesStable.size() >= params("fitness:countSeq")) {
             Leph::FiniteDifferenceGradient gradient;
             //Stable fitness normalization
-            Leph::VectorLabel initFitness = fitnessesStable[0];
-            fitnessesStable.subOp(initFitness);
+            Leph::VectorLabel refFitness = fitnessesStable[0];
+            fitnessesStable.subOp(refFitness, "fitness");
             Leph::VectorLabel stddevFitness = fitnessesStable.stdDev();
-            fitnessesStable.divOp(stddevFitness);
+            fitnessesStable.divOp(stddevFitness, "fitness");
+            //Static parameter normalization
+            fitnessesStable.subOp(refFitness, "static");
+            fitnessesStable.divOp(allParamsDelta, "static");
+            //Fitness values to summed scalar
             for (size_t i=0;i<fitnessesStable.size();i++) {
-                fitnessesStable[i].append("fitness:sum", fitnessesStable.mean("fitness"));
+                fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
                 gradient.addExperiment(
-                    Leph::VectorLabel::mergeInter(fitnessesStable[i].vect(), stateParams), 
+                    Leph::VectorLabel::mergeInter(fitnessesStable[i], stateParams).vect(), 
                     fitnessesStable[i]("fitness:sum"));
             }
             //Unsable fitness processing
