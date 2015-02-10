@@ -191,6 +191,8 @@ int main()
     );
     //Is real robot is stable
     monitors.append("fitness:isStable", 0.0);
+    //The number of stable fitness sequences
+    monitors.append("fitness:stableSeq", 0.0);
     
     //Current used parameters 
     //(static params and dynamic params control)
@@ -252,6 +254,7 @@ int main()
         &stateParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
+        currentParams.mergeInter(stateParams, "static");
         currentParams.addOp(deltas, "static");
         boundParameters(currentParams, allParamsMin, allParamsMax);
         interface.drawParamsWin();
@@ -289,7 +292,7 @@ int main()
         monitors("time:timestamp") = now();
 
         //Compute fitness candidates
-        if (monitors("fitness:isStable") && monitors("mocap:isValid")) {
+        if (monitors("fitness:isStable") /*&& monitors("mocap:isValid")*/) { //TODO
             stableSerie.append(Leph::VectorLabel(
                 "fitness:lateral", monitors("error:lateral")*100,
                 "fitness:AccX", monitors("sensor:AccX"),
@@ -314,6 +317,7 @@ int main()
                 currentParams, stateParams);
             tmpFitness.mergeUnion(stableSerie.stdDev());
             fitnessesStable.append(tmpFitness);
+            monitors("fitness:stableSeq")++;
             //Reset stable sequence
             monitors("time:length") = 0.0;
             monitors("fitness:isStable") = 0.0;
@@ -325,7 +329,6 @@ int main()
 
         //Gradient update
         if (fitnessesStable.size() >= params("fitness:countSeq")) {
-            Leph::FiniteDifferenceGradient gradient;
             //Stable fitness normalization
             Leph::VectorLabel refFitness = fitnessesStable[0];
             fitnessesStable.subOp(refFitness, "fitness");
@@ -335,6 +338,7 @@ int main()
             fitnessesStable.subOp(refFitness, "static");
             fitnessesStable.divOp(allParamsDelta, "static");
             //Fitness values to summed scalar
+            Leph::FiniteDifferenceGradient gradient;
             for (size_t i=0;i<fitnessesStable.size();i++) {
                 fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
                 gradient.addExperiment(
@@ -343,10 +347,11 @@ int main()
             }
             //Unsable fitness processing
 
-            //
+            currentParams.mergeInter(stateParams);
             //Clear fitness container
             fitnessesStable.clear();
             fitnessesUnstable.clear();
+            monitors("fitness:stableSeq") = 0;
         }
         
         //Update delta (proportional servo and smoothing)
