@@ -255,7 +255,8 @@ int main()
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
         currentParams.mergeInter(stateParams, "static");
-        currentParams.addOp(deltas, "static");
+        currentParams.addOp(
+            Leph::VectorLabel::mergeInter(deltas, stateParams), "static");
         boundParameters(currentParams, allParamsMin, allParamsMax);
         interface.drawParamsWin();
     });
