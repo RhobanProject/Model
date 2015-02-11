@@ -106,11 +106,11 @@ int main()
         "static:timeGain", 0.0,
         //"static:riseGain", 0.0,
         "static:swingGain", 0.0,
-        "static:swingPhase", 0.0,
+        "static:swingPhase", 0.0
         //"static:xOffset", 0.0,
         //"static:yOffset", 0.0,
         //"static:zOffset", 0.0,
-        "static:hipOffset", 0.0
+        //"static:hipOffset", 0.0
         //"static:yLat", 0.0,
         //"static:swingForce", 0.0,
         //"static:riseRatio", 0.0
@@ -143,15 +143,17 @@ int main()
     );
     //Parameters random exploration coefficient
     params.append(
-        "exploration:coef", 2.0
+        "exploration:coef", 4.0
     );
     //Fitness unstable value
     //Fitness stable time length (seconds)
     //Fitness number of stable evaluation sequences
+    //Gradient step learning rate
     params.append(
         "fitness:unstableValue", 4.0,
         "fitness:timeLength", 30.0,
-        "fitness:countSeq", 10.0
+        "fitness:countSeq", 10.0,
+        "fitness:learningRate", 5.0
     );
 
     //Monitors
@@ -230,6 +232,7 @@ int main()
     interface.addMonitors("Motion Capture position error", monitors, "error");
     interface.addMonitors("Deltas", monitors, "delta");
     interface.addMonitors("State", stateParams);
+    interface.addMonitors("Static Params", currentParams, "static");
     interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
@@ -267,7 +270,9 @@ int main()
     });
 
     //Open loging file
-    std::ofstream logFile("log-" + currentDate() + ".csv");
+    std::ofstream logFileRaw("log_raw-" + currentDate() + ".csv");
+    std::ofstream logFileLearning("log_learning-" + currentDate() + ".csv");
+    stateParams.rename("static", "state").writeToCSV(logFileLearning);
             
     //Main loop
     const double freq = 50.0;
@@ -295,7 +300,7 @@ int main()
         //Compute fitness candidates
         if (monitors("fitness:isStable") /*&& monitors("mocap:isValid")*/) { //TODO
             stableSerie.append(Leph::VectorLabel(
-                "fitness:lateral", monitors("error:lateral")*100,
+                //"fitness:lateral", monitors("error:lateral")*100, TODO
                 "fitness:AccX", monitors("sensor:AccX"),
                 "fitness:AccY", monitors("sensor:AccY"),
                 "fitness:AccZ", monitors("sensor:AccZ"),
@@ -335,19 +340,34 @@ int main()
             fitnessesStable.subOp(refFitness, "fitness");
             Leph::VectorLabel stddevFitness = fitnessesStable.stdDev();
             fitnessesStable.divOp(stddevFitness, "fitness");
+            //Merge fitness values to summed scalar
+            Leph::FiniteDifferenceGradient gradientAlgo;
+            for (size_t i=0;i<fitnessesStable.size();i++) {
+                fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
+                fitnessesStable[i].writeToCSV(logFileLearning);
+            }
             //Static parameter normalization
             fitnessesStable.subOp(refFitness, "static");
             fitnessesStable.divOp(allParamsDelta, "static");
-            //Fitness values to summed scalar
-            Leph::FiniteDifferenceGradient gradient;
+            //Compute gradient
             for (size_t i=0;i<fitnessesStable.size();i++) {
-                fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
-                gradient.addExperiment(
-                    Leph::VectorLabel::mergeInter(fitnessesStable[i], stateParams).vect(), 
+                gradientAlgo.addExperiment(
+                    fitnessesStable[i].extract("static").vect(), 
                     fitnessesStable[i]("fitness:sum"));
             }
-            //Unsable fitness processing
-
+            Leph::VectorLabel gradient = stateParams;
+            gradient.vect() = gradientAlgo.gradient();
+            //Checking for invalid gradient
+            if (gradient.isNan()) {
+                throw std::runtime_error("Gradient is Nan");
+            }
+            //Gradient un-normalization
+            gradient.mulOp(allParamsDelta, "static");
+            //Gradient step
+            gradient.mulOp(params("fitness:learningRate"));
+            gradient.rename("static", "gradient").writeToCSV(logFileLearning);
+            stateParams.subOp(gradient, "static");
+            stateParams.rename("static", "state").writeToCSV(logFileLearning);
             currentParams.mergeInter(stateParams);
             //Clear fitness container
             fitnessesStable.clear();
@@ -380,7 +400,7 @@ int main()
         log.mergeInter(stateParams.rename("static", "state"));
         log.mergeInter(monitors);
         log.mergeInter(outputs);
-        log.writeToCSV(logFile);
+        log.writeToCSV(logFileRaw);
         
         //Wait for scheduling
         timerNew = now();
@@ -401,7 +421,8 @@ int main()
     interface.quit();
 
     //Closing loging file
-    logFile.close();
+    logFileRaw.close();
+    logFileLearning.close();
 
     return 0;
 }
