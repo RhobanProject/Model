@@ -143,7 +143,7 @@ int main()
     );
     //Parameters random exploration coefficient
     params.append(
-        "exploration:coef", 4.0
+        "exploration:coef", 2.0
     );
     //Fitness unstable value
     //Fitness stable time length (seconds)
@@ -153,7 +153,7 @@ int main()
         "fitness:unstableValue", 4.0,
         "fitness:timeLength", 30.0,
         "fitness:countSeq", 10.0,
-        "fitness:learningRate", 5.0
+        "fitness:learningRate", 2.0
     );
 
     //Monitors
@@ -253,7 +253,7 @@ int main()
             statusStable = "Real robot is not stable";
         }
     });
-    interface.addBinding('r', "Generate random params", [&currentParams, &params, &interface, 
+    std::function<void()> randomParamsFunc = [&currentParams, &params, &interface, 
         &stateParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
         Leph::VectorLabel deltas = randDeltaParams(allParamsDelta, 
             params("exploration:coef"));
@@ -262,7 +262,8 @@ int main()
             Leph::VectorLabel::mergeInter(deltas, stateParams), "static");
         boundParameters(currentParams, allParamsMin, allParamsMax);
         interface.drawParamsWin();
-    });
+    };
+    interface.addBinding('r', "Generate random params", randomParamsFunc);
     interface.addBinding('u', "Set sequence to non stable", [&fitnessesUnstable, &params](){
         Leph::VectorLabel tmpFitness = params.extract("static");
         tmpFitness.append("fitness:sum", params("fitness:unstableValue"));
@@ -331,6 +332,8 @@ int main()
             stableSerie.clear();
             interface.drawMonitorsWin();
             interface.drawStatusWin();
+            //Generate new parameters
+            randomParamsFunc();
         }
 
         //Gradient update
