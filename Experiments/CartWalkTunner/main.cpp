@@ -11,6 +11,16 @@
 #include "SDKConnection.hpp"
 #include "SDKInterface.hpp"
 
+/**
+ * Return current time in milliseconds
+ * (Relative to system start)
+ */
+unsigned long now()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 int main()
 {
     //Initialisation of CartWalk parameters
@@ -36,16 +46,25 @@ int main()
     });
 
     //Main loop
+    unsigned long timerOld = now();
+    unsigned long timerNew = now();
+    const double freq = 50.0;
     while (interface.tick()) {
-        const double freq = 50.0;
         //Generate walk orders
         walk.exec(1.0/freq, params);
         Leph::VectorLabel outputs = walk.lastOutputs();
         //Sending them to the robot
         sdkConnection.setMotorAngles(outputs);
         //Waiting
+        timerNew = now();
+        unsigned long waitDelay = 0;
+        unsigned long timerDiff = timerNew - timerOld;
+        if (timerDiff <= 1000/freq) {
+            waitDelay = 1000/freq - timerDiff;
+        } 
         std::this_thread::sleep_for(
-            std::chrono::milliseconds((int)(1000/freq)));
+            std::chrono::milliseconds(waitDelay));
+        timerOld = now();
     }
     interface.quit();
     
