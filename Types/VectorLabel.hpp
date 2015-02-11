@@ -674,6 +674,21 @@ class VectorLabel
         }
 
         /**
+         * Return true one container value is NaN
+         */
+        inline bool isNan() const
+        {
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+                if (std::isnan(_eigenVector(i)) || 
+                    std::isinf(_eigenVector(i))
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
          * Return the name part and section part from
          * given string label (separator is ":")
          */
