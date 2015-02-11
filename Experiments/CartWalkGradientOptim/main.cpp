@@ -81,9 +81,9 @@ std::string currentDate()
     oss << std::setfill('0') << std::setw(2);
     oss << now->tm_mday << "-";
     oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_hour << ":";
+    oss << now->tm_hour << "-";
     oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_min << ":";
+    oss << now->tm_min << "-";
     oss << std::setfill('0') << std::setw(2);
     oss << now->tm_sec;
 
@@ -302,13 +302,13 @@ int main()
         if (monitors("fitness:isStable") /*&& monitors("mocap:isValid")*/) { //TODO
             stableSerie.append(Leph::VectorLabel(
                 //"fitness:lateral", monitors("error:lateral")*100, TODO
-                "fitness:AccX", monitors("sensor:AccX"),
-                "fitness:AccY", monitors("sensor:AccY"),
-                "fitness:AccZ", monitors("sensor:AccZ"),
-                "fitness:GyroX", monitors("sensor:GyroX"),
-                "fitness:GyroY", monitors("sensor:GyroY"),
-                "fitness:Roll", monitors("sensor:Roll"),
-                "fitness:Pitch", monitors("sensor:Pitch")
+                //"fitness:AccX", monitors("sensor:AccX"),
+                "fitness:AccY", monitors("sensor:AccY")
+                //"fitness:AccZ", monitors("sensor:AccZ"),
+                //"fitness:GyroX", monitors("sensor:GyroX"),
+                //"fitness:GyroY", monitors("sensor:GyroY")
+                //"fitness:Roll", monitors("sensor:Roll"),
+                //"fitness:Pitch", monitors("sensor:Pitch")
             ));
             monitors("time:length") += 1.0/freq;
         } else {
@@ -340,13 +340,15 @@ int main()
         if (fitnessesStable.size() >= params("fitness:countSeq")) {
             //Stable fitness normalization
             Leph::VectorLabel refFitness = fitnessesStable[0];
+            /* TODO no normalization using only var AccY
             fitnessesStable.subOp(refFitness, "fitness");
             Leph::VectorLabel stddevFitness = fitnessesStable.stdDev();
             fitnessesStable.divOp(stddevFitness, "fitness");
+            */
             //Merge fitness values to summed scalar
             Leph::FiniteDifferenceGradient gradientAlgo;
             for (size_t i=0;i<fitnessesStable.size();i++) {
-                fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
+                //TODO fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
                 fitnessesStable[i].writeToCSV(logFileLearning);
             }
             //Static parameter normalization
@@ -356,7 +358,8 @@ int main()
             for (size_t i=0;i<fitnessesStable.size();i++) {
                 gradientAlgo.addExperiment(
                     fitnessesStable[i].extract("static").vect(), 
-                    fitnessesStable[i]("fitness:sum"));
+                    fitnessesStable[i]("fitness:AccY"));
+                    //fitnessesStable[i]("fitness:sum")); TODO
             }
             Leph::VectorLabel gradient = stateParams;
             gradient.vect() = gradientAlgo.gradient();
