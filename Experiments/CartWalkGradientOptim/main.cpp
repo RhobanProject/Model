@@ -8,6 +8,7 @@
 #include <ctime>
 
 //CODE
+#include "Utils/time.h"
 #include "Types/VectorLabel.hpp"
 #include "Types/MatrixLabel.hpp"
 #include "Gradient/FiniteDifferenceGradient.hpp"
@@ -65,29 +66,6 @@ Leph::VectorLabel randDeltaParams(
     }
 
     return deltas;
-}
-
-/**
- * Return the current date formated string
- */
-std::string currentDate()
-{
-    std::ostringstream oss;
-    time_t t = time(0);
-    struct tm* now = localtime(&t);
-    oss << now->tm_year + 1900 << "-";
-    oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_mon + 1 << "-";
-    oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_mday << "-";
-    oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_hour << "-";
-    oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_min << "-";
-    oss << std::setfill('0') << std::setw(2);
-    oss << now->tm_sec;
-
-    return oss.str();
 }
 
 int main()
@@ -271,8 +249,10 @@ int main()
     });
 
     //Open loging file
-    std::ofstream logFileRaw("log_raw-" + currentDate() + ".csv");
-    std::ofstream logFileLearning("log_learning-" + currentDate() + ".csv");
+    std::ofstream logFileRaw("log-" 
+        + Leph::currentDate() + "_raw.csv");
+    std::ofstream logFileLearning("log-" 
+        + Leph::currentDate() + "_learning.csv");
     stateParams.rename("static", "state").writeToCSV(logFileLearning);
             
     //Main loop
