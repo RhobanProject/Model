@@ -123,13 +123,13 @@ int main()
     //Get all dynamic parameters
     params.mergeUnion(walk.buildParams(), "dynamic");
     //Init dynamic parameters values
-    params("dynamic:step") = 5.0;
+    params("dynamic:step") = 6.0;
     
     //Servo target reference
     params.append(
-        "refpos:step", -0.3861,
-        "refpos:lateral", 0.1736,
-        "refpos:turn", 0.0
+        "refpos:step", -0.4861,
+        "refpos:lateral", 0.1486,
+        "refpos:turn", 0.1
     );
     //Servo proportional gain
     params.append(
@@ -151,8 +151,8 @@ int main()
     //Gradient step learning rate
     params.append(
         "fitness:unstableValue", 4.0,
-        "fitness:timeLength", 30.0,
-        "fitness:countSeq", 10.0,
+        "fitness:timeLength", 100.0,
+        "fitness:countSeq", 7.9,
         "fitness:learningRate", 2.0
     );
 
@@ -209,7 +209,7 @@ int main()
     //Init Motion Capture
     Rhoban::MotionCapture motionCapture;
     motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
-    motionCapture.averageCoefPos = 0.7;
+    motionCapture.averageCoefPos = 0.5;
     motionCapture.maxInvalidTick = 50;
     
     //Init stable serie Matrix Label container
@@ -228,12 +228,13 @@ int main()
     interface.addParameters("Reference positions", params, "refpos");
     interface.addParameters("Learning", params, "exploration");
     interface.addParameters("Fitness", params, "fitness");
+    interface.addParameters("Smooth", params, "smooth");
     interface.addMonitors("Motion Capture", monitors, "mocap");
     interface.addMonitors("Motion Capture position error", monitors, "error");
     interface.addMonitors("Deltas", monitors, "delta");
     interface.addMonitors("State", stateParams);
     interface.addMonitors("Static Params", currentParams, "static");
-    interface.addMonitors("Fitness", monitors, "fitness");
+    //interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
     interface.addStatus(statusStable);
@@ -299,16 +300,18 @@ int main()
         monitors("time:timestamp") = now();
 
         //Compute fitness candidates
-        if (monitors("fitness:isStable") /*&& monitors("mocap:isValid")*/) { //TODO
+        if (monitors("fitness:isStable") && monitors("mocap:isValid")) {
             stableSerie.append(Leph::VectorLabel(
-                //"fitness:lateral", monitors("error:lateral")*100, TODO
-                //"fitness:AccX", monitors("sensor:AccX"),
-                "fitness:AccY", monitors("sensor:AccY")
-                //"fitness:AccZ", monitors("sensor:AccZ"),
-                //"fitness:GyroX", monitors("sensor:GyroX"),
-                //"fitness:GyroY", monitors("sensor:GyroY")
-                //"fitness:Roll", monitors("sensor:Roll"),
-                //"fitness:Pitch", monitors("sensor:Pitch")
+                "fitness:lateral", monitors("error:lateral")*100,
+                "fitness:step", monitors("error:step")*100,
+                "fitness:turn", monitors("error:turn"),
+                "fitness:AccX", monitors("sensor:AccX"),
+                "fitness:AccY", monitors("sensor:AccY"),
+                "fitness:AccZ", monitors("sensor:AccZ"),
+                "fitness:GyroX", monitors("sensor:GyroX"),
+                "fitness:GyroY", monitors("sensor:GyroY"),
+                "fitness:Roll", monitors("sensor:Roll"),
+                "fitness:Pitch", monitors("sensor:Pitch")
             ));
             monitors("time:length") += 1.0/freq;
         } else {
@@ -358,7 +361,7 @@ int main()
             for (size_t i=0;i<fitnessesStable.size();i++) {
                 gradientAlgo.addExperiment(
                     fitnessesStable[i].extract("static").vect(), 
-                    fitnessesStable[i]("fitness:AccY"));
+                    fitnessesStable[i]("error:step"));
                     //fitnessesStable[i]("fitness:sum")); TODO
             }
             Leph::VectorLabel gradient = stateParams;
