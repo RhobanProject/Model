@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "Utils/time.h"
 #include "Types/VectorLabel.hpp"
 
 namespace Leph {
@@ -121,6 +122,7 @@ class Plot
          * Y axis could be "index"
          * Z axis could be "all"
          * Z axis could be "filter:*"
+         * Z axis could be "ZERO"
          */
         inline Plot& plot(const std::string& xAxis, 
             const std::string& yAxis, const std::string& zAxis,
@@ -218,6 +220,17 @@ class Plot
 
             std::string commands = generatePlotting();
             
+            //Dump gnuplot script to file
+            std::ofstream file;
+            if (exportFile == "") {
+                file.open("/tmp/plot-" + Leph::currentDate() + ".plot");
+            } else {
+                file.open(exportFile);
+            }
+            file << commands;
+            file.close();
+
+            //Send to gnuplot instance
             if (exportFile == "") {
                 createGnuplotInstance();
                 if (_pipeFd <= 0) {
@@ -225,11 +238,6 @@ class Plot
                 }
                 write(_pipeFd, commands.c_str(), commands.length());
                 waitCloseGnuplotInstance();
-            } else {
-                std::ofstream file;
-                file.open(exportFile);
-                file << commands;
-                file.close();
             }
             
             clearPlots();
@@ -485,7 +493,8 @@ class Plot
                         !_database[j].exist(_plots3D[i].xAxis)) || 
                         (_plots3D[i].yAxis != "index" &&
                         !_database[j].exist(_plots3D[i].yAxis)) || 
-                        !_database[j].exist(_plots3D[i].zAxis) ||
+                        (_plots3D[i].zAxis != "ZERO" &&
+                        !_database[j].exist(_plots3D[i].zAxis)) ||
                         (isPalette && 
                         _plots3D[i].palette != "index" &&
                         !_database[j].exist(_plots3D[i].palette))
@@ -503,7 +512,11 @@ class Plot
                     } else {
                         oss << _database[j](_plots3D[i].yAxis) << " ";
                     }
-                    oss << _database[j](_plots3D[i].zAxis);
+                    if (_plots3D[i].zAxis == "ZERO") {
+                        oss << "0.0";
+                    } else {
+                        oss << _database[j](_plots3D[i].zAxis);
+                    }
                     if (isPalette) {
                         if (_plots3D[i].palette == "index") {
                             oss << " " << j;
