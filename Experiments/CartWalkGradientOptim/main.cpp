@@ -101,13 +101,13 @@ int main()
     //Get all dynamic parameters
     params.mergeUnion(walk.buildParams(), "dynamic");
     //Init dynamic parameters values
-    params("dynamic:step") = 6.0;
+    params("dynamic:step") = 5.0;
     
     //Servo target reference
     params.append(
-        "refpos:step", -0.4861,
-        "refpos:lateral", 0.1486,
-        "refpos:turn", 0.1
+        "refpos:step", -0.4674,
+        "refpos:lateral", 0.1705,
+        "refpos:turn", -1.5
     );
     //Servo proportional gain
     params.append(
@@ -129,7 +129,7 @@ int main()
     //Gradient step learning rate
     params.append(
         "fitness:unstableValue", 4.0,
-        "fitness:timeLength", 100.0,
+        "fitness:timeLength", 120.0,
         "fitness:countSeq", 7.9,
         "fitness:learningRate", 2.0
     );
@@ -212,7 +212,7 @@ int main()
     interface.addMonitors("Deltas", monitors, "delta");
     interface.addMonitors("State", stateParams);
     interface.addMonitors("Static Params", currentParams, "static");
-    //interface.addMonitors("Fitness", monitors, "fitness");
+    interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
     interface.addStatus(statusStable);
@@ -306,6 +306,7 @@ int main()
             Leph::VectorLabel tmpFitness = Leph::VectorLabel::mergeInter(
                 currentParams, stateParams);
             tmpFitness.mergeUnion(stableSerie.stdDev());
+            tmpFitness.mergeUnion(stableSerie.mean().rename("fitness", "mean"));
             fitnessesStable.append(tmpFitness);
             monitors("fitness:stableSeq")++;
             //Reset stable sequence
@@ -315,6 +316,8 @@ int main()
             stableSerie.clear();
             interface.drawMonitorsWin();
             interface.drawStatusWin();
+            //Dump fitness values
+            tmpFitness.writeToCSV(logFileLearning);
             //Generate new parameters
             randomParamsFunc();
         }
@@ -330,10 +333,11 @@ int main()
             */
             //Merge fitness values to summed scalar
             Leph::FiniteDifferenceGradient gradientAlgo;
+            /* TODO
             for (size_t i=0;i<fitnessesStable.size();i++) {
-                //TODO fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
-                fitnessesStable[i].writeToCSV(logFileLearning);
+                fitnessesStable[i].append("fitness:sum", fitnessesStable[i].mean("fitness"));
             }
+            */
             //Static parameter normalization
             fitnessesStable.subOp(refFitness, "static");
             fitnessesStable.divOp(allParamsDelta, "static");
@@ -341,7 +345,7 @@ int main()
             for (size_t i=0;i<fitnessesStable.size();i++) {
                 gradientAlgo.addExperiment(
                     fitnessesStable[i].extract("static").vect(), 
-                    fitnessesStable[i]("error:step"));
+                    fitnessesStable[i]("fitness:lateral"));
                     //fitnessesStable[i]("fitness:sum")); TODO
             }
             Leph::VectorLabel gradient = stateParams;
