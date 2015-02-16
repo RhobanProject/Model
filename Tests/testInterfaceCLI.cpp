@@ -40,11 +40,16 @@ int main()
         }
     });
 
+    cli.terminalOut() << "First line test\n";
+    cli.terminalOut() << "Second line test\n";
+    cli.terminalOut() << "Very very very long long long long line\n";
+
     while (cli.tick()) {
         if (doIncr) {
             values(1) += 0.1;
             values(2) -= 0.2;
             values(3) *= 1.01;
+            cli.terminalOut() << values(1) << std::endl;
         }
         std::this_thread::sleep_for(
             std::chrono::milliseconds(20));

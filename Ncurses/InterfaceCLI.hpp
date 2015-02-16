@@ -2,6 +2,7 @@
 #define LEPH_INTERFACECLI_HPP
 
 #include <vector>
+#include <iostream>
 #include <map>
 #include <functional>
 #include <string>
@@ -79,6 +80,12 @@ class InterfaceCLI
         void addStatus(std::string& line);
 
         /**
+         * Return the internal ostringstream
+         * for appending message to terminal output.
+         */
+        std::ostream& terminalOut();
+
+        /**
          * Refresh screen if needed and handle keybord input.
          * Return false if exit is asked. Else return true.
          * Monitors and Status values are not updated if updateAll is
@@ -97,6 +104,12 @@ class InterfaceCLI
          * (Force window refresh)
          */
         void drawStatusWin();
+
+        /**
+         * Draw Ncurses terminal message windows
+         * (Force window refresh)
+         */
+        void drawTerminalWin();
 
         /**
          * Draw Ncurses parameters windows
@@ -135,6 +148,7 @@ class InterfaceCLI
          */
         WINDOW* _titleWin;
         WINDOW* _statusWin;
+        WINDOW* _terminalWin;
         WINDOW* _paramsWin;
         WINDOW* _monitorsWin;
 
@@ -180,6 +194,13 @@ class InterfaceCLI
          * User defined status
          */
         std::vector<std::string*> _userStatus;
+
+        /**
+         * Terminal rolling message output 
+         * string stream
+         */
+        bool _isTerminalUpdated;
+        std::ostringstream _terminalStream; 
 
         /**
          * Return a reference to selected

@@ -9,7 +9,11 @@ InterfaceCLI::InterfaceCLI(const std::string& title) :
     _sumParams(0),
     _sumMonitors(0),
     _selected(0),
-    _paramsDelta(0.2)
+    _paramsDelta(0.2),
+    _userBindings(),
+    _userStatus(),
+    _isTerminalUpdated(false),
+    _terminalStream()
 {
     //Ncurses initialization
     initscr();
@@ -31,12 +35,14 @@ InterfaceCLI::InterfaceCLI(const std::string& title) :
     //Creating ncurses windows
     _titleWin = newwin(9, 38, 1, 1);
     _statusWin = newwin(5, 38, 11, 1);
+    _terminalWin = newwin(15, 38, 20, 1);
     _paramsWin = NULL;
     _monitorsWin = NULL;
     
     //Draw first windows
     drawTitleWin();
     drawStatusWin();
+    drawTerminalWin();
 }
         
 InterfaceCLI::~InterfaceCLI()
@@ -58,8 +64,10 @@ void InterfaceCLI::quit()
     if (_titleWin != NULL || _statusWin != NULL) {
         delwin(_titleWin);
         delwin(_statusWin);
+        delwin(_terminalWin);
         _titleWin = NULL;
         _statusWin = NULL;
+        _terminalWin = NULL;
         endwin();
     }
 }
@@ -105,13 +113,17 @@ void InterfaceCLI::addBinding(int key, const std::string& helpMsg,
 
     delwin(_titleWin);
     delwin(_statusWin);
+    delwin(_terminalWin);
     _titleWin = newwin(9 + _userBindings.size(), 38, 1, 1);
     _statusWin = newwin(5 + _userStatus.size(), 38, 11 + _userBindings.size(), 1);
+    _terminalWin = newwin(15, 38, 
+        17 + _userStatus.size() + _userBindings.size(), 1);
 
     clear();
     refresh();
     drawTitleWin();
     drawStatusWin();
+    drawTerminalWin();
     drawMonitorsWin();
     drawParamsWin();
 }
@@ -121,14 +133,24 @@ void InterfaceCLI::addStatus(std::string& line)
     _userStatus.push_back(&line);
     
     delwin(_statusWin);
+    delwin(_terminalWin);
     _statusWin = newwin(5 + _userStatus.size(), 38, 11 + _userBindings.size(), 1);
+    _terminalWin = newwin(15, 38, 
+        17 + _userStatus.size() + _userBindings.size(), 1);
 
     clear();
     refresh();
     drawTitleWin();
     drawStatusWin();
+    drawTerminalWin();
     drawMonitorsWin();
     drawParamsWin();
+}
+        
+std::ostream& InterfaceCLI::terminalOut()
+{
+    _isTerminalUpdated = true;
+    return _terminalStream;
 }
 
 bool InterfaceCLI::tick(bool updateAll)
@@ -173,6 +195,9 @@ bool InterfaceCLI::tick(bool updateAll)
         drawStatusWin();
         drawMonitorsWin();
     }
+    if (_isTerminalUpdated) {
+        drawTerminalWin();
+    }
 
     return true;
 }
@@ -211,6 +236,48 @@ void InterfaceCLI::drawStatusWin()
         mvwprintw(_statusWin, 4+i, 1, "%s", _userStatus[i]->c_str());
     }
     wrefresh(_statusWin);
+}
+        
+void InterfaceCLI::drawTerminalWin()
+{
+    wclear(_terminalWin);
+    wborder(_terminalWin, 
+        ACS_VLINE, ACS_VLINE, ACS_HLINE, ACS_HLINE, 
+        ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER);
+    wattrset(_terminalWin, A_BOLD | A_UNDERLINE);
+    mvwprintw(_terminalWin, 1, 1, "Terminal");
+    wattrset(_terminalWin, A_NORMAL);
+    wmove(_terminalWin, 3, 1);
+
+    //Build vector of terminal lines
+    std::vector<std::string> lines;
+    lines.push_back("");
+    std::string msgs = _terminalStream.str();
+    size_t col = 0;
+    for (size_t i=0;i<msgs.size();i++) {
+        if (msgs[i] == '\n' || col >= 36) {
+            lines.push_back("");
+            col = 0;
+            if (msgs[i] == '\n') continue;
+        } 
+        lines.back() += msgs[i];
+        col++;
+    }
+    if (lines.back() == "") lines.pop_back();
+
+    //Display terminal lines and rebuild terminalStream
+    //with too old lines removed
+    size_t beginIndex = (lines.size() > 11) ? lines.size()-11 : 0;
+    size_t line = 0;
+    _terminalStream.clear();
+    _terminalStream.str("");
+    for (size_t i=beginIndex;i<lines.size();i++) {
+        _terminalStream << lines[i] << '\n';
+        mvwaddstr(_terminalWin, line+3, 1, lines[i].c_str());
+        line++;
+    }
+    wrefresh(_terminalWin);
+    _isTerminalUpdated = false;
 }
 
 void InterfaceCLI::drawParamsWin()
