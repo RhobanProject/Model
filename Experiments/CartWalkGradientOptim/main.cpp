@@ -81,14 +81,14 @@ int main()
     
     //Init a subset of static parameters
     Leph::VectorLabel stateParams(
-        "static:timeGain", 0.0,
+        //"static:timeGain", 0.0,
         //"static:riseGain", 0.0,
-        "static:swingGain", 0.0,
-        "static:swingPhase", 0.0
-        //"static:xOffset", 0.0,
+        //"static:swingGain", 0.0,
+        //"static:swingPhase", 0.0
+        "static:xOffset", 0.0,
         //"static:yOffset", 0.0,
         //"static:zOffset", 0.0,
-        //"static:hipOffset", 0.0
+        "static:hipOffset", 0.0
         //"static:yLat", 0.0,
         //"static:swingForce", 0.0,
         //"static:riseRatio", 0.0
@@ -129,9 +129,9 @@ int main()
     //Gradient step learning rate
     params.append(
         "fitness:unstableValue", 4.0,
-        "fitness:timeLength", 120.0,
-        "fitness:countSeq", 7.9,
-        "fitness:learningRate", 2.0
+        "fitness:timeLength", 40.0,
+        "fitness:countSeq", 4.9,
+        "fitness:learningRate", 3.0
     );
 
     //Monitors
@@ -211,7 +211,7 @@ int main()
     interface.addMonitors("Motion Capture position error", monitors, "error");
     interface.addMonitors("Deltas", monitors, "delta");
     interface.addMonitors("State", stateParams);
-    interface.addMonitors("Static Params", currentParams, "static");
+    //interface.addMonitors("Static Params", currentParams, "static");
     interface.addMonitors("Fitness", monitors, "fitness");
     interface.addMonitors("Time", monitors, "time");
     interface.addStatus(statusEnabled);
@@ -224,10 +224,11 @@ int main()
             statusEnabled = "Walk is Disabled";
         }
     });
-    interface.addBinding('f', "Toggle robot stable", [&monitors, &statusStable](){
+    interface.addBinding('f', "Toggle robot stable", [&monitors, &statusStable, &interface](){
         monitors("fitness:isStable") = !monitors("fitness:isStable");
         if (monitors("fitness:isStable")) {
             statusStable = "Real robot is STABLE";
+            interface.terminalOut() << "> Start stable sequence" << std::endl;
         } else {
             statusStable = "Real robot is not stable";
         }
@@ -241,6 +242,8 @@ int main()
             Leph::VectorLabel::mergeInter(deltas, stateParams), "static");
         boundParameters(currentParams, allParamsMin, allParamsMax);
         interface.drawParamsWin();
+        interface.terminalOut() << "> New params: " 
+            << Leph::VectorLabel::mergeInter(currentParams, stateParams).vect().transpose() << std::endl;
     };
     interface.addBinding('r', "Generate random params", randomParamsFunc);
     interface.addBinding('u', "Set sequence to non stable", [&fitnessesUnstable, &params](){
@@ -318,6 +321,9 @@ int main()
             interface.drawStatusWin();
             //Dump fitness values
             tmpFitness.writeToCSV(logFileLearning);
+            interface.terminalOut() << "=> Fitness: " 
+                << tmpFitness("fitness:lateral") << " " 
+                << tmpFitness("fitness:step") << std::endl;
             //Generate new parameters
             randomParamsFunc();
         }
@@ -361,6 +367,8 @@ int main()
             gradient.rename("static", "gradient").writeToCSV(logFileLearning);
             stateParams.subOp(gradient, "static");
             stateParams.rename("static", "state").writeToCSV(logFileLearning);
+            interface.terminalOut() << "> Gradient: " 
+                << gradient.vect().transpose() << std::endl;
             currentParams.mergeInter(stateParams);
             //Clear fitness container
             fitnessesStable.clear();
