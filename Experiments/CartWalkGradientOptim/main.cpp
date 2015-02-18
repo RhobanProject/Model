@@ -105,9 +105,9 @@ int main()
     
     //Servo target reference
     params.append(
-        "refpos:step", -0.4674,
-        "refpos:lateral", 0.1705,
-        "refpos:turn", -1.5
+        "refpos:step", -0.3049,
+        "refpos:lateral", 0.1611,
+        "refpos:turn", 0.0
     );
     //Servo proportional gain
     params.append(
@@ -130,7 +130,7 @@ int main()
     params.append(
         "fitness:unstableValue", 4.0,
         "fitness:timeLength", 40.0,
-        "fitness:countSeq", 4.9,
+        "fitness:countSeq", 19.9,
         "fitness:learningRate", 3.0
     );
 
@@ -188,7 +188,7 @@ int main()
     Rhoban::MotionCapture motionCapture;
     motionCapture.setCaptureStream("tcp://192.168.16.10:3232");
     motionCapture.averageCoefPos = 0.5;
-    motionCapture.maxInvalidTick = 50;
+    motionCapture.maxInvalidTick = 5;
     
     //Init stable serie Matrix Label container
     Leph::MatrixLabel stableSerie;
@@ -224,14 +224,15 @@ int main()
             statusEnabled = "Walk is Disabled";
         }
     });
-    interface.addBinding('f', "Toggle robot stable", [&monitors, &statusStable, &interface](){
-        monitors("fitness:isStable") = !monitors("fitness:isStable");
-        if (monitors("fitness:isStable")) {
-            statusStable = "Real robot is STABLE";
-            interface.terminalOut() << "> Start stable sequence" << std::endl;
-        } else {
-            statusStable = "Real robot is not stable";
-        }
+    interface.addBinding('s', "Set robot stable", [&monitors, &statusStable, &interface](){
+        monitors("fitness:isStable") = 1.0;
+        statusStable = "Real robot is STABLE";
+        interface.terminalOut() << "> Start stable sequence" << std::endl;
+    });
+    interface.addBinding('u', "Set robot unstable", [&monitors, &statusStable, &interface](){
+        monitors("fitness:isStable") = 0.0;
+        statusStable = "Real robot is not stable";
+        interface.terminalOut() << "> Stot stable sequence" << std::endl;
     });
     std::function<void()> randomParamsFunc = [&currentParams, &params, &interface, 
         &stateParams, &allParamsDelta, &allParamsMin, &allParamsMax] () {
@@ -250,6 +251,12 @@ int main()
         Leph::VectorLabel tmpFitness = params.extract("static");
         tmpFitness.append("fitness:sum", params("fitness:unstableValue"));
         fitnessesUnstable.append(tmpFitness);
+    });
+    interface.addBinding('i', "Auto set mocap refpos", [&interface, &motionCapture, &params](){
+        params("refpos:step") = motionCapture.pos.z;
+        params("refpos:lateral") = motionCapture.pos.x;
+        params("refpos:turn") = motionCapture.pos.azimuth;
+        interface.drawParamsWin();
     });
 
     //Open loging file
@@ -297,9 +304,12 @@ int main()
                 "fitness:Pitch", monitors("sensor:Pitch")
             ));
             monitors("time:length") += 1.0/freq;
-        } else {
+        } else if (monitors("fitness:isStable")) {
             stableSerie.clear();
             monitors("time:length") = 0.0;
+            monitors("fitness:isStable") = 0.0;
+            statusStable = "Real robot is not stable";
+            interface.terminalOut() << "> Error invalid mocap" << std::endl;
         }
 
         //Stop stable sequence when enough time is captured
@@ -322,10 +332,10 @@ int main()
             //Dump fitness values
             tmpFitness.writeToCSV(logFileLearning);
             interface.terminalOut() << "=> Fitness: " 
-                << tmpFitness("fitness:lateral") << " " 
-                << tmpFitness("fitness:step") << std::endl;
+                << tmpFitness("fitness:step") << " " 
+                << tmpFitness("fitness:lateral") << std::endl;
             //Generate new parameters
-            randomParamsFunc();
+            //TODO TODO TODO randomParamsFunc();
         }
 
         //Gradient update
@@ -351,7 +361,7 @@ int main()
             for (size_t i=0;i<fitnessesStable.size();i++) {
                 gradientAlgo.addExperiment(
                     fitnessesStable[i].extract("static").vect(), 
-                    fitnessesStable[i]("fitness:lateral"));
+                    fitnessesStable[i]("fitness:step"));
                     //fitnessesStable[i]("fitness:sum")); TODO
             }
             Leph::VectorLabel gradient = stateParams;
