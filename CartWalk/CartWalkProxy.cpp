@@ -46,14 +46,14 @@ VectorLabel CartWalkProxy::buildOutputs() const
 VectorLabel CartWalkProxy::buildParams() const
 {
     return VectorLabel(
-        "static:timeGain", 2.68,
-        "static:riseGain", 1.5,
+        "static:timeGain", 2.40,
+        "static:riseGain", 3.0,
         "static:swingGain", 1.0,
-        "static:swingPhase", -0.05,
+        "static:swingPhase", 0.0,
         "static:swingHeight", 0.0,
         "static:xOffset", 1.5,
         "static:yOffset", 1.5,
-        "static:zOffset", 2.2,
+        "static:zOffset", 4.0,
         "static:hipOffset", 15.0,
         "static:yLat", 0.0,
         "static:swingForce", 0.1,
