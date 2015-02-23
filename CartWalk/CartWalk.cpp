@@ -23,13 +23,22 @@ namespace Rhoban
      * Vous pouvez écrire du code qui sera exécuté à 
      * l'initialisation ici
      */
-    CartWalk::CartWalk()
-        : zOffset(3.0), yOffset(0.0), yLat(0.0), xOffset(0.0),
-        swingGain(0.0), swingPhase(0.0), swingHeight(0.0),
-        riseGain(0.0), hipOffset(0.0),
-        t(0.0), timeGain(2.0),
-        stepGain(0.0), lateralStepGain(0.0),
-        turn(0.0), armsGain(0)
+    CartWalk::CartWalk() : 
+        t(0.0), 
+        timeGain(2.0),
+        xOffset(0.0),
+        yOffset(0.0), 
+        zOffset(3.0), 
+        yLat(0.0), 
+        hipOffset(0.0),
+        riseGain(0.0), 
+        swingGain(0.0), 
+        swingHeight(0.0),
+        swingPhase(0.0), 
+        armsGain(0),
+        stepGain(0.0), 
+        lateralStepGain(0.0),
+        turn(0.0)
     {
         swingForce = 0.0;
         riseRatio = 0.5;
