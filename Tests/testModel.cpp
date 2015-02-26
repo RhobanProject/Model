@@ -14,7 +14,11 @@ int main()
         std::cout << model.getFrameName(i) << ": "
             << model.position(i, model.getFrameIndex("trunk")).transpose() 
             << std::endl;
+        std::cout << model.orientation(i, model.getFrameIndex("origin")) << std::endl;
     }
+
+    std::cout << "Mass " << model.sumMass() << std::endl;
+    std::cout << "CoM " << model.centerOfMass("origin").transpose() << std::endl;
 
     return 0;
 }

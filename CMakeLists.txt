@@ -18,7 +18,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(EIGEN_DIRECTORY "Eigen" CACHE STRING "Eigen lib directory")
 include_directories(${EIGEN_DIRECTORY})
 
-#Include SFML
+#Include RBDL (dynamic and geometric robot library)
+set(RBDL_DIRECTORY "RBDL" CACHE STRING "RBDL lib directory")
+include_directories(${RBDL_DIRECTORY}/addons)
+include_directories(${RBDL_DIRECTORY}/include)
+include_directories(${RBDL_DIRECTORY}/build/include)
+link_directories(${RBDL_DIRECTORY}/build)
+link_directories(${RBDL_DIRECTORY}/build/addons/urdfreader)
+
+#Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
 
 #Enable C++11
@@ -40,6 +48,8 @@ set(SOURCES_FILES
     Utils/Combination.cpp
     Utils/CircularBuffer.cpp
     Ncurses/InterfaceCLI.cpp
+    Model/Model.cpp
+    Model/SigmabanModel.cpp
 )
 
 #Tests main files
@@ -58,6 +68,7 @@ set(TESTS_FILES
     testCircularBuffer
     benchVectorLabel
     testMatrixLabel
+    testModel
 )
 
 #Applications main files
@@ -69,6 +80,8 @@ set(APPS_FILES
 #LephCode linked libraries
 set(CODE_LIBRARIES
     ncurses
+    rbdl
+    rbdl_urdfreader
 )
 
 #Viewer (SFML) build option and files
@@ -77,6 +90,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     link_directories(${SFML_DIRECTORY}/lib)
     set(SOURCES_FILES ${SOURCES_FILES} 
         Viewer/ModelViewer.cpp
+        Viewer/ModelDraw.cpp
     )
     set(TESTS_FILES ${TESTS_FILES} 
         testModelViewer

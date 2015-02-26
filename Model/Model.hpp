@@ -39,6 +39,7 @@ class Model
          */
         VectorLabel getDOF() const;
         void setDOF(const VectorLabel& vect);
+        void setDOF(const std::string& name, double value);
         
         /**
          * Return the number of reference frame
@@ -62,15 +63,51 @@ class Model
          * with respect to dstFrameIndex
          * Default point is 0
          * Current degrees of freedom angular values are used
+         * Index to RDBL convertion are skipped if frameConvertion
+         * is false
          */
         Eigen::Vector3d position(
             size_t srcFrameIndex, size_t dstFrameIndex,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
+        Eigen::Vector3d position(
+            const std::string& srcFrame, const std::string& dstFrame,
+            const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
+
+        /**
+         * Compute the rotation matrix
+         * used to expressed the srcFrameIndex unit 
+         * coordinates to dstFrameIndex coordinates
+         * Current degrees of freedom angular values are used
+         * Index to RDBL convertion are skipped if frameConvertion
+         * is false
+         */
+        Eigen::Matrix3d orientation(
+            size_t srcFrameIndex, size_t dstFrameIndex);
+        Eigen::Matrix3d orientation(
+            const std::string& srcFrame, const std::string& dstFrame);
+
+        /**
+         * Return the position of center of mass with
+         * respect to given frame
+         * Current degrees of freedom angular values are used
+         */
+        Eigen::Vector3d centerOfMass(size_t frameIndex);
+        Eigen::Vector3d centerOfMass(const std::string& frame);
+
+        /**
+         * Return the total mass of the Model
+         */
+        double sumMass();
 
         /**
          * Direct access to RBDL model
          */
         const RBDL::Model& getRBDLModel() const;
+
+        /**
+         * Convert RBDL body id to frame index
+         */
+        size_t bodyIdToFrameIndex(size_t index) const;
 
     private:
     
@@ -106,6 +143,26 @@ class Model
          */
         std::string filterJointName(const std::string& name) const;
         std::string filterFrameName(const std::string& name) const;
+
+        /**
+         * Return the real name of given body index
+         * and the vitual body hierarchy depth
+         * (Handle virtual body for multi DOF joint)
+         * Inspired by RBDL/src/rbdl_utils.cc
+         */
+        std::string getRBDLBodyName(size_t bodyId, 
+            unsigned int& virtualDepth) const;
+
+        /**
+         * Add a degree of freedom with given name
+         */
+        void addDOF(const std::string& name);
+
+        /**
+         * Build Eigen degree of freedom 
+         * vector from VectorLabel
+         */
+        RBDLMath::VectorNd buildDOFVector() const;
 };
 
 }
