@@ -15,6 +15,14 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         Eigen::Vector3d pos = model.position(i, originIndex);
         Eigen::Matrix3d mat = model.orientation(i, originIndex);
         viewer.drawFrame(pos, mat);
+        
+        //Draw optional bounding box
+        double sizeX;
+        double sizeY;
+        double sizeZ;
+        Eigen::Vector3d center;
+        model.boundingBox(i, sizeX, sizeY, sizeZ, center);
+        viewer.drawBox(sizeX, sizeY, sizeZ, pos+center, mat);
     }
 
     //Draw center of mass
@@ -46,12 +54,12 @@ void ModelDraw(Model& model, ModelViewer& viewer)
             viewer.drawJoint(center, transformAxis);
         }
         //Draw link between body origin and center of mass
-        viewer.drawLink(center, pos, 1.0);
+        viewer.drawLink(center, pos);
         //Draw link between body center of mass and its children origin
         for (size_t j=0;j<rbdlModel.mu[i].size();j++) {
             size_t childIndex = model.bodyIdToFrameIndex(rbdlModel.mu[i][j]);
             Eigen::Vector3d centerChild = model.position(childIndex, originIndex);
-            viewer.drawLink(pos, centerChild, 1.0);
+            viewer.drawLink(pos, centerChild);
         }
     }
 
@@ -64,7 +72,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         Eigen::Vector3d com = rbdlModel.mBodies[parentId].mCenterOfMass;
         Eigen::Vector3d pos = model.position(parentIndex, originIndex, com);
         Eigen::Vector3d center = model.position(bodyIndex, originIndex);
-        viewer.drawLink(pos, center, 1.0);
+        viewer.drawLink(pos, center);
     }
 }
 

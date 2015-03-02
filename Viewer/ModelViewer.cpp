@@ -185,8 +185,7 @@ void ModelViewer::drawJoint(
         
 void ModelViewer::drawLink(
     const Eigen::Vector3d& pt1,
-    const Eigen::Vector3d& pt2,
-    double colorLevel)
+    const Eigen::Vector3d& pt2)
 {
     double dist = (pt1-pt2).norm();
     Eigen::Vector3d vect = pt2 - pt1;
@@ -207,7 +206,20 @@ void ModelViewer::drawLink(
         applyRotation(transform);
         glScaled(dist/2.0, frameLength/10.0, frameLength/10.0);
         glTranslated(1.0, 0.0, 0.0);
-        drawCube(0.3*colorLevel, 0.6*colorLevel, 0.3*colorLevel);
+        drawCube(0.3, 0.6, 0.3);
+    glPopMatrix();
+}
+
+void ModelViewer::drawBox(double sizeX, double sizeY, double sizeZ,
+    const Eigen::Vector3d& center, 
+    const Eigen::Matrix3d& orientation)
+{
+    glPushMatrix();
+        glTranslated(center.x(), center.y(), center.z());
+        applyRotation(orientation.transpose());
+        glScaled(sizeX, sizeY, sizeZ);
+        glLineWidth(frameThickness);
+        drawCube(0.3, 0.6, 0.6, true);
     glPopMatrix();
 }
         
@@ -288,8 +300,12 @@ void ModelViewer::drawGround(double size)
     }
 }
         
-void ModelViewer::drawCube(float r, float g, float b)
+void ModelViewer::drawCube(float r, float g, float b,
+    bool isWireFrame)
 {
+    if (isWireFrame) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
     glBegin(GL_QUADS);
         glColor3f(r, g, b);
         glVertex3f(1.0, 1.0, 1.0);
@@ -327,6 +343,9 @@ void ModelViewer::drawCube(float r, float g, float b)
         glVertex3f(-1.0, -1.0, -1.0);
         glVertex3f(1.0, -1.0, -1.0);
     glEnd();
+    if (isWireFrame) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 }
         
 }

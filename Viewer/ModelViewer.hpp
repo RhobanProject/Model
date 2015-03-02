@@ -76,8 +76,15 @@ class ModelViewer
          */
         void drawLink(
             const Eigen::Vector3d& pt1,
-            const Eigen::Vector3d& pt2,
-            double colorLevel);
+            const Eigen::Vector3d& pt2);
+
+        /**
+         * Draw a wireframe box with given x,y,z half size at
+         * given position and orientation
+         */
+        void drawBox(double sizeX, double sizeY, double sizeZ,
+            const Eigen::Vector3d& center, 
+            const Eigen::Matrix3d& orientation);
 
         /**
          * Add a position for drawing trajectory
@@ -132,8 +139,10 @@ class ModelViewer
 
         /**
          * Draw a unit cube with given color
+         * and optionaly in wireframe mode
          */
-        void drawCube(float r, float g, float b);
+        void drawCube(float r, float g, float b, 
+            bool isWireFrame = false);
 };
 
 }
