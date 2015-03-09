@@ -5,13 +5,14 @@
 #include <chrono>
 #include <string>
 #include <map>
+#include <vector>
 
 namespace Leph {
 
 /**
  * Chrono
  *
- * Simple C++11 chrono wrapper for
+ * Simple C++11 tree chrono wrapper for
  * test and benchmarking
  */
 class Chrono 
@@ -29,28 +30,28 @@ class Chrono
         void clear();
 
         /**
-         * Create and start a named point in time
+         * Create and start a named duration
          */
-        void start(const std::string& name = "");
+        void start(const std::string& name);
 
         /**
-         * Create a named duration time with respect to
-         * given point in time begin
+         * Stop and save a named duration
          */
-        void stop(const std::string& name = "", 
-            const std::string& reference = "");
-
-        /**
-         * Return the given duration name in seconds
-         * and milliseconds
-         */
-        double getDurationSec(const std::string& name) const;
-        double getDurationMs(const std::string& name) const;
+        void stop(const std::string& name);
 
         /**
          * Write on given stream an overview of chrono state
          */
         void print(std::ostream& os = std::cout) const;
+
+        /**
+         * Compute the mean, max and sum 
+         * duration in milliseconds of given duration
+         * name
+         */
+        double mean(const std::string& name) const;
+        double max(const std::string& name) const;
+        double sum(const std::string& name) const;
 
     private:
 
@@ -58,16 +59,33 @@ class Chrono
          * Typedef shortcuts
          */
         typedef std::chrono::duration<double> Duration;
-        typedef std::map<std::string, Duration> DurationContainer;
         typedef std::chrono::time_point<std::chrono::system_clock> TimePoint;
-        typedef std::map<std::string, TimePoint> TimePointContainer;
+        typedef std::pair<TimePoint, TimePoint> PairTimePoint;
+        typedef std::vector<PairTimePoint> SequenceContainer;
+        typedef std::map<std::string, SequenceContainer> DurationContainer;
 
         /**
-         *  Starting time points and 
-         *  evaluated durations container 
+         * Sequences of starting and stopping time point
+         * indexed by their name
          */
-        TimePointContainer _timePoints;
         DurationContainer _durations;
+
+        /**
+         * Print the given name on given stream
+         * with given indent level
+         */
+        void printDuration(std::ostream& os, 
+            const std::string& name, unsigned int level,
+            const std::string& father) const;
+
+        /**
+         * Print the hierarchy with given level using given
+         * name as root
+         */
+        void printHierarchy(std::ostream& os, 
+            const std::string& name, unsigned int level,
+            const TimePoint* endTime,
+            const std::string& father) const;
 };
 
 }
