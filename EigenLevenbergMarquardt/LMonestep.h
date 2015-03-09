@@ -93,6 +93,14 @@ LevenbergMarquardt<FunctorType>::minimizeOneStep(FVectorType  &x)
 
     /* store the direction p and x + p. calculate the norm of p. */
     m_wa1 = -m_wa1;
+  
+    /**
+     * XXX
+     * Constraint implementarion by gradient projection
+     * XXX
+     */
+    m_functor.gradientProjection(x, m_wa1);
+
     m_wa2 = x + m_wa1;
     pnorm = m_diag.cwiseProduct(m_wa1).stableNorm();
 

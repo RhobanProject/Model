@@ -63,6 +63,17 @@ struct DenseFunctor
   
   //int df(const InputType &x, JacobianType& fjac) { }
   // should be defined in derived classes
+
+  /**
+   * XXX
+   * Box constraint implementation with 
+   * gradient projection.
+   * gradientProjection should be defined in derived class
+   * and could update the gradient step
+   * XXX
+   */
+  void gradientProjection(const InputType& state, InputType& gradient) 
+  { (void)state; (void)gradient; };
 };
 
 template <typename _Scalar, typename _Index>
