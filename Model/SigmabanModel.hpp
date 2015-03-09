@@ -30,6 +30,11 @@ class SigmabanModel : public Model
         SigmabanModel();
 
         /**
+         * Destructor
+         */
+        virtual ~SigmabanModel();
+
+        /**
          * Return the current support foot
          */
         SupportFoot getSupportFoot() const;
@@ -48,6 +53,14 @@ class SigmabanModel : public Model
          * on the ground
          */
         void putOnGround();
+
+        /**
+         * @Inherit
+         * Draw feet bounding box
+         */
+        virtual void boundingBox(size_t frameIndex, 
+            double& sizeX, double& sizeY, double& sizeZ,
+            Eigen::Vector3d& center) const override;
 
     private:
 

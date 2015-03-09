@@ -7,13 +7,14 @@ Model::Model(const std::string& filename) :
     _model(),
     _dofIndexToName(),
     _dofNameToIndex(),
+    _dofs(),
     _vectorDOF(),
     _frameIndexToName(),
     _frameNameToIndex(),
     _frameIndexToId()
 {
     //URDF loading
-    if (!RBDL::Addons::read_urdf_model(filename.c_str(), &_model, false)) {
+    if (!RBDL::Addons::URDFReadFromFile(filename.c_str(), &_model, false)) {
         std::runtime_error("Model unable to load URDF file: " + filename);
     }
 
@@ -35,6 +36,7 @@ Model::Model(const std::string& filename) :
             i += 5;
             continue;
         } else if (virtualDepth > 0) {
+            std::cout << "*** " << i << " :: " << virtualDepth << std::endl;
             throw std::logic_error(
                 "Model virtual body name not implemented");
         }
@@ -61,17 +63,23 @@ size_t Model::sizeDOF() const
     return _model.dof_count;
 }
         
-VectorLabel Model::getDOF() const
+const VectorLabel& Model::getDOF()
 {
+    loadEigenToLabel();
     return _vectorDOF;
+}
+double Model::getDOF(const std::string& name) const
+{
+    return _dofs(_dofNameToIndex.at(name));
 }
 void Model::setDOF(const VectorLabel& vect)
 {
     _vectorDOF.mergeInter(vect);
+    loadLabelToEigen();
 }
 void Model::setDOF(const std::string& name, double value)
 {
-    _vectorDOF(name) = value;
+    _dofs(_dofNameToIndex.at(name)) = value;
 }
 
 size_t Model::sizeFrame() const
@@ -97,14 +105,11 @@ Eigen::Vector3d Model::position(
     srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
     dstFrameIndex = _frameIndexToId.at(dstFrameIndex);
 
-    //Rebuild degree of freedom eigen vector
-    RBDLMath::VectorNd Q = buildDOFVector();
-
     //Compute transformation from body1 to base and base to body2
     RBDLMath::Vector3d ptBase = RBDL::CalcBodyToBaseCoordinates(
-        _model, Q, srcFrameIndex, point);
+        _model, _dofs, srcFrameIndex, point);
     RBDLMath::Vector3d ptBody = RBDL::CalcBaseToBodyCoordinates(
-        _model, Q, dstFrameIndex, ptBase);
+        _model, _dofs, dstFrameIndex, ptBase);
 
     return ptBody;
 }
@@ -125,13 +130,10 @@ Eigen::Matrix3d Model::orientation(
     srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
     dstFrameIndex = _frameIndexToId.at(dstFrameIndex);
     
-    //Rebuild degree of freedom eigen vector
-    RBDLMath::VectorNd Q = buildDOFVector();
-            
     RBDLMath::Matrix3d transform1 = CalcBodyWorldOrientation(
-        _model, Q, srcFrameIndex);
+        _model, _dofs, srcFrameIndex);
     RBDLMath::Matrix3d transform2 = CalcBodyWorldOrientation(
-        _model, Q, dstFrameIndex);
+        _model, _dofs, dstFrameIndex);
 
     return transform1*transform2.transpose();
 }
@@ -145,12 +147,9 @@ Eigen::Matrix3d Model::orientation(
         
 Eigen::Vector3d Model::centerOfMass(size_t frameIndex)
 {
-    //Rebuild degree of freedom eigen vector
-    RBDLMath::VectorNd Q = buildDOFVector();
-
     double mass;
     RBDLMath::Vector3d com;
-    RBDL::Utils::CalcCenterOfMass(_model, Q, Q, mass, com);
+    RBDL::Utils::CalcCenterOfMass(_model, _dofs, _dofs, mass, com);
 
     return position(0, frameIndex, com);
 }
@@ -168,11 +167,23 @@ double Model::sumMass()
     return mass;
 }
 
+void Model::boundingBox(size_t frameIndex, 
+    double& sizeX, double& sizeY, double& sizeZ,
+    Eigen::Vector3d& center) const
+{
+    //Return null box for default behaviour
+    (void)frameIndex;
+    sizeX = 0.0;
+    sizeY = 0.0;
+    sizeZ = 0.0;
+    center = Eigen::Vector3d::Zero();
+}
+
 const RBDL::Model& Model::getRBDLModel() const
 {
     return _model;
 }
-        
+
 size_t Model::bodyIdToFrameIndex(size_t index) const
 {
     for (const auto& mapping : _frameIndexToId) {
@@ -182,7 +193,11 @@ size_t Model::bodyIdToFrameIndex(size_t index) const
     }
     throw std::logic_error("Model invalid RBDL id");
 }
- 
+size_t Model::frameIndexToBodyId(size_t index) const
+{
+    return _frameIndexToId.at(index);
+}
+
 std::string Model::filterJointName(const std::string& name) const
 {
     std::string filtered = name;
@@ -236,29 +251,24 @@ std::string Model::getRBDLBodyName(size_t bodyId,
 void Model::addDOF(const std::string& name)
 {
     _vectorDOF.append(name, 0.0);
-    _dofNameToIndex[name] = _dofNameToIndex.size();
+    _dofNameToIndex[name] = _dofIndexToName.size();
     _dofIndexToName.push_back(name);
+    _dofs = RBDLMath::VectorNd::Zero(_vectorDOF.size());
 }
         
-RBDLMath::VectorNd Model::buildDOFVector() const
+void Model::loadEigenToLabel()
 {
-    RBDLMath::VectorNd Q = RBDLMath::VectorNd::Zero(_model.dof_count);
-    for (size_t i=0;i<_vectorDOF.size();i++) {
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
         const std::string& name = _dofIndexToName.at(i);
-        //Assign angular value
-        Q(i) = _vectorDOF(_dofIndexToName.at(i));
-        //No convertion to radian in case of translation
-        //(floating joint)
-        if (
-            name.find(" Tx") == std::string::npos &&
-            name.find(" Ty") == std::string::npos &&
-            name.find(" Tz") == std::string::npos
-        ) {
-            Q(i) = M_PI*Q(i)/180.0;
-        } 
+        _vectorDOF(_dofIndexToName.at(i)) = _dofs(i);
     }
-
-    return Q;
+}
+void Model::loadLabelToEigen()
+{
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        const std::string& name = _dofIndexToName.at(i);
+        _dofs(i) = _vectorDOF(_dofIndexToName.at(i));
+    }
 }
  
 }

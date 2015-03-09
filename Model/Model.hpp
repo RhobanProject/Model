@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 #include <rbdl/rbdl.h>
-#include <urdfreader/rbdl_urdfreader.h>
+#include <urdfreader/urdfreader.h>
 #include "Types/VectorLabel.hpp"
 
 namespace Leph {
@@ -35,9 +35,10 @@ class Model
 
         /**
          * Get and set current angular value 
-         * of degrees of freedom in degrees
+         * of degrees of freedom in radian
          */
-        VectorLabel getDOF() const;
+        const VectorLabel& getDOF();
+        double getDOF(const std::string& name) const;
         void setDOF(const VectorLabel& vect);
         void setDOF(const std::string& name, double value);
         
@@ -63,14 +64,14 @@ class Model
          * with respect to dstFrameIndex
          * Default point is 0
          * Current degrees of freedom angular values are used
-         * Index to RDBL convertion are skipped if frameConvertion
-         * is false
          */
         Eigen::Vector3d position(
-            size_t srcFrameIndex, size_t dstFrameIndex,
+            size_t srcFrameIndex, 
+            size_t dstFrameIndex,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
         Eigen::Vector3d position(
-            const std::string& srcFrame, const std::string& dstFrame,
+            const std::string& srcFrame, 
+            const std::string& dstFrame,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
 
         /**
@@ -78,13 +79,13 @@ class Model
          * used to expressed the srcFrameIndex unit 
          * coordinates to dstFrameIndex coordinates
          * Current degrees of freedom angular values are used
-         * Index to RDBL convertion are skipped if frameConvertion
-         * is false
          */
         Eigen::Matrix3d orientation(
-            size_t srcFrameIndex, size_t dstFrameIndex);
+            size_t srcFrameIndex, 
+            size_t dstFrameIndex);
         Eigen::Matrix3d orientation(
-            const std::string& srcFrame, const std::string& dstFrame);
+            const std::string& srcFrame, 
+            const std::string& dstFrame);
 
         /**
          * Return the position of center of mass with
@@ -100,14 +101,24 @@ class Model
         double sumMass();
 
         /**
+         * Return optionaly non zero aligned axis bounding box
+         * with respect to given frame base and its half size
+         */
+        virtual void boundingBox(size_t frameIndex, 
+            double& sizeX, double& sizeY, double& sizeZ,
+            Eigen::Vector3d& center) const;
+
+        /**
          * Direct access to RBDL model
          */
         const RBDL::Model& getRBDLModel() const;
 
         /**
-         * Convert RBDL body id to frame index
+         * Convert RBDL body id to frame index and
+         * frame index to RBDL body id
          */
         size_t bodyIdToFrameIndex(size_t index) const;
+        size_t frameIndexToBodyId(size_t index) const;
 
     private:
     
@@ -125,7 +136,13 @@ class Model
 
         /**
          * Current DOF angle values
-         * in degrees in VectorLabel format and Eigen format
+         * in radian in RBDL Eigen format
+         */
+        RBDLMath::VectorNd _dofs;
+
+        /**
+         * VectorLabel DOF 
+         * not sync (used for labels)
          */
         VectorLabel _vectorDOF;
 
@@ -159,10 +176,16 @@ class Model
         void addDOF(const std::string& name);
 
         /**
-         * Build Eigen degree of freedom 
-         * vector from VectorLabel
+         * Update values from RBDL Eigen DOF vector
+         * to VectorLabel and inverse
          */
-        RBDLMath::VectorNd buildDOFVector() const;
+        void loadEigenToLabel();
+        void loadLabelToEigen();
+
+        /**
+         * Direct access for InverseKinematics class
+         */
+        friend class InverseKinematics;
 };
 
 }

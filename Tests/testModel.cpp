@@ -11,6 +11,13 @@ int main()
 
     std::cout << "Frame " << model.sizeFrame() << std::endl;
     for (size_t i=0;i<model.sizeFrame();i++) {
+        std::cout << "index=" << i 
+            << " name=" << model.getFrameName(i) 
+            << " index=" << model.getFrameIndex(model.getFrameName(i)) 
+            << " id=" << model.frameIndexToBodyId(i) << std::endl;
+    }
+    
+    for (size_t i=0;i<model.sizeFrame();i++) {
         std::cout << model.getFrameName(i) << ": "
             << model.position(i, model.getFrameIndex("trunk")).transpose() 
             << std::endl;

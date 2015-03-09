@@ -11,6 +11,10 @@ SigmabanModel::SigmabanModel() :
 {
 }
         
+SigmabanModel::~SigmabanModel()
+{
+}
+        
 SigmabanModel::SupportFoot SigmabanModel::getSupportFoot() const
 {
     return _supportFoot;
@@ -39,25 +43,39 @@ std::string SigmabanModel::movingFootName() const
 
 void SigmabanModel::putOnGround()
 {
-    findSupportFoot();
     putSupportFootFlat();
     putSupportFootOrigin();
+    findSupportFoot();
+}
+        
+void SigmabanModel::boundingBox(size_t frameIndex, 
+    double& sizeX, double& sizeY, double& sizeZ,
+    Eigen::Vector3d& center) const
+{
+    if (Model::getFrameName(frameIndex) == "left foot tip") {
+        sizeX = 0.062495;
+        sizeY = 0.039995;
+        sizeZ = 0.01;
+        center = Eigen::Vector3d(0.001845, 0.002495, 0.01);
+    } else if (Model::getFrameName(frameIndex) == "right foot tip") {
+        sizeX = 0.062495;
+        sizeY = 0.039995;
+        sizeZ = 0.01;
+        center = Eigen::Vector3d(0.001845, -0.002495, 0.01);
+    } else {
+        Model::boundingBox(frameIndex, 
+            sizeX, sizeY, sizeZ, center);
+    }
 }
         
 void SigmabanModel::findSupportFoot()
 {
     //Feet position in trunk frame
     Eigen::Vector3d posLeftFoot = 
-        Model::position("left foot tip", "trunk");
+        Model::position("left foot tip", "origin");
     Eigen::Vector3d posRightFoot = 
-        Model::position("right foot tip", "trunk");
+        Model::position("right foot tip", "origin");
     
-    //Moving foot position and orientation in world frame
-    Eigen::Vector3d posFootWorld = 
-        Model::position(movingFootName(), "origin");
-    Eigen::Matrix3d rotationWorld = 
-        Model::orientation(movingFootName(), "origin").transpose();
-
     //Select the lowest foot in trunk frame
     bool swapSupportFoot = false;
     if (posLeftFoot.z() < posRightFoot.z()) {
@@ -77,6 +95,12 @@ void SigmabanModel::findSupportFoot()
     //is update with last position and orientation of 
     //old moving foot (same foot)
     if (swapSupportFoot) {
+        //Moving foot position and orientation in world frame
+        Eigen::Vector3d posFootWorld = 
+            Model::position(supportFootName(), "origin");
+        Eigen::Matrix3d rotationWorld = 
+            Model::orientation(supportFootName(), "origin").transpose();
+        //Updating state
         _statePosX = posFootWorld.x();
         _statePosY = posFootWorld.y();
         _stateRotYaw = atan2(rotationWorld(1, 0), rotationWorld(0, 0));
@@ -96,8 +120,6 @@ void SigmabanModel::putSupportFootFlat()
     //Convertion of this rotation matrix into roll, pitch, yaw
     //euler angles
     Eigen::Vector3d angles = rotation.eulerAngles(0, 1, 2);
-    //Degree conversion
-    angles = (180.0/M_PI)*angles;    
     //Updating floating joint roll, pitch, yaw
     Model::setDOF("trunk roll", angles(0));
     Model::setDOF("trunk pitch", angles(1));
