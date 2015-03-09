@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Utils/Chrono.hpp"
+#include "Utils/GlobalChrono.hpp"
 
 void wait()
 {
@@ -30,6 +31,11 @@ int main()
         c.stop("test5");
     c.stop("test3");
     c.print();
+    
+    Leph::GlobalChrono::get().start("time 1");
+        wait();
+    Leph::GlobalChrono::get().stop("time 1");
+    Leph::GlobalChrono::get().print();
 
     return 0;
 }
