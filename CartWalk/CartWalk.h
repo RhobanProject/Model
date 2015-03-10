@@ -1,7 +1,7 @@
 #ifndef _CART_WALK_H
 #define _CART_WALK_H
 
-#include "CartWalk/PolySpline.hpp"
+#include "Utils/PolySpline.hpp"
 #include "CartWalk/SigmabanLeg.h"
 
 namespace Rhoban
@@ -16,9 +16,9 @@ namespace Rhoban
             double t;
 
             // Splines
-            PolySpline rise;
-            PolySpline step;
-            PolySpline swing;
+            Leph::PolySpline rise;
+            Leph::PolySpline step;
+            Leph::PolySpline swing;
 
             // Time gain (frequency)
             double timeGain;
