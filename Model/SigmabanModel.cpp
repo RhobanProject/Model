@@ -9,6 +9,9 @@ SigmabanModel::SigmabanModel() :
     _statePosY(0.0),
     _stateRotYaw(0.0)
 {
+    //Center initial position of the model
+    _statePosY = Model::position(
+        "left foot tip", "origin").y();
 }
         
 SigmabanModel::~SigmabanModel()

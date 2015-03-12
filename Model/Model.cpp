@@ -82,6 +82,11 @@ void Model::setDOF(const std::string& name, double value)
     _dofs(_dofNameToIndex.at(name)) = value;
 }
 
+void Model::setDOFZeros()
+{
+    _dofs.setZero();
+}
+
 size_t Model::sizeFrame() const
 {
     return _frameIndexToName.size();

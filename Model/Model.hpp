@@ -41,6 +41,11 @@ class Model
         double getDOF(const std::string& name) const;
         void setDOF(const VectorLabel& vect);
         void setDOF(const std::string& name, double value);
+
+        /**
+         * Reset all degrees of freedom to zero position
+         */
+        void setDOFZeros();
         
         /**
          * Return the number of reference frame
