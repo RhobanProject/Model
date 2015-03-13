@@ -6,6 +6,7 @@ int main()
 {
     Leph::Scheduling scheduling;
     scheduling.setFrequency(50.0);
+    std::cout << "Timestamp: " << scheduling.timestamp() << std::endl;
 
     Leph::Chrono chrono;
 
@@ -20,6 +21,7 @@ int main()
     std::cout << "Duration: " << scheduling.duration() << std::endl;
     std::cout << "IsError: " << scheduling.isError() << " " 
         << scheduling.timeError() << std::endl;
+    std::cout << "Timestamp: " << scheduling.timestamp() << std::endl;
 
     chrono.clear();
     chrono.start("iter");
@@ -30,6 +32,7 @@ int main()
     std::cout << "Duration: " << scheduling.duration() << std::endl;
     std::cout << "IsError: " << scheduling.isError() << " " 
         << scheduling.timeError() << std::endl;
+    std::cout << "Timestamp: " << scheduling.timestamp() << std::endl;
 
     return 0;
 }

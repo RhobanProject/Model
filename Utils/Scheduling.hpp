@@ -43,6 +43,12 @@ class Scheduling
         double timeError() const;
 
         /**
+         * Return a timestamp since class initialization
+         * in milliseconds
+         */
+        double timestamp() const;
+
+        /**
          * Wait for scheduling
          */
         void wait();
@@ -78,6 +84,11 @@ class Scheduling
          */
         bool _isLastError;
         double _lastError;
+
+        /**
+         * Instance initialization TimePoint
+         */
+        TimePoint _timestamp;
 };
 
 }

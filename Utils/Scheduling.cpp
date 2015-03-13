@@ -1,8 +1,6 @@
 #include <stdexcept>
 #include "Utils/Scheduling.hpp"
 
-#include <iostream> //TODO
-
 namespace Leph {
 
 Scheduling::Scheduling() :
@@ -10,8 +8,10 @@ Scheduling::Scheduling() :
     _timeOld(),
     _timeNew(),
     _isLastError(false),
-    _lastError(0.0)
+    _lastError(0.0),
+    _timestamp()
 {
+    _timestamp = std::chrono::system_clock::now();
     _timeOld = std::chrono::system_clock::now();
     _timeNew = std::chrono::system_clock::now();
 }
@@ -40,6 +40,14 @@ bool Scheduling::isError() const
 double Scheduling::timeError() const
 {
     return _lastError;
+}
+        
+double Scheduling::timestamp() const
+{
+    TimePoint now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<
+        std::chrono::duration<double, std::ratio<1, 1000>>>
+        (now - _timestamp).count();
 }
         
 void Scheduling::wait()
