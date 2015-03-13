@@ -188,6 +188,8 @@ MotionCapture::CapturePosition MotionCapture::parsePacket
 
     double qx, qy, qz, qw;
 
+    double nbMarkers, minError;
+
     while (true) {
         numberIndex = 0;
         while (buffer[index] != ' ' && buffer[index] != '\0') {
@@ -205,9 +207,11 @@ MotionCapture::CapturePosition MotionCapture::parsePacket
         if (count == 5) qy = atof(number);
         if (count == 6) qz = atof(number);
         if (count == 7) qw = atof(number);
+        if (count == 8) nbMarkers = atof(number);
+        if (count == 9) minError = atof(number);
 
         if (buffer[index] == '\0') {
-            if (count >= 7) {
+            if (count >= 9) {
                 quat2Euler(qx, qy, qz, qw, 
                     current.azimuth, current.pitch, current.roll);
                 if (
@@ -217,7 +221,7 @@ MotionCapture::CapturePosition MotionCapture::parsePacket
                     fabs(qx) > 0.01 || 
                     fabs(qy) > 0.01 || 
                     fabs(qz) > 0.01 || 
-                    fabs(qw) > 0.01 
+                    fabs(qw) > 0.01
                 ) {
                     current.isValid = true;
                 }
