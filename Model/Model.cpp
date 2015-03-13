@@ -264,14 +264,12 @@ void Model::addDOF(const std::string& name)
 void Model::loadEigenToLabel()
 {
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
-        const std::string& name = _dofIndexToName.at(i);
         _vectorDOF(_dofIndexToName.at(i)) = _dofs(i);
     }
 }
 void Model::loadLabelToEigen()
 {
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
-        const std::string& name = _dofIndexToName.at(i);
         _dofs(i) = _vectorDOF(_dofIndexToName.at(i));
     }
 }

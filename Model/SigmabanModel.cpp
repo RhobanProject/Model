@@ -3,7 +3,7 @@
 namespace Leph {
 
 SigmabanModel::SigmabanModel() :
-    Model("../../Data/sigmaban-2015-02-23.urdf"),
+    Model("sigmaban.urdf"),
     _supportFoot(LeftSupportFoot),
     _statePosX(0.0),
     _statePosY(0.0),

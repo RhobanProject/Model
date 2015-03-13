@@ -146,7 +146,6 @@ void Chrono::printHierarchy(std::ostream& os,
     
     //Look for the next duration
     firstName = "";
-    firstTime;
     for (const auto& d : _durations) {
         if (
             d.first != name &&
