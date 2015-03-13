@@ -29,8 +29,13 @@ set(LEPH_CODE_DIRECTORY
 
 #Eigen linear algebra library directory
 set(EIGEN_DIRECTORY
-    ${RHOBAN_UTILS_DIRECTORY}/eigen-3.2
+    "/home/rhoban/Eigen"
     CACHE STRING "Eigen library directory")
+
+#RBDL library directory
+set(RBDL_DIRECTORY
+    "/home/rhoban/RBDL"
+    CACHE STRING "RBDL library directory")
 
 #ZMQ communication library directory
 set(ZMQ_DIRECTORY
@@ -52,6 +57,9 @@ include_directories(
     ${LEPH_CODE_DIRECTORY}/Experiments/Utils
     ${EIGEN_DIRECTORY}
     ${ZMQ_DIRECTORY}/include
+    ${RBDL_DIRECTORY}/include
+    ${RBDL_DIRECTORY}/build/include
+    ${RBDL_DIRECTORY}/addons
 )
 
 link_directories(
@@ -61,10 +69,18 @@ link_directories(
     ${SDK_BUILD_DIRECTORY}/utils/yaml-cpp
     ${SDK_BUILD_DIRECTORY}/utils/xml/TinyXml
     ${SDK_BUILD_DIRECTORY}/utils/zmq3.2
+    ${RBDL_DIRECTORY}/build
+    ${RBDL_DIRECTORY}/build/addons/urdfreader
 )
 
 #Build Leph Code
 add_subdirectory(${LEPH_CODE_DIRECTORY} ${CMAKE_CURRENT_BINARY_DIR}/LephCode)
+
+#
+# TinyXml in RhobanUtils.a have to be
+# compiled with -DTIXML_USE_STL to be compatible with
+# libtinyxml in the system used by RBDL urdf parse (urdfdom)
+#
 
 #Lists of linked library
 set(LINKED_LIBRARIES
@@ -93,4 +109,10 @@ add_executable(CartWalkTunner
     Utils/SDKInterface.cpp
 )
 target_link_libraries(CartWalkTunner ${LINKED_LIBRARIES})
+add_executable(StaticWalkTest
+    StaticWalkTest/main.cpp
+    Utils/SDKConnection.cpp
+    Utils/SDKInterface.cpp
+)
+target_link_libraries(StaticWalkTest ${LINKED_LIBRARIES})
 
