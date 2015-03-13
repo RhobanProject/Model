@@ -1,26 +1,40 @@
-#ifndef POLYSPLINE_HPP
-#define POLYSPLINE_HPP
+#ifndef LEPH_POLYSPLINE_HPP
+#define LEPH_POLYSPLINE_HPP
 
 #include <vector>
 #include <algorithm>
+
+namespace Leph {
 
 /**
  * PolySpline
  *
  * Splines primitive based on third order polynoms
- * for smooth and differentiablie adjunction
+ * for smooth and differentiable function
  */
 class PolySpline
 {
     public:
 
+        /**
+         * Internal point structure
+         * and container
+         */
         struct Point {
             double position;
             double value;
             double delta;
         };
-        
         typedef std::vector<Point> Points;
+
+        /**
+         * Empty all added points and splines
+         */
+        void clear()
+        {
+            _points.clear();
+            _splines.clear();
+        }
 
         /**
          * Add a point with its x position, y value and 
@@ -31,12 +45,6 @@ class PolySpline
             struct Point point = {pos, val, delta};
             _points.push_back(point);
             computeSplines();
-        }
-
-        void clear()
-        {
-            _points.clear();
-            _splines.clear();
         }
 
         /**
@@ -86,19 +94,21 @@ class PolySpline
 
     private:
 
+        /**
+         * Internal spline interval and polynom
+         * structure and container
+         */
         struct Polynom {
             double a;
             double b;
             double c;
             double d;
         };
-
         struct Spline {
             Polynom poly;
             double min;
             double max;
         };
-        
         typedef std::vector<Spline> Splines;
         
         /**
@@ -150,14 +160,12 @@ class PolySpline
                 return;
             }
 
-            /*
             std::sort(
                 _points.begin(), 
                 _points.end(), 
                 [](const Point& p1, const Point& p2) -> bool { 
                     return p1.position < p2.position;
                 });
-            */
 
             for (size_t i=1;i<_points.size();i++) {
                 if (fabs(_points[i-1].position - _points[i].position) < 0.00001) {
@@ -175,6 +183,8 @@ class PolySpline
             }
         }
 };
+
+}
 
 #endif
 

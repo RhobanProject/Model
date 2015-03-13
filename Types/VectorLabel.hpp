@@ -466,7 +466,11 @@ class VectorLabel
                 const std::string& label = _indexToLabel->at(i);
                 std::string dstLabel = filterDst + ":" + toName(label);
                 if (toSection(label) == filterSrc) {
-                    dstLabel = filterDst + ":" + toName(label);
+                    if (filterDst == "") {
+                        dstLabel = toName(label);
+                    } else {
+                        dstLabel = filterDst + ":" + toName(label);
+                    }
                 } else {
                     dstLabel = label;
                 }
