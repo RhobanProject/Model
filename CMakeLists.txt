@@ -47,9 +47,13 @@ set(SOURCES_FILES
     Utils/GeometricMedian.cpp
     Utils/Combination.cpp
     Utils/CircularBuffer.cpp
+    Utils/Chrono.cpp
+    Utils/Scheduling.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/SigmabanModel.cpp
+    Model/InverseKinematics.cpp
+    StaticWalk/StaticWalk.cpp
 )
 
 #Tests main files
@@ -69,6 +73,10 @@ set(TESTS_FILES
     benchVectorLabel
     testMatrixLabel
     testModel
+    testLevenbergMarquardt
+    testChrono
+    testSmoothSpline
+    testScheduling
 )
 
 #Applications main files
@@ -94,6 +102,8 @@ if (BUILD_LEPH_CODE_VIEWER)
     )
     set(TESTS_FILES ${TESTS_FILES} 
         testModelViewer
+        testInverseKinematics
+        testStaticWalk
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
