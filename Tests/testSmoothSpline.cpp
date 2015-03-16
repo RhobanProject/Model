@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Utils/SmoothSpline.hpp"
+#include "Spline/SmoothSpline.hpp"
 #include "Plot/Plot.hpp"
 
 int main()

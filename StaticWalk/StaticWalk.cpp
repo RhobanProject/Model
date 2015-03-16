@@ -1,6 +1,6 @@
 #include <stdexcept>
 #include "StaticWalk/StaticWalk.hpp"
-#include "Utils/SmoothSpline.hpp"
+#include "Spline/SmoothSpline.hpp"
 
 namespace Leph {
 
