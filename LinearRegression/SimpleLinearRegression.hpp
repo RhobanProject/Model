@@ -64,6 +64,13 @@ class SimpleLinearRegression
         double rootMeanSquaredError() const;
 
         /**
+         * Return the maximum residual
+         * (maximum error between leaning points 
+         * and fitted model prediction)
+         */
+        double maxError() const;
+
+        /**
          * Return the coefficient of correlation between
          * 0 and 1 (quality of linear fitting)
          */

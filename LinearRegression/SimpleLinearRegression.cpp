@@ -77,6 +77,12 @@ double SimpleLinearRegression::rootMeanSquaredError() const
     return sqrt(meanSquaredError());
 }
         
+double SimpleLinearRegression::maxError() const
+{
+    Vector residuals = _outputs - (_params.transpose()*_inputs).transpose();
+    return residuals.cwiseAbs().maxCoeff();
+}
+        
 double SimpleLinearRegression::correlationCoefficient() const
 {
     if (count() == 0 || dimension() == 0) {
@@ -154,6 +160,7 @@ void SimpleLinearRegression::print(std::ostream& os) const
     os << "Parameters: " << _params.transpose() << std::endl;
     os << "MSE: " << meanSquaredError() << std::endl;
     os << "RMSE: " << rootMeanSquaredError() << std::endl;
+    os << "MaxE: " << maxError() << std::endl;
     os << "R^2: " << correlationCoefficient() << std::endl;
     os << "Var: " << variance() << std::endl;
     os << "Std: " << sqrt(variance()) << std::endl;
