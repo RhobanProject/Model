@@ -33,7 +33,12 @@ double Spline::interpolation(double x,
 {
     for (size_t i=0;i<_splines.size();i++) {
         if (x >= _splines[i].min && x <= _splines[i].max) {
-            return (_splines[i].polynom.*func)(x-_splines[i].min);
+            if (_splines[i].isNormalization) {
+                return (_splines[i].polynom.*func)
+                    (x-_splines[i].min);
+            } else {
+                return (_splines[i].polynom.*func)(x);
+            }
         }
     }
     return 0.0;

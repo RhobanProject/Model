@@ -39,11 +39,14 @@ class Spline
         /**
          * Internal spline part structure
          * with a polynom valid on an interval
+         * If isNormalization, polynom evaluation
+         * is scale from [min:max] to [0:max-min]
          */
         struct Spline_t {
             Polynom polynom;
             double min;
             double max;
+            bool isNormalization;
         };
 
         /**

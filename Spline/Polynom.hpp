@@ -1,8 +1,8 @@
 #ifndef LEPH_POLYNOM_HPP
 #define LEPH_POLYNOM_HPP
 
+#include <cstdlib>
 #include <vector>
-#include "LinearRegression/SimpleLinearRegression.hpp"
 
 namespace Leph {
 
