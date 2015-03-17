@@ -73,8 +73,8 @@ bool FittedSpline::fitting(double maxError, bool throwError)
                 Vector inputs(degree+1);
                 double expVal = 1.0;
                 for (size_t k=0;k<degree+1;k++) {
-                    inputs(k) = expVal;
-                    expVal *= _points[j].first;
+                    inputs(k) = expVal ;
+                    expVal *= _points[j].first- _points[parts[i].first].first;
                 }
                 regression.add(inputs, _points[j].second);
             }
@@ -111,8 +111,7 @@ bool FittedSpline::fitting(double maxError, bool throwError)
                 Spline::_splines.push_back({
                     polynom, 
                     _points[parts[i].first].first,
-                    _points[parts[i].second].first,
-                    false});
+                    _points[parts[i].second].first});
                 //Go to next spline part
                 break;
             } else {

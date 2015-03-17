@@ -2,6 +2,7 @@
 #define LEPH_SPLINE_HPP
 
 #include <vector>
+#include <iostream>
 #include "Spline/Polynom.hpp"
 
 namespace Leph {
@@ -34,19 +35,23 @@ class Spline
         double velMod(double t) const;
         double accMod(double t) const;
 
+        /**
+         * Write and read splines data into given
+         * iostream in ascii format
+         */
+        void exportData(std::ostream& os) const;
+        void importData(std::istream& is);
+
     protected:
 
         /**
          * Internal spline part structure
          * with a polynom valid on an interval
-         * If isNormalization, polynom evaluation
-         * is scale from [min:max] to [0:max-min]
          */
         struct Spline_t {
             Polynom polynom;
             double min;
             double max;
-            bool isNormalization;
         };
 
         /**

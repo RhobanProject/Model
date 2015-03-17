@@ -60,8 +60,7 @@ void SmoothSpline::computeSplines()
                 _points[i-1].position, _points[i-1].velocity, _points[i-1].acceleration,
                 _points[i].position, _points[i].velocity, _points[i].acceleration),
             _points[i-1].time,
-            _points[i].time,
-            true
+            _points[i].time
         });
     }
 }

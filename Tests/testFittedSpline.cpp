@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include "Spline/FittedSpline.hpp"
 #include "Plot/Plot.hpp"
@@ -30,6 +31,16 @@ int main()
     }
 
     plot.plot("t", "all").render();
+
+    std::ofstream fileOut("/tmp/testSpline.csv");
+    spline.exportData(fileOut);
+    fileOut.close();
+    
+    Leph::Spline splineImport;
+    std::ifstream fileIn("/tmp/testSpline.csv");
+    splineImport.importData(fileIn);
+    fileIn.close();
+    splineImport.exportData(std::cout);
 
     return 0;
 }
