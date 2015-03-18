@@ -144,6 +144,19 @@ class VectorLabel
         }
 
         /**
+         * Set value if given label exists or
+         * append it 
+         */
+        inline void setOrAppend(const std::string& name, double value)
+        {
+            if (_labelToIndex->count(name) == 0) {
+                append(name, value);
+            } else {
+                operator()(name) = value;
+            }
+        }
+
+        /**
          * Direct access to Eigen vector
          */
         inline const Vector& vect() const
@@ -585,6 +598,13 @@ class VectorLabel
         {
             op(vect, [](double& self, const double& other){ 
                 self /= other; }, filterSrc, filterDst);
+        }
+        inline void assignOp(const VectorLabel& vect, 
+            const std::string& filterSrc = "",
+            const std::string& filterDst = "")
+        {
+            op(vect, [](double& self, const double& other){ 
+                self = other; }, filterSrc, filterDst);
         }
         inline void addOp(double val, 
                 const std::string& filter = "")
