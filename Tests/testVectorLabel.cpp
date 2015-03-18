@@ -136,6 +136,12 @@ int main()
     assert(vect9.sum("a") == 5.0);
     assert(vect9.mean() == 4.0);
     std::cout << vect9.rename("a", "c") << std::endl;
+    vect9.setOrAppend("a:z", 42.0);
+    std::cout << vect9 << std::endl;
+    vect9.setOrAppend("a:z", 69.0);
+    std::cout << vect9 << std::endl;
+    vect9.assignOp(vect9.rename("a", "c"), "c", "b");
+    std::cout << vect9 << std::endl;
 
     return 0;
 }
