@@ -153,9 +153,9 @@ int main()
         "mocap:isValid", 0
     );
     //Init sensors retrieving
-    monitors.mergeUnion(sdkConnection.getSensorValues());
+    sdkConnection.getSensorValues(monitors);
     //Init motors retrieving
-    monitors.mergeUnion(sdkConnection.getMotorAngles());
+    sdkConnection.getMotorAngles(monitors);
     //Init VectorLabel for timestamp
     monitors.append(
         "time:timestamp", now()
@@ -279,8 +279,8 @@ int main()
             interface.drawMonitorsWin();
         }
         //Update sensors and motors
-        monitors.mergeInter(sdkConnection.getSensorValues());
-        monitors.mergeInter(sdkConnection.getMotorAngles());
+        sdkConnection.getSensorValues(monitors);
+        sdkConnection.getMotorAngles(monitors);
         
         //Update motion capture
         motionCapture.tick(1.0/freq);

@@ -50,35 +50,43 @@ void SDKConnection::setMotorAngles(const VectorLabel& outputs)
     motors->get("Hanche D Rot")->setAngle(outputs("output:right hip yaw"));
 }
         
-VectorLabel SDKConnection::getMotorAngles()
+void SDKConnection::getMotorAngles(VectorLabel& vect)
 {
     Rhoban::Motors* motors = _robot.getMotors();
-    return VectorLabel(
-        "motor:left foot roll", motors->get("Pied G")->getRelAngle(),
-        "motor:left foot pitch", motors->get("Cheville G")->getRelAngle(),
-        "motor:left knee", motors->get("Genou G")->getRelAngle(),
-        "motor:left hip pitch", motors->get("Cuisse G")->getRelAngle(),
-        "motor:left hip roll", motors->get("Hanche G Lat")->getRelAngle(),
-        "motor:left hip yaw", motors->get("Hanche G Rot")->getRelAngle(),
-        "motor:right foot roll", motors->get("Pied D")->getRelAngle(),
-        "motor:right foot pitch", motors->get("Cheville D")->getRelAngle(),
-        "motor:right knee", motors->get("Genou D")->getRelAngle(),
-        "motor:right hip pitch", motors->get("Cuisse D")->getRelAngle(),
-        "motor:right hip roll", motors->get("Hanche D Lat")->getRelAngle(),
-        "motor:right hip yaw", motors->get("Hanche D Rot")->getRelAngle());
+    vect.setOrAppend("motor:left foot roll", 
+        motors->get("Pied G")->getRelAngle());
+    vect.setOrAppend("motor:left foot pitch", 
+        motors->get("Cheville G")->getRelAngle());
+    vect.setOrAppend("motor:left knee", 
+        motors->get("Genou G")->getRelAngle());
+    vect.setOrAppend("motor:left hip pitch", 
+        motors->get("Cuisse G")->getRelAngle());
+    vect.setOrAppend("motor:left hip roll", 
+        motors->get("Hanche G Lat")->getRelAngle());
+    vect.setOrAppend("motor:left hip yaw", 
+        motors->get("Hanche G Rot")->getRelAngle());
+    vect.setOrAppend("motor:right foot roll", 
+        motors->get("Pied D")->getRelAngle());
+    vect.setOrAppend("motor:right foot pitch", 
+        motors->get("Cheville D")->getRelAngle());
+    vect.setOrAppend("motor:right knee", 
+        motors->get("Genou D")->getRelAngle());
+    vect.setOrAppend("motor:right hip pitch", 
+        motors->get("Cuisse D")->getRelAngle());
+    vect.setOrAppend("motor:right hip roll", 
+        motors->get("Hanche D Lat")->getRelAngle());
+    vect.setOrAppend("motor:right hip yaw", 
+        motors->get("Hanche D Rot")->getRelAngle());
 }
         
-VectorLabel SDKConnection::getSensorValues()
+void SDKConnection::getSensorValues(VectorLabel& vect)
 {
     Rhoban::Sensors* sensors = _robot.getSensors();
-    VectorLabel vectSensors;
     for (const auto& sensor : sensors->getSensors()) {
-        vectSensors.append(
+        vect.setOrAppend(
             "sensor:" + sensor.second->getName(), 
             sensor.second->getValue());
     }
-
-    return vectSensors;
 }
 
 void SDKConnection::init()

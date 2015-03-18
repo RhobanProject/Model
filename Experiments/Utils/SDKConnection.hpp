@@ -43,12 +43,12 @@ class SDKConnection
          * Retrieve current motors 
          * relative angles
          */
-        VectorLabel getMotorAngles();
+        void getMotorAngles(VectorLabel& motors);
 
         /**
          * Retrieve current sensors values
          */
-        VectorLabel getSensorValues();
+        void getSensorValues(VectorLabel& sensors);
 
         /**
          * Forward to SDK init and compliant 
