@@ -30,7 +30,7 @@ bool FittedSpline::fitting(double maxError, bool throwError)
     size_t beginIndex = 0;
     bool isIncreasing;
     //Find initial trend
-    if (_points[1].second > _points[0].second) {
+    if (_points[1].second > _points[0].second + 1e-6) {
         isIncreasing = true;
     } else {
         isIncreasing = false;
@@ -38,14 +38,14 @@ bool FittedSpline::fitting(double maxError, bool throwError)
     for (size_t i=1;i<_points.size();i++) {
         if (
             isIncreasing && 
-            _points[i].second < _points[i-1].second
+            _points[i].second < _points[i-1].second - 1e-6
         ) {
             parts.push_back({beginIndex, i-1});
             beginIndex = i-1;
             isIncreasing = false;
         } else if (
             !isIncreasing && 
-            _points[i].second > _points[i-1].second
+            _points[i].second > _points[i-1].second + 1e-6
         ) {
             parts.push_back({beginIndex, i-1});
             beginIndex = i-1;
