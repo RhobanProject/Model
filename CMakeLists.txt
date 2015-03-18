@@ -54,6 +54,10 @@ set(SOURCES_FILES
     Model/SigmabanModel.cpp
     Model/InverseKinematics.cpp
     StaticWalk/StaticWalk.cpp
+    Spline/Polynom.cpp
+    Spline/Spline.cpp
+    Spline/SmoothSpline.cpp
+    Spline/FittedSpline.cpp
 )
 
 #Tests main files
@@ -77,12 +81,12 @@ set(TESTS_FILES
     testChrono
     testSmoothSpline
     testScheduling
+    testFittedSpline
 )
 
 #Applications main files
 set(APPS_FILES
-    appWalkExperimentLogsProcessing
-    appPlotter
+    appSplineGenerationCircle
 )
 
 #LephCode linked libraries
@@ -105,6 +109,9 @@ if (BUILD_LEPH_CODE_VIEWER)
         testInverseKinematics
         testStaticWalk
     )
+    set(APPS_FILES ${APPS_FILES}
+        appViewerModelSplines
+    )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
         sfml-window
@@ -125,4 +132,12 @@ if (BUILD_LEPH_CODE_TESTS)
         target_link_libraries(${TEST} LephCode)
     endforeach ()
 endif (BUILD_LEPH_CODE_TESTS)
+
+#Build Apps
+if (BUILD_LEPH_CODE_APPS)
+    foreach (APP ${APPS_FILES})
+        add_executable(${APP} Apps/${APP}.cpp)
+        target_link_libraries(${APP} LephCode)
+    endforeach ()
+endif (BUILD_LEPH_CODE_APPS)
 
