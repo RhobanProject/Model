@@ -137,7 +137,7 @@ class SplineContainer
             std::ifstream file(fileName);
             if (!file.is_open()) {
                 throw std::runtime_error(
-                    "SplineContainer unable to write file: " 
+                    "SplineContainer unable to read file: " 
                     + fileName);
             }
 
