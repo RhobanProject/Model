@@ -10,6 +10,7 @@
 
 //UTILS
 #include "SDKConnection.hpp"
+#include "MotorsLayout.h"
 
 int main(int argc, char** argv)
 {
@@ -85,12 +86,7 @@ int main(int argc, char** argv)
             outputs("output:" + sp.first) = sp.second.pos(t);
         }
         //Conversion to real Mowgly motors signs
-        outputs("output:right foot roll") *= -1.0;
-        outputs("output:left foot pitch") *= -1.0;
-        outputs("output:left knee") *= -1.0;
-        outputs("output:left hip pitch") *= -1.0;
-        outputs("output:left hip roll") *= -1.0;
-        outputs("output:right hip roll") *= -1.0;
+        MotorsLayoutConversion(outputs, "output:");
         //Send references to motors
         sdkConnection.setMotorAngles(outputs);
         //Logging
@@ -103,6 +99,8 @@ int main(int argc, char** argv)
             logVector.mergeInter(outputs);
             sdkConnection.getMotorAngles(logVector);
             sdkConnection.getSensorValues(logVector);
+            MotorsLayoutConversion(logVector, "output:");
+            MotorsLayoutConversion(logVector, "motor:");
             serie.append(logVector);
         }
         //Phase cycling
