@@ -34,6 +34,7 @@ int main(int argc, char** argv)
         std::cout << sp.first << std::endl;
     }
 
+    //Retrieve splines bounds
     double timeMin = splines.min();
     double timeMax = splines.max();
     std::cout << "Spline time from " 
