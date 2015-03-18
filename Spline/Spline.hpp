@@ -29,11 +29,18 @@ class Spline
         /**
          * Return spline interpolation
          * value, first and second derivative
-         * with given t bound betewwen 0 and 1
+         * with given t bound between 0 and 1
          */
         double posMod(double t) const;
         double velMod(double t) const;
         double accMod(double t) const;
+
+        /**
+         * Return minimum and maximum abscisse
+         * value for which spline is defined
+         */
+        double min() const;
+        double max() const;
 
         /**
          * Write and read splines data into given

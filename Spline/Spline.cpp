@@ -29,6 +29,23 @@ double Spline::accMod(double t) const
 {
     return interpolationMod(t, &Polynom::acc);
 }
+        
+double Spline::min() const
+{
+    if (_splines.size() == 0) {
+        return 0.0;
+    } else {
+        return _splines.front().min;
+    }
+}
+double Spline::max() const
+{
+    if (_splines.size() == 0) {
+        return 0.0;
+    } else {
+        return _splines.back().max;
+    }
+}
 
 void Spline::exportData(std::ostream& os) const
 {
