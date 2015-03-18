@@ -1,32 +1,122 @@
 #include <iostream>
 
 //CODE
-#include "Spline/SplinesContainer.hpp"
+#include "Utils/time.h"
+#include "Types/VectorLabel.hpp"
+#include "Types/MatrixLabel.hpp"
+#include "Spline/SplineContainer.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Ncurses/InterfaceCLI.hpp"
 
 //UTILS
 #include "SDKConnection.hpp"
-#include "SDKInterface.hpp"
 
-int main(int argc, int argv)
+int main(int argc, char** argv)
 {
     //Command line arguments
     if (argc != 2) {
-        std::cout << "Usage: ./app splinesFile" << std::endl;
+        std::cout << "Usage: ./experiment splinesFile" << std::endl;
         return -1;
     }
     std::string splinesFile = argv[1];
-    std::cout << "Loading " << splinesFile << std::endl;
     
     //Load splines
+    Leph::SplineContainer<Leph::Spline> splines;
     splines.importData(splinesFile);
+    //Initialize outputs vector
+    Leph::VectorLabel outputs;
+    for (const auto& sp : splines.get()) {
+        outputs.append("output:" + sp.first, 0.0);
+    }
     
+    //Retrieve splines bounds
+    double timeMin = splines.min();
+    double timeMax = splines.max();
+
+    //Initialize the robot connection
+    Leph::SDKConnection sdkConnection;
+
+    //Initialize Log time serie
+    Leph::MatrixLabel serie;
+    Leph::VectorLabel logVector = outputs;
+
+    //Initialize Ncurses Interface and state
+    bool isRunning = false;
+    bool isLogging = false;
+    std::string statusRunning = "Movement STOPPED";
+    std::string statusLogging = "Logging STOPPED";
+    Leph::InterfaceCLI interface("Splines Player");
+    interface.addStatus(statusRunning);
+    interface.addStatus(statusLogging);
+    //Movement enable control
+    interface.addBinding(' ', "Movement toggle", [&isRunning, &statusRunning](){
+        isRunning = !isRunning;
+        if (isRunning) {
+            statusRunning = "Movement RUNNING";
+        } else {
+            statusRunning = "Movement STOPPED";
+        }
+    });
+    //Logging control
+    interface.addBinding('l', "Logging toggle", 
+        [&isLogging, &statusLogging, &serie, &interface](){
+        isLogging = !isLogging;
+        if (isLogging) {
+            statusLogging = "Logging RUNNING";
+        } else {
+            //Export logs
+            statusLogging = "Logging STOPPED";
+            std::string fileName = 
+                "/tmp/log-" + Leph::currentDate() + "_raw.csv";
+            interface.terminalOut() << "Logging " 
+                << serie.size() << " points to " << fileName << std::endl;
+            serie.save(fileName);
+        }
+    });
+    
+    //Main loop
     double freq = 50.0;
     Leph::Scheduling scheduling;
     scheduling.setFrequency(freq);
-    while (true) {
+    double t = timeMin;
+    while (interface.tick(false)) {
+        //Compute outputs reference from splines
+        for (const auto& sp : splines.get()) {
+            outputs("output:" + sp.first) = sp.second.pos(t);
+        }
+        //Conversion to real Mowgly motors signs
+        outputs("output:right foot roll") *= -1.0;
+        outputs("output:left foot pitch") *= -1.0;
+        outputs("output:left knee") *= -1.0;
+        outputs("output:left hip pitch") *= -1.0;
+        outputs("output:left hip roll") *= -1.0;
+        outputs("output:right hip roll") *= -1.0;
+        //Send references to motors
+        sdkConnection.setMotorAngles(outputs);
+        //Logging
+        if (isLogging) {
+            logVector.setOrAppend("time:timestamp", 
+                scheduling.timestamp());
+            logVector.setOrAppend("time:duration", 
+                scheduling.duration());
+            logVector.setOrAppend("time:phase", t);
+            logVector.mergeInter(outputs);
+            sdkConnection.getMotorAngles(logVector);
+            sdkConnection.getSensorValues(logVector);
+            serie.append(logVector);
+        }
+        //Phase cycling
+        if (isRunning) {
+            t += 1.0/freq;
+            if (t >= timeMax) t= timeMin;
+        }
         //Waiting
         scheduling.wait();
+        //Scheduling information
+        if (scheduling.isError()) {
+            interface.terminalOut() << "Scheduling error: " 
+                << scheduling.timeError() << std::endl;
+        }
     }
     
     return 0;
