@@ -20,7 +20,7 @@ class ModelViewer
         /**
          * Drawing config
          */
-        double frameLength = 1.0;
+        double frameLength = 0.02;
         double frameThickness = 3.0;
         double groundThickness = 1.0;
         size_t maxTrajectory = 2000;
