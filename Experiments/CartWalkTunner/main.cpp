@@ -6,10 +6,10 @@
 //CODE
 #include "Types/VectorLabel.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
+#include "Ncurses/InterfaceCLI.hpp"
 
 //UTILS
 #include "SDKConnection.hpp"
-#include "SDKInterface.hpp"
 
 /**
  * Return current time in milliseconds
@@ -32,7 +32,7 @@ int main()
 
     //Initialize the interface
     std::string statusEnabled = "Walk is Disabled";
-    Leph::SDKInterface interface(sdkConnection, "CartWalk Tunner");
+    Leph::InterfaceCLI interface("CartWalk Tunner");
     interface.addParameters("Dynamic Parameters", params, "dynamic");
     interface.addParameters("Static Parameter", params, "static");
     interface.addStatus(statusEnabled);

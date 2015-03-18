@@ -13,11 +13,11 @@
 #include "Types/MatrixLabel.hpp"
 #include "Gradient/FiniteDifferenceGradient.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
+#include "Ncurses/InterfaceCLI.hpp"
 
 //UTILS
 #include "MotionCapture.hpp"
 #include "SDKConnection.hpp"
-#include "SDKInterface.hpp"
 
 //Global random generator
 std::mt19937 randomGenerator;
@@ -200,7 +200,7 @@ int main()
     //Init CLI interface
     std::string statusEnabled = "Walk is Disabled";
     std::string statusStable = "Real robot is not stable";
-    Leph::SDKInterface interface(sdkConnection, "CartWalk Gradient Optim");
+    Leph::InterfaceCLI interface("CartWalk Gradient Optim");
     interface.addParameters("Dynamic walk parameters", params, "dynamic");
     interface.addParameters("Servo gain", params, "gain");
     interface.addParameters("Reference positions", params, "refpos");
@@ -265,6 +265,8 @@ int main()
     std::ofstream logFileLearning("log-" 
         + Leph::currentDate() + "_learning.csv");
     stateParams.rename("static", "state").writeToCSV(logFileLearning);
+
+    //XXX TODO use assignOp instead of .rename() for performance
             
     //Main loop
     const double freq = 50.0;

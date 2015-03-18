@@ -100,19 +100,21 @@ add_executable(ExperimentCartWalkGradientOptim
     CartWalkGradientOptim/main.cpp
     Utils/MotionCapture.cpp
     Utils/SDKConnection.cpp
-    Utils/SDKInterface.cpp
 )
 target_link_libraries(ExperimentCartWalkGradientOptim ${LINKED_LIBRARIES})
 add_executable(CartWalkTunner
     CartWalkTunner/main.cpp
     Utils/SDKConnection.cpp
-    Utils/SDKInterface.cpp
 )
 target_link_libraries(CartWalkTunner ${LINKED_LIBRARIES})
 add_executable(StaticWalkTest
     StaticWalkTest/main.cpp
     Utils/SDKConnection.cpp
-    Utils/SDKInterface.cpp
 )
 target_link_libraries(StaticWalkTest ${LINKED_LIBRARIES})
+add_executable(SplinesPlayer
+    SplinesPlayer/main.cpp
+    Utils/SDKConnection.cpp
+)
+target_link_libraries(SplinesPlayer ${LINKED_LIBRARIES})
 
