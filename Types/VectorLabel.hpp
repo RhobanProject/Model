@@ -506,20 +506,24 @@ class VectorLabel
         inline void op(
             const VectorLabel& vect, 
             std::function<void(double& self, const double& other)> func,
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             for (size_t i=0;i<vect._indexToLabel->size();i++) {
                 const std::string& srcLabel = vect._indexToLabel->at(i);
                 std::string dstLabel;
-                if (filterDst != "") {
-                    dstLabel = filterDst + ":" + toName(srcLabel);
+                if (filterDst != "#") {
+                    if (filterDst == "") {
+                        dstLabel = toName(srcLabel);
+                    } else {
+                        dstLabel = filterDst + ":" + toName(srcLabel);
+                    }
                 } else {
                     dstLabel = srcLabel;
                 }
 
                 if (exist(dstLabel) && 
-                    (filterSrc == "" || toSection(srcLabel) == filterSrc)
+                    (filterSrc == "#" || toSection(srcLabel) == filterSrc)
                 ) {
                     size_t index = _labelToIndex->at(dstLabel);
                     func(_eigenVector(index), vect._eigenVector(i));
@@ -534,12 +538,12 @@ class VectorLabel
         inline void op(
             double value,
             std::function<void(double& self, double value)> func,
-            const std::string& filter = "")
+            const std::string& filter = "#")
         {
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 const std::string& label = _indexToLabel->at(i);
                 if (
-                    (filter == "" || 
+                    (filter == "#" || 
                     toSection(label) == filter)
                 ) {
                     func(_eigenVector(i), value);
@@ -553,12 +557,12 @@ class VectorLabel
          */
         inline void op(
             std::function<void(double& self)> func,
-            const std::string& filter = "")
+            const std::string& filter = "#")
         {
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 const std::string& label = _indexToLabel->at(i);
                 if (
-                    (filter == "" || 
+                    (filter == "#" || 
                     toSection(label) == filter)
                 ) {
                     func(_eigenVector(i));
@@ -572,81 +576,81 @@ class VectorLabel
          * section filter
          */
         inline void addOp(const VectorLabel& vect, 
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             op(vect, [](double& self, const double& other){ 
                 self += other; }, filterSrc, filterDst);
         }
         inline void subOp(const VectorLabel& vect, 
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             op(vect, [](double& self, const double& other){ 
                 self -= other; }, filterSrc, filterDst);
         }
         inline void mulOp(const VectorLabel& vect, 
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             op(vect, [](double& self, const double& other){ 
                 self *= other; }, filterSrc, filterDst);
         }
         inline void divOp(const VectorLabel& vect, 
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             op(vect, [](double& self, const double& other){ 
                 self /= other; }, filterSrc, filterDst);
         }
         inline void assignOp(const VectorLabel& vect, 
-            const std::string& filterSrc = "",
-            const std::string& filterDst = "")
+            const std::string& filterSrc = "#",
+            const std::string& filterDst = "#")
         {
             op(vect, [](double& self, const double& other){ 
                 self = other; }, filterSrc, filterDst);
         }
         inline void addOp(double val, 
-                const std::string& filter = "")
+                const std::string& filter = "#")
         {
             op(val, [](double& self, double value){
                 self += value; }, filter);
         }
         inline void subOp(double val, 
-                const std::string& filter = "")
+                const std::string& filter = "#")
         {
             op(val, [](double& self, double value){
                 self -= value; }, filter);
         }
         inline void mulOp(double val, 
-                const std::string& filter = "")
+                const std::string& filter = "#")
         {
             op(val, [](double& self, double value){
                 self *= value; }, filter);
         }
         inline void divOp(double val, 
-                const std::string& filter = "")
+                const std::string& filter = "#")
         {
             op(val, [](double& self, double value){
                 self /= value; }, filter);
         }
         inline void powerOp(double val, 
-                const std::string& filter = "")
+                const std::string& filter = "#")
         {
             op(val, [](double& self, double value){
                 self = pow(self, value); }, filter);
         }
-        inline void squareOp(const std::string& filter = "")
+        inline void squareOp(const std::string& filter = "#")
         {
             op([](double& self){
                 self *= self; }, filter);
         }
-        inline void sqrtOp(const std::string& filter = "")
+        inline void sqrtOp(const std::string& filter = "#")
         {
             op([](double& self){
                 self = sqrt(self); }, filter);
         }
-        inline void zeroOp(const std::string& filter = "")
+        inline void zeroOp(const std::string& filter = "#")
         {
             op([](double& self){
                 self = 0.0; }, filter);
@@ -656,14 +660,14 @@ class VectorLabel
          * Return the mean of (filtered) 
          * contained values
          */
-        inline double mean(const std::string& filter = "")
+        inline double mean(const std::string& filter = "#")
         {
             double sum = 0.0;
             int count = 0;
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 const std::string& label = _indexToLabel->at(i);
                 if (
-                    (filter == "" || 
+                    (filter == "#" || 
                     toSection(label) == filter)
                 ) {
                     sum += _eigenVector(i);
@@ -681,13 +685,13 @@ class VectorLabel
          * Return the sum of (filtered) 
          * contained values
          */
-        inline double sum(const std::string& filter = "")
+        inline double sum(const std::string& filter = "#")
         {
             double sum = 0.0;
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 const std::string& label = _indexToLabel->at(i);
                 if (
-                    (filter == "" || 
+                    (filter == "#" || 
                     toSection(label) == filter)
                 ) {
                     sum += _eigenVector(i);
