@@ -2,6 +2,18 @@
 #include "Model/Model.hpp"
 
 namespace Leph {
+
+Model::Model() :
+    _model(),
+    _dofIndexToName(),
+    _dofNameToIndex(),
+    _dofs(),
+    _vectorDOF(),
+    _frameIndexToName(),
+    _frameNameToIndex(),
+    _frameIndexToId()
+{
+}
         
 Model::Model(const std::string& filename) :
     _model(),
@@ -14,19 +26,20 @@ Model::Model(const std::string& filename) :
     _frameIndexToId()
 {
     //URDF loading
+    RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
-        filename.c_str(), &_model, false)
+        filename.c_str(), &model, false)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
     }
 
     //Parse and load RBDL model
-    initilializeModel();
+    initilializeModel(model);
 }
         
 Model::Model(RBDL::Model& model) :
-    _model(model),
+    _model(),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -36,7 +49,7 @@ Model::Model(RBDL::Model& model) :
     _frameIndexToId()
 {
     //Parse and load RBDL model
-    initilializeModel();
+    initilializeModel(model);
 }
         
 size_t Model::sizeDOF() const
@@ -222,8 +235,10 @@ std::string Model::filterFrameName(const std::string& name) const
     return filtered;
 }
         
-void Model::initilializeModel()
+void Model::initilializeModel(RBDL::Model& model)
 {
+    //Assign RBDL model
+    _model = model;
     //Build name-index joint mapping 
     //and VectorLabel structure
     for (size_t i=1;i<_model.mBodies.size();i++) {

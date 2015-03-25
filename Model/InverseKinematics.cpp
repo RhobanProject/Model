@@ -156,7 +156,7 @@ void InverseKinematics::addTargetPosition(
 
     //Default value
     _targetPositions.at(targetName).target = _model->position(
-        srcFrameIndex, 0, point);
+        srcFrameIndex, _model->getFrameIndex("origin"), point);
 }
         
 void InverseKinematics::addTargetOrientation(
@@ -183,7 +183,7 @@ void InverseKinematics::addTargetOrientation(
 
     //Default value
     _targetOrientations.at(targetName).target = _model->orientation(
-        srcFrameIndex, 0);
+        srcFrameIndex, _model->getFrameIndex("origin"));
 }
         
 void InverseKinematics::addTargetScalar(
@@ -213,13 +213,13 @@ void InverseKinematics::addTargetScalar(
     //Default value
     if (axis == AxisX) {
         _targetScalars.at(targetName).target = _model->position(
-            srcFrameIndex, 0, point).x();
+            srcFrameIndex, _model->getFrameIndex("origin"), point).x();
     } else if (axis == AxisY) {
         _targetScalars.at(targetName).target = _model->position(
-            srcFrameIndex, 0, point).y();
+            srcFrameIndex, _model->getFrameIndex("origin"), point).y();
     } else if (axis == AxisZ) {
         _targetScalars.at(targetName).target = _model->position(
-            srcFrameIndex, 0, point).z();
+            srcFrameIndex, _model->getFrameIndex("origin"), point).z();
     }
 }
         

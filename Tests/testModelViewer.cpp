@@ -1,12 +1,12 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanModel.hpp"
+#include "Model/SigmabanFloatingModel.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
 
 int main()
 {
-    Leph::SigmabanModel model;
+    Leph::SigmabanFloatingModel model;
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);

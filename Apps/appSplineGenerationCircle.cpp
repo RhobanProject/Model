@@ -3,7 +3,7 @@
 #include "Plot/Plot.hpp"
 #include "Spline/FittedSpline.hpp"
 #include "Spline/SplineContainer.hpp"
-#include "Model/SigmabanModel.hpp"
+#include "Model/SigmabanFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 
 /**
@@ -20,7 +20,7 @@ int main()
 
     //Initialize instance
     Leph::Plot plot;
-    Leph::SigmabanModel model;
+    Leph::SigmabanFloatingModel model;
     Leph::InverseKinematics inverseModel(model);
     
     //Set foot model on zero z
@@ -38,9 +38,9 @@ int main()
     inverseModel.addDOF("right hip roll");
     inverseModel.addDOF("right hip pitch");
     inverseModel.addDOF("right hip yaw");
-    inverseModel.addDOF("trunk Tx");
-    inverseModel.addDOF("trunk Tz");
-    inverseModel.addDOF("trunk Ty");
+    inverseModel.addDOF("base Tx");
+    inverseModel.addDOF("base Tz");
+    inverseModel.addDOF("base Ty");
     //Add target constraints
     inverseModel.addTargetPosition("left foot", "left foot tip");
     inverseModel.addTargetPosition("right foot", "right foot tip");

@@ -2,7 +2,7 @@
 #define LEPH_STATICWALK_HPP
 
 #include "Types/VectorLabel.hpp"
-#include "Model/SigmabanModel.hpp"
+#include "Model/SigmabanFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 
 namespace Leph {
@@ -55,7 +55,7 @@ class StaticWalk
         /**
          * Sigmaban model instance
          */
-        SigmabanModel _model;
+        SigmabanFloatingModel _model;
 
         /**
          * Inverse Kinematics instance 

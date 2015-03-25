@@ -1,17 +1,16 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanModel.hpp"
+#include "Model/SigmabanFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
 
 int main()
 {
-    Leph::SigmabanModel model;
+    Leph::SigmabanFloatingModel model;
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);
-    viewer.frameLength = 0.02;
 
     //Inverse Kinematics
     Leph::InverseKinematics inv(model);
@@ -26,9 +25,9 @@ int main()
     inv.addDOF("left knee");
     inv.addDOF("left foot pitch");
     inv.addDOF("left foot roll");
-    inv.addDOF("trunk Tx");
-    inv.addDOF("trunk Ty");
-    inv.addDOF("trunk Tz");
+    inv.addDOF("base Tx");
+    inv.addDOF("base Ty");
+    inv.addDOF("base Tz");
     //Declare degree of freefom box bounds 
     //XXX Not fully implemented
     inv.setUpperBound("left knee", 0.0);
@@ -43,12 +42,12 @@ int main()
     //Target orientation
     inv.addTargetOrientation("flying foot", "right foot tip");
     inv.addTargetOrientation("support foot", "left foot tip");
-
+    
     Leph::Chrono chrono;
     double t = 0.0;
     while (viewer.update()) {
         t += 0.01;
-        
+
         //Update targets
         inv.targetPosition("flying foot").z() = 0.05+0.02*sin(t);
         inv.targetPosition("flying foot").x() = 0.05+0.02*sin(2.0*t);

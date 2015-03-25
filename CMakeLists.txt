@@ -52,7 +52,9 @@ set(SOURCES_FILES
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/SigmabanModel.cpp
+    Model/SigmabanFloatingModel.cpp
     Model/InverseKinematics.cpp
+    Model/RBDLRootUpdate.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -108,9 +110,11 @@ if (BUILD_LEPH_CODE_VIEWER)
         testModelViewer
         testInverseKinematics
         testStaticWalk
+        testRBDLRootUpdate
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
+        appViewerModelLogs
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics

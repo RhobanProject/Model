@@ -24,6 +24,11 @@ class Model
     public:
 
         /**
+         * Empty initialization
+         */
+        Model();
+
+        /**
          * Initialization with URDF file
          */
         Model(const std::string& filename);
@@ -130,6 +135,13 @@ class Model
         size_t bodyIdToFrameIndex(size_t index) const;
         size_t frameIndexToBodyId(size_t index) const;
 
+    protected:
+        
+        /**
+         * Parse and initilialize RBDL model
+         */
+        void initilializeModel(RBDL::Model& model);
+
     private:
     
         /**
@@ -170,11 +182,6 @@ class Model
          */
         std::string filterJointName(const std::string& name) const;
         std::string filterFrameName(const std::string& name) const;
-
-        /**
-         * Parse and initilialize RBDL model
-         */
-        void initilializeModel();
 
         /**
          * Return the real name of given body index

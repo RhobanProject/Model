@@ -190,10 +190,10 @@ void StaticWalk::initIK(InverseKinematics& inv,
     inv.addDOF("right hip roll");
     inv.addDOF("right hip pitch");
     inv.addDOF("right hip yaw");
-    inv.addDOF("trunk Tx");
-    inv.addDOF("trunk Tz");
+    inv.addDOF("base Tx");
+    inv.addDOF("base Tz");
     if (enableTrunkOrientation) {
-        inv.addDOF("trunk Ty");
+        inv.addDOF("base Ty");
     }
     //Add target constraints
     inv.addTargetPosition("left foot", "left foot tip");
