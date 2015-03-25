@@ -122,7 +122,23 @@ static void rootUpdateBackward(
         modelOld.mBodies[bodyId].mMass,
         ptComFrame,
         modelOld.mBodies[bodyId].mInertia);
-    RBDL::Joint joint(modelOld.mJoints[parentId]);
+    //For backward iteration joints axis have to be inverted
+    RBDL::Joint joint = modelOld.mJoints[parentId];
+    if (
+        joint.mJointType == RBDL::JointTypeRevolute ||
+        joint.mJointType == RBDL::JointTypeRevoluteX ||
+        joint.mJointType == RBDL::JointTypeRevoluteY ||
+        joint.mJointType == RBDL::JointTypeRevoluteZ
+    ) {
+        //If joint axis are inverted, do not forget 
+        //to update RBDL joint type
+        //(May be is there specific optimization here)
+        joint.mJointType = RBDL::JointTypeRevolute;
+        joint.mJointAxes[0].head(3) *= -1;
+    } else {
+        throw std::logic_error(
+            "RBDLRootUpdate sign update for not implemented joint type");
+    }
     size_t bodyIdNewModel = modelNew.AddBody(
         parentIdNewModel, 
         tranformToJoint,
@@ -215,8 +231,8 @@ RBDL::Model RBDLRootUpdate(
 
     //Iterate on all other fixed bodies
     rootUpdateFixed(
-        modelOld, newRootBodyMovableId, newRootBodyId, 
-        RBDLMath::Xtrans(RBDLMath::Vector3d(0.0, 0.0, 0.0)),
+        modelOld, newRootBodyMovableId, newRootBodyMovableId, 
+        transformToBody,
         modelNew, rootIdNewModel);
     //Iterate on all new root children
     for (size_t i=0;i<modelOld.mu[newRootBodyMovableId].size();i++) {

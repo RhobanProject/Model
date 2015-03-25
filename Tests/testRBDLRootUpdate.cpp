@@ -22,7 +22,7 @@ int main()
     //with floating base added
     std::cout << RBDL::Utils::GetModelDOFOverview(modelOld) << std::endl;
     std::cout << RBDL::Utils::GetModelHierarchy(modelOld) << std::endl;
-    RBDL::Model modelNew = Leph::RBDLRootUpdate(modelOld, 17, true);
+    RBDL::Model modelNew = Leph::RBDLRootUpdate(modelOld, 2147483649, true);
     std::cout << RBDL::Utils::GetModelDOFOverview(modelNew) << std::endl;
     std::cout << RBDL::Utils::GetModelHierarchy(modelNew) << std::endl;
 
