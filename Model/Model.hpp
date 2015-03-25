@@ -53,6 +53,12 @@ class Model
         void setDOF(const std::string& name, double value);
 
         /**
+         * Import given model DOF into this one
+         * (no check on same model are done)
+         */
+        void importDOF(Model& model);
+
+        /**
          * Reset all degrees of freedom to zero position
          */
         void setDOFZeros();
@@ -199,10 +205,9 @@ class Model
 
         /**
          * Update values from RBDL Eigen DOF vector
-         * to VectorLabel and inverse
+         * to VectorLabel
          */
         void loadEigenToLabel();
-        void loadLabelToEigen();
 
         /**
          * Direct access for InverseKinematics class

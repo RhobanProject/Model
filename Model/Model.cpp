@@ -68,8 +68,12 @@ double Model::getDOF(const std::string& name) const
 }
 void Model::setDOF(const VectorLabel& vect)
 {
-    _vectorDOF.mergeInter(vect);
-    loadLabelToEigen();
+    for (size_t i=0;i<vect.size();i++) {
+        const std::string& label = vect.getLabel(i);
+        if (_dofNameToIndex.count(label) != 0) {
+            _dofs(_dofNameToIndex.at(label)) = vect(i);
+        }
+    }
 }
 void Model::setDOF(const std::string& name, double value)
 {
@@ -79,6 +83,14 @@ void Model::setDOF(const std::string& name, double value)
 void Model::setDOFZeros()
 {
     _dofs.setZero();
+}
+        
+void Model::importDOF(Model& model)
+{
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        _dofs(i) = model._dofs(
+            model._dofNameToIndex.at(_dofIndexToName.at(i)));
+    }
 }
 
 size_t Model::sizeFrame() const
@@ -307,12 +319,6 @@ void Model::loadEigenToLabel()
 {
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
         _vectorDOF(_dofIndexToName.at(i)) = _dofs(i);
-    }
-}
-void Model::loadLabelToEigen()
-{
-    for (size_t i=0;i<(size_t)_dofs.size();i++) {
-        _dofs(i) = _vectorDOF(_dofIndexToName.at(i));
     }
 }
  
