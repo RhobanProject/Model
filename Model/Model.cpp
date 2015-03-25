@@ -14,48 +14,29 @@ Model::Model(const std::string& filename) :
     _frameIndexToId()
 {
     //URDF loading
-    if (!RBDL::Addons::URDFReadFromFile(filename.c_str(), &_model, false)) {
-        std::runtime_error("Model unable to load URDF file: " + filename);
+    if (!RBDL::Addons::URDFReadFromFile(
+        filename.c_str(), &_model, false)
+    ) {
+        throw std::runtime_error(
+            "Model unable to load URDF file: " + filename);
     }
 
-    //Build name-index joint mapping 
-    //and VectorLabel structure
-    for (size_t i=1;i<_model.mBodies.size();i++) {
-        unsigned int virtualDepth = 0;
-        std::string filteredName = filterJointName(
-            getRBDLBodyName(i, virtualDepth));
-        //Handle special case of 6 virtual bodies added by
-        //the floating joint
-        if (virtualDepth == 5) {
-            addDOF(filteredName + " Tx");
-            addDOF(filteredName + " Ty");
-            addDOF(filteredName + " Tz");
-            addDOF(filteredName + " roll");
-            addDOF(filteredName + " pitch");
-            addDOF(filteredName + " yaw");
-            i += 5;
-            continue;
-        } else if (virtualDepth > 0) {
-            std::cout << "*** " << i << " :: " << virtualDepth << std::endl;
-            throw std::logic_error(
-                "Model virtual body name not implemented");
-        }
-        addDOF(filteredName);
-    }
-
-    //Build name-index frame mapping
-    size_t index = 0;
-    for (const auto& name : _model.mBodyNameMap) {
-        if (name.second == 0) continue;
-        std::string filteredName = filterFrameName(name.first);
-        _frameIndexToName[index] = filteredName;
-        _frameNameToIndex[filteredName] = index;
-        _frameIndexToId[index] = name.second;
-        index++;
-    }
-    _frameIndexToName[index] = "origin";
-    _frameNameToIndex["origin"] = index;
-    _frameIndexToId[index] = 0;
+    //Parse and load RBDL model
+    initilializeModel();
+}
+        
+Model::Model(RBDL::Model& model) :
+    _model(model),
+    _dofIndexToName(),
+    _dofNameToIndex(),
+    _dofs(),
+    _vectorDOF(),
+    _frameIndexToName(),
+    _frameNameToIndex(),
+    _frameIndexToId()
+{
+    //Parse and load RBDL model
+    initilializeModel();
 }
         
 size_t Model::sizeDOF() const
@@ -106,6 +87,10 @@ Eigen::Vector3d Model::position(
     size_t srcFrameIndex, size_t dstFrameIndex,
     const Eigen::Vector3d& point)
 {
+    if (srcFrameIndex == dstFrameIndex) {
+        return point;
+    }
+
     //Convert to body id
     srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
     dstFrameIndex = _frameIndexToId.at(dstFrameIndex);
@@ -156,7 +141,7 @@ Eigen::Vector3d Model::centerOfMass(size_t frameIndex)
     RBDLMath::Vector3d com;
     RBDL::Utils::CalcCenterOfMass(_model, _dofs, _dofs, mass, com);
 
-    return position(0, frameIndex, com);
+    return position(getFrameIndex("origin"), frameIndex, com);
 }
 Eigen::Vector3d Model::centerOfMass(const std::string& frame)
 {
@@ -235,6 +220,48 @@ std::string Model::filterFrameName(const std::string& name) const
     }
     
     return filtered;
+}
+        
+void Model::initilializeModel()
+{
+    //Build name-index joint mapping 
+    //and VectorLabel structure
+    for (size_t i=1;i<_model.mBodies.size();i++) {
+        unsigned int virtualDepth = 0;
+        std::string filteredName = filterJointName(
+            getRBDLBodyName(i, virtualDepth));
+        //Handle special case of 6 virtual bodies added by
+        //the floating joint
+        if (virtualDepth == 5) {
+            addDOF(filteredName + " Tx");
+            addDOF(filteredName + " Ty");
+            addDOF(filteredName + " Tz");
+            addDOF(filteredName + " roll");
+            addDOF(filteredName + " pitch");
+            addDOF(filteredName + " yaw");
+            i += 5;
+            continue;
+        } else if (virtualDepth > 0) {
+            std::cout << "*** " << i << " :: " << virtualDepth << std::endl;
+            throw std::logic_error(
+                "Model virtual body name not implemented");
+        }
+        addDOF(filteredName);
+    }
+
+    //Build name-index frame mapping
+    size_t index = 0;
+    for (const auto& name : _model.mBodyNameMap) {
+        if (name.second == 0) continue;
+        std::string filteredName = filterFrameName(name.first);
+        _frameIndexToName[index] = filteredName;
+        _frameNameToIndex[filteredName] = index;
+        _frameIndexToId[index] = name.second;
+        index++;
+    }
+    _frameIndexToName[index] = "origin";
+    _frameNameToIndex["origin"] = index;
+    _frameIndexToId[index] = 0;
 }
         
 std::string Model::getRBDLBodyName(size_t bodyId, 

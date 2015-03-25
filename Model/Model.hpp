@@ -29,6 +29,11 @@ class Model
         Model(const std::string& filename);
 
         /**
+         * Initialize with RBDL model
+         */
+        Model(RBDL::Model& model);
+
+        /**
          * Return the number of degrees of freedom
          */
         size_t sizeDOF() const;
@@ -165,6 +170,11 @@ class Model
          */
         std::string filterJointName(const std::string& name) const;
         std::string filterFrameName(const std::string& name) const;
+
+        /**
+         * Parse and initilialize RBDL model
+         */
+        void initilializeModel();
 
         /**
          * Return the real name of given body index

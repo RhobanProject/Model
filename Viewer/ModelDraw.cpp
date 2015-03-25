@@ -29,7 +29,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
     viewer.drawMass(model.centerOfMass("origin"), 
         RBDLMath::Matrix3d::Identity());
 
-    for (size_t i=1;i<rbdlModel.mBodies.size();i++) {
+    for (size_t i=0;i<rbdlModel.mBodies.size();i++) {
         //Virtual moby used for multi DOF are skipped
         if (rbdlModel.mBodies[i].mMass < 0.0001) {
             continue;
@@ -45,7 +45,10 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         if (rbdlModel.mBodies[rbdlModel.lambda[i]].mMass > 0.0001) {
             RBDLMath::Vector3d jointAxis = rbdlModel.S[i].head(3);
             RBDLMath::Matrix3d transformAxis = RBDLMath::Matrix3d::Identity();
-            if ((jointAxis-RBDLMath::Vector3d(1.0, 0.0, 0.0)).norm() > 0.001) {
+            if (
+                (jointAxis-RBDLMath::Vector3d(1.0, 0.0, 0.0)).norm() > 0.001 &&
+                (jointAxis-RBDLMath::Vector3d(-1.0, 0.0, 0.0)).norm() > 0.001
+            ) {
                 transformAxis = Eigen::AngleAxisd(M_PI/2.0, 
                         jointAxis.cross(RBDLMath::Vector3d(1.0, 0.0, 0.0)))
                     .toRotationMatrix();
