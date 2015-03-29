@@ -210,9 +210,9 @@ RBDL::Model RBDLRootUpdate(
             RBDLMath::SpatialVector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0),
             RBDLMath::SpatialVector(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),
             RBDLMath::SpatialVector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
-            RBDLMath::SpatialVector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            RBDLMath::SpatialVector(0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
             RBDLMath::SpatialVector(0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
-            RBDLMath::SpatialVector(0.0, 0.0, 1.0, 0.0, 0.0, 0.0));
+            RBDLMath::SpatialVector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0));
     } else {
         RBDL::Joint jointRoot = RBDL::Joint(
             RBDL::JointTypeFixed);

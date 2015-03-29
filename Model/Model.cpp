@@ -263,9 +263,9 @@ void Model::initilializeModel(RBDL::Model& model)
             addDOF(filteredName + " Tx");
             addDOF(filteredName + " Ty");
             addDOF(filteredName + " Tz");
-            addDOF(filteredName + " roll");
-            addDOF(filteredName + " pitch");
             addDOF(filteredName + " yaw");
+            addDOF(filteredName + " pitch");
+            addDOF(filteredName + " roll");
             i += 5;
             continue;
         } else if (virtualDepth > 0) {

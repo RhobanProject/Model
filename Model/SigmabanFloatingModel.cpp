@@ -99,11 +99,11 @@ void SigmabanFloatingModel::putSupportFootFlat()
         .toRotationMatrix()*rotation;
     //Convertion of this rotation matrix into roll, pitch, yaw
     //euler angles
-    Eigen::Vector3d angles = rotation.eulerAngles(0, 1, 2);
+    Eigen::Vector3d angles = rotation.eulerAngles(2, 1, 0);
     //Updating floating joint roll, pitch, yaw
-    Model::setDOF("base roll", angles(0));
+    Model::setDOF("base roll", angles(2));
     Model::setDOF("base pitch", angles(1));
-    Model::setDOF("base yaw", angles(2));
+    Model::setDOF("base yaw", angles(0));
 }
         
 void SigmabanFloatingModel::putSupportFootOrigin()
