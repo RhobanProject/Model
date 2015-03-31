@@ -53,7 +53,8 @@ void ModelDraw(Model& model, ModelViewer& viewer)
                         jointAxis.cross(RBDLMath::Vector3d(1.0, 0.0, 0.0)))
                     .toRotationMatrix();
             }
-            transformAxis = transformAxis.transpose()*mat;
+            transformAxis.transposeInPlace();
+            transformAxis *= mat;
             viewer.drawJoint(center, transformAxis);
         }
         //Draw link between body origin and center of mass

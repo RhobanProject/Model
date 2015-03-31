@@ -28,7 +28,7 @@ class ModelViewer
         /**
          * Camera control config
          */
-        double camPosVel = 0.002;
+        double camPosVel = 0.005;
         double camViewVel = 0.01;
 
         /**
