@@ -49,6 +49,13 @@ class SigmabanFixedModel
          */
         void updateBase();
 
+        /**
+         * Udpate support foot floating base (pitch, roll)
+         * orientation in order that trunk
+         * orientation matches given euler angle (IMU)
+         */
+        void setOrientation(double trunkPitch, double trunkRoll);
+
     private:
         
         /**
