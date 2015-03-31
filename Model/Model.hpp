@@ -97,8 +97,11 @@ class Model
 
         /**
          * Compute the rotation matrix
-         * used to expressed the srcFrameIndex unit 
-         * coordinates to dstFrameIndex coordinates
+         * The tranformation matrix is expressing vector from
+         * destination frame within source frame.
+         * Columns vectors are destination unit vectors in
+         * sources frame.
+         * m(0:3,0) is ux_dst in source frame.
          * Current degrees of freedom angular values are used
          */
         Eigen::Matrix3d orientation(
