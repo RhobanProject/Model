@@ -53,6 +53,7 @@ set(SOURCES_FILES
     Model/Model.cpp
     Model/SigmabanModel.cpp
     Model/SigmabanFloatingModel.cpp
+    Model/SigmabanFixedModel.cpp
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     StaticWalk/StaticWalk.cpp
@@ -111,6 +112,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testInverseKinematics
         testStaticWalk
         testRBDLRootUpdate
+        testSigmabanFixedModel
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
