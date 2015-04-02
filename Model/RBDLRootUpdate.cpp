@@ -251,6 +251,9 @@ RBDL::Model RBDLRootUpdate(
             modelNew, rootIdNewModel);
     }
 
+    //Set gravity
+    modelNew.gravity = RBDLMath::Vector3d(0.0, 0.0, -9.81);
+
     return modelNew;
 }
 
