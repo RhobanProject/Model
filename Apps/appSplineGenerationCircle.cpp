@@ -48,8 +48,8 @@ int main()
     inverseModel.addTargetOrientation("right foot", "right foot tip");
     inverseModel.addTargetCOM();
     //Add degrees of freedom bounds 
-    inverseModel.setUpperBound("left knee", 0.0);
-    inverseModel.setUpperBound("right knee", 0.0);
+    inverseModel.setLowerBound("left knee", 0.0);
+    inverseModel.setLowerBound("right knee", 0.0);
     //Compute initial COM
     double initCOMZOffset = model.centerOfMass("origin").z();
 

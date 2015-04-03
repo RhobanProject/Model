@@ -202,8 +202,8 @@ void StaticWalk::initIK(InverseKinematics& inv,
     inv.addTargetOrientation("right foot", "right foot tip");
     inv.addTargetCOM();
     //Add degrees of freedom bounds 
-    inv.setUpperBound("left knee", 0.0);
-    inv.setUpperBound("right knee", 0.0);
+    inv.setLowerBound("left knee", 0.0);
+    inv.setLowerBound("right knee", 0.0);
 }
 
 }

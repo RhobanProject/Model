@@ -30,8 +30,8 @@ int main()
     inv.addDOF("base Tz");
     //Declare degree of freefom box bounds 
     //XXX Not fully implemented
-    inv.setUpperBound("left knee", 0.0);
-    inv.setUpperBound("right knee", 0.0);
+    inv.setLowerBound("left knee", 0.0);
+    inv.setLowerBound("right knee", 0.0);
 
     //Declare target position
     inv.addTargetPosition("flying foot", "right foot tip");
