@@ -17,6 +17,8 @@ namespace Leph {
  * Implement inverse kinematrics for Leph::Model
  * using Eigen implementation of Levenberg-Marquardt
  * algorithm and bounds (box) constraints
+ * Hold RBDL model computation, degree of freedom subset,
+ * joint limit and geometric target sets
  */
 class InverseKinematics : public Eigen::DenseFunctor<double>
 {
@@ -134,6 +136,11 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         double errorCOM() const;
 
         /**
+         * Return the sum of all targets errors
+         */
+        double errorSum() const;
+
+        /**
          * Run the inverse kinematics optimization
          * using Eigen Levenberg Marquardt implementation
          * and update model degree of freedom
@@ -178,6 +185,27 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             Eigen::MatrixXd& fjac);
         void gradientProjection(const Eigen::VectorXd& state,
             Eigen::VectorXd& gradient);
+
+        /**
+         * Return current used degree 
+         * of freedrom vector subset
+         */
+        const Eigen::VectorXd& getDOFSubset();
+
+        /**
+         * Export to internal model
+         * given defree of freedom subset state
+         */
+        void setDOFSubset(const Eigen::VectorXd& dofs);
+
+        /**
+         * Direct access to registered degrees of freedom
+         * lower and upper bounds if defined
+         */
+        const std::vector<double>& getLowerBounds() const;
+        const std::vector<double>& getUpperBounds() const;
+        const std::vector<bool>& getIsLowerBounds() const;
+        const std::vector<bool>& getIsUpperBounds() const;
 
     private:
 
@@ -257,6 +285,11 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         Eigen::Vector3d _targetCOM;
 
         /**
+         * Last error sum
+         */
+        double _errorSum;
+
+        /**
          * Update complete _allDofs vector with given 
          * DOF subset
          */
@@ -267,6 +300,13 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          * current DOF
          */
         void comJacobian(RBDLMath::MatrixNd& fjac, size_t index);
+
+        /**
+         * Import and export from and to RBDL model
+         * all and subset of DOF
+         */
+        void importDOF();
+        void exportDOF();
 };
 
 }

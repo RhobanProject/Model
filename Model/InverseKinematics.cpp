@@ -63,7 +63,8 @@ InverseKinematics::InverseKinematics(Model& model) :
     _targetScalars(),
     _isTargetCOM(false),
     _errorCOM(0.0),
-    _targetCOM()
+    _targetCOM(),
+    _errorSum(0.0)
 {
 }
         
@@ -279,6 +280,11 @@ double InverseKinematics::errorCOM() const
     return _errorCOM;
 }
         
+double InverseKinematics::errorSum() const
+{
+    return _errorSum;
+}
+        
 void InverseKinematics::run(double tolerance, 
     unsigned int maxEvaluation)
 {
@@ -294,7 +300,7 @@ void InverseKinematics::run(double tolerance,
     }
 
     //Load current model DOF
-    _allDofs = _model->_dofs;
+    importDOF();
     //Levenberg Marquardt initialization
     Eigen::LevenbergMarquardt<InverseKinematics> lm(*this);
     lm.setXtol(tolerance);
@@ -310,12 +316,10 @@ void InverseKinematics::run(double tolerance,
     } while(st == Eigen::LevenbergMarquardtSpace::Running);
     
     //Save all computed DOF in model
-    for (size_t i=0;i<(size_t)_dofs.size();i++) {
-        _model->_dofs(_subsetIndexToGlobal[i]) = _dofs(i);
-    }
-    
+    exportDOF();
 
     //Compute target error
+    _errorSum = lm.fvec().stableNorm();
     size_t index = 0;
     for (auto& target : _targetPositions) {
         target.second.error = lm.fvec().segment(index, 3).stableNorm();
@@ -511,6 +515,35 @@ void InverseKinematics::gradientProjection(const Eigen::VectorXd& state,
     }
 }
         
+const Eigen::VectorXd& InverseKinematics::getDOFSubset()
+{
+    importDOF();
+    return _dofs;
+}
+        
+void InverseKinematics::setDOFSubset(const Eigen::VectorXd& dofs)
+{
+    _dofs = dofs;
+    exportDOF();
+}
+
+const std::vector<double>& InverseKinematics::getLowerBounds() const
+{
+    return _lowerBounds;
+}
+const std::vector<double>& InverseKinematics::getUpperBounds() const
+{
+    return _upperBounds;
+}
+const std::vector<bool>& InverseKinematics::getIsLowerBounds() const
+{
+    return _isLowerBounds;
+}
+const std::vector<bool>& InverseKinematics::getIsUpperBounds() const
+{
+    return _isUpperBounds;
+}
+        
 void InverseKinematics::updateAllDOF(const Eigen::VectorXd& dofs)
 {
     for (size_t i=0;i<(size_t)dofs.size();i++) {
@@ -539,6 +572,19 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index)
     }
     //Normalize the sum
     fjac.block(index, 0, 3, inputs()) *= (1.0/sumMass);
+}
+        
+void InverseKinematics::importDOF()
+{
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        _dofs(i) = _model->_dofs(_subsetIndexToGlobal.at(i));
+    }
+}
+void InverseKinematics::exportDOF()
+{
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        _model->_dofs(_subsetIndexToGlobal.at(i)) = _dofs(i);
+    }
 }
 
 }
