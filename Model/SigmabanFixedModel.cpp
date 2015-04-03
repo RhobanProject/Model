@@ -15,6 +15,11 @@ SigmabanFixedModel::SupportFoot SigmabanFixedModel::
     return _supportFoot;
 }
         
+void SigmabanFixedModel::setSupportFoot(SupportFoot foot)
+{
+    _supportFoot = foot;
+}
+        
 const SigmabanModel& SigmabanFixedModel::get() const
 {
     if (_supportFoot == LeftSupportFoot) {

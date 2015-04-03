@@ -36,6 +36,11 @@ class SigmabanFixedModel
         SupportFoot getSupportFoot() const;
 
         /**
+         * Force given support foot
+         */
+        void setSupportFoot(SupportFoot foot);
+
+        /**
          * Return Leph::SigmabanModel fixed
          * on current supporting foot tip
          */
