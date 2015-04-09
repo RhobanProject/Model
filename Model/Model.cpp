@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "Model/Model.hpp"
+#include "Model/RBDLClosedLoop.h"
 
 namespace Leph {
 
@@ -66,6 +67,13 @@ double Model::getDOF(const std::string& name) const
 {
     return _dofs(_dofNameToIndex.at(name));
 }
+double Model::getDOF(size_t index) const
+{
+    if (index >= _dofIndexToName.size()) {
+        throw std::logic_error("Model invalid DOF index");
+    }
+    return _dofs(index);
+}
 void Model::setDOF(const VectorLabel& vect)
 {
     for (size_t i=0;i<vect.size();i++) {
@@ -79,10 +87,29 @@ void Model::setDOF(const std::string& name, double value)
 {
     _dofs(_dofNameToIndex.at(name)) = value;
 }
+void Model::setDOF(size_t index, double value)
+{
+    if (index >= _dofIndexToName.size()) {
+        throw std::logic_error("Model invalid DOF index");
+    }
+    _dofs(index) = value;
+}
 
 void Model::setDOFZeros()
 {
     _dofs.setZero();
+}
+        
+const std::string& Model::getDOFName(size_t index) const
+{
+    if (index >= _dofIndexToName.size()) {
+        throw std::logic_error("Model invalid DOF index");
+    }
+    return _dofIndexToName.at(index);
+}
+size_t Model::getDOFIndex(const std::string& name) const
+{
+    return _dofNameToIndex.at(name);
 }
         
 void Model::importDOF(Model& model)
@@ -172,6 +199,7 @@ Eigen::Vector3d Model::centerOfMass(const std::string& frame)
 {
     return centerOfMass(getFrameIndex(frame));
 }
+
 double Model::sumMass()
 {
     RBDLMath::VectorNd Q(sizeDOF());
@@ -181,7 +209,57 @@ double Model::sumMass()
 
     return mass;
 }
+        
+Eigen::VectorXd Model::inverseDynamics(
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration)
+{
+    RBDLMath::VectorNd QDot;
+    RBDLMath::VectorNd QDDot;
+    if (velocity == Eigen::VectorXd()) {
+        QDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else {
+        QDot = velocity;
+    }
+    if (acceleration == Eigen::VectorXd()) {
+        QDDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else {
+        QDDot = acceleration;
+    }
 
+    RBDLMath::VectorNd tau(_model.dof_count);
+    tau.setZero();
+    RBDL::InverseDynamics(
+        _model, _dofs, QDot, QDDot,
+        tau, NULL);
+
+    return tau;
+}
+
+Eigen::VectorXd Model::inverseDynamicsClosedLoop(
+    size_t fixedFrameIndex,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration)
+{
+    RBDLMath::VectorNd QDot;
+    RBDLMath::VectorNd QDDot;
+    if (velocity == Eigen::VectorXd()) {
+        QDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else {
+        QDot = velocity;
+    }
+    if (acceleration == Eigen::VectorXd()) {
+        QDDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else {
+        QDDot = acceleration;
+    }
+
+    unsigned int fixedFrameId = _frameIndexToId.at(fixedFrameIndex);
+    return RBDLClosedLoopInverseDynamics(
+        _model, _dofs, QDot, QDDot,
+        fixedFrameId);
+}
+        
 void Model::boundingBox(size_t frameIndex, 
     double& sizeX, double& sizeY, double& sizeZ,
     Eigen::Vector3d& center) const

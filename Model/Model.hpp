@@ -49,8 +49,10 @@ class Model
          */
         const VectorLabel& getDOF();
         double getDOF(const std::string& name) const;
+        double getDOF(size_t index) const;
         void setDOF(const VectorLabel& vect);
         void setDOF(const std::string& name, double value);
+        void setDOF(size_t index, double value);
 
         /**
          * Import given model DOF into this one
@@ -62,6 +64,13 @@ class Model
          * Reset all degrees of freedom to zero position
          */
         void setDOFZeros();
+
+        /**
+         * Return the degree of freedom name from its
+         * given index and inverse mapping
+         */
+        const std::string& getDOFName(size_t index) const;
+        size_t getDOFIndex(const std::string& name) const;
         
         /**
          * Return the number of reference frame
@@ -123,6 +132,31 @@ class Model
          * Return the total mass of the Model
          */
         double sumMass();
+
+        /**
+         * Compute classical Inverse Dynamics on tree model 
+         * and return computed torques for 
+         * each degrees of freedom using current position. 
+         * Optional current velocity and acceleration can be given. 
+         * Default is zeros.
+         */
+        Eigen::VectorXd inverseDynamics(
+            const Eigen::VectorXd& velocity = Eigen::VectorXd(),
+            const Eigen::VectorXd& acceleration = Eigen::VectorXd());
+        
+        /**
+         * Compute Inverse Dynamics on a modified closed loop
+         * model where given frame index is considered fixed
+         * in base coordinates. Computed torques are returned
+         * but floating base degrees of freedom are set to zero.
+         * Current position is used.
+         * Optional current velocity and acceleration can be given. 
+         * Default is zeros.
+         */
+        Eigen::VectorXd inverseDynamicsClosedLoop(
+            size_t fixedFrameIndex,
+            const Eigen::VectorXd& velocity = Eigen::VectorXd(),
+            const Eigen::VectorXd& acceleration = Eigen::VectorXd());
 
         /**
          * Return optionaly non zero aligned axis bounding box
