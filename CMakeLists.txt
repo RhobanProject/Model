@@ -56,11 +56,15 @@ set(SOURCES_FILES
     Model/SigmabanFixedModel.cpp
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
+    Model/RBDLClosedLoop.cpp
+    Model/NullSpace.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
     Spline/SmoothSpline.cpp
     Spline/FittedSpline.cpp
+    LegIK/LegIK.cpp
+    RandomSearch/RandomSearch.cpp
 )
 
 #Tests main files
@@ -113,6 +117,9 @@ if (BUILD_LEPH_CODE_VIEWER)
         testStaticWalk
         testRBDLRootUpdate
         testSigmabanFixedModel
+        testNullSpace
+        testLegIK
+        testModelTorques
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
