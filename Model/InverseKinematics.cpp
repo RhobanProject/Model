@@ -301,6 +301,15 @@ void InverseKinematics::run(double tolerance,
 
     //Load current model DOF
     importDOF();
+    //Bound state inside allowed bounds
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        if (_isLowerBounds[i] && _dofs(i) < _lowerBounds[i]) {
+            _dofs(i) = _lowerBounds[i];
+        }
+        if (_isUpperBounds[i] && _dofs(i) > _upperBounds[i]) {
+            _dofs(i) = _upperBounds[i];
+        }
+    }
     //Levenberg Marquardt initialization
     Eigen::LevenbergMarquardt<InverseKinematics> lm(*this);
     lm.setXtol(tolerance);
