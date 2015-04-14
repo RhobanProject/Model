@@ -150,11 +150,19 @@ class Model
          * in base coordinates. Computed torques are returned
          * but floating base degrees of freedom are set to zero.
          * Current position is used.
+         * If useInfinityNorm is true, infinity norm is minimized to
+         * solve the torques underdetermined system with high performance cost.
          * Optional current velocity and acceleration can be given. 
          * Default is zeros.
          */
         Eigen::VectorXd inverseDynamicsClosedLoop(
             size_t fixedFrameIndex,
+            bool useInfinityNorm = false,
+            const Eigen::VectorXd& velocity = Eigen::VectorXd(),
+            const Eigen::VectorXd& acceleration = Eigen::VectorXd());
+        Eigen::VectorXd inverseDynamicsClosedLoop(
+            const std::string& fixedFrameName,
+            bool useInfinityNorm = false,
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
 

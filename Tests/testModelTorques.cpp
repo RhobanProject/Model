@@ -30,7 +30,7 @@ int main()
     inv.addTargetPosition("flying foot", "right foot tip");
     //target of center of mass
     inv.addTargetCOM();
-    inv.targetCOM().z() -= 0.07;
+    inv.targetCOM().z() -= 0.04;
     inv.targetCOM().x() = 0.0;
     //Target orientation
     inv.addTargetOrientation("flying foot", "right foot tip");
@@ -43,8 +43,8 @@ int main()
     double freq = 50.0;
     Leph::Scheduling scheduling;
     scheduling.setFrequency(freq);
-    double t = 0.0;
     Leph::Plot plot;
+    double t = 0.0;
     while (viewer.update()) {
         //Display model
         Leph::ModelDraw(model.get(), viewer);
@@ -52,25 +52,49 @@ int main()
         scheduling.wait();
     
         //Move target center of mass
-        t += 0.02;
-        inv.targetCOM().y() = 0.08*sin(t) + yCOM;
+        inv.targetCOM().y() = 0.08*sin(2.0*3.14*t) + yCOM;
         //Update inverse kinematics
         inv.run(0.0001, 100);
 
         //Compute torques with simple and closed loop model
-        Eigen::VectorXd tau1 = model.get().inverseDynamicsClosedLoop(model.get().getFrameIndex("right foot tip"));
-        Eigen::VectorXd tau2 = model.get().inverseDynamics();
-        plot.add(Leph::VectorLabel(
-            "CLOSEDLOOP left foot roll", tau1(model.get().getDOFIndex("left foot roll")),
-            "CLOSEDLOOP right foot roll", tau1(model.get().getDOFIndex("right foot roll")),
-            "CLOSEDLOOP left hip roll", tau1(model.get().getDOFIndex("left hip roll")),
-            "CLOSEDLOOP right hip roll", tau1(model.get().getDOFIndex("right hip roll")),
-            "SIMPLE left foot roll", tau2(model.get().getDOFIndex("left foot roll")),
-            "SIMPLE left hip roll", tau2(model.get().getDOFIndex("left hip roll")),
-            "SIMPLE right hip roll", tau2(model.get().getDOFIndex("right hip roll")),
-            "YCOM", 10.0*yCOM,
-            "COMY", 10.0*inv.targetCOM().y()
-        ));
+        Eigen::VectorXd tau;
+        if (t >= 0.0 && t < 3.0) {
+            tau = model.get().inverseDynamics();
+        }
+        else if (t >= 3.0 && t < 6.0) {
+            tau = model.get().inverseDynamicsClosedLoop("right foot tip", false);
+        }
+        else if (t >= 6.0 && t < 9.0) {
+            tau = model.get().inverseDynamicsClosedLoop("right foot tip", true);
+        } else {
+            break;
+        }
+        tau(model.get().getDOFIndex("base Tx")) = 0.0;
+        tau(model.get().getDOFIndex("base Ty")) = 0.0;
+        tau(model.get().getDOFIndex("base Tz")) = 0.0;
+        tau(model.get().getDOFIndex("base yaw")) = 0.0;
+        tau(model.get().getDOFIndex("base pitch")) = 0.0;
+        tau(model.get().getDOFIndex("base roll")) = 0.0;
+
+        //Plot all leg degrees of freedom
+        Leph::VectorLabel log;
+        for (size_t i=0;i<(size_t)tau.size();i++) {
+            if (
+                model.get().getDOFName(i).find("elbow") == std::string::npos && 
+                model.get().getDOFName(i).find("arm") == std::string::npos && 
+                model.get().getDOFName(i).find("tilt") == std::string::npos && 
+                model.get().getDOFName(i).find("base") == std::string::npos && 
+                model.get().getDOFName(i).find("pan") == std::string::npos
+            ) {
+                log.append(model.get().getDOFName(i), fabs(tau(i)));
+            }
+        }
+        log.append("YCOM", 10.0*yCOM);
+        log.append("COMY", 10.0*inv.targetCOM().y());
+        log.append("SUM norm 2", tau.norm());
+        log.append("SUM norm max", tau.lpNorm<Eigen::Infinity>() + 0.1);
+        plot.add(log);
+        t += 0.02;
     }
     plot.plot("index", "all").render();
 

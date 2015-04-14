@@ -21,13 +21,18 @@ namespace Leph {
  * computations but is skipped for torques evaluation. 
  * Null torque is returned for floating base 
  * degrees of freedom.
+ *
+ * If useInfinityNorm is true, underdetermined torques
+ * system is solve by minimizing normInfinity() + norm2()
+ * with CMA-ES optimization but with big performance cost.
  */
 RigidBodyDynamics::Math::VectorNd RBDLClosedLoopInverseDynamics(
     RigidBodyDynamics::Model& model,
     const RigidBodyDynamics::Math::VectorNd& Q,
     const RigidBodyDynamics::Math::VectorNd& QDot,
     const RigidBodyDynamics::Math::VectorNd& QDDot,
-    unsigned int fixedBodyId);
+    unsigned int fixedBodyId,
+    bool useInfinityNorm = false);
 
 }
 

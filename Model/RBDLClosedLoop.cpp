@@ -1,3 +1,5 @@
+#include <stdexcept>
+#include <libcmaes/cmaes.h>
 #include "Model/RBDLClosedLoop.h"
 
 namespace RBDL = RigidBodyDynamics;
@@ -40,7 +42,8 @@ RBDLMath::VectorNd RBDLClosedLoopInverseDynamics(
     const RBDLMath::VectorNd& Q,
     const RBDLMath::VectorNd& QDot,
     const RBDLMath::VectorNd& QDDot,
-    unsigned int fixedBodyId)
+    unsigned int fixedBodyId,
+    bool useInfinityNorm)
 {
     //Retrieve the total number of DOF
     //and the number of floating base DOF
@@ -95,6 +98,46 @@ RBDLMath::VectorNd RBDLClosedLoopInverseDynamics(
     //since the equation are underdetermined (infinite solution) 
     //and we are looking for smallest possible torques configuration
     RBDLMath::VectorNd tmpResultTau = svd.solve(tauG);
+
+    //Solve the system with CMA-ES and minimize infinity norm
+    if (useInfinityNorm) {
+        //Compute kernel basis to solve the homogenous system
+        Eigen::FullPivLU<Eigen::MatrixXd> lu2(G.transpose());
+        Eigen::MatrixXd GKernel = lu2.kernel();
+        //Check full kernel kernel
+        if (GKernel.cols() != 6) {
+            throw std::logic_error(
+                "RBDLClosedLoop unexpected kernel size: " + GKernel.cols());
+        }
+        //CMA-ES fitness function 
+        libcmaes::FitFunc fitness = [&GKernel, &tmpResultTau]
+            (const double *x, const int N) 
+        {
+            //Conversion to Eigen vector
+            Eigen::VectorXd y(N);
+            for (int i=0;i<N;i++) {
+                y(i) = x[i];
+            }
+            //The solutions of system G' * tau = tauG can be writen
+            //as tau = GKernel * y + d with d a solution of the
+            //equation and y any vector. y is optimized to search
+            //for minimum infinity norm solution
+            Eigen::VectorXd tau = GKernel*y + tmpResultTau;
+            //Minimize both infinity and norm 2 because minimizing only
+            //infinity norm yield to many solutions. Thus we are imposing
+            //an other constraint
+            return tau.lpNorm<Eigen::Infinity>() + tau.norm();
+        };
+        //Initializing CMA-ES starting point
+        std::vector<double> x0(GKernel.cols(), 0.0);
+        double sigma = 0.01;
+        libcmaes::CMAParameters<> cmaparams(x0, sigma);
+        cmaparams.set_str_algo("acmaes");
+        //Run optimization
+        libcmaes::CMASolutions cmasols = libcmaes::cmaes<>(fitness, cmaparams);
+        //Compute resulting new solution
+        tmpResultTau = GKernel*cmasols.best_candidate().get_x_dvec() + tmpResultTau;
+    }
 
     //Pad the result with not computed floating base DOF
     RBDLMath::VectorNd resultTau(allDOFCount);

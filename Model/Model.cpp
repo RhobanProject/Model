@@ -238,6 +238,7 @@ Eigen::VectorXd Model::inverseDynamics(
 
 Eigen::VectorXd Model::inverseDynamicsClosedLoop(
     size_t fixedFrameIndex,
+    bool useInfinityNorm, 
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& acceleration)
 {
@@ -257,7 +258,18 @@ Eigen::VectorXd Model::inverseDynamicsClosedLoop(
     unsigned int fixedFrameId = _frameIndexToId.at(fixedFrameIndex);
     return RBDLClosedLoopInverseDynamics(
         _model, _dofs, QDot, QDDot,
-        fixedFrameId);
+        fixedFrameId, useInfinityNorm);
+}
+Eigen::VectorXd Model::inverseDynamicsClosedLoop(
+    const std::string& fixedFrameName,
+    bool useInfinityNorm, 
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration)
+{
+    return inverseDynamicsClosedLoop(
+        getFrameIndex(fixedFrameName), 
+        useInfinityNorm, 
+        velocity, acceleration);
 }
         
 void Model::boundingBox(size_t frameIndex, 

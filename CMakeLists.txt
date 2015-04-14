@@ -26,6 +26,12 @@ include_directories(${RBDL_DIRECTORY}/build/include)
 link_directories(${RBDL_DIRECTORY}/build)
 link_directories(${RBDL_DIRECTORY}/build/addons/urdfreader)
 
+#Include LibCMAES (Black box non linear stochastic optimization)
+set(LIBCMAES_DIRECTORY "LibCMAES" CACHE STRING "LibCMAES lib directory")
+include_directories(${LIBCMAES_DIRECTORY}/include)
+link_directories(${LIBCMAES_DIRECTORY}/lib)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
+
 #Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
 
@@ -101,6 +107,7 @@ set(CODE_LIBRARIES
     ncurses
     rbdl
     rbdl_urdfreader
+    cmaes
 )
 
 #Viewer (SFML) build option and files
