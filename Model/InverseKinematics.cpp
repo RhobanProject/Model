@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <random>
 #include "Model/InverseKinematics.hpp"
 
 namespace Leph {
@@ -283,6 +284,21 @@ double InverseKinematics::errorCOM() const
 double InverseKinematics::errorSum() const
 {
     return _errorSum;
+}
+        
+void InverseKinematics::randomDOFNoise(double ampl)
+{
+    //Load current model DOF
+    importDOF();
+    //Random noise on DOF subset
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_real_distribution<double> distribution(-ampl, ampl);
+    for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        _dofs(i) += distribution(generator);
+    }
+    //Save all computed DOF in model
+    exportDOF();
 }
         
 void InverseKinematics::run(double tolerance, 

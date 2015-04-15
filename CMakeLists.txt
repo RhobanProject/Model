@@ -70,7 +70,6 @@ set(SOURCES_FILES
     Spline/SmoothSpline.cpp
     Spline/FittedSpline.cpp
     LegIK/LegIK.cpp
-    RandomSearch/RandomSearch.cpp
 )
 
 #Tests main files

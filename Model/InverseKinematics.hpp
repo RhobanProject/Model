@@ -141,6 +141,13 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         double errorSum() const;
 
         /**
+         * Apply small random perturbation of given
+         * amplitude to current degree of freedom subset
+         * to help convergence in singular configuration
+         */
+        void randomDOFNoise(double ampl = 0.01);
+
+        /**
          * Run the inverse kinematics optimization
          * using Eigen Levenberg Marquardt implementation
          * and update model degree of freedom
