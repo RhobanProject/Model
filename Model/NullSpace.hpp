@@ -2,6 +2,7 @@
 #define LEPH_NULLSPACE_HPP
 
 #include <vector>
+#include <functional>
 #include "Model/InverseKinematics.hpp"
 
 namespace Leph {
@@ -19,10 +20,24 @@ class NullSpace
     public:
 
         /**
+         * Typedef for custom constraint functions
+         * Return false when constrained is break
+         */
+        typedef std::function<bool(const Eigen::VectorXd&)> 
+            ConstraintFunc;
+
+        /**
          * Initialization with 
          * InverseKinematics instance reference
          */
         NullSpace(InverseKinematics& inv);
+
+        /**
+         * Add a custom constraint taking state (DOF subset)
+         * as input and returning false when the constraint
+         * is break
+         */
+        void addConstraint(ConstraintFunc func);
 
         /**
          * Compute and return the kernel basis at
@@ -69,6 +84,11 @@ class NullSpace
          * joint limit informations
          */
         InverseKinematics* _inverseModel;
+
+        /**
+         * Container of custom constraint functions
+         */
+        std::vector<ConstraintFunc> _customConstraints;
 
         /**
          * Check if given degree of freedom subset state

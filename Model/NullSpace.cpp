@@ -9,6 +9,11 @@ NullSpace::NullSpace(InverseKinematics& inv) :
 {
 }
         
+void NullSpace::addConstraint(ConstraintFunc func)
+{
+    _customConstraints.push_back(func);
+}
+        
 Eigen::MatrixXd NullSpace::computeKernel(
     const Eigen::VectorXd& state)
 {
@@ -187,6 +192,12 @@ bool NullSpace::checkConstraints(const Eigen::VectorXd& state)
             (_inverseModel->getIsUpperBounds()[i] && 
              _inverseModel->getUpperBounds()[i] < state(i))
         ) {
+            return false;
+        }
+    }
+    //Check custom constraint
+    for (size_t i=0;i<_customConstraints.size();i++) {
+        if (!_customConstraints[i](state)) {
             return false;
         }
     }
