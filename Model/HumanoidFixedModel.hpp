@@ -1,19 +1,19 @@
-#ifndef LEPH_SIGMABANFIXEDMODEL_HPP
-#define LEPH_SIGMABANFIXEDMODEL_HPP
+#ifndef LEPH_HUMANOIDFIXEDMODEL_HPP
+#define LEPH_HUMANOIDFIXEDMODEL_HPP
 
-#include "Model/SigmabanModel.hpp"
+#include "Model/HumanoidModel.hpp"
 
 namespace Leph {
 
 /**
- * SigmabanFixedModel
+ * HumanoidFixedModel
  *
- * Contains two SigmabanModel with
+ * Contains two HumanoidModel with
  * root located at each leg tip and
  * switching between the two according to
  * supporting leg.
  */
-class SigmabanFixedModel
+class HumanoidFixedModel
 {
     public:
         
@@ -26,9 +26,9 @@ class SigmabanFixedModel
         };
 
         /**
-         * Initialization with sigmaban URDF model
+         * Initialization with given URDF model
          */
-        SigmabanFixedModel();
+        HumanoidFixedModel(const std::string& urdfFile);
         
         /**
          * Return the current support foot
@@ -41,11 +41,11 @@ class SigmabanFixedModel
         void setSupportFoot(SupportFoot foot);
 
         /**
-         * Return Leph::SigmabanModel fixed
+         * Return Leph::HumanoidModel fixed
          * on current supporting foot tip
          */
-        const SigmabanModel& get() const;
-        SigmabanModel& get();
+        const HumanoidModel& get() const;
+        HumanoidModel& get();
 
         /**
          * Update current support foot
@@ -69,11 +69,11 @@ class SigmabanFixedModel
         SupportFoot _supportFoot;
 
         /**
-         * SigmabanModel for left and right 
+         * HumanoidModel for left and right 
          * support foot
          */
-        SigmabanModel _modelLeft;
-        SigmabanModel _modelRight;
+        HumanoidModel _modelLeft;
+        HumanoidModel _modelRight;
 };
 
 }

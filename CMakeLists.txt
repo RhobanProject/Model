@@ -57,9 +57,9 @@ set(SOURCES_FILES
     Utils/Scheduling.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
-    Model/SigmabanModel.cpp
-    Model/SigmabanFloatingModel.cpp
-    Model/SigmabanFixedModel.cpp
+    Model/HumanoidModel.cpp
+    Model/HumanoidFloatingModel.cpp
+    Model/HumanoidFixedModel.cpp
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp

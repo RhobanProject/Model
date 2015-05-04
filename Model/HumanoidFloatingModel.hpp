@@ -1,19 +1,19 @@
-#ifndef LEPH_SIGMABANFLOATINGMODEL_HPP
-#define LEPH_SIGMABANFLOATINGMODEL_HPP
+#ifndef LEPH_HUMANOIDFLOATINGMODEL_HPP
+#define LEPH_HUMANOIDFLOATINGMODEL_HPP
 
-#include "Model/SigmabanModel.hpp"
+#include "Model/HumanoidModel.hpp"
 
 namespace Leph {
 
 /**
- * SigmabanFloatingModel
+ * HumanoidFloatingModel
  *
- * Specialization of Model for Sigmaban robot.
+ * Specialization of Model for Humanoid robot.
  * Handle feet geometry and ground 
  * position transformation using 6 DOF on
- * Sigmaban trunk
+ * Humanoid trunk
  */
-class SigmabanFloatingModel : public SigmabanModel
+class HumanoidFloatingModel : public HumanoidModel
 {
     public:
 
@@ -26,9 +26,9 @@ class SigmabanFloatingModel : public SigmabanModel
         };
 
         /**
-         * Initialization with sigmaban URDF model
+         * Initialization with given URDF model
          */
-        SigmabanFloatingModel();
+        HumanoidFloatingModel(const std::string& urdfFile);
 
         /**
          * Return the current support foot

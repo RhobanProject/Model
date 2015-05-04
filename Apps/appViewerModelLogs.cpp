@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Types/MatrixLabel.hpp"
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
@@ -44,8 +44,8 @@ int main(int argc, char** argv)
         .render();
     
     //Initialize model instances
-    Leph::SigmabanFixedModel modelOutputs;
-    Leph::SigmabanFixedModel modelMotors;
+    Leph::HumanoidFixedModel modelOutputs("../../Data/sigmaban.urdf");
+    Leph::HumanoidFixedModel modelMotors("../../Data/sigmaban.urdf");
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
 

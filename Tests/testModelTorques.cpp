@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
@@ -9,9 +9,9 @@
 int main()
 {
     //Model with left support foot
-    Leph::SigmabanFixedModel model;
+    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
     model.setSupportFoot(
-        Leph::SigmabanFixedModel::LeftSupportFoot);
+        Leph::HumanoidFixedModel::LeftSupportFoot);
     
     //Inverse Kinematics
     Leph::InverseKinematics inv(model.get());

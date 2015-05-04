@@ -1,30 +1,35 @@
-#ifndef LEPH_SIGMABANMODEL_HPP
-#define LEPH_SIGMABANMODEL_HPP
+#ifndef LEPH_HUMANOIDMODEL_HPP
+#define LEPH_HUMANOIDMODEL_HPP
 
 #include "Model/Model.hpp"
 
 namespace Leph {
 
 /**
- * SigmabanModel
+ * HumanoidModel
  *
  * Inherit Model and implement
- * Sigmaban feet bounding box
+ * Sigmaban and Grosban 
+ * feet bounding box and inverse
+ * kinematics interface
  */
-class SigmabanModel : public Model
+class HumanoidModel : public Model
 {
     public:
 
         /**
-         * Initialize the model with root updater
-         * and enable foating base 6 DOF
+         * Initialize the model with given
+         * URDF file and root updater
+         * and enable floating base 6 DOF
          */
-        SigmabanModel(const std::string& frameRoot);
+        HumanoidModel(
+            const std::string& urdfFile,
+            const std::string& frameRoot);
         
         /**
-         * Destructor
+         * Virtual destructor
          */
-        virtual ~SigmabanModel();
+        virtual ~HumanoidModel();
         
         /**
          * @Inherit

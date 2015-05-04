@@ -1,12 +1,12 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
 
 int main()
 {
-    Leph::SigmabanFixedModel model;
+    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
 
     Leph::ModelViewer viewer(1200, 900);
     viewer.frameLength = 0.02;

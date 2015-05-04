@@ -1,26 +1,27 @@
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 
 namespace Leph {
 
-SigmabanFixedModel::SigmabanFixedModel() :
+HumanoidFixedModel::HumanoidFixedModel(
+    const std::string& urdfFile) :
     _supportFoot(LeftSupportFoot),
-    _modelLeft("left foot tip"),
-    _modelRight("right foot tip")
+    _modelLeft(urdfFile, "left foot tip"),
+    _modelRight(urdfFile, "right foot tip")
 {
 }
         
-SigmabanFixedModel::SupportFoot SigmabanFixedModel::
+HumanoidFixedModel::SupportFoot HumanoidFixedModel::
     getSupportFoot() const
 {
     return _supportFoot;
 }
         
-void SigmabanFixedModel::setSupportFoot(SupportFoot foot)
+void HumanoidFixedModel::setSupportFoot(SupportFoot foot)
 {
     _supportFoot = foot;
 }
         
-const SigmabanModel& SigmabanFixedModel::get() const
+const HumanoidModel& HumanoidFixedModel::get() const
 {
     if (_supportFoot == LeftSupportFoot) {
         return _modelLeft;
@@ -28,7 +29,7 @@ const SigmabanModel& SigmabanFixedModel::get() const
         return _modelRight;
     }
 }
-SigmabanModel& SigmabanFixedModel::get()
+HumanoidModel& HumanoidFixedModel::get()
 {
     if (_supportFoot == LeftSupportFoot) {
         return _modelLeft;
@@ -37,7 +38,7 @@ SigmabanModel& SigmabanFixedModel::get()
     }
 }
         
-void SigmabanFixedModel::updateBase()
+void HumanoidFixedModel::updateBase()
 {
     //Check if moving foot is touching
     //and switch current modle with 
@@ -69,7 +70,7 @@ void SigmabanFixedModel::updateBase()
     }
 }
         
-void SigmabanFixedModel::setOrientation(
+void HumanoidFixedModel::setOrientation(
     double trunkPitch, double trunkRoll)
 {
     //Trunk euler angle orientation to 

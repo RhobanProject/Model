@@ -1,13 +1,13 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
 
 int main()
 {
-    Leph::SigmabanFloatingModel model;
+    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);

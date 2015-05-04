@@ -1,6 +1,6 @@
 #include <iostream>
 #include "StaticWalk/StaticWalk.hpp"
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
@@ -8,13 +8,13 @@
 
 int main()
 {
-    Leph::SigmabanFloatingModel model;
+    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);
     viewer.frameLength = 0.02;
     
-    Leph::StaticWalk walk;
+    Leph::StaticWalk walk("../../Data/sigmaban.urdf");
     Leph::VectorLabel params = walk.buildParams();
     Leph::VectorLabel outputs = walk.initPose(params);
     model.setDOF(outputs);

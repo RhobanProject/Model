@@ -1,9 +1,10 @@
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 
 namespace Leph {
 
-SigmabanFloatingModel::SigmabanFloatingModel() :
-    SigmabanModel("ROOT"),
+HumanoidFloatingModel::HumanoidFloatingModel(
+    const std::string& urdfFile) :
+    HumanoidModel(urdfFile, "ROOT"),
     _supportFoot(LeftSupportFoot),
     _statePosX(0.0),
     _statePosY(0.0),
@@ -14,13 +15,13 @@ SigmabanFloatingModel::SigmabanFloatingModel() :
         "left foot tip", "origin").y();
 }
  
-SigmabanFloatingModel::SupportFoot SigmabanFloatingModel::
+HumanoidFloatingModel::SupportFoot HumanoidFloatingModel::
     getSupportFoot() const
 {
     return _supportFoot;
 }
         
-std::string SigmabanFloatingModel::supportFootName() const
+std::string HumanoidFloatingModel::supportFootName() const
 {
     if (_supportFoot == LeftSupportFoot) {
         return "left foot tip";
@@ -30,7 +31,7 @@ std::string SigmabanFloatingModel::supportFootName() const
         return "";
     }
 }
-std::string SigmabanFloatingModel::movingFootName() const
+std::string HumanoidFloatingModel::movingFootName() const
 {
     if (_supportFoot == LeftSupportFoot) {
         return "right foot tip";
@@ -41,14 +42,14 @@ std::string SigmabanFloatingModel::movingFootName() const
     }
 }
 
-void SigmabanFloatingModel::putOnGround()
+void HumanoidFloatingModel::putOnGround()
 {
     putSupportFootFlat();
     putSupportFootOrigin();
     findSupportFoot();
 }
         
-void SigmabanFloatingModel::findSupportFoot()
+void HumanoidFloatingModel::findSupportFoot()
 {
     //Feet position in trunk frame
     Eigen::Vector3d posLeftFoot = 
@@ -87,7 +88,7 @@ void SigmabanFloatingModel::findSupportFoot()
     }
 }
         
-void SigmabanFloatingModel::putSupportFootFlat()
+void HumanoidFloatingModel::putSupportFootFlat()
 {
     //Transformation matrix expressing support foot 
     //unit vector into trunk frame
@@ -103,7 +104,7 @@ void SigmabanFloatingModel::putSupportFootFlat()
     Model::setDOF("base yaw", angles(2) + _stateRotYaw);
 }
         
-void SigmabanFloatingModel::putSupportFootOrigin()
+void HumanoidFloatingModel::putSupportFootOrigin()
 {
     //Support foot position in trunk frame
     Eigen::Vector3d posFoot = Model::position(supportFootName(), "trunk");

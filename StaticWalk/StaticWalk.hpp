@@ -2,7 +2,7 @@
 #define LEPH_STATICWALK_HPP
 
 #include "Types/VectorLabel.hpp"
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 
 namespace Leph {
@@ -15,9 +15,9 @@ class StaticWalk
     public:
 
         /**
-         * Initialization
+         * Initialization with urdf model
          */
-        StaticWalk();
+        StaticWalk(const std::string& urdfFile);
 
         /**
          * Build and return initial parameters values
@@ -53,9 +53,9 @@ class StaticWalk
         double _phase;
 
         /**
-         * Sigmaban model instance
+         * Humanoid model instance
          */
-        SigmabanFloatingModel _model;
+        HumanoidFloatingModel _model;
 
         /**
          * Inverse Kinematics instance 

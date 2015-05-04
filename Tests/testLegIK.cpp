@@ -1,13 +1,13 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Utils/Scheduling.hpp"
 
 int main()
 {
     //Initialize instance
-    Leph::SigmabanFixedModel model;
+    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
     Leph::ModelViewer viewer(1200, 900);
     
     double freq = 50.0;

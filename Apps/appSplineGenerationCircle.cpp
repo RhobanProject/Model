@@ -3,7 +3,7 @@
 #include "Plot/Plot.hpp"
 #include "Spline/FittedSpline.hpp"
 #include "Spline/SplineContainer.hpp"
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 #include "Model/InverseKinematics.hpp"
 
 /**
@@ -20,7 +20,7 @@ int main()
 
     //Initialize instance
     Leph::Plot plot;
-    Leph::SigmabanFloatingModel model;
+    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
     Leph::InverseKinematics inverseModel(model);
     
     //Set foot model on zero z

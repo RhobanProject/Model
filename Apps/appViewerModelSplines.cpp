@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Model/SigmabanFloatingModel.hpp"
+#include "Model/HumanoidFloatingModel.hpp"
 #include "Spline/SplineContainer.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     std::cout << "Loading " << splinesFile << std::endl;
 
     //Initialize instance
-    Leph::SigmabanFloatingModel model;
+    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
     Leph::SplineContainer<Leph::Spline> splines;

@@ -1,16 +1,18 @@
 #include "Model/RBDLRootUpdate.h"
-#include "Model/SigmabanModel.hpp"
+#include "Model/HumanoidModel.hpp"
 #include "LegIK/LegIK.hpp"
 
 namespace Leph {
 
-SigmabanModel::SigmabanModel(const std::string& frameRoot) :
+HumanoidModel::HumanoidModel(
+    const std::string& urdfFile,
+    const std::string& frameRoot) :
     Model()
 {
     //Load model from URDF file
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
-        "sigmaban.urdf", &modelOld, false)
+        urdfFile.c_str(), &modelOld, false)
     ) {
         std::runtime_error("Model unable to load URDF file");
     }
@@ -47,11 +49,11 @@ SigmabanModel::SigmabanModel(const std::string& frameRoot) :
     _trunkToHipRight = Model::position("right hip roll", "trunk");
 }
         
-SigmabanModel::~SigmabanModel()
+HumanoidModel::~HumanoidModel()
 {
 }
         
-void SigmabanModel::boundingBox(size_t frameIndex, 
+void HumanoidModel::boundingBox(size_t frameIndex, 
     double& sizeX, double& sizeY, double& sizeZ,
     Eigen::Vector3d& center) const
 {
@@ -71,7 +73,7 @@ void SigmabanModel::boundingBox(size_t frameIndex,
     }
 }
 
-bool SigmabanModel::legIkLeft(const std::string& frame,
+bool HumanoidModel::legIkLeft(const std::string& frame,
     const Eigen::Vector3d& footPos, 
     const Eigen::Vector3d& yawPitchRoll)
 {
@@ -123,7 +125,7 @@ bool SigmabanModel::legIkLeft(const std::string& frame,
 
     return isSucess;
 }
-bool SigmabanModel::legIkRight(const std::string& frame,
+bool HumanoidModel::legIkRight(const std::string& frame,
     const Eigen::Vector3d& footPos, 
     const Eigen::Vector3d& yawPitchRoll)
 {
@@ -176,7 +178,7 @@ bool SigmabanModel::legIkRight(const std::string& frame,
     return isSucess;
 }
         
-Eigen::Matrix3d SigmabanModel::eulersToMatrix
+Eigen::Matrix3d HumanoidModel::eulersToMatrix
     (const Eigen::Vector3d angles) const
 {
     Eigen::AngleAxisd yawRot(angles(0), Eigen::Vector3d::UnitZ());
