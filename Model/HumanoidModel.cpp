@@ -66,19 +66,36 @@ void HumanoidModel::boundingBox(size_t frameIndex,
     double& sizeX, double& sizeY, double& sizeZ,
     Eigen::Vector3d& center) const
 {
-    if (Model::getFrameName(frameIndex) == "left foot tip") {
-        sizeX = 0.062495;
-        sizeY = 0.039995;
-        sizeZ = 0.01;
-        center = Eigen::Vector3d(0.001845, 0.002495, 0.01);
-    } else if (Model::getFrameName(frameIndex) == "right foot tip") {
-        sizeX = 0.062495;
-        sizeY = 0.039995;
-        sizeZ = 0.01;
-        center = Eigen::Vector3d(0.001845, -0.002495, 0.01);
-    } else {
-        Model::boundingBox(frameIndex, 
-            sizeX, sizeY, sizeZ, center);
+    if (_type == SigmabanModel) {
+        if (Model::getFrameName(frameIndex) == "left foot tip") {
+            sizeX = 0.062495;
+            sizeY = 0.039995;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.001845, 0.002495, 0.01);
+        } else if (Model::getFrameName(frameIndex) == "right foot tip") {
+            sizeX = 0.062495;
+            sizeY = 0.039995;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.001845, -0.002495, 0.01);
+        } else {
+            Model::boundingBox(frameIndex, 
+                sizeX, sizeY, sizeZ, center);
+        }
+    } else if (_type == GrosbanModel) {
+        if (Model::getFrameName(frameIndex) == "left foot tip") {
+            sizeX = 0.1225;
+            sizeY = 0.065;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.0034, 0.036, 0.01);
+        } else if (Model::getFrameName(frameIndex) == "right foot tip") {
+            sizeX = 0.1225;
+            sizeY = 0.065;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.0034, -0.036, 0.01);
+        } else {
+            Model::boundingBox(frameIndex, 
+                sizeX, sizeY, sizeZ, center);
+        }
     }
 }
 
