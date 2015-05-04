@@ -1,5 +1,4 @@
 #include <iostream>
-#include "LegIK/LegIK.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Model/SigmabanFixedModel.hpp"
@@ -10,21 +9,6 @@ int main()
     //Initialize instance
     Leph::SigmabanFixedModel model;
     Leph::ModelViewer viewer(1200, 900);
-
-    //Compute model fixed length
-    model.get().setDOFZeros();
-    Eigen::Vector3d hipPt = model.get().position("right hip roll", "origin");
-    Eigen::Vector3d kneePt = model.get().position("right knee", "origin");
-    Eigen::Vector3d anklePt = model.get().position("right foot pitch", "origin");
-    Eigen::Vector3d footPt = model.get().position("right foot tip", "origin");
-    double sigmabanL0 = (hipPt-kneePt).norm();
-    double sigmabanL1 = (kneePt-anklePt).norm();
-    double sigmabanL2 = (anklePt-footPt).norm();
-    std::cout << sigmabanL0 << std::endl;
-    std::cout << sigmabanL1 << std::endl;
-    std::cout << sigmabanL2 << std::endl;
-    LegIK::IK ik(sigmabanL0, sigmabanL1, sigmabanL2);
-    LegIK::Position result;
     
     double freq = 50.0;
     Leph::Scheduling scheduling;
@@ -32,25 +16,85 @@ int main()
     double t = 0.0;
     while (viewer.update()) {
         t += 0.01;
-        bool isSucess = ik.compute(
-            LegIK::Vector3D(0.1*sin(t), 0.05*sin(2*t), -.1507525), 
-            LegIK::Frame3D::from_euler(0.5*sin(t), 0.0, 0.0),
-            result);
-        if (!isSucess) {
-            std::cout << "TestsLegIK IK error" << std::endl;
-            return -1;
-        }
-        model.get().setDOF("left foot pitch", 0.5);
-        model.get().setDOF("left hip yaw", 0.5);
-        model.get().setDOF("right hip yaw", result.theta[0]);
-        model.get().setDOF("right hip roll", result.theta[1]);
-        model.get().setDOF("right hip pitch", -result.theta[2]);
-        model.get().setDOF("right knee", result.theta[3]);
-        model.get().setDOF("right foot pitch", -result.theta[4]);
-        model.get().setDOF("right foot roll", result.theta[5]);
         
-        Eigen::Vector3d com = model.get().position("right foot tip", "origin");
-        viewer.addTrackedPoint(com);    
+        //Targets
+        Eigen::Vector3d targetPos;
+        Eigen::Vector3d targetAngles;
+        std::string frame;
+        if (t > 24.0) {
+            break;
+        } else if (t > 20.0) {
+            frame = "trunk";
+            targetPos = Eigen::Vector3d(0.0, -0.05, -0.2);
+            targetAngles = Eigen::Vector3d(0.0, 0.0, 0.5*sin(2*t));
+        } else if (t > 16.0) {
+            frame = "trunk";
+            targetPos = Eigen::Vector3d(0.0, -0.05, -0.2);
+            targetAngles = Eigen::Vector3d(0.0, 0.5*sin(2*t), 0.0);
+        } else if (t > 12.0) {
+            frame = "trunk";
+            targetPos = Eigen::Vector3d(0.0, -0.05, -0.2);
+            targetAngles = Eigen::Vector3d(0.5*sin(2*t), 0.0, 0.0);
+        } else if (t > 8.0) {
+            frame = "origin";
+            targetPos = Eigen::Vector3d(0.0, -0.05, 0.05);
+            targetAngles = Eigen::Vector3d(0.0, 0.0, 0.5*sin(2*t));
+        } else if (t > 4.0) {
+            frame = "origin";
+            targetPos = Eigen::Vector3d(0.0, -0.05, 0.05);
+            targetAngles = Eigen::Vector3d(0.0, 0.5*sin(2*t), 0.0);
+        } else {
+            frame = "origin";
+            targetPos = Eigen::Vector3d(0.0, -0.05, 0.05);
+            targetAngles = Eigen::Vector3d(0.5*sin(2*t), 0.0, 0.0);
+        }
+        
+        //Add some pitch/roll on support leg
+        model.get().setDOF("left foot pitch", 0.5*sin(t/2.0));
+        model.get().setDOF("left foot roll", 0.5*sin(t/3.0));
+
+        //Run inverse kinematics on right legs
+        if (!model.get().legIkRight(frame, targetPos, targetAngles)) {
+            std::cout << "InverseKinematics fail" << std::endl;
+        }
+        
+        //Track moving point
+        viewer.addTrackedPoint(model.get()
+            .position("right foot tip", "origin"));
+        //Display model
+        Leph::ModelDraw(model.get(), viewer);
+        //Waiting
+        scheduling.wait();
+    }
+    
+    t = 0.0;
+    while (viewer.update()) {
+        t += 0.01;
+        
+        //Targets
+        Eigen::Vector3d targetPos;
+        Eigen::Vector3d targetAngles;
+        std::string frame;
+            
+        targetPos = Eigen::Vector3d(0.0, 0.05 + 0.05*sin(t/2), -0.15 + 0.05*sin(t/3));
+        if (t >= 12.0) {
+            break;
+        } else if (t >= 8.0) {
+            frame = "trunk";
+            targetAngles = Eigen::Vector3d(0.0, 0.0, 0.5*sin(2*t));
+        } else if (t >= 4.0) {
+            frame = "trunk";
+            targetAngles = Eigen::Vector3d(0.0, 0.5*sin(2*t), 0.0);
+        } else {
+            frame = "trunk";
+            targetAngles = Eigen::Vector3d(0.5*sin(2*t), 0.0, 0.0);
+        }
+        
+        //Run inverse kinematics on left legs
+        if (!model.get().legIkLeft(frame, targetPos, targetAngles)) {
+            std::cout << "InverseKinematics fail" << std::endl;
+        }
+        
         //Display model
         Leph::ModelDraw(model.get(), viewer);
         //Waiting

@@ -114,7 +114,7 @@ Frame3D Frame3D::from_euler(double psi, double theta, double phi) {
 		    cos(phi)*sin(psi) + sin(phi)*cos(theta)*cos(psi),
 		    sin(phi)*sin(theta));
   res[1] = Vector3D(-sin(phi)*cos(psi) - cos(phi)*cos(theta)*sin(psi),
-		    sin(phi)*sin(psi) + cos(phi)*cos(theta)*cos(psi),
+		    -sin(phi)*sin(psi) + cos(phi)*cos(theta)*cos(psi),
 		    cos(phi)*sin(theta));
   res[2] = Vector3D(sin(theta)*sin(psi),
 		    -sin(theta)*cos(psi),
@@ -237,7 +237,7 @@ bool IK::compute(Vector3D C, Frame3D orientation, Position & result) {
   /* step 11 : calcul de theta_4 */
   q = scalar_prod(phi, orientation[0]);
   bound(-1.0, 1.0, q);
-  double beta = sign(scalar_prod(vect_prod(phi, orientation[0]), zeta)) * acos(q);
+  double beta = -sign(scalar_prod(vect_prod(phi, orientation[0]), zeta)) * acos(q);
   result.theta[4] = beta + result.theta[3] - result.theta[2];
   IKDEBUG(printf("  step 11 ok.\n"));
 
