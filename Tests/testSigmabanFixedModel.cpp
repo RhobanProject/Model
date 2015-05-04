@@ -6,7 +6,7 @@
 
 int main()
 {
-    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
 
     Leph::ModelViewer viewer(1200, 900);
     viewer.frameLength = 0.02;

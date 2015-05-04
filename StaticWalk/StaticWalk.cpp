@@ -4,9 +4,9 @@
 
 namespace Leph {
 
-StaticWalk::StaticWalk(const std::string& urdfFile) :
+StaticWalk::StaticWalk(RobotType type) :
     _phase(0.0),
-    _model(urdfFile),
+    _model(type),
     _inverseModel(_model),
     _initCOMZOffset(0.0),
     _initFootYOffset(0.0)

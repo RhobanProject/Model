@@ -15,9 +15,9 @@ class StaticWalk
     public:
 
         /**
-         * Initialization with urdf model
+         * Initialization with robot type
          */
-        StaticWalk(const std::string& urdfFile);
+        StaticWalk(RobotType type);
 
         /**
          * Build and return initial parameters values

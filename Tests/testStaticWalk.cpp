@@ -8,13 +8,13 @@
 
 int main()
 {
-    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFloatingModel model(Leph::SigmabanModel);
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);
     viewer.frameLength = 0.02;
     
-    Leph::StaticWalk walk("../../Data/sigmaban.urdf");
+    Leph::StaticWalk walk(Leph::SigmabanModel);
     Leph::VectorLabel params = walk.buildParams();
     Leph::VectorLabel outputs = walk.initPose(params);
     model.setDOF(outputs);

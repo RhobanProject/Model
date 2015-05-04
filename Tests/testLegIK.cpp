@@ -7,7 +7,7 @@
 int main()
 {
     //Initialize instance
-    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFixedModel model(Leph::GrosbanModel);
     Leph::ModelViewer viewer(1200, 900);
     
     double freq = 50.0;

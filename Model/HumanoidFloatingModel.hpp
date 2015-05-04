@@ -26,9 +26,9 @@ class HumanoidFloatingModel : public HumanoidModel
         };
 
         /**
-         * Initialization with given URDF model
+         * Initialization with given robot model
          */
-        HumanoidFloatingModel(const std::string& urdfFile);
+        HumanoidFloatingModel(RobotType type);
 
         /**
          * Return the current support foot

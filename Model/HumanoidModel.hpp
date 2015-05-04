@@ -6,6 +6,16 @@
 namespace Leph {
 
 /**
+ * Enum for humanoid robot
+ * model type 
+ * (Sigmaban or Grosban)
+ */
+enum RobotType {
+    SigmabanModel,
+    GrosbanModel,
+};
+
+/**
  * HumanoidModel
  *
  * Inherit Model and implement
@@ -19,11 +29,11 @@ class HumanoidModel : public Model
 
         /**
          * Initialize the model with given
-         * URDF file and root updater
+         * Robot type and root updater
          * and enable floating base 6 DOF
          */
         HumanoidModel(
-            const std::string& urdfFile,
+            RobotType type,
             const std::string& frameRoot);
         
         /**
@@ -55,6 +65,11 @@ class HumanoidModel : public Model
             const Eigen::Vector3d& yawPitchRoll = Eigen::Vector3d::Zero());
 
     private:
+
+        /**
+         * Robot type (Sigmaban or Grosban)
+         */
+        RobotType _type;
 
         /**
          * Leg segments lengths used by

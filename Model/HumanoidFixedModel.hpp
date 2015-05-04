@@ -26,9 +26,9 @@ class HumanoidFixedModel
         };
 
         /**
-         * Initialization with given URDF model
+         * Initialization with given model type
          */
-        HumanoidFixedModel(const std::string& urdfFile);
+        HumanoidFixedModel(RobotType type);
         
         /**
          * Return the current support foot

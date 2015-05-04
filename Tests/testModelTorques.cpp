@@ -9,7 +9,7 @@
 int main()
 {
     //Model with left support foot
-    Leph::HumanoidFixedModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
     model.setSupportFoot(
         Leph::HumanoidFixedModel::LeftSupportFoot);
     

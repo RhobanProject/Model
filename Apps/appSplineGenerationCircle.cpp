@@ -20,7 +20,7 @@ int main()
 
     //Initialize instance
     Leph::Plot plot;
-    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFloatingModel model(Leph::SigmabanModel);
     Leph::InverseKinematics inverseModel(model);
     
     //Set foot model on zero z

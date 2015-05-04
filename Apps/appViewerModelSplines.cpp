@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     std::cout << "Loading " << splinesFile << std::endl;
 
     //Initialize instance
-    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFloatingModel model(Leph::SigmabanModel);
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
     Leph::SplineContainer<Leph::Spline> splines;

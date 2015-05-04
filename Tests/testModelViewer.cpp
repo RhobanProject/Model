@@ -6,7 +6,7 @@
 
 int main()
 {
-    Leph::HumanoidFloatingModel model("../../Data/sigmaban.urdf");
+    Leph::HumanoidFloatingModel model(Leph::SigmabanModel);
     model.putOnGround();
 
     Leph::ModelViewer viewer(1200, 900);

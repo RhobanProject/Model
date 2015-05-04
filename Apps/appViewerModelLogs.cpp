@@ -44,8 +44,8 @@ int main(int argc, char** argv)
         .render();
     
     //Initialize model instances
-    Leph::HumanoidFixedModel modelOutputs("../../Data/sigmaban.urdf");
-    Leph::HumanoidFixedModel modelMotors("../../Data/sigmaban.urdf");
+    Leph::HumanoidFixedModel modelOutputs(Leph::SigmabanModel);
+    Leph::HumanoidFixedModel modelMotors(Leph::SigmabanModel);
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
 

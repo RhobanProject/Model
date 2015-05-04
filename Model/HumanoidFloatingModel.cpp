@@ -3,8 +3,8 @@
 namespace Leph {
 
 HumanoidFloatingModel::HumanoidFloatingModel(
-    const std::string& urdfFile) :
-    HumanoidModel(urdfFile, "ROOT"),
+    RobotType type) :
+    HumanoidModel(type, "ROOT"),
     _supportFoot(LeftSupportFoot),
     _statePosX(0.0),
     _statePosY(0.0),

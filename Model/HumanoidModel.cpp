@@ -5,10 +5,19 @@
 namespace Leph {
 
 HumanoidModel::HumanoidModel(
-    const std::string& urdfFile,
+    RobotType type,
     const std::string& frameRoot) :
-    Model()
+    Model(),
+    _type(type)
 {
+    //Select used URDF model file
+    std::string urdfFile;
+    if (_type == SigmabanModel) {
+        urdfFile = "sigmaban.urdf";
+    } else if (_type == GrosbanModel) {
+        urdfFile = "grosban.urdf";
+    }
+
     //Load model from URDF file
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
@@ -113,13 +122,21 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     bool isSucess = ik.compute(
         legIKTarget, legIKMatrix, result);
 
-    //Update degrees of freeodm on success
+    //Update degrees of freedom on success
     if (isSucess) {
         Model::setDOF("left hip yaw", result.theta[0]);
         Model::setDOF("left hip roll", result.theta[1]);
-        Model::setDOF("left hip pitch", -result.theta[2]);
-        Model::setDOF("left knee", result.theta[3]);
-        Model::setDOF("left foot pitch", -result.theta[4]);
+        if (_type == GrosbanModel) {
+            //Handle non alignement in zero position
+            //of hip and ankle Z (zaw) axes (knee angle of grosban)
+            Model::setDOF("left hip pitch", -result.theta[2] - 0.0603);
+            Model::setDOF("left knee", result.theta[3] + 0.0603);
+            Model::setDOF("left foot pitch", -result.theta[4] + 0.0035);
+        } else {
+            Model::setDOF("left hip pitch", -result.theta[2]);
+            Model::setDOF("left knee", result.theta[3]);
+            Model::setDOF("left foot pitch", -result.theta[4]);
+        }
         Model::setDOF("left foot roll", result.theta[5]);
     } 
 
@@ -169,10 +186,19 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     if (isSucess) {
         Model::setDOF("right hip yaw", result.theta[0]);
         Model::setDOF("right hip roll", result.theta[1]);
-        Model::setDOF("right hip pitch", -result.theta[2]);
-        Model::setDOF("right knee", result.theta[3]);
-        Model::setDOF("right foot pitch", -result.theta[4]);
+        if (_type == GrosbanModel) {
+            //Handle non alignement in zero position
+            //of hip and ankle Z (zaw) axes (knee angle of grosban)
+            Model::setDOF("right hip pitch", -result.theta[2] - 0.0603);
+            Model::setDOF("right knee", result.theta[3] + 0.0603);
+            Model::setDOF("right foot pitch", -result.theta[4] + 0.0035);
+        } else {
+            Model::setDOF("right hip pitch", -result.theta[2]);
+            Model::setDOF("right knee", result.theta[3]);
+            Model::setDOF("right foot pitch", -result.theta[4]);
+        }
         Model::setDOF("right foot roll", result.theta[5]);
+        //-0.0603 0.0603 0.0035
     } 
 
     return isSucess;

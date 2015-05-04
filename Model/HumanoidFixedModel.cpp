@@ -3,10 +3,10 @@
 namespace Leph {
 
 HumanoidFixedModel::HumanoidFixedModel(
-    const std::string& urdfFile) :
+    RobotType type) :
     _supportFoot(LeftSupportFoot),
-    _modelLeft(urdfFile, "left foot tip"),
-    _modelRight(urdfFile, "right foot tip")
+    _modelLeft(type, "left foot tip"),
+    _modelRight(type, "right foot tip")
 {
 }
         
