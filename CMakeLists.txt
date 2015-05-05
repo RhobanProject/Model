@@ -130,6 +130,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
         appViewerModelLogs
+        appStaticTrajectoryOptimizationTorques
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
