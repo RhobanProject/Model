@@ -3,16 +3,16 @@
 #include <libcmaes/cmaes.h>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/SigmabanFixedModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Model/NullSpace.hpp"
 
 int main()
 {
     //Sigmaban foot fixed model
-    Leph::SigmabanFixedModel model;
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
     model.setSupportFoot(
-        Leph::SigmabanFixedModel::LeftSupportFoot);
+        Leph::HumanoidFixedModel::LeftSupportFoot);
 
     //Viewer
     Leph::ModelViewer viewer(1200, 900);
@@ -62,15 +62,16 @@ int main()
     inv.addTargetCOM();
     inv.targetCOM().z() -= 0.04;
     //Set flying foot constraints
-    inv.addTargetOrientation("flying foot", "right foot tip");
     inv.addTargetPosition("flying foot", "right foot tip");
+    inv.addTargetOrientation("flying foot", "right foot tip");
         
     //Initial convergence
     inv.run(0.0001, 100);
 
-    //Explore and discretize the Nullspace
     std::vector<Eigen::VectorXd> exploredContainer;
+    //Set up Nullspace
     Leph::NullSpace nullspace(inv);
+    //Explore and discretize the Nullspace
     nullspace.exploreKernelDiscretized(
         inv.getDOFSubset(), exploredContainer, 0.1, 20000, false); 
 
@@ -93,7 +94,7 @@ int main()
     size_t index = 0;
     double t = 0;
     while (viewer.update()) {
-        t += 0.02;
+        t += 0.005;
         inv.setDOFSubset(exploredContainer[index]);
         
         Leph::ModelDraw(model.get(), viewer);
