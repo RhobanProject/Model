@@ -13,7 +13,7 @@ int main()
     //URDF loading
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
-        "../../Data/sigmaban-2015-03-24.urdf", &modelOld, false)
+        "sigmaban.urdf", &modelOld, false)
     ) {
         std::runtime_error("Model unable to load URDF file");
     }

@@ -3,7 +3,7 @@
 
 int main()
 {
-    Leph::Model model("../../Data/sigmaban-2015-03-24.urdf");
+    Leph::Model model("sigmaban.urdf");
     std::cout << "DOF " << model.sizeDOF() << std::endl;
     Leph::VectorLabel dof = model.getDOF();
     std::cout << dof << std::endl;
