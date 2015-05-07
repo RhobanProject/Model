@@ -3,7 +3,8 @@
 ### Thesis (2014-201?)
 ###
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
+include(/usr/share/cmake-3.0/Modules/ExternalProject.cmake)
 project(Thesis)
 
 #Option for compiling the tests and apps
@@ -15,21 +16,21 @@ option(BUILD_LEPH_CODE_VIEWER "Build Leph Code Viewer (SFML)" OFF)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 #Include Eigen (linear algebra template library)
-set(EIGEN_DIRECTORY "Eigen" CACHE STRING "Eigen lib directory")
+set(EIGEN_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/Eigen" CACHE STRING "Eigen lib directory")
 include_directories(${EIGEN_DIRECTORY})
 
 #Include RBDL (dynamic and geometric robot library)
-set(RBDL_DIRECTORY "RBDL" CACHE STRING "RBDL lib directory")
+set(RBDL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RBDL" CACHE STRING "RBDL lib directory")
 include_directories(${RBDL_DIRECTORY}/addons)
 include_directories(${RBDL_DIRECTORY}/include)
-include_directories(${RBDL_DIRECTORY}/build/include)
-link_directories(${RBDL_DIRECTORY}/build)
-link_directories(${RBDL_DIRECTORY}/build/addons/urdfreader)
+include_directories(${CMAKE_BINARY_DIR}/Vendors/RBDL/include)
+link_directories(${CMAKE_BINARY_DIR}/Vendors/RBDL)
+link_directories(${CMAKE_BINARY_DIR}/Vendors/RBDL/urdfreader)
 
 #Include LibCMAES (Black box non linear stochastic optimization)
-set(LIBCMAES_DIRECTORY "LibCMAES" CACHE STRING "LibCMAES lib directory")
-include_directories(${LIBCMAES_DIRECTORY}/include)
-link_directories(${LIBCMAES_DIRECTORY}/lib)
+set(LIBCMAES_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibCMAES" CACHE STRING "LibCMAES lib directory")
+include_directories(${LIBCMAES_DIRECTORY})
+link_directories(${CMAKE_BINARY_DIR}/Vendors/LibCMAES)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
 #Include SFML (graphic library)
@@ -108,6 +109,19 @@ set(CODE_LIBRARIES
     rbdl_urdfreader
     cmaes
 )
+
+#Build LibCMAES vendors
+add_subdirectory(${LIBCMAES_DIRECTORY})
+
+#Build RBDL vendors
+set(RBDL_BUILD_ADDON_URDFREADER ON CACHE BOOL "Build RBDL URDF Addon")
+add_subdirectory(${RBDL_DIRECTORY})
+
+#Add URDF model symbolic link
+execute_process(COMMAND "/bin/bash" "-c" 
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban.urdf sigmaban.urdf")
+execute_process(COMMAND "/bin/bash" "-c" 
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)
