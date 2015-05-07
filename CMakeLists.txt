@@ -4,7 +4,6 @@
 ###
 
 cmake_minimum_required(VERSION 3.0)
-include(/usr/share/cmake-3.0/Modules/ExternalProject.cmake)
 project(Thesis)
 
 #Option for compiling the tests and apps
