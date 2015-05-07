@@ -1,0 +1,1253 @@
+<robot
+  name="URDF">
+  <link
+    name="trunk_link">
+    <inertial>
+      <origin
+        xyz="-0.00232235982357969 -1.47650547921811E-05 0.0727723385732402"
+        rpy="0 0 0" />
+      <mass
+        value="1.17617061217883" />
+      <inertia
+        ixx="0.0047355866054342"
+        ixy="8.46086363384265E-07"
+        ixz="-1.72920181390288E-05"
+        iyy="0.00370850949536424"
+        iyz="1.85537812835413E-07"
+        izz="0.00279422271898294" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/trunk_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.294117647058824 0.294117647058824 0.294117647058824 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/trunk_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="left_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.00450575833558915 -2.34438066016099E-06 -0.0303191864817343"
+        rpy="0 0 0" />
+      <mass
+        value="0.0221154306709298" />
+      <inertia
+        ixx="4.39267600793309E-06"
+        ixy="-5.21554212028579E-09"
+        ixz="4.013124607556E-08"
+        iyy="1.42379699066783E-05"
+        iyz="-1.57581288966128E-11"
+        izz="1.31984212294399E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_yaw"
+    type="continuous">
+    <origin
+      xyz="0.011127 0.046361 0.0105"
+      rpy="-1.5148E-15 8.2889E-19 -0.00053101" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="left_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="left_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133669444 3.24745426863726E-05 -0.0154198792870861"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943899458" />
+      <inertia
+        ixx="0.000119172372193149"
+        ixy="1.33911779901627E-07"
+        ixz="1.08741202264295E-05"
+        iyy="0.000263025298054683"
+        iyz="-6.91457667690666E-07"
+        izz="0.00022289651904019" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_roll"
+    type="continuous">
+    <origin
+      xyz="-0.0004 0 -0.0505"
+      rpy="7.3057E-05 -6.6174E-24 -0.00054721" />
+    <parent
+      link="left_hip_yaw_link" />
+    <child
+      link="left_hip_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="left_hip_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0119836818094348 -4.30614813185688E-05 -0.0855707224243745"
+        rpy="0 0 0" />
+      <mass
+        value="0.202137214835629" />
+      <inertia
+        ixx="0.000136336728498792"
+        ixy="7.17652002595342E-07"
+        ixz="1.96145711437226E-05"
+        iyy="0.000146767195733494"
+        iyz="7.10378195361103E-08"
+        izz="9.4778667767201E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_hip_roll_link" />
+    <child
+      link="left_hip_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_knee_link">
+    <inertial>
+      <origin
+        xyz="5.55111512312578E-17 5.96744875736022E-16 -0.05252375440872"
+        rpy="0 0 0" />
+      <mass
+        value="0.042918412240062" />
+      <inertia
+        ixx="8.26506713603174E-05"
+        ixy="-2.87775273500472E-20"
+        ixz="1.36920406085989E-19"
+        iyy="5.98794313177617E-05"
+        iyz="-2.69241656466184E-19"
+        izz="2.87809261264632E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_knee_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_knee_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_knee"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.09375"
+      rpy="0 0 0" />
+    <parent
+      link="left_hip_pitch_link" />
+    <child
+      link="left_knee_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_foot_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133662443 -3.24745431379593E-05 0.0154198792861389"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943886111" />
+      <inertia
+        ixx="0.000119172372185717"
+        ixy="-1.33911777994784E-07"
+        ixz="-1.08741202223999E-05"
+        iyy="0.000263025298045364"
+        iyz="-6.91457670579697E-07"
+        izz="0.000222896519035544" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_foot_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.105"
+      rpy="0 0 0" />
+    <parent
+      link="left_knee_link" />
+    <child
+      link="left_foot_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_foot_roll_link">
+    <inertial>
+      <origin
+        xyz="0.0028909 0.0018044 -0.027881"
+        rpy="0 0 0" />
+      <mass
+        value="0.076822" />
+      <inertia
+        ixx="2.8788E-05"
+        ixy="-1.1019E-07"
+        ixz="4.4166E-07"
+        iyy="8.7896E-05"
+        iyz="-4.3148E-07"
+        izz="0.00010753" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_foot_rool"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_foot_pitch_link" />
+    <child
+      link="left_foot_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="left_foot_tip_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+  </link>
+  <joint
+    name="left_foot_tip_fixed"
+    type="fixed">
+    <origin
+      xyz="0.0004 0 -0.031993"
+      rpy="0 0 0" />
+    <parent
+      link="left_foot_roll_link" />
+    <child
+      link="left_foot_tip_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="right_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.00450575833558694 -2.34438066049059E-06 -0.030319186481734"
+        rpy="0 0 0" />
+      <mass
+        value="0.0221154306709298" />
+      <inertia
+        ixx="4.3926760079331E-06"
+        ixy="-5.21554212034888E-09"
+        ixz="4.01312460755482E-08"
+        iyy="1.42379699066784E-05"
+        iyz="-1.57581288931168E-11"
+        izz="1.31984212294399E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_yaw"
+    type="continuous">
+    <origin
+      xyz="0.0111273159824857 -0.0463847022119938 0.0105000000000006"
+      rpy="-1.51475240770665E-15 8.28887913337337E-19 -0.000531011219113274" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="right_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="right_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133655078 3.24745421573652E-05 -0.0154198792888532"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943867497" />
+      <inertia
+        ixx="0.000119172372178633"
+        ixy="1.33911772701202E-07"
+        ixz="1.08741202336767E-05"
+        iyy="0.000263025298020141"
+        iyz="-6.91457670394018E-07"
+        izz="0.00022289651900914" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_roll"
+    type="continuous">
+    <origin
+      xyz="-0.000399999940109093 0 -0.0505000000000031"
+      rpy="7.30574676945229E-05 -6.61744488276427E-24 -0.000547209476051885" />
+    <parent
+      link="right_hip_yaw_link" />
+    <child
+      link="right_hip_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="right_hip_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0119836810804889 4.30588124159248E-05 -0.0855711433770447"
+        rpy="0 0 0" />
+      <mass
+        value="0.202137214835628" />
+      <inertia
+        ixx="0.000136338120462165"
+        ixy="-7.17597531747796E-07"
+        ixz="1.96125448678709E-05"
+        iyy="0.000146768591181924"
+        iyz="-7.1062507256108E-08"
+        izz="9.47786713451786E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_hip_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="right_hip_roll_link" />
+    <child
+      link="right_hip_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="right_knee_link">
+    <inertial>
+      <origin
+        xyz="1.17961196366423E-16 -2.12330153459561E-15 -0.0524762455912815"
+        rpy="0 0 0" />
+      <mass
+        value="0.042918412240062" />
+      <inertia
+        ixx="8.26506448874025E-05"
+        ixy="2.45524033052564E-08"
+        ixz="-1.26777371451495E-19"
+        iyy="5.98794577906814E-05"
+        iyz="7.35353984891105E-20"
+        izz="2.8780926126468E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_knee_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_knee_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_knee"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.0937499999999984"
+      rpy="0 0 0.00107822069805326" />
+    <parent
+      link="right_hip_pitch_link" />
+    <child
+      link="right_knee_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="right_foot_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133662443 -3.24745431379836E-05 0.0154198792861389"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943886111" />
+      <inertia
+        ixx="0.000119172372185717"
+        ixy="-1.3391177799461E-07"
+        ixz="-1.08741202223998E-05"
+        iyy="0.000263025298045364"
+        iyz="-6.91457670579711E-07"
+        izz="0.000222896519035544" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_foot_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_foot_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_foot_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.105"
+      rpy="0 0 -0.0010782" />
+    <parent
+      link="right_knee_link" />
+    <child
+      link="right_foot_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="right_foot_roll_link">
+    <inertial>
+      <origin
+        xyz="0.00289092274874872 -0.00180442825300009 -0.0278853705927112"
+        rpy="0 0 0" />
+      <mass
+        value="0.0768216494717704" />
+      <inertia
+        ixx="2.87906351680955E-05"
+        ixy="1.09837971191663E-07"
+        ixz="4.41960559414682E-07"
+        iyy="8.78982544752007E-05"
+        iyz="4.31724494579058E-07"
+        izz="0.000107533240478163" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_foot_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_foot_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_foot_roll"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="right_foot_pitch_link" />
+    <child
+      link="right_foot_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="right_foot_tip_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+  </link>
+  <joint
+    name="right_foot_tip_fixed"
+    type="fixed">
+    <origin
+      xyz="0.0004 0 -0.032"
+      rpy="0 0 0" />
+    <parent
+      link="right_foot_roll_link" />
+    <child
+      link="right_foot_tip_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="left_arm_pitch_link">
+    <inertial>
+      <origin
+        xyz="5.31519273039294E-15 0.028077798914085 -1.72084568816899E-15"
+        rpy="0 0 0" />
+      <mass
+        value="0.0108311828445786" />
+      <inertia
+        ixx="1.54714572957802E-06"
+        ixy="-1.58351027119878E-19"
+        ixz="-1.09265775956257E-21"
+        iyy="3.66169817028284E-06"
+        iyz="-1.35406131703086E-19"
+        izz="3.81842758975456E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_arm_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_arm_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_arm_pitch"
+    type="continuous">
+    <origin
+      xyz="0.0111273159824835 0.0463607067979427 0.141000000000005"
+      rpy="4.91888973129517E-16 6.34190653024847E-17 -0.00107822069516516" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="left_arm_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_arm_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.0025243267567024 -0.000367880599127832 -0.0297911412971589"
+        rpy="0 0 0" />
+      <mass
+        value="0.112091465246663" />
+      <inertia
+        ixx="0.000130169825198038"
+        ixy="1.84098072169005E-07"
+        ixz="1.40495418724601E-05"
+        iyy="0.000134783604119744"
+        iyz="1.49762271269088E-06"
+        izz="2.393314061516E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_arm_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.294117647058824 0.294117647058824 0.294117647058824 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_arm_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_arm_roll"
+    type="continuous">
+    <origin
+      xyz="0 0.046 0"
+      rpy="7.30574676925163E-05 -6.34190653024847E-17 7.52316386533968E-37" />
+    <parent
+      link="left_arm_pitch_link" />
+    <child
+      link="left_arm_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="left_elbow_link">
+    <inertial>
+      <origin
+        xyz="-0.00335646061533863 -3.39068633495171E-05 -0.0270403422886161"
+        rpy="0 0 0" />
+      <mass
+        value="0.106029879513441" />
+      <inertia
+        ixx="0.000121182769560882"
+        ixy="-1.20659604104695E-08"
+        ixz="1.9674354832353E-05"
+        iyy="0.000119883995447342"
+        iyz="2.40378715569657E-07"
+        izz="2.21808650858734E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_elbow_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.294117647058824 0.294117647058824 0.294117647058824 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_elbow_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_elbow"
+    type="continuous">
+    <origin
+      xyz="0.0110000000000031 -0.00100697698549028 -0.0954999266876771"
+      rpy="-7.30574676925524E-05 -1.09269268670997E-16 7.98293607992287E-21" />
+    <parent
+      link="left_arm_roll_link" />
+    <child
+      link="left_elbow_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_arm_tip_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+  </link>
+  <joint
+    name="left_arm_tip_fixed"
+    type="fixed">
+    <origin
+      xyz="-0.017 0 -0.12921"
+      rpy="7.3057E-05 1.0927E-16 0" />
+    <parent
+      link="left_elbow_link" />
+    <child
+      link="left_arm_tip_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="right_arm_pitch_link">
+    <inertial>
+      <origin
+        xyz="7.84095011141517E-15 -0.0280777989140975 -2.94209101525666E-15"
+        rpy="0 0 0" />
+      <mass
+        value="0.0108311828445787" />
+      <inertia
+        ixx="1.54714572957802E-06"
+        ixy="-1.64680304189292E-19"
+        ixz="-8.10338702591955E-21"
+        iyy="3.66169817028284E-06"
+        iyz="1.36335986109172E-19"
+        izz="3.81842758975456E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_arm_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_arm_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rigth_arm_pitch"
+    type="continuous">
+    <origin
+      xyz="0.0111273159824815 -0.0463847022119884 0.141000000000006"
+      rpy="4.91888973129517E-16 6.34190653024847E-17 -0.00107822069516516" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="right_arm_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="right_arm_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.0025239 0.00036843 -0.029791"
+        rpy="0 0 0" />
+      <mass
+        value="0.11209" />
+      <inertia
+        ixx="0.00013017"
+        ixy="-1.8805E-07"
+        ixz="1.4048E-05"
+        iyy="0.00013478"
+        iyz="-1.5047E-06"
+        izz="2.3933E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_arm_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.29412 0.29412 0.29412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_arm_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_arm_roll"
+    type="continuous">
+    <origin
+      xyz="0 -0.046 0"
+      rpy="-1.3665338392116E-14 -7.87720585415642E-08 0.00107822069514385" />
+    <parent
+      link="right_arm_pitch_link" />
+    <child
+      link="right_arm_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="right_elbow_link">
+    <inertial>
+      <origin
+        xyz="-0.0033565 3.3907E-05 -0.02704"
+        rpy="0 0 0" />
+      <mass
+        value="0.10603" />
+      <inertia
+        ixx="0.00012118"
+        ixy="1.2068E-08"
+        ixz="1.9674E-05"
+        iyy="0.00011988"
+        iyz="-2.4038E-07"
+        izz="2.2181E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_elbow_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.29412 0.29412 0.29412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/right_elbow_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_elbow"
+    type="continuous">
+    <origin
+      xyz="0.0110010643036779 0.000988138993373119 -0.0955000008665828"
+      rpy="-8.49201152241599E-11 7.87720137245097E-08 -0.00107822069514385" />
+    <parent
+      link="right_arm_roll_link" />
+    <child
+      link="right_elbow_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="right_arm_tip_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+  </link>
+  <joint
+    name="right_arm_tip_fixed"
+    type="fixed">
+    <origin
+      xyz="-0.017 0 -0.12921"
+      rpy="7.3057E-05 -1.0202E-15 0" />
+    <parent
+      link="right_elbow_link" />
+    <child
+      link="right_arm_tip_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="pan_link">
+    <inertial>
+      <origin
+        xyz="-3.747E-16 1.5023E-15 0.028078"
+        rpy="0 0 0" />
+      <mass
+        value="0.010831" />
+      <inertia
+        ixx="3.8184E-06"
+        ixy="2.4489E-09"
+        ixz="1.3337E-19"
+        iyy="1.5471E-06"
+        iyz="1.8983E-19"
+        izz="3.6617E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/pan_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/pan_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="pan"
+    type="continuous">
+    <origin
+      xyz="0.02687 -2.9396E-05 0.1525"
+      rpy="-1.3173E-14 1.4204E-17 -2.1314E-14" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="pan_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="tilt_link">
+    <inertial>
+      <origin
+        xyz="-0.0040924 -1.6173E-05 0.023653"
+        rpy="0 0 0" />
+      <mass
+        value="0.1509" />
+      <inertia
+        ixx="0.00010359"
+        ixy="2.4856E-07"
+        ixz="9.1766E-06"
+        iyy="7.6521E-05"
+        iyz="-1.1622E-07"
+        izz="6.8552E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/tilt_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.29412 0.29412 0.29412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/tilt_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="tilt"
+    type="continuous">
+    <origin
+      xyz="0 0 0.046"
+      rpy="1.3514E-14 9.7219E-31 -0.0010782" />
+    <parent
+      link="pan_link" />
+    <child
+      link="tilt_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="camera_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+  </link>
+  <joint
+    name="camera_fixed"
+    type="fixed">
+    <origin
+      xyz="0.015352 1.8405E-05 0.041705"
+      rpy="0 7.5232E-37 -6.7708E-33" />
+    <parent
+      link="tilt_link" />
+    <child
+      link="camera_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
