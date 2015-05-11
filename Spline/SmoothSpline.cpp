@@ -52,16 +52,15 @@ void SmoothSpline::computeSplines()
 
     for (size_t i=1;i<_points.size();i++) {
         double time = _points[i].time - _points[i-1].time;
-        if (time < 0.00001) {
-            throw std::logic_error("SmoothSpline invalid spline range");
+        if (time > 0.00001) {
+            Spline::_splines.push_back({
+                polynomFit(time,
+                    _points[i-1].position, _points[i-1].velocity, _points[i-1].acceleration,
+                    _points[i].position, _points[i].velocity, _points[i].acceleration),
+                _points[i-1].time,
+                _points[i].time
+            });
         }
-        Spline::_splines.push_back({
-            polynomFit(time,
-                _points[i-1].position, _points[i-1].velocity, _points[i-1].acceleration,
-                _points[i].position, _points[i].velocity, _points[i].acceleration),
-            _points[i-1].time,
-            _points[i].time
-        });
     }
 }
 
