@@ -15,6 +15,20 @@ Scheduling::Scheduling() :
     _timeOld = std::chrono::system_clock::now();
     _timeNew = std::chrono::system_clock::now();
 }
+Scheduling::Scheduling(double frequency) :
+    _frequency(0.0),
+    _timeOld(),
+    _timeNew(),
+    _isLastError(false),
+    _lastError(0.0),
+    _timestamp()
+{
+    _timestamp = std::chrono::system_clock::now();
+    _timeOld = std::chrono::system_clock::now();
+    _timeNew = std::chrono::system_clock::now();
+
+    setFrequency(frequency);
+}
         
 double Scheduling::getFrequency() const
 {

@@ -17,9 +17,11 @@ class Scheduling
     public:
 
         /**
-         * Initialization
+         * Initialization with
+         * initial frequency
          */
         Scheduling();
+        Scheduling(double frequency);
 
         /**
          * Set and get Scheduling frequency
