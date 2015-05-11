@@ -3,7 +3,7 @@
 ### Thesis (2014-201?)
 ###
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 project(Thesis)
 
 #Option for compiling the tests and apps
