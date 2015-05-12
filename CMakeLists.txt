@@ -11,24 +11,27 @@ option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
 option(BUILD_LEPH_CODE_APPS "Build Leph Code Apps" OFF)
 option(BUILD_LEPH_CODE_VIEWER "Build Leph Code Viewer (SFML)" OFF)
 
+#Includes directories lists
+set(LEPHCODE_INCLUDE_DIRECTORIES "")
+
 #Include sources directory
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR})
 
 #Include Eigen (linear algebra template library)
 set(EIGEN_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/Eigen" CACHE STRING "Eigen lib directory")
-include_directories(${EIGEN_DIRECTORY})
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${EIGEN_DIRECTORY})
 
 #Include RBDL (dynamic and geometric robot library)
 set(RBDL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RBDL" CACHE STRING "RBDL lib directory")
-include_directories(${RBDL_DIRECTORY}/addons)
-include_directories(${RBDL_DIRECTORY}/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/include)
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RBDL_DIRECTORY}/addons)
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RBDL_DIRECTORY}/include)
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/include)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/urdfreader)
 
 #Include LibCMAES (Black box non linear stochastic optimization)
 set(LIBCMAES_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibCMAES" CACHE STRING "LibCMAES lib directory")
-include_directories(${LIBCMAES_DIRECTORY})
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBCMAES_DIRECTORY})
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibCMAES)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
@@ -124,7 +127,7 @@ execute_process(COMMAND "/bin/bash" "-c"
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)
-    include_directories(${SFML_DIRECTORY}/include)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${SFML_DIRECTORY}/include)
     link_directories(${SFML_DIRECTORY}/lib)
     set(SOURCES_FILES ${SOURCES_FILES} 
         Viewer/ModelViewer.cpp
@@ -153,6 +156,9 @@ if (BUILD_LEPH_CODE_VIEWER)
         GLU
     )
 endif (BUILD_LEPH_CODE_VIEWER)
+
+#Include need directories
+include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
 
 #Build Code as static library
 add_library(LephCode STATIC ${SOURCES_FILES})
