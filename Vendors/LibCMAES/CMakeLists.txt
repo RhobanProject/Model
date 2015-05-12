@@ -26,7 +26,7 @@ set(SOURCES_FILES
     src/cmaparameters.cc
     src/cmastrategy.cc
     src/esostrategy.cc
-    src/surrogatestrategy.cc
+    #src/surrogatestrategy.cc
 )
 
 #Special flags
