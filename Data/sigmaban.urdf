@@ -966,7 +966,7 @@
     </collision>
   </link>
   <joint
-    name="rigth_arm_pitch"
+    name="right_arm_pitch"
     type="continuous">
     <origin
       xyz="0.0111273159824815 -0.0463847022119884 0.141000000000006"
