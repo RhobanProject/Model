@@ -9,6 +9,12 @@ ModelViewer::ModelViewer(unsigned int width,
         sf::Style::Default, sf::ContextSettings(32)),
     _camPos(0.0, 0.0, 0.0),
     _camView(1.0, 0.0, 0.0),
+    _trajectoryRed(),
+    _trajectoryGreen(),
+    _trajectoryBlue(),
+    _trajectoryYellow(),
+    _trajectoryPurple(),
+    _trajectoryCyan(),
     _lastMousePosX(0),
     _lastMousePosY(0)
 {
@@ -223,28 +229,125 @@ void ModelViewer::drawBox(double sizeX, double sizeY, double sizeZ,
     glPopMatrix();
 }
         
-void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point)
+void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point, 
+    Color color)
 {
-    _trajectory.push_back(point);
-    while (_trajectory.size() > maxTrajectory) {
-        _trajectory.pop_front();
+    if (color == Red) {
+        _trajectoryRed.push_back(point);
+        while (_trajectoryRed.size() > maxTrajectory) {
+            _trajectoryRed.pop_front();
+        }
+    }
+    if (color == Green) {
+        _trajectoryGreen.push_back(point);
+        while (_trajectoryGreen.size() > maxTrajectory) {
+            _trajectoryGreen.pop_front();
+        }
+    }
+    if (color == Green) {
+        _trajectoryGreen.push_back(point);
+        while (_trajectoryGreen.size() > maxTrajectory) {
+            _trajectoryGreen.pop_front();
+        }
+    }
+    if (color == Blue) {
+        _trajectoryBlue.push_back(point);
+        while (_trajectoryBlue.size() > maxTrajectory) {
+            _trajectoryBlue.pop_front();
+        }
+    }
+    if (color == Yellow) {
+        _trajectoryYellow.push_back(point);
+        while (_trajectoryYellow.size() > maxTrajectory) {
+            _trajectoryYellow.pop_front();
+        }
+    }
+    if (color == Purple) {
+        _trajectoryPurple.push_back(point);
+        while (_trajectoryPurple.size() > maxTrajectory) {
+            _trajectoryPurple.pop_front();
+        }
+    }
+    if (color == Cyan) {
+        _trajectoryCyan.push_back(point);
+        while (_trajectoryCyan.size() > maxTrajectory) {
+            _trajectoryCyan.pop_front();
+        }
     }
 }
 void ModelViewer::drawTrajectory()
 {
-    if (_trajectory.size() == 0) {
-        return;
+    if (_trajectoryRed.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryRed.front();
+        for (const Eigen::Vector3d& pt : _trajectoryRed) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(1.0, 0.0, 0.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
     }
-
-    Eigen::Vector3d oldPt = _trajectory.front();
-    for (const Eigen::Vector3d& pt : _trajectory) {
-        glLineWidth(frameThickness);
-        glBegin(GL_LINES);
-            glColor3f(1.0, 0.0, 0.0);
-            glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
-            glVertex3f(pt.x(), pt.y(), pt.z());
-        glEnd();
-        oldPt = pt;
+    if (_trajectoryGreen.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryGreen.front();
+        for (const Eigen::Vector3d& pt : _trajectoryGreen) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(0.0, 1.0, 0.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
+    }
+    if (_trajectoryBlue.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryBlue.front();
+        for (const Eigen::Vector3d& pt : _trajectoryBlue) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(0.0, 0.0, 1.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
+    }
+    if (_trajectoryYellow.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryYellow.front();
+        for (const Eigen::Vector3d& pt : _trajectoryYellow) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(1.0, 1.0, 0.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
+    }
+    if (_trajectoryPurple.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryPurple.front();
+        for (const Eigen::Vector3d& pt : _trajectoryPurple) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(1.0, 0.0, 1.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
+    }
+    if (_trajectoryCyan.size() != 0) {
+        Eigen::Vector3d oldPt = _trajectoryCyan.front();
+        for (const Eigen::Vector3d& pt : _trajectoryCyan) {
+            glLineWidth(frameThickness);
+            glBegin(GL_LINES);
+                glColor3f(0.0, 1.0, 1.0);
+                glVertex3f(oldPt.x(), oldPt.y(), oldPt.z());
+                glVertex3f(pt.x(), pt.y(), pt.z());
+            glEnd();
+            oldPt = pt;
+        }
     }
 }
 

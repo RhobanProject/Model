@@ -18,6 +18,18 @@ class ModelViewer
     public:
 
         /**
+         * Enum for point tracker color
+         */
+        enum Color {
+            Red,
+            Green,
+            Blue,
+            Yellow,
+            Purple,
+            Cyan,
+        };
+
+        /**
          * Drawing config
          */
         double frameLength = 0.02;
@@ -89,7 +101,9 @@ class ModelViewer
         /**
          * Add a position for drawing trajectory
          */
-        void addTrackedPoint(const Eigen::Vector3d& point);
+        void addTrackedPoint(
+            const Eigen::Vector3d& point,
+            Color color = Red);
 
         /**
          * Draw rolling point trajectory
@@ -112,7 +126,12 @@ class ModelViewer
         /**
          * Rolling history of tracked point trajectory
          */
-        std::list<Eigen::Vector3d> _trajectory;
+        std::list<Eigen::Vector3d> _trajectoryRed;
+        std::list<Eigen::Vector3d> _trajectoryGreen;
+        std::list<Eigen::Vector3d> _trajectoryBlue;
+        std::list<Eigen::Vector3d> _trajectoryYellow;
+        std::list<Eigen::Vector3d> _trajectoryPurple;
+        std::list<Eigen::Vector3d> _trajectoryCyan;
 
         /**
          * Last recorded mouse position
