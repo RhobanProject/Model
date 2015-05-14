@@ -50,6 +50,13 @@ class HumanoidFloatingModel : public HumanoidModel
          */
         void putOnGround();
 
+        /**
+         * Manually set model position 
+         */
+        void setStatePosX(double val);
+        void setStatePosY(double val);
+        void setStateRotYaw(double val);
+
     private:
 
         /**

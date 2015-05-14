@@ -1,6 +1,5 @@
 #include "Model/RBDLRootUpdate.h"
 #include "Model/HumanoidModel.hpp"
-#include "LegIK/LegIK.hpp"
 
 namespace Leph {
 
@@ -54,8 +53,12 @@ HumanoidModel::HumanoidModel(
     _legHipToKnee = (hipPt-kneePt).norm();
     _legKneeToAnkle = (kneePt-anklePt).norm();
     _legAnkleToGround = (anklePt-footPt).norm();
+    //Compute standart translation 
+    //from trunk in zero position
     _trunkToHipLeft = Model::position("left hip roll", "trunk");
     _trunkToHipRight = Model::position("right hip roll", "trunk");
+    _trunkToFootTipLeft = Model::position("left foot tip", "trunk");
+    _trunkToFootTipRight = Model::position("right foot tip", "trunk");
 }
         
 HumanoidModel::~HumanoidModel()
@@ -108,31 +111,12 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
         _legKneeToAnkle, _legAnkleToGround);
     //Convert foot position from given 
     //target to LegIK base
-    Eigen::Vector3d target = Model::position(
-        frame, "trunk", footPos);
-    target -= _trunkToHipLeft; 
+    LegIK::Vector3D legIKTarget = buildTargetPos(
+        frame, footPos, true);
     //Convert orientation from given frame
     //to LegIK base
-    Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(yawPitchRoll);
-    Eigen::Matrix3d rotMatrixtarget = 
-        rotMatrixFrame * Model::orientation(frame, "trunk");
-    
-    //Building LegIK input target position 
-    //and orientation data structure
-    LegIK::Vector3D legIKTarget;
-    legIKTarget[0] = target(0);
-    legIKTarget[1] = target(1);
-    legIKTarget[2] = target(2);
-    LegIK::Frame3D legIKMatrix;
-    legIKMatrix[0][0] = rotMatrixtarget(0, 0);
-    legIKMatrix[0][1] = rotMatrixtarget(0, 1);
-    legIKMatrix[0][2] = rotMatrixtarget(0, 2);
-    legIKMatrix[1][0] = rotMatrixtarget(1, 0);
-    legIKMatrix[1][1] = rotMatrixtarget(1, 1);
-    legIKMatrix[1][2] = rotMatrixtarget(1, 2);
-    legIKMatrix[2][0] = rotMatrixtarget(2, 0);
-    legIKMatrix[2][1] = rotMatrixtarget(2, 1);
-    legIKMatrix[2][2] = rotMatrixtarget(2, 2);
+    LegIK::Frame3D legIKMatrix = buildTargetOrientation(
+        frame, yawPitchRoll);
     
     //Run inverse kinematics
     LegIK::Position result;
@@ -141,20 +125,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
 
     //Update degrees of freedom on success
     if (isSucess) {
-        Model::setDOF("left hip yaw", result.theta[0]);
-        Model::setDOF("left hip roll", result.theta[1]);
-        if (_type == GrosbanModel) {
-            //Handle non alignement in zero position
-            //of hip and ankle Z (zaw) axes (knee angle of grosban)
-            Model::setDOF("left hip pitch", -result.theta[2] - 0.0603);
-            Model::setDOF("left knee", result.theta[3] + 0.0603);
-            Model::setDOF("left foot pitch", -result.theta[4] + 0.0035);
-        } else {
-            Model::setDOF("left hip pitch", -result.theta[2]);
-            Model::setDOF("left knee", result.theta[3]);
-            Model::setDOF("left foot pitch", -result.theta[4]);
-        }
-        Model::setDOF("left foot roll", result.theta[5]);
+        setIKResult(result, true);
     } 
 
     return isSucess;
@@ -168,57 +139,34 @@ bool HumanoidModel::legIkRight(const std::string& frame,
         _legKneeToAnkle, _legAnkleToGround);
     //Convert foot position from given 
     //target to LegIK base
-    Eigen::Vector3d target = Model::position(
-        frame, "trunk", footPos);
-    target -= _trunkToHipRight; 
+    LegIK::Vector3D legIKTarget = buildTargetPos(
+        frame, footPos, false);
     //Convert orientation from given frame
     //to LegIK base
-    Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(yawPitchRoll);
-    Eigen::Matrix3d rotMatrixtarget = 
-        rotMatrixFrame * Model::orientation(frame, "trunk");
-    
-    //Building LegIK input target position 
-    //and orientation data structure
-    LegIK::Vector3D legIKTarget;
-    legIKTarget[0] = target(0);
-    legIKTarget[1] = target(1);
-    legIKTarget[2] = target(2);
-    LegIK::Frame3D legIKMatrix;
-    legIKMatrix[0][0] = rotMatrixtarget(0, 0);
-    legIKMatrix[0][1] = rotMatrixtarget(0, 1);
-    legIKMatrix[0][2] = rotMatrixtarget(0, 2);
-    legIKMatrix[1][0] = rotMatrixtarget(1, 0);
-    legIKMatrix[1][1] = rotMatrixtarget(1, 1);
-    legIKMatrix[1][2] = rotMatrixtarget(1, 2);
-    legIKMatrix[2][0] = rotMatrixtarget(2, 0);
-    legIKMatrix[2][1] = rotMatrixtarget(2, 1);
-    legIKMatrix[2][2] = rotMatrixtarget(2, 2);
+    LegIK::Frame3D legIKMatrix = buildTargetOrientation(
+        frame, yawPitchRoll);
     
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
         legIKTarget, legIKMatrix, result);
 
-    //Update degrees of freeodm on success
+    //Update degrees of freedom on success
     if (isSucess) {
-        Model::setDOF("right hip yaw", result.theta[0]);
-        Model::setDOF("right hip roll", result.theta[1]);
-        if (_type == GrosbanModel) {
-            //Handle non alignement in zero position
-            //of hip and ankle Z (zaw) axes (knee angle of grosban)
-            Model::setDOF("right hip pitch", -result.theta[2] - 0.0603);
-            Model::setDOF("right knee", result.theta[3] + 0.0603);
-            Model::setDOF("right foot pitch", -result.theta[4] + 0.0035);
-        } else {
-            Model::setDOF("right hip pitch", -result.theta[2]);
-            Model::setDOF("right knee", result.theta[3]);
-            Model::setDOF("right foot pitch", -result.theta[4]);
-        }
-        Model::setDOF("right foot roll", result.theta[5]);
-        //-0.0603 0.0603 0.0035
+        setIKResult(result, false);
     } 
 
     return isSucess;
+}
+        
+double HumanoidModel::legsLength() const
+{
+    return -_trunkToFootTipLeft.z();
+}
+        
+double HumanoidModel::feetDistance() const
+{
+    return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
         
 Eigen::Matrix3d HumanoidModel::eulersToMatrix
@@ -229,6 +177,94 @@ Eigen::Matrix3d HumanoidModel::eulersToMatrix
     Eigen::AngleAxisd rollRot(angles(2), Eigen::Vector3d::UnitX());
     Eigen::Quaternion<double> quat = rollRot * pitchRot * yawRot;
     return quat.matrix();
+}
+
+LegIK::Vector3D HumanoidModel::buildTargetPos(
+    const std::string& frame,
+    const Eigen::Vector3d& footPos, 
+    bool isLeftLeg)
+{
+    Eigen::Vector3d target;
+    if (frame == "foot tip init") {
+        //Special frame where foot tip in zero position
+        target = footPos;
+        if (isLeftLeg) {
+            target += _trunkToFootTipLeft;
+            target -= _trunkToHipLeft; 
+        } else {
+            target += _trunkToFootTipRight;
+            target -= _trunkToHipRight; 
+        }
+    } else {
+        target = Model::position(
+            frame, "trunk", footPos);
+        if (isLeftLeg) {
+            target -= _trunkToHipLeft; 
+        } else {
+            target -= _trunkToHipRight; 
+        }
+    }
+
+    //Building LegIK input target position 
+    //data structure
+    LegIK::Vector3D legIKTarget;
+    legIKTarget[0] = target(0);
+    legIKTarget[1] = target(1);
+    legIKTarget[2] = target(2);
+    return legIKTarget;
+}
+LegIK::Frame3D HumanoidModel::buildTargetOrientation(
+    const std::string& frame,
+    const Eigen::Vector3d& yawPitchRoll)
+{
+    Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(yawPitchRoll);
+    Eigen::Matrix3d rotMatrixTarget = rotMatrixFrame;
+    if (frame == "foot tip init") {
+        //Special frame where foot tip in zero position
+        //No conversion
+    } else {
+        rotMatrixFrame *= Model::orientation(frame, "trunk");
+    }
+
+    //Building LegIK input target
+    //orientation data structure
+    LegIK::Frame3D legIKMatrix;
+    legIKMatrix[0][0] = rotMatrixTarget(0, 0);
+    legIKMatrix[0][1] = rotMatrixTarget(0, 1);
+    legIKMatrix[0][2] = rotMatrixTarget(0, 2);
+    legIKMatrix[1][0] = rotMatrixTarget(1, 0);
+    legIKMatrix[1][1] = rotMatrixTarget(1, 1);
+    legIKMatrix[1][2] = rotMatrixTarget(1, 2);
+    legIKMatrix[2][0] = rotMatrixTarget(2, 0);
+    legIKMatrix[2][1] = rotMatrixTarget(2, 1);
+    legIKMatrix[2][2] = rotMatrixTarget(2, 2);
+    return legIKMatrix;
+}
+        
+void HumanoidModel::setIKResult(
+    const LegIK::Position& result, bool isLeftLeg)
+{
+    std::string prefix;
+    if (isLeftLeg) {
+        prefix = "left ";
+    } else {
+        prefix = "right ";
+    }
+
+    Model::setDOF(prefix+"hip yaw", result.theta[0]);
+    Model::setDOF(prefix+"hip roll", result.theta[1]);
+    if (_type == GrosbanModel) {
+        //Handle non alignement in zero position
+        //of hip and ankle Z (zaw) axes (knee angle of Grosban)
+        Model::setDOF(prefix+"hip pitch", -result.theta[2] - 0.0603);
+        Model::setDOF(prefix+"knee", result.theta[3] + 0.0603);
+        Model::setDOF(prefix+"foot pitch", -result.theta[4] + 0.0035);
+    } else {
+        Model::setDOF(prefix+"hip pitch", -result.theta[2]);
+        Model::setDOF(prefix+"knee", result.theta[3]);
+        Model::setDOF(prefix+"foot pitch", -result.theta[4]);
+    }
+    Model::setDOF(prefix+"foot roll", result.theta[5]);
 }
 
 }

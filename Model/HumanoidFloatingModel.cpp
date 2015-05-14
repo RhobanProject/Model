@@ -49,6 +49,19 @@ void HumanoidFloatingModel::putOnGround()
     findSupportFoot();
 }
         
+void HumanoidFloatingModel::setStatePosX(double val)
+{
+    _statePosX = val;
+}
+void HumanoidFloatingModel::setStatePosY(double val)
+{
+    _statePosY = val;
+}
+void HumanoidFloatingModel::setStateRotYaw(double val)
+{
+    _stateRotYaw = val;
+}
+        
 void HumanoidFloatingModel::findSupportFoot()
 {
     //Feet position in trunk frame

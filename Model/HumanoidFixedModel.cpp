@@ -41,7 +41,7 @@ HumanoidModel& HumanoidFixedModel::get()
 void HumanoidFixedModel::updateBase()
 {
     //Check if moving foot is touching
-    //and switch current modle with 
+    //and switch current model with 
     //new supporting foot
     if (_supportFoot == LeftSupportFoot) {
         Eigen::Vector3d posFoot = 

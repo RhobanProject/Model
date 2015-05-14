@@ -2,6 +2,7 @@
 #define LEPH_HUMANOIDMODEL_HPP
 
 #include "Model/Model.hpp"
+#include "LegIK/LegIK.hpp"
 
 namespace Leph {
 
@@ -54,6 +55,9 @@ class HumanoidModel : public Model
          * Left ot Right legs angles to place the Left or Right
          * foot tip at given position and euler angles orientation
          * (Yaw-Pitch-Roll) with respect to given frame name.
+         * "foot tip init" is a special frame name representing a frame 
+         * bound to trunk frame with initial (zero angles) 
+         * foot tip translation.
          * True is returned if angles are updated and inverse
          * kinematics is sucessful, else false is returned.
          */
@@ -63,6 +67,18 @@ class HumanoidModel : public Model
         bool legIkRight(const std::string& frame,
             const Eigen::Vector3d& footPos, 
             const Eigen::Vector3d& yawPitchRoll = Eigen::Vector3d::Zero());
+
+        /**
+         * Return the initial vertical distance
+         * from trunk frame to foot tip frame (Z)
+         */
+        double legsLength() const;
+
+        /**
+         * Return the initial lateral distance
+         * between each feet
+         */
+        double feetDistance() const;
 
     private:
 
@@ -83,9 +99,12 @@ class HumanoidModel : public Model
          * Translation from trunk frame
          * to hip frame in Zero position
          * (intersection of hip yaw/pitch/roll axes)
+         * and to foot tip in Zero position.
          */
         Eigen::Vector3d _trunkToHipLeft;
         Eigen::Vector3d _trunkToHipRight;
+        Eigen::Vector3d _trunkToFootTipLeft;
+        Eigen::Vector3d _trunkToFootTipRight;
 
         /**
          * Convert YawPitchRoll euler angle to
@@ -93,6 +112,25 @@ class HumanoidModel : public Model
          */
         Eigen::Matrix3d eulersToMatrix
             (const Eigen::Vector3d angles) const;
+
+        /**
+         * Compute and return the IK position reference
+         * vector and orientation reference matrix
+         * in LegIK specifics structures
+         */
+        LegIK::Vector3D buildTargetPos(
+            const std::string& frame,
+            const Eigen::Vector3d& footPos, 
+            bool isLeftLeg);
+        LegIK::Frame3D buildTargetOrientation(
+            const std::string& frame,
+            const Eigen::Vector3d& yawPitchRoll);
+
+        /**
+         * Assign model leg DOF to given IK results
+         */
+        void setIKResult(
+            const LegIK::Position& result, bool isLeftLeg);
 };
 
 }
