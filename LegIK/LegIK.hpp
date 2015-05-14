@@ -6,8 +6,6 @@
 #include <string>
 #include <math.h>
 
-#define RAD2DEG(x) ((x) / M_PI * 180.0)
-#define DEG2RAD(x) ((x) * M_PI / 180.0)
 #define IKDEBUG(command)  
 #define IKMSG(command) command
 

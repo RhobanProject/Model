@@ -6,6 +6,8 @@
 #include <sstream>
 using namespace std;
 
+#define DEG2RAD(x) ((x) * M_PI / 180.0)
+
 namespace LegIK {
 
 /*****************************************************************************/
