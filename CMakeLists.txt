@@ -145,6 +145,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testNullSpace
         testLegIK
         testModelTorques
+        testIKWalk
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
