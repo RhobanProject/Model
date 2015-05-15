@@ -160,11 +160,15 @@ class IKWalk
             double extraRightZ;
             /**
              * Add extra angular offset on
-             * Yaw rotaton of left and right foot
-             * in radians
+             * Yaw, Pitch and Roll rotaton of 
+             * left and right foot in radians
              */
             double extraLeftYaw;
+            double extraLeftPitch;
+            double extraLeftRoll;
             double extraRightYaw;
+            double extraRightPitch;
+            double extraRightRoll;
         };
 
         /**

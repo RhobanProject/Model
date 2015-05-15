@@ -59,10 +59,14 @@ int main()
     params.extraLeftY = 0.0;
     params.extraLeftZ = 0.0;
     params.extraLeftYaw = 0.0;
+    params.extraLeftPitch = 0.0;
+    params.extraLeftRoll = 0.0;
     params.extraRightX = 0.0;
     params.extraRightY = 0.0;
     params.extraRightZ = 0.0;
     params.extraRightYaw = 0.0;
+    params.extraRightPitch = 0.0;
+    params.extraRightRoll = 0.0;
     double phase = 0.0;
     
     Leph::Scheduling scheduling(50.0);

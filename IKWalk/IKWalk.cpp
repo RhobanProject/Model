@@ -129,10 +129,14 @@ bool IKWalk::walk(HumanoidModel& model,
     leftY += params.extraLeftY;
     leftZ += params.extraLeftZ;
     leftYaw += params.extraLeftYaw;
+    leftPitch += params.extraLeftPitch;
+    leftRoll += params.extraLeftRoll;
     rightX += params.extraRightX;
     rightY += params.extraRightY;
     rightZ += params.extraRightZ;
     rightYaw += params.extraRightYaw;
+    rightPitch += params.extraRightPitch;
+    rightRoll += params.extraRightRoll;
 
     //Build rotation matrix for trunk pitch and roll
     //orientation
