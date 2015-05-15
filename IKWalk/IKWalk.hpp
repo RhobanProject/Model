@@ -27,6 +27,14 @@ class IKWalk
              */
             double freq;
             /**
+             * Global gain multiplying all time
+             * dependant movement between 0 and 1.
+             * Control walk enabled/disabled smoothing.
+             * 0 is walk disabled.
+             * 1 is walk fully enabled
+             */
+            double enabledGain;
+            /**
              * Length of double support phase
              * in phase time
              * (between 0 and 1)

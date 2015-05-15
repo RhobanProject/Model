@@ -73,33 +73,50 @@ bool IKWalk::walk(HumanoidModel& model,
     turnSpline.addPoint(1.0, 0.0);
 
     //Compute swing value
-    double swingVal = params.swingGain
+    double swingVal = params.enabledGain
+        * params.swingGain
         * swingSpline.posMod(0.5 + phaseLeft + params.swingPhase);
 
     //Compute feet forward (step) oscillation
-    double leftX = params.stepGain*stepSpline.pos(phaseLeft);
-    double rightX = params.stepGain*stepSpline.pos(phaseRight);
+    double leftX = params.enabledGain
+        * params.stepGain
+        * stepSpline.pos(phaseLeft);
+    double rightX = params.enabledGain
+        * params.stepGain
+        * stepSpline.pos(phaseRight);
     
     //Compute feet swing oscillation
     double leftY = swingVal;
     double rightY = swingVal;
     //Compute feet lateral movement oscillation
-    leftY += params.lateralGain*(stepSpline.pos(phaseLeft) + 0.5);
-    rightY += params.lateralGain*(stepSpline.pos(phaseRight) + 0.5);
+    leftY += params.enabledGain
+        * params.lateralGain
+        * (stepSpline.pos(phaseLeft) + 0.5);
+    rightY += params.enabledGain
+        * params.lateralGain
+        * (stepSpline.pos(phaseRight) + 0.5);
     //Set feet lateral offset (feet distance from trunk center)
     leftY += params.footYOffset;
     rightY += -params.footYOffset;
     
     //Compute feet vertical (rise) oscillation and offset
-    double leftZ = params.riseGain*riseSpline.pos(phaseLeft);
-    double rightZ = params.riseGain*riseSpline.pos(phaseRight);
+    double leftZ = params.enabledGain
+        * params.riseGain
+        * riseSpline.pos(phaseLeft);
+    double rightZ = params.enabledGain
+        * params.riseGain
+        * riseSpline.pos(phaseRight);
     //Set trunk to foot distance height offset
     leftZ += params.trunkZOffset;
     rightZ += params.trunkZOffset;
     
     //Compute feet rotation (turn) oscillation
-    double leftYaw = params.turnGain*turnSpline.pos(phaseLeft);
-    double rightYaw = params.turnGain*turnSpline.pos(phaseRight);
+    double leftYaw = params.enabledGain
+        * params.turnGain
+        * turnSpline.pos(phaseLeft);
+    double rightYaw = params.enabledGain
+        * params.turnGain
+        * turnSpline.pos(phaseRight);
     
     //Set feet orientation
     double leftPitch = params.trunkPitch;

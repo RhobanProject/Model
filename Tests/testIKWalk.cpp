@@ -35,6 +35,7 @@ int main()
     //Initialing IKWalk
     Leph::IKWalk::Parameters params;
     params.freq = 0.3;
+    params.enabledGain = 1.0;
     params.supportPhaseRatio = 0.6;
     params.footYOffset = 0.01;
     params.stepGain = 0.08;
