@@ -71,8 +71,10 @@ set(SOURCES_FILES
     Spline/Polynom.cpp
     Spline/Spline.cpp
     Spline/SmoothSpline.cpp
+    Spline/CubicSpline.cpp
     Spline/FittedSpline.cpp
     LegIK/LegIK.cpp
+    IKWalk/IKWalk.cpp
 )
 
 #Tests main files
@@ -94,6 +96,7 @@ set(TESTS_FILES
     testModel
     testLevenbergMarquardt
     testChrono
+    testCubicSpline
     testSmoothSpline
     testScheduling
     testFittedSpline
