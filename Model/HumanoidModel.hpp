@@ -17,6 +17,23 @@ enum RobotType {
 };
 
 /**
+ * All combinations
+ * of Euler angles types
+ * in same order as rotation application
+ *
+ * EulerYawPitchRoll is built as
+ * Roll * Pitch * Yaw.
+ */
+enum EulerType {
+    EulerYawPitchRoll,
+    EulerYawRollPitch,
+    EulerRollPitchYaw,
+    EulerRollYawPitch,
+    EulerPitchRollYaw,
+    EulerPitchYawRoll,
+};
+
+/**
  * HumanoidModel
  *
  * Inherit Model and implement
@@ -54,7 +71,8 @@ class HumanoidModel : public Model
          * Run analytical inverse kinematics LegIK and update
          * Left ot Right legs angles to place the Left or Right
          * foot tip at given position and euler angles orientation
-         * (Yaw-Pitch-Roll) with respect to given frame name.
+         * (default is Yaw-Pitch-Roll) with respect to given frame name.
+         * Used Eulers angle convention is given by eulerType.
          * "foot tip init" is a special frame name representing a frame 
          * bound to trunk frame with initial (zero angles) 
          * foot tip translation.
@@ -63,10 +81,12 @@ class HumanoidModel : public Model
          */
         bool legIkLeft(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Vector3d& yawPitchRoll = Eigen::Vector3d::Zero());
+            const Eigen::Vector3d& angles = Eigen::Vector3d::Zero(),
+            EulerType eulerType = EulerYawPitchRoll);
         bool legIkRight(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Vector3d& yawPitchRoll = Eigen::Vector3d::Zero());
+            const Eigen::Vector3d& angles = Eigen::Vector3d::Zero(),
+            EulerType eulerType = EulerYawPitchRoll);
 
         /**
          * Return the initial vertical distance
@@ -107,11 +127,11 @@ class HumanoidModel : public Model
         Eigen::Vector3d _trunkToFootTipRight;
 
         /**
-         * Convert YawPitchRoll euler angle to
-         * rotation matrix
+         * Convert given euler angle of given
+         * convention type to rotation matrix
          */
-        Eigen::Matrix3d eulersToMatrix
-            (const Eigen::Vector3d angles) const;
+        Eigen::Matrix3d eulersToMatrix(
+            const Eigen::Vector3d angles, EulerType eulerType) const;
 
         /**
          * Compute and return the IK position reference
@@ -124,7 +144,8 @@ class HumanoidModel : public Model
             bool isLeftLeg);
         LegIK::Frame3D buildTargetOrientation(
             const std::string& frame,
-            const Eigen::Vector3d& yawPitchRoll);
+            const Eigen::Vector3d& angles, 
+            EulerType eulerType);
 
         /**
          * Assign model leg DOF to given IK results

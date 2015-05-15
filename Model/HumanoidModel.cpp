@@ -104,7 +104,8 @@ void HumanoidModel::boundingBox(size_t frameIndex,
 
 bool HumanoidModel::legIkLeft(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Vector3d& yawPitchRoll)
+    const Eigen::Vector3d& angles,
+    EulerType eulerType)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -116,7 +117,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     //Convert orientation from given frame
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
-        frame, yawPitchRoll);
+        frame, angles, eulerType);
     
     //Run inverse kinematics
     LegIK::Position result;
@@ -132,7 +133,8 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
 }
 bool HumanoidModel::legIkRight(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Vector3d& yawPitchRoll)
+    const Eigen::Vector3d& angles,
+    EulerType eulerType)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -144,7 +146,7 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     //Convert orientation from given frame
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
-        frame, yawPitchRoll);
+        frame, angles, eulerType);
     
     //Run inverse kinematics
     LegIK::Position result;
@@ -169,13 +171,54 @@ double HumanoidModel::feetDistance() const
     return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
         
-Eigen::Matrix3d HumanoidModel::eulersToMatrix
-    (const Eigen::Vector3d angles) const
+Eigen::Matrix3d HumanoidModel::eulersToMatrix(
+    const Eigen::Vector3d angles, EulerType eulerType) const
 {
-    Eigen::AngleAxisd yawRot(angles(0), Eigen::Vector3d::UnitZ());
-    Eigen::AngleAxisd pitchRot(angles(1), Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd rollRot(angles(2), Eigen::Vector3d::UnitX());
-    Eigen::Quaternion<double> quat = rollRot * pitchRot * yawRot;
+    Eigen::Quaternion<double> quat;
+    switch (eulerType) {
+        case EulerYawPitchRoll: {
+            Eigen::AngleAxisd yawRot(angles(0), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(1), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(2), Eigen::Vector3d::UnitX());
+            quat = rollRot * pitchRot * yawRot;
+        }
+        break;
+        case EulerYawRollPitch: {
+            Eigen::AngleAxisd yawRot(angles(0), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(2), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(1), Eigen::Vector3d::UnitX());
+            quat = pitchRot * rollRot * yawRot;
+        }
+        break;
+        case EulerRollPitchYaw: {
+            Eigen::AngleAxisd yawRot(angles(2), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(1), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(0), Eigen::Vector3d::UnitX());
+            quat = yawRot * pitchRot * rollRot;
+        }
+        break;
+        case EulerRollYawPitch: {
+            Eigen::AngleAxisd yawRot(angles(1), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(2), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(0), Eigen::Vector3d::UnitX());
+            quat = pitchRot * yawRot * rollRot;
+        }
+        break;
+        case EulerPitchRollYaw: {
+            Eigen::AngleAxisd yawRot(angles(2), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(0), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(1), Eigen::Vector3d::UnitX());
+            quat = yawRot * rollRot * pitchRot;
+        }
+        break;
+        case EulerPitchYawRoll: {
+            Eigen::AngleAxisd yawRot(angles(1), Eigen::Vector3d::UnitZ());
+            Eigen::AngleAxisd pitchRot(angles(0), Eigen::Vector3d::UnitY());
+            Eigen::AngleAxisd rollRot(angles(2), Eigen::Vector3d::UnitX());
+            quat = rollRot * yawRot * pitchRot;
+        }
+        break;
+    }
     return quat.matrix();
 }
 
@@ -215,9 +258,11 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
 }
 LegIK::Frame3D HumanoidModel::buildTargetOrientation(
     const std::string& frame,
-    const Eigen::Vector3d& yawPitchRoll)
+    const Eigen::Vector3d& angles, 
+    EulerType eulerType)
 {
-    Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(yawPitchRoll);
+    Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(
+        angles, eulerType);
     Eigen::Matrix3d rotMatrixTarget = rotMatrixFrame;
     if (frame == "foot tip init") {
         //Special frame where foot tip in zero position
