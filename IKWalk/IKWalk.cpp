@@ -205,6 +205,44 @@ bool IKWalk::walk(HumanoidModel& model,
     return true;
 }
         
+void IKWalk::convertParameters(
+    VectorLabel& vect, const Parameters& params)
+{
+    vect.setOrAppend("walk:freq", params.freq);
+    vect.setOrAppend("walk:enabledGain", params.enabledGain);
+    vect.setOrAppend("walk:supportPhaseRatio", params.supportPhaseRatio);
+    vect.setOrAppend("walk:footYOffset", params.footYOffset);
+    vect.setOrAppend("walk:stepGain", params.stepGain);
+    vect.setOrAppend("walk:riseGain", params.riseGain);
+    vect.setOrAppend("walk:turnGain", params.turnGain);
+    vect.setOrAppend("walk:lateralGain", params.lateralGain);
+    vect.setOrAppend("walk:trunkZOffset", params.trunkZOffset);
+    vect.setOrAppend("walk:swingGain", params.swingGain);
+    vect.setOrAppend("walk:swingPhase", params.swingPhase);
+    vect.setOrAppend("walk:stepUpVel", params.stepUpVel);
+    vect.setOrAppend("walk:stepDownVel", params.stepDownVel);
+    vect.setOrAppend("walk:riseUpVel", params.riseUpVel);
+    vect.setOrAppend("walk:riseDownVel", params.riseDownVel);
+    vect.setOrAppend("walk:swingPause", params.swingPause);
+    vect.setOrAppend("walk:swingVel", params.swingVel);
+    vect.setOrAppend("walk:trunkXOffset", params.trunkXOffset);
+    vect.setOrAppend("walk:trunkYOffset", params.trunkYOffset);
+    vect.setOrAppend("walk:trunkPitch", params.trunkPitch);
+    vect.setOrAppend("walk:trunkRoll", params.trunkRoll);
+    vect.setOrAppend("walk:extraLeftX", params.extraLeftX);
+    vect.setOrAppend("walk:extraLeftY", params.extraLeftY);
+    vect.setOrAppend("walk:extraLeftZ", params.extraLeftZ);
+    vect.setOrAppend("walk:extraRightX", params.extraRightX);
+    vect.setOrAppend("walk:extraRightY", params.extraRightY);
+    vect.setOrAppend("walk:extraRightZ", params.extraRightZ);
+    vect.setOrAppend("walk:extraLeftYaw", params.extraLeftYaw);
+    vect.setOrAppend("walk:extraLeftPitch", params.extraLeftPitch);
+    vect.setOrAppend("walk:extraLeftRoll", params.extraLeftRoll);
+    vect.setOrAppend("walk:extraRightYaw", params.extraRightYaw);
+    vect.setOrAppend("walk:extraRightPitch", params.extraRightPitch);
+    vect.setOrAppend("walk:extraRightRoll", params.extraRightRoll);
+}
+        
 void IKWalk::boundPhase(double& phase)
 {
     while (phase >= 1.0) {

@@ -127,6 +127,10 @@ int main()
         Leph::ModelDraw(modelNew.get(), viewer);
         //Waiting
         scheduling.wait();
+        //Display parameters
+        Leph::VectorLabel vectParams;
+        Leph::IKWalk::convertParameters(vectParams, params);
+        std::cout << vectParams << std::endl;
     }
 
     return 0;

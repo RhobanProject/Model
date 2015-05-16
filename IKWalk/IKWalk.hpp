@@ -2,6 +2,7 @@
 #define LEPH_IKWALK_HPP
 
 #include "Model/HumanoidModel.hpp"
+#include "Types/VectorLabel.hpp"
 
 namespace Leph {
 
@@ -183,6 +184,13 @@ class IKWalk
         static bool walk(HumanoidModel& model, 
             const Parameters& params, 
             double& phase, double dt);
+
+        /**
+         * Appen given VectorLabel with given
+         * parameters structure value
+         */
+        static void convertParameters(
+            VectorLabel& vect, const Parameters& params);
 
     private:
 
