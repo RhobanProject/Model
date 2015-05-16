@@ -103,6 +103,11 @@ bool ModelViewer::update()
     return true;
 }
         
+bool ModelViewer::isKeyPressed(sf::Keyboard::Key key)
+{
+    return sf::Keyboard::isKeyPressed(key); 
+}
+        
 void ModelViewer::drawFrame(
     const Eigen::Vector3d& center, 
     const Eigen::Matrix3d& orientation)
@@ -236,12 +241,6 @@ void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point,
         _trajectoryRed.push_back(point);
         while (_trajectoryRed.size() > maxTrajectory) {
             _trajectoryRed.pop_front();
-        }
-    }
-    if (color == Green) {
-        _trajectoryGreen.push_back(point);
-        while (_trajectoryGreen.size() > maxTrajectory) {
-            _trajectoryGreen.pop_front();
         }
     }
     if (color == Green) {

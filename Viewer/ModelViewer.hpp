@@ -57,6 +57,11 @@ class ModelViewer
         bool update();
 
         /**
+         *
+         */
+        bool isKeyPressed(sf::Keyboard::Key);
+
+        /**
          * Draw frame
          * Orientation is the transform rotation matrix 
          * from local coordinates to base
