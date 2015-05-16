@@ -83,10 +83,15 @@ class IKWalk
              */
             double trunkZOffset;
             /**
-             * Lateral trunk oscilation amplitude
+             * Lateral trunk oscillation amplitude
              * in meters (positive)
              */
             double swingGain;
+            /**
+             * Lateral angular oscillation amplitude
+             * of swing trunkRoll in radian
+             */
+            double swingRollGain;
             /**
              * Phase shift of lateral trunk oscilation
              * between 0 and 1

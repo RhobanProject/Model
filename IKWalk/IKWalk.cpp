@@ -91,10 +91,10 @@ bool IKWalk::walk(HumanoidModel& model,
     //Compute feet lateral movement oscillation
     leftY += params.enabledGain
         * params.lateralGain
-        * (stepSpline.pos(phaseLeft) + 0.5);
+        * stepSpline.pos(phaseLeft);
     rightY += params.enabledGain
         * params.lateralGain
-        * (stepSpline.pos(phaseRight) + 0.5);
+        * stepSpline.pos(phaseRight);
     //Set feet lateral offset (feet distance from trunk center)
     leftY += params.footYOffset;
     rightY += -params.footYOffset;
@@ -117,12 +117,19 @@ bool IKWalk::walk(HumanoidModel& model,
     double rightYaw = params.enabledGain
         * params.turnGain
         * turnSpline.pos(phaseRight);
+
+    //Compute trunk roll angle
+    double rollVal = params.enabledGain
+        * -params.swingRollGain
+        * swingSpline.posMod(0.5 + phaseLeft + params.swingPhase);
+    //Set trunk roll offset
+    rollVal += params.trunkRoll;
     
     //Set feet orientation
     double leftPitch = params.trunkPitch;
-    double leftRoll = params.trunkRoll;
+    double leftRoll = rollVal;
     double rightPitch = params.trunkPitch;
-    double rightRoll = params.trunkRoll;
+    double rightRoll = rollVal;
     
     //Add custom extra foot offset on both feet
     leftX += params.extraLeftX;
@@ -141,7 +148,7 @@ bool IKWalk::walk(HumanoidModel& model,
     //Build rotation matrix for trunk pitch and roll
     //orientation
     Eigen::AngleAxisd pitchRot(-params.trunkPitch, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd rollRot(-params.trunkRoll, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd rollRot(-rollVal, Eigen::Vector3d::UnitX());
     Eigen::Quaternion<double> quat(pitchRot * rollRot);
     Eigen::Matrix3d rotation = quat.matrix();
 
@@ -169,21 +176,25 @@ bool IKWalk::walk(HumanoidModel& model,
     //In case of trunk Roll rotation, an height (Z) 
     //positive offset have to be applied on external foot to
     //set both feet on same level
-    double deltaLen = model.feetDistance()*tan(params.trunkRoll);
-    if (params.trunkRoll > 0.0) {
+    double deltaLen = model.feetDistance()*tan(rollVal);
+    if (rollVal > 0.0) {
         posRight(2) += deltaLen;
-    } else if (params.trunkRoll < 0.0) {
+        //posRight(1) += deltaLen*tan(rollVal);
+    } else if (rollVal < 0.0) {
         posLeft(2) -= deltaLen;
+        //posLeft(1) += -deltaLen*tan(rollVal);
     }
     
     //Trunk X and Y offset is applied to compensate
     //Pitch and Roll rotation. It is better for tunning if
     //trunk pitch or roll rotation do not apply offset on
     //trunk position.
+    /*
     posLeft(0) += (model.legsLength())*tan(params.trunkPitch);
     posRight(0) += (model.legsLength())*tan(params.trunkPitch);
-    posLeft(1) -= (model.legsLength())*tan(params.trunkRoll);
-    posRight(1) -= (model.legsLength())*tan(params.trunkRoll);
+    posLeft(1) -= (model.legsLength())*tan(rollVal);
+    posRight(1) -= (model.legsLength())*tan(rollVal);
+    */
 
     //Run inverse invert kinematics on both legs
     //using Pitch-Roll-Yaw convention
@@ -218,6 +229,7 @@ void IKWalk::convertParameters(
     vect.setOrAppend("walk:lateralGain", params.lateralGain);
     vect.setOrAppend("walk:trunkZOffset", params.trunkZOffset);
     vect.setOrAppend("walk:swingGain", params.swingGain);
+    vect.setOrAppend("walk:swingRollGain", params.swingRollGain);
     vect.setOrAppend("walk:swingPhase", params.swingPhase);
     vect.setOrAppend("walk:stepUpVel", params.stepUpVel);
     vect.setOrAppend("walk:stepDownVel", params.stepDownVel);
