@@ -189,12 +189,10 @@ bool IKWalk::walk(HumanoidModel& model,
     //Pitch and Roll rotation. It is better for tunning if
     //trunk pitch or roll rotation do not apply offset on
     //trunk position.
-    /*
     posLeft(0) += (model.legsLength())*tan(params.trunkPitch);
     posRight(0) += (model.legsLength())*tan(params.trunkPitch);
     posLeft(1) -= (model.legsLength())*tan(rollVal);
     posRight(1) -= (model.legsLength())*tan(rollVal);
-    */
 
     //Run inverse invert kinematics on both legs
     //using Pitch-Roll-Yaw convention
