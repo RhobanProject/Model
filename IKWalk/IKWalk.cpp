@@ -144,7 +144,7 @@ bool IKWalk::walk(HumanoidModel& model,
     rightYaw += params.extraRightYaw;
     rightPitch += params.extraRightPitch;
     rightRoll += params.extraRightRoll;
-
+    
     //Build rotation matrix for trunk pitch and roll
     //orientation
     Eigen::AngleAxisd pitchRot(-params.trunkPitch, Eigen::Vector3d::UnitY());
@@ -179,11 +179,11 @@ bool IKWalk::walk(HumanoidModel& model,
     double deltaLen = model.feetDistance()*tan(rollVal);
     if (rollVal > 0.0) {
         posRight(2) += deltaLen;
-        //posRight(1) += deltaLen*tan(rollVal);
     } else if (rollVal < 0.0) {
         posLeft(2) -= deltaLen;
-        //posLeft(1) += -deltaLen*tan(rollVal);
     }
+    //TODO In case of oscillating trinkRoll or swingRoll enabled XXX
+    //TODO feet get an unwanted lateral oscillation XXX
     
     //Trunk X and Y offset is applied to compensate
     //Pitch and Roll rotation. It is better for tunning if
