@@ -42,6 +42,10 @@ int main(int argc, char** argv)
     logs.plot()
         .plot("index", "time:*")
         .render();
+    std::cout << "Plotting walk parameters" << std::endl;
+    logs.plot()
+        .plot("index", "walk:*")
+        .render();
     
     //Initialize model instances
     Leph::HumanoidFixedModel modelOutputs(Leph::SigmabanModel);
@@ -58,46 +62,113 @@ int main(int argc, char** argv)
     //Main loop
     double freq = 50.0;
     scheduling.setFrequency(freq);
-    double t = logs[0]("time:timestamp")/1000.0;
+    double t = logs[0]("time:timestamp");
     size_t indexLog = 0;
+    bool isPaused = false;
+    int viewMode = 0;
     while (viewer.update()) {
+        //Find current log index (associated with time)
+        indexLog = 0;
         while (
             indexLog < logs.size()-1 && 
-            logs[indexLog]("time:timestamp")/1000.0 < t
+            logs[indexLog]("time:timestamp") < t
         ) {
             indexLog++;
         }
-        std::cout << "t= " << t << " index=" 
-            << indexLog << "/" << logs.size()-1 << std::endl;
+        //Interface control
+        if (viewer.isKeyPressed(sf::Keyboard::I)) {
+            t = logs[0]("time:timestamp");
+            indexLog = 0;
+        }
+        if (viewer.isKeyPressed(sf::Keyboard::P)) {
+            isPaused = true;
+        }
+        if (viewer.isKeyPressed(sf::Keyboard::C)) {
+            isPaused = false;
+        }
+        if (viewer.isKeyPressed(sf::Keyboard::PageUp)) {
+            t += 1000.0;
+        }
+        if (viewer.isKeyPressed(sf::Keyboard::PageDown)) {
+            t -= 1000.0;
+        }
+        if (viewer.isKeyPressed(sf::Keyboard::M)) {
+            viewMode++;
+            if (viewMode > 3) {
+                viewMode = 0;
+            } 
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
         //Assign DOF
         outputsDOF.assignOp(logs[indexLog], "output", "");
         motorsDOF.assignOp(logs[indexLog], "motor", "");
-        outputsDOF.mulOp(M_PI/180.0);
-        motorsDOF.mulOp(M_PI/180.0);
-        modelOutputs.get().setDOF(outputsDOF);
-        modelMotors.get().setDOF(motorsDOF);
+        modelOutputs.get().setDOF(outputsDOF, false);
+        modelMotors.get().setDOF(motorsDOF, false);
         //Contraint the model on the ground, integrate movement
         modelOutputs.updateBase();
         modelMotors.updateBase();
         //Set IMU data for motors real model state
         modelMotors.setOrientation(
-            logs[indexLog]("sensor:Pitch")*M_PI/180.0, 
-            logs[indexLog]("sensor:Roll")*M_PI/180.0);
+            logs[indexLog]("sensor:pitch"), 
+            -logs[indexLog]("sensor:roll"));
         
         //Display captured center of mass ground projection
-        Eigen::Vector3d com = modelMotors.get().centerOfMass("origin");
-        com.z() = 0.0;
-        viewer.addTrackedPoint(com);
+        if (viewMode == 1) {
+        viewer.addTrackedPoint(
+            modelOutputs.get().centerOfMass("origin"), 
+            Leph::ModelViewer::Yellow);
+        viewer.addTrackedPoint(
+            modelOutputs.get().position("left foot tip", "origin"), 
+            Leph::ModelViewer::Red);
+        viewer.addTrackedPoint(
+            modelOutputs.get().position("right foot tip", "origin"), 
+            Leph::ModelViewer::Green);
+        viewer.addTrackedPoint(
+            modelOutputs.get().position("trunk", "origin"), 
+            Leph::ModelViewer::Blue);
+        viewer.addTrackedPoint(
+            modelOutputs.get().position("camera", "origin"), 
+            Leph::ModelViewer::Cyan);
+        }
+        if (viewMode == 2) {
+        viewer.addTrackedPoint(
+            modelMotors.get().centerOfMass("origin"), 
+            Leph::ModelViewer::Yellow);
+        viewer.addTrackedPoint(
+            modelMotors.get().position("left foot tip", "origin"), 
+            Leph::ModelViewer::Red);
+        viewer.addTrackedPoint(
+            modelMotors.get().position("right foot tip", "origin"), 
+            Leph::ModelViewer::Green);
+        viewer.addTrackedPoint(
+            modelMotors.get().position("trunk", "origin"), 
+            Leph::ModelViewer::Blue);
+        viewer.addTrackedPoint(
+            modelMotors.get().position("camera", "origin"), 
+            Leph::ModelViewer::Cyan);
+        }
         
         //Display models
-        Leph::ModelDraw(modelOutputs.get(), viewer);
-        Leph::ModelDraw(modelMotors.get(), viewer);
+        if (viewMode == 0) {
+            Leph::ModelDraw(modelOutputs.get(), viewer);
+            Leph::ModelDraw(modelMotors.get(), viewer);
+        } 
+        if (viewMode == 1) {
+            Leph::ModelDraw(modelOutputs.get(), viewer);
+        } 
+        if (viewMode == 2) {
+            Leph::ModelDraw(modelMotors.get(), viewer);
+        } 
         //Waiting
         scheduling.wait();
         //Phase cycling
-        t += 1.0/freq;
-        if (t > logs[logs.size()-1]("time:timestamp")/1000.0 + 2.0) {
-            t = logs[0]("time:timestamp")/1000.0;
+        std::cout << "t= " << t << " index=" 
+            << indexLog << "/" << logs.size()-1 << std::endl;
+        if (!isPaused) {
+            t += 1000.0/freq;
+        }
+        if (t > logs[logs.size()-1]("time:timestamp") + 2000.0) {
+            t = logs[0]("time:timestamp");
             indexLog = 0;
         }
     }
