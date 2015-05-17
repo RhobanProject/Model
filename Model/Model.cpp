@@ -74,11 +74,15 @@ double Model::getDOF(size_t index) const
     }
     return _dofs(index);
 }
-void Model::setDOF(const VectorLabel& vect)
+void Model::setDOF(const VectorLabel& vect, bool setBase)
 {
     for (size_t i=0;i<vect.size();i++) {
         const std::string& label = vect.getLabel(i);
-        if (_dofNameToIndex.count(label) != 0) {
+        if (
+            _dofNameToIndex.count(label) != 0 &&
+            (setBase || 
+            label.find("base ") == std::string::npos)
+        ) {
             _dofs(_dofNameToIndex.at(label)) = vect(i);
         }
     }

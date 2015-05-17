@@ -46,11 +46,14 @@ class Model
         /**
          * Get and set current angular value 
          * of degrees of freedom in radian
+         *
+         * If setBase is false, degrees of freedom
+         * updating base are skipped from assignement
          */
         const VectorLabel& getDOF();
         double getDOF(const std::string& name) const;
         double getDOF(size_t index) const;
-        void setDOF(const VectorLabel& vect);
+        void setDOF(const VectorLabel& vect, bool setBase = true);
         void setDOF(const std::string& name, double value);
         void setDOF(size_t index, double value);
 
