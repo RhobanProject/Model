@@ -197,6 +197,13 @@ class IKWalk
         static void convertParameters(
             VectorLabel& vect, const Parameters& params);
 
+        /**
+         * Convert and return given Vector Label
+         * into walk parameters structure
+         */
+        static Parameters convertVectorLabel(
+            const VectorLabel& vect);
+
     private:
 
         /**

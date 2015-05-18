@@ -252,6 +252,49 @@ void IKWalk::convertParameters(
     vect.setOrAppend("walk:extraRightPitch", params.extraRightPitch);
     vect.setOrAppend("walk:extraRightRoll", params.extraRightRoll);
 }
+    
+IKWalk::Parameters IKWalk::convertVectorLabel(
+    const VectorLabel& vect)
+{
+    Parameters params;
+
+    if (vect.exist("walk:freq")) params.freq = vect("walk:freq");
+    if (vect.exist("walk:enabledGain")) params.enabledGain = vect("walk:enabledGain");
+    if (vect.exist("walk:supportPhaseRatio")) params.supportPhaseRatio = vect("walk:supportPhaseRatio");
+    if (vect.exist("walk:footYOffset")) params.footYOffset = vect("walk:footYOffset");
+    if (vect.exist("walk:stepGain")) params.stepGain = vect("walk:stepGain");
+    if (vect.exist("walk:riseGain")) params.riseGain = vect("walk:riseGain");
+    if (vect.exist("walk:turnGain")) params.turnGain = vect("walk:turnGain");
+    if (vect.exist("walk:lateralGain")) params.lateralGain = vect("walk:lateralGain");
+    if (vect.exist("walk:trunkZOffset")) params.trunkZOffset = vect("walk:trunkZOffset");
+    if (vect.exist("walk:swingGain")) params.swingGain = vect("walk:swingGain");
+    if (vect.exist("walk:swingRollGain")) params.swingRollGain = vect("walk:swingRollGain");
+    if (vect.exist("walk:swingPhase")) params.swingPhase = vect("walk:swingPhase");
+    if (vect.exist("walk:stepUpVel")) params.stepUpVel = vect("walk:stepUpVel");
+    if (vect.exist("walk:stepDownVel")) params.stepDownVel = vect("walk:stepDownVel");
+    if (vect.exist("walk:riseUpVel")) params.riseUpVel = vect("walk:riseUpVel");
+    if (vect.exist("walk:riseDownVel")) params.riseDownVel = vect("walk:riseDownVel");
+    if (vect.exist("walk:swingPause")) params.swingPause = vect("walk:swingPause");
+    if (vect.exist("walk:swingVel")) params.swingVel = vect("walk:swingVel");
+    if (vect.exist("walk:trunkXOffset")) params.trunkXOffset = vect("walk:trunkXOffset");
+    if (vect.exist("walk:trunkYOffset")) params.trunkYOffset = vect("walk:trunkYOffset");
+    if (vect.exist("walk:trunkPitch")) params.trunkPitch = vect("walk:trunkPitch");
+    if (vect.exist("walk:trunkRoll")) params.trunkRoll = vect("walk:trunkRoll");
+    if (vect.exist("walk:extraLeftX")) params.extraLeftX = vect("walk:extraLeftX");
+    if (vect.exist("walk:extraLeftY")) params.extraLeftY = vect("walk:extraLeftY");
+    if (vect.exist("walk:extraLeftZ")) params.extraLeftZ = vect("walk:extraLeftZ");
+    if (vect.exist("walk:extraRightX")) params.extraRightX = vect("walk:extraRightX");
+    if (vect.exist("walk:extraRightY")) params.extraRightY = vect("walk:extraRightY");
+    if (vect.exist("walk:extraRightZ")) params.extraRightZ = vect("walk:extraRightZ");
+    if (vect.exist("walk:extraLeftYaw")) params.extraLeftYaw = vect("walk:extraLeftYaw");
+    if (vect.exist("walk:extraLeftPitch")) params.extraLeftPitch = vect("walk:extraLeftPitch");
+    if (vect.exist("walk:extraLeftRoll")) params.extraLeftRoll = vect("walk:extraLeftRoll");
+    if (vect.exist("walk:extraRightYaw")) params.extraRightYaw = vect("walk:extraRightYaw");
+    if (vect.exist("walk:extraRightPitch")) params.extraRightPitch = vect("walk:extraRightPitch");
+    if (vect.exist("walk:extraRightRoll")) params.extraRightRoll = vect("walk:extraRightRoll");
+
+    return params;
+}
         
 void IKWalk::boundPhase(double& phase)
 {
