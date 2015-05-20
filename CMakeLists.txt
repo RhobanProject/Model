@@ -73,6 +73,7 @@ set(SOURCES_FILES
     Spline/SmoothSpline.cpp
     Spline/CubicSpline.cpp
     Spline/FittedSpline.cpp
+    Spline/PolyFit.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
 )

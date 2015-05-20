@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "Spline/FittedSpline.hpp"
-#include "LinearRegression/SimpleLinearRegression.hpp"
+#include "Spline/PolyFit.hpp"
 
 namespace Leph {
 
@@ -68,24 +68,19 @@ bool FittedSpline::fitting(double maxError, bool throwError)
         Vector bestParams;
         while (true) {
             //Polynomial simple linear regression
+            PolyFit fit(degree);
             SimpleLinearRegression regression;
             for (size_t j=parts[i].first;j<=parts[i].second;j++) {
-                Vector inputs(degree+1);
-                double expVal = 1.0;
-                for (size_t k=0;k<degree+1;k++) {
-                    inputs(k) = expVal ;
-                    expVal *= _points[j].first- _points[parts[i].first].first;
-                }
-                regression.add(inputs, _points[j].second);
+                fit.add(_points[j].first- _points[parts[i].first].first, _points[j].second);
             }
-            regression.regression();
+            Polynom polynom = fit.fitting();
             //Compute max fitting error
-            double error = regression.maxError();
+            double error = fit.regression().maxError();
             //Store best fit
             if (bestDegree == 0 || bestError > error) {
                 bestDegree = degree;
                 bestError = error;
-                bestParams = regression.parameters();
+                bestParams = fit.regression().parameters();
             }
             //Iterations are stopped if error threshold is meet
             //or degree is too high for data points available
@@ -103,11 +98,6 @@ bool FittedSpline::fitting(double maxError, bool throwError)
                     }
                 }
                 //Save computed fitting polynom to Splines container
-                Polynom polynom;
-                polynom.getCoefs().resize(bestDegree+1);
-                for (size_t k=0;k<bestDegree+1;k++) {
-                    polynom.getCoefs()[k] = bestParams(k);
-                }
                 Spline::_splines.push_back({
                     polynom, 
                     _points[parts[i].first].first,
