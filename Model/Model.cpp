@@ -115,6 +115,19 @@ size_t Model::getDOFIndex(const std::string& name) const
 {
     return _dofNameToIndex.at(name);
 }
+
+const Eigen::VectorXd& Model::getDOFVect() const
+{
+    return _dofs;
+}
+void Model::setDOFVect(const Eigen::VectorXd& vect)
+{
+    if (vect.size() != _dofs.size()) {
+        throw std::logic_error(
+            "Model invalid DOF vector size");
+    }
+    _dofs = vect;
+}
         
 void Model::importDOF(Model& model)
 {
@@ -220,13 +233,19 @@ Eigen::VectorXd Model::inverseDynamics(
 {
     RBDLMath::VectorNd QDot;
     RBDLMath::VectorNd QDDot;
-    if (velocity == Eigen::VectorXd()) {
+    if (velocity.size() == 0) {
         QDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
     } else {
         QDot = velocity;
     }
-    if (acceleration == Eigen::VectorXd()) {
+    if (acceleration.size() == 0) {
         QDDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else if (acceleration.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
     } else {
         QDDot = acceleration;
     }
@@ -248,13 +267,19 @@ Eigen::VectorXd Model::inverseDynamicsClosedLoop(
 {
     RBDLMath::VectorNd QDot;
     RBDLMath::VectorNd QDDot;
-    if (velocity == Eigen::VectorXd()) {
+    if (velocity.size() == 0) {
         QDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
     } else {
         QDot = velocity;
     }
-    if (acceleration == Eigen::VectorXd()) {
+    if (acceleration.size() == 0) {
         QDDot = RBDLMath::VectorNd::Zero(_model.dof_count);
+    } else if (acceleration.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
     } else {
         QDDot = acceleration;
     }
@@ -363,7 +388,6 @@ void Model::initilializeModel(RBDL::Model& model)
             i += 5;
             continue;
         } else if (virtualDepth > 0) {
-            std::cout << "*** " << i << " :: " << virtualDepth << std::endl;
             throw std::logic_error(
                 "Model virtual body name not implemented");
         }

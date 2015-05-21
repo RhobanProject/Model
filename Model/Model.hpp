@@ -58,6 +58,13 @@ class Model
         void setDOF(size_t index, double value);
 
         /**
+         * Direct getter and setter to Eigen
+         * degree of freedom vector
+         */
+        const Eigen::VectorXd& getDOFVect() const;
+        void setDOFVect(const Eigen::VectorXd& vect);
+
+        /**
          * Import given model DOF into this one
          * (no check on same model are done)
          */
