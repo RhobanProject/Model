@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Types/MatrixLabel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
+#include "IKWalk/IKWalk.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
@@ -50,6 +51,7 @@ int main(int argc, char** argv)
     //Initialize model instances
     Leph::HumanoidFixedModel modelOutputs(Leph::SigmabanModel);
     Leph::HumanoidFixedModel modelMotors(Leph::SigmabanModel);
+    Leph::HumanoidFixedModel modelWalk(Leph::SigmabanModel);
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
 
@@ -58,6 +60,9 @@ int main(int argc, char** argv)
         logs[0].extract("output").rename("output", "");
     Leph::VectorLabel motorsDOF = 
         logs[0].extract("motor").rename("motor", "");
+    Leph::VectorLabel walkParams = 
+        logs[0].extract("walk");
+    double phase = logs[0]("time:phase");
             
     //Main loop
     double freq = 50.0;
@@ -104,9 +109,21 @@ int main(int argc, char** argv)
         motorsDOF.assignOp(logs[indexLog], "motor", "");
         modelOutputs.get().setDOF(outputsDOF, false);
         modelMotors.get().setDOF(motorsDOF, false);
+        //Walk model
+        walkParams.assignOp(logs[indexLog], "walk");
+        Leph::IKWalk::Parameters params = 
+            Leph::IKWalk::convertVectorLabel(walkParams);
+        bool success = Leph::IKWalk::walk(
+            modelWalk.get(), params, logs[indexLog]("time:phase"), 0.02);
+        //bool success = Leph::IKWalk::walk(modelWalk.get(), params, phase, 0.02);
+        if (!success) {
+            std::cout << "IKWalk error" << std::endl;
+            return -1;
+        }
         //Contraint the model on the ground, integrate movement
         modelOutputs.updateBase();
         modelMotors.updateBase();
+        modelWalk.updateBase();
         //Set IMU data for motors real model state
         modelMotors.setOrientation(
             logs[indexLog]("sensor:pitch"), 
@@ -152,12 +169,16 @@ int main(int argc, char** argv)
         if (viewMode == 0) {
             Leph::ModelDraw(modelOutputs.get(), viewer);
             Leph::ModelDraw(modelMotors.get(), viewer);
+            Leph::ModelDraw(modelWalk.get(), viewer);
         } 
         if (viewMode == 1) {
             Leph::ModelDraw(modelOutputs.get(), viewer);
         } 
         if (viewMode == 2) {
             Leph::ModelDraw(modelMotors.get(), viewer);
+        } 
+        if (viewMode == 3) {
+            Leph::ModelDraw(modelWalk.get(), viewer);
         } 
         //Waiting
         scheduling.wait();
