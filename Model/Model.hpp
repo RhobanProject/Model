@@ -153,6 +153,9 @@ class Model
         Eigen::VectorXd inverseDynamics(
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
+        VectorLabel inverseDynamics(
+            const VectorLabel& velocity,
+            const VectorLabel& acceleration);
         
         /**
          * Compute Inverse Dynamics on a modified closed loop
@@ -263,6 +266,14 @@ class Model
          * to VectorLabel
          */
         void loadEigenToLabel();
+
+        /**
+         * Update given Eigen vector with set values
+         * in VectorLabel
+         * Base DOF are skipped if setBase is true
+         */
+        void loadLabelToEigen(const VectorLabel& vect, 
+            Eigen::VectorXd& dst, bool setBase);
 
         /**
          * Direct access for InverseKinematics class

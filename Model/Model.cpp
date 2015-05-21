@@ -76,16 +76,7 @@ double Model::getDOF(size_t index) const
 }
 void Model::setDOF(const VectorLabel& vect, bool setBase)
 {
-    for (size_t i=0;i<vect.size();i++) {
-        const std::string& label = vect.getLabel(i);
-        if (
-            _dofNameToIndex.count(label) != 0 &&
-            (setBase || 
-            label.find("base ") == std::string::npos)
-        ) {
-            _dofs(_dofNameToIndex.at(label)) = vect(i);
-        }
-    }
+    loadLabelToEigen(vect, _dofs, setBase);
 }
 void Model::setDOF(const std::string& name, double value)
 {
@@ -257,6 +248,29 @@ Eigen::VectorXd Model::inverseDynamics(
         tau, NULL);
 
     return tau;
+}
+VectorLabel Model::inverseDynamics(
+    const VectorLabel& velocity,
+    const VectorLabel& acceleration)
+{
+    //Declare Eigen Vector
+    Eigen::VectorXd vel = Eigen::VectorXd::Zero(_model.dof_count);
+    Eigen::VectorXd acc = Eigen::VectorXd::Zero(_model.dof_count);
+    //Convertion from VectorLabel
+    loadLabelToEigen(velocity, vel, false);
+    loadLabelToEigen(acceleration, acc, false);
+
+    //Call implementation
+    Eigen::VectorXd torques = inverseDynamics(vel, acc);
+
+    //Back conversion
+    VectorLabel vect = _vectorDOF;
+    for (size_t i=0;i<vect.size();i++) {
+        const std::string& label = vect.getLabel(i);
+        vect(i) = torques(_dofNameToIndex.at(label));
+    }
+
+    return vect;
 }
 
 Eigen::VectorXd Model::inverseDynamicsClosedLoop(
@@ -437,6 +451,21 @@ void Model::loadEigenToLabel()
 {
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
         _vectorDOF(_dofIndexToName.at(i)) = _dofs(i);
+    }
+}
+
+void Model::loadLabelToEigen(const VectorLabel& vect, 
+    Eigen::VectorXd& dst, bool setBase)
+{
+    for (size_t i=0;i<vect.size();i++) {
+        const std::string& label = vect.getLabel(i);
+        if (
+            _dofNameToIndex.count(label) != 0 &&
+            (setBase || 
+            label.find("base ") == std::string::npos)
+        ) {
+            dst(_dofNameToIndex.at(label)) = vect(i);
+        }
     }
 }
  
