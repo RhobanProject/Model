@@ -15,6 +15,9 @@ bool FittedSpline::fitting(double maxError, bool throwError)
         throw std::logic_error(
             "FittedSpline not enough points");
     }
+    
+    //Clear spline
+    Spline::_splines.clear();
 
     //Sort all points on x axis
     std::sort(
