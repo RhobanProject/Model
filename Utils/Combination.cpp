@@ -8,7 +8,7 @@ unsigned long Combination::binomialCoefficient(
     size_t k, size_t n)
 {
     if (n == 0 || k == 0) {
-        return 0;
+        return 1;
     }
     if (k > n) {
         throw std::logic_error("Combination not valid k>n");
