@@ -1,6 +1,19 @@
 #include "Spline/Polynom.hpp"
+#include "Utils/NewtonBinomial.hpp"
 
 namespace Leph {
+        
+Polynom::Polynom() :
+    _coefs()
+{
+}
+Polynom::Polynom(unsigned int degree) :
+    _coefs()
+{
+    for (size_t i=0;i<degree+1;i++) {
+        _coefs.push_back(0.0);
+    }
+}
 
 const std::vector<double>& Polynom::getCoefs() const
 {
@@ -9,6 +22,15 @@ const std::vector<double>& Polynom::getCoefs() const
 std::vector<double>& Polynom::getCoefs()
 {
     return _coefs;
+}
+        
+const double& Polynom::operator()(size_t index) const
+{
+    return _coefs.at(index);
+}
+double& Polynom::operator()(size_t index)
+{
+    return _coefs.at(index);
 }
 
 double Polynom::pos(double x) const
@@ -40,6 +62,38 @@ double Polynom::acc(double x) const
         xx *= x;
     }
     return val;
+}
+
+void Polynom::operator*=(double coef)
+{
+    for (size_t i=0;i<_coefs.size();i++) {
+        _coefs[i] *= coef;
+    }
+}
+void Polynom::operator+=(const Polynom& p)
+{
+    while (p._coefs.size() > _coefs.size()) {
+        _coefs.push_back(0.0);
+    }
+
+    for (size_t i=0;i<p._coefs.size();i++) {
+        _coefs[i] += p._coefs[i];
+    }
+}
+        
+void Polynom::shift(double delta)
+{
+    Polynom n(_coefs.size()-1);
+    n._coefs[0] = _coefs[0];
+
+    for (size_t k=1;k<_coefs.size();k++) {
+        Polynom tmp = NewtonBinomial::expandPolynom(delta, k);
+        for (size_t l=0;l<=k;l++) {
+            n._coefs[l] += _coefs[k]*tmp._coefs[l];
+        }
+    }
+
+    *this = n;
 }
 
 }

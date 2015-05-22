@@ -18,12 +18,24 @@ class Polynom
     public:
 
         /**
+         * Default and inital degree initialization
+         */
+        Polynom();
+        Polynom(unsigned int degree);
+
+        /**
          * Access to coefficient
          * indexed from constant to
          * higher degree
          */
         const std::vector<double>& getCoefs() const;
         std::vector<double>& getCoefs();
+
+        /**
+         * Access to coefficient
+         */
+        const double& operator()(size_t index) const;
+        double& operator()(size_t index);
 
         /**
          * Return polynom degree
@@ -38,6 +50,17 @@ class Polynom
         double pos(double x) const;
         double vel(double x) const;
         double acc(double x) const;
+
+        /**
+         * Some useful operators
+         */
+        void operator*=(double coef);
+        void operator+=(const Polynom& p);
+
+        /**
+         *
+         */
+        void shift(double delta);
 
     private:
 
