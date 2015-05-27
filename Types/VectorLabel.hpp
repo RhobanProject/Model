@@ -779,14 +779,12 @@ class VectorLabel
          * String label to index mapping
          * container
          */
-        //LabelContainer* _labelToIndex;
         std::shared_ptr<LabelContainer> _labelToIndex;
 
         /**
          * Index to string label mapping
          * container
          */
-        //IndexContainer* _indexToLabel;
         std::shared_ptr<IndexContainer> _indexToLabel;
 
         /**
