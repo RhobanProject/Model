@@ -58,6 +58,8 @@ set(SOURCES_FILES
     Utils/CircularBuffer.cpp
     Utils/Chrono.cpp
     Utils/Scheduling.cpp
+    Utils/Differentiation.cpp
+    Utils/NewtonBinomial.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -101,6 +103,7 @@ set(TESTS_FILES
     testSmoothSpline
     testScheduling
     testFittedSpline
+    testDifferentiation
 )
 
 #Applications main files
