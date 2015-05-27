@@ -40,10 +40,11 @@ int main()
     params.footYOffset = 0.01;
     params.stepGain = 0.08;
     params.riseGain = 0.06;
-    params.turnGain = -0.3;
+    params.turnGain = 0.0;
     params.lateralGain = 0.0;
-    params.trunkZOffset = 0.08;
-    params.swingGain = 0.05;
+    params.trunkZOffset = 0.05;
+    params.swingGain = 0.02;
+    params.swingRollGain = 0.0;
     params.swingPhase = 0.0;
     params.stepUpVel = 2.0;
     params.stepDownVel = 2.0;
@@ -53,8 +54,8 @@ int main()
     params.swingVel = 5.0;
     params.trunkXOffset = 0.0;
     params.trunkYOffset = 0.0;
-    params.trunkPitch = 0.2;
-    params.trunkRoll = -0.4;
+    params.trunkPitch = 0.5;
+    params.trunkRoll = -0.2;
     params.extraLeftX = 0.0;
     params.extraLeftY = 0.0;
     params.extraLeftZ = 0.0;
@@ -94,9 +95,6 @@ int main()
             modelOld.position("right foot tip", "origin"), 
             Leph::ModelViewer::Yellow);
         viewer.addTrackedPoint(
-            modelOld.position("trunk", "origin"), 
-            Leph::ModelViewer::Purple);
-        viewer.addTrackedPoint(
             modelOld.centerOfMass("origin"), 
             Leph::ModelViewer::Cyan);
         //Display model
@@ -110,6 +108,7 @@ int main()
             modelNew.get(), params, phase, 0.01);
         if (!success) {
             std::cout << "IKWalk inverse kinematics failed" << std::endl;
+            return -1;
         }
         //Contraint the model on the ground
         modelNew.updateBase();
@@ -123,6 +122,9 @@ int main()
         viewer.addTrackedPoint(
             modelNew.get().centerOfMass("origin"), 
             Leph::ModelViewer::Blue);
+        viewer.addTrackedPoint(
+            modelNew.get().position("right foot tip", "origin"), 
+            Leph::ModelViewer::Purple);
         //Display model
         Leph::ModelDraw(modelNew.get(), viewer);
         //Waiting
