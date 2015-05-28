@@ -111,5 +111,94 @@ void HumanoidFixedModel::setOrientation(
     }
 }
 
+Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
+    const std::string& frame,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration)
+{
+    Eigen::VectorXd torque = get().inverseDynamics(
+        velocity, acceleration);
+
+    double Fx = torque(get().getDOFIndex("base Tx"));
+    double Fy = torque(get().getDOFIndex("base Ty"));
+    double Fz = torque(get().getDOFIndex("base Tz"));
+    double MRoll = torque(get().getDOFIndex("base roll"));
+    double MPitch = torque(get().getDOFIndex("base pitch"));
+    
+    double Mx;
+    double My;
+    convertFootMoment(MPitch, MRoll, Mx, My);
+    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
+
+    return get().position("origin", frame, zmp);
+}
+Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
+    const std::string& frame,
+    const VectorLabel& velocity,
+    const VectorLabel& acceleration)
+{
+    VectorLabel torque = get().inverseDynamics(
+        velocity, acceleration);
+
+    double Fx = torque("base Tx");
+    double Fy = torque("base Ty");
+    double Fz = torque("base Tz");
+    double MRoll = torque("base roll");
+    double MPitch = torque("base pitch");
+    
+    double Mx;
+    double My;
+    convertFootMoment(MPitch, MRoll, Mx, My);
+    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
+    
+    return get().position("origin", frame, zmp);
+}
+
+void HumanoidFixedModel::convertFootMoment(
+    double torquePitch, double torqueRoll,
+    double& Mx, double& My)
+{
+    //Compute matrix rotation from world origin
+    //to foot
+    Eigen::Matrix3d mat;
+    if (_supportFoot == LeftSupportFoot) {
+        mat = get().orientation("left foot tip", "origin");
+    } else {
+        mat = get().orientation("right foot tip", "origin");
+    }
+    mat.transposeInPlace();
+
+    //Compute Pitch/Roll torque vector in world frame
+    Eigen::Vector3d uRoll = mat.col(0);
+    Eigen::Vector3d uPitch = mat.col(1);
+    Eigen::Vector3d torque = torqueRoll*uRoll + torquePitch*uPitch;
+
+    //Retrieve X/Y component
+    Mx = torque.x();
+    My = torque.y();
+}
+        
+Eigen::Vector3d HumanoidFixedModel::computeZMP(
+    double Fx, double Fy, double Fz, 
+    double Mx, double My)
+{
+    Eigen::Vector3d posA;
+    if (_supportFoot == LeftSupportFoot) {
+        posA = get().position("left foot tip", "origin");
+    } else {
+        posA = get().position("right foot tip", "origin");
+    }
+
+    double Ax = posA.x();
+    double Ay = posA.y();
+    double Az = posA.z();
+
+    double Px = (-My - (Az*Fx-Ax*Fz))/Fz;
+    double Py = (Mx + (Ay*Fz-Az*Fy))/Fz;
+    double Pz = 0.0;
+
+    return Eigen::Vector3d(Px, Py, Pz);
+}
+
 }
 

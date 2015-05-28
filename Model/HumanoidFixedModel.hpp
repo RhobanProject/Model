@@ -61,6 +61,21 @@ class HumanoidFixedModel
          */
         void setOrientation(double trunkPitch, double trunkRoll);
 
+        /**
+         * Compute and return the Zero Moment Point
+         * (ZMP) in given frame. Given degrees of freedom
+         * velocity and acceleration are used (to compute
+         * inverse dynamics)
+         */
+        Eigen::Vector3d zeroMomentPoint(
+            const std::string& frame,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& acceleration);
+        Eigen::Vector3d zeroMomentPoint(
+            const std::string& frame,
+            const VectorLabel& velocity,
+            const VectorLabel& acceleration);
+
     private:
         
         /**
@@ -74,6 +89,22 @@ class HumanoidFixedModel
          */
         HumanoidModel _modelLeft;
         HumanoidModel _modelRight;
+
+        /**
+         * Convert given base pitch/roll torque into
+         * X/Y torque in world frame
+         */
+        void convertFootMoment(
+            double torquePitch, double torqueRoll,
+            double& Mx, double& My);
+
+        /**
+         * Compute ZMP position given X/Y/Z force
+         * and X/Y moment in world frame
+         */
+        Eigen::Vector3d computeZMP(
+            double Fx, double Fy, double Fz, 
+            double Mx, double My);
 };
 
 }
