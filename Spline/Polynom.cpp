@@ -32,6 +32,11 @@ double& Polynom::operator()(size_t index)
 {
     return _coefs.at(index);
 }
+        
+size_t Polynom::degree() const
+{
+    return _coefs.size()-1;
+}
 
 double Polynom::pos(double x) const
 {
@@ -94,6 +99,16 @@ void Polynom::shift(double delta)
     }
 
     *this = n;
+}
+
+std::ostream& operator<<(std::ostream& os, const Polynom& p)
+{
+    os << "degree=" << p.degree() << " ";
+    for (size_t i=0;i<p.degree()+1;i++) {
+        os << p(i) << " ";
+    }
+
+    return os;
 }
 
 }

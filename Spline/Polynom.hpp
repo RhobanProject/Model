@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <vector>
+#include <iostream>
 
 namespace Leph {
 
@@ -58,7 +59,9 @@ class Polynom
         void operator+=(const Polynom& p);
 
         /**
-         *
+         * Update the polynom coefficients
+         * by applying delta offset 
+         * on X abscisse
          */
         void shift(double delta);
 
@@ -69,6 +72,11 @@ class Polynom
          */
         std::vector<double> _coefs;
 };
+
+/**
+ * Print operator
+ */
+std::ostream& operator<<(std::ostream& os, const Polynom& p);
 
 }
 
