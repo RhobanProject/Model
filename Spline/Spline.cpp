@@ -103,13 +103,30 @@ void Spline::importData(std::istream& is)
 double Spline::interpolation(double x, 
     double(Polynom::*func)(double) const) const
 {
-    for (size_t i=0;i<_splines.size();i++) {
-        if (x >= _splines[i].min && x <= _splines[i].max) {
-            return (_splines[i].polynom.*func)
-                (x-_splines[i].min);
+    //Bound asked abscisse into spline range
+    if (x <= _splines.front().min) {
+        x = _splines.front().min;
+    }
+    if (x >= _splines.back().max) {
+        x = _splines.back().max;
+    }
+    //Bijection spline search
+    size_t indexLow = 0;
+    size_t indexUp = _splines.size()-1;
+    while (indexLow != indexUp) {
+        size_t index = (indexUp+indexLow)/2;
+        if (x < _splines[index].min) {
+            indexUp = index-1;
+        } else if (x > _splines[index].max) {
+            indexLow = index+1;
+        } else {
+            indexUp = index;
+            indexLow = index;
         }
     }
-    return 0.0;
+    //Compute and return spline value
+    return (_splines[indexUp].polynom.*func)
+        (x-_splines[indexUp].min);
 }
 
 double Spline::interpolationMod(double x, 
