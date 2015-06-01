@@ -1,6 +1,8 @@
 #include <algorithm>
 #include "Spline/FittedSpline.hpp"
 #include "Spline/PolyFit.hpp"
+#include "LinearRegression/SimpleLinearRegression.hpp"
+#include "Utils/NewtonBinomial.hpp"
 
 namespace Leph {
 
@@ -9,26 +11,14 @@ void FittedSpline::addPoint(double x, double y)
     _points.push_back({x, y});
 }
         
-bool FittedSpline::fitting(double maxError, bool throwError)
+bool FittedSpline::fittingPieces(double maxError, bool throwError)
 {
-    if (_points.size() < 3) {
-        throw std::logic_error(
-            "FittedSpline not enough points");
-    }
-    
-    //Clear spline
-    Spline::_splines.clear();
-
-    //Sort all points on x axis
-    std::sort(
-        _points.begin(), 
-        _points.end(), 
-        [](const Point& p1, const Point& p2) -> bool { 
-            return p1.first < p2.first;
-        });
+    //Sort data
+    prepareData();
 
     //Cut x axis into sequences
     //(select spline knots points)
+    //by founding data extremum
     std::vector<std::pair<size_t, size_t>> parts;
     size_t beginIndex = 0;
     bool isIncreasing;
@@ -72,9 +62,10 @@ bool FittedSpline::fitting(double maxError, bool throwError)
         while (true) {
             //Polynomial simple linear regression
             PolyFit fit(degree);
-            SimpleLinearRegression regression;
             for (size_t j=parts[i].first;j<=parts[i].second;j++) {
-                fit.add(_points[j].first- _points[parts[i].first].first, _points[j].second);
+                fit.add(
+                    _points[j].first - _points[parts[i].first].first, 
+                    _points[j].second);
             }
             Polynom polynom = fit.fitting();
             //Compute max fitting error
@@ -115,6 +106,109 @@ bool FittedSpline::fitting(double maxError, bool throwError)
     }
 
     return isFitSuccessful;
+}
+ 
+void FittedSpline::fittingGlobal(
+    unsigned int degree, unsigned int sequenceLength)
+{
+    //Sort data
+    prepareData();
+
+    //Choose spline knots uniformally
+    std::vector<double> knots;
+    for (size_t i=1;i<_points.size()-sequenceLength/2;i++) {
+        if (i%sequenceLength == 0) {
+            knots.push_back(_points[i].first);
+        }
+    }
+
+    //Prepare smooth spline linear regression with position
+    //and derivatives continuity
+    //Data are: 1, x, x^2, ..., x^d, (x-knot1)^d, (x-knot2)^d, ...
+    SimpleLinearRegression regression;
+    for (size_t i=0;i<_points.size();i++) {
+        Eigen::VectorXd inputs(degree + 1 + knots.size());
+        double expT = 1.0;
+        for (size_t k=0;k<degree+1;k++) {
+            inputs(k) = expT;
+            expT *= _points[i].first - _points.front().first;
+        }
+        for (size_t k=0;k<knots.size();k++) {
+            if (_points[i].first < knots[k]) {
+                inputs(degree+1+k) = 0.0;
+            } else {
+                inputs(degree+1+k) = 
+                    pow(_points[i].first - knots[k], degree);
+            }
+        }
+        regression.add(inputs, _points[i].second);
+    }
+
+    //Run regression
+    regression.regression();
+
+    //Add first spline part
+    Polynom polynomFirst(degree);
+    for (size_t i=0;i<degree+1;i++) {
+        polynomFirst(i) += regression.parameters()(i);
+    }
+    //Add the spline to the container
+    double boundMinFirst = _points.front().first;
+    double boundMaxFirst;
+    if (knots.size() > 0) {
+        boundMaxFirst = knots.front();
+    } else {
+        boundMaxFirst = _points.back().first;
+    }
+    Spline::_splines.push_back({
+        polynomFirst, boundMinFirst, boundMaxFirst});
+    //Add all remaining spline parts beginning by on a knot
+    for (size_t k=0;k<knots.size();k++) {
+        Polynom polynom(degree);
+        for (size_t i=0;i<degree+1;i++) {
+            polynom(i) += regression.parameters()(i);
+        }
+        //Convertion from (x-knot)^d form to
+        //coefficient values
+        for (size_t i=0;i<=k;i++) {
+            Polynom tmp = NewtonBinomial::
+                expandPolynom(_points.front().first-knots[i], degree);
+            tmp *= regression.parameters()(degree+1+i);
+            polynom += tmp;
+        }
+        //Add it to Spline container 
+        double boundMin = knots[k];
+        double boundMax;
+        if (k == knots.size()-1) {
+            boundMax = _points.back().first;
+        } else {
+            boundMax = knots[k+1];
+        }
+        //Shift polynom on x axis for spline interface compliance
+        polynom.shift(knots[k]-_points.front().first);
+        Spline::_splines.push_back({
+            polynom, boundMin, boundMax});
+    }
+}
+        
+void FittedSpline::prepareData()
+{
+    //Data check
+    if (_points.size() < 3) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
+    //Clear spline
+    Spline::_splines.clear();
+
+    //Sort all points on x axis
+    std::sort(
+        _points.begin(), 
+        _points.end(), 
+        [](const Point& p1, const Point& p2) -> bool { 
+            return p1.first < p2.first;
+        });
 }
 
 }

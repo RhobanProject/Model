@@ -9,10 +9,10 @@ namespace Leph {
 /**
  * FittedSpline
  *
- * Fit polynomial spline from
- * unnoised data point
- * Each spline part could be fitted by
- * a different degree polynom
+ * Fit polynomial spline on given
+ * unidimentional data points.
+ * Two different fitting strategy are 
+ * implemented.
  */
 class FittedSpline : public Spline
 {
@@ -24,15 +24,32 @@ class FittedSpline : public Spline
         void addPoint(double x, double y);
 
         /**
-         * Compute fitting spline with registered
-         * data points
+         * Compute fitting spline on registered
+         * data points. Spline knots are placed on
+         * data points extremum (works only on noiseless data).
+         * Each part is fitted independently by a polynom whose
+         * degree is chosen to minimize fitting point error.
+         * No continuity bound are ensure.
          * maxError is maximum error allowed between given
-         * data point and fitted model prediction
+         * data point and fitted model prediction.
          * if throwError is true, runtime_error is thrown if 
-         * no fit is found.
-         * Return true if fit is successful
+         * no good fit is found.
+         * Return true if fit is successful.
          */
-        bool fitting(double maxError, bool throwError);
+        bool fittingPieces(double maxError, bool throwError);
+
+        /**
+         * Compute fitting polynoms on registered 
+         * data points. All fitted polynoms have given degree.
+         * Position and derivatives continuity are ensure 
+         * at splines knots.
+         * Knots are generated uniformally every 
+         * sequenceLength data point.
+         * All splines are computed alltogether ensuring bounds
+         * contraints using linear regression.
+         */
+        void fittingGlobal(
+            unsigned int degree, unsigned int sequenceLength);
 
     private:
 
@@ -42,9 +59,15 @@ class FittedSpline : public Spline
         typedef std::pair<double, double> Point;
 
         /**
-         * Fitted point container
+         * Added points container
          */
         std::vector<Point> _points;
+
+        /**
+         * Check data size and sort 
+         * registered points by time
+         */
+        void prepareData();
 };
 
 }
