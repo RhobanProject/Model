@@ -30,6 +30,7 @@ namespace libgp
        *  @param input_dim dimensionality of the input vectors */
       virtual bool init(int input_dim) 
       { 
+        (void)input_dim;
         return false;
       };
 
@@ -39,11 +40,17 @@ namespace libgp
        *  @param second second covariance function of compound */
       virtual bool init(int input_dim, CovarianceFunction * first, CovarianceFunction * second)
       {
+        (void)input_dim;
+        (void)first;
+        (void)second;
         return false;
       };
 
       virtual bool init(int input_dim, int filter, CovarianceFunction * covf)
       {
+        (void)input_dim;
+        (void)filter;
+        (void)covf;
         return false;
       };
 
