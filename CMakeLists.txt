@@ -35,11 +35,18 @@ set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBCMAES_DIRE
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibCMAES)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
+#Include LibGP (Gaussian Process regression C++ library)
+set(LIBGP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibGP" CACHE STRING "LibGP lib directory")
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBGP_DIRECTORY}/include)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibGP)
+
 #Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
 
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#Enable Warning
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 #Sources files
 set(SOURCES_FILES
@@ -104,6 +111,7 @@ set(TESTS_FILES
     testScheduling
     testFittedSpline
     testDifferentiation
+    testGaussianProcess
 )
 
 #Applications main files
@@ -117,10 +125,14 @@ set(CODE_LIBRARIES
     rbdl
     rbdl_urdfreader
     cmaes
+    gp
 )
 
 #Build LibCMAES vendors
 add_subdirectory(${LIBCMAES_DIRECTORY})
+
+#Build LibGP vendors
+add_subdirectory(${LIBGP_DIRECTORY})
 
 #Build RBDL vendors
 set(RBDL_BUILD_ADDON_URDFREADER ON CACHE BOOL "Build RBDL URDF Addon")
