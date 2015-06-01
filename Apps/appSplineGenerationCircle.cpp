@@ -96,7 +96,7 @@ int main()
 
     //Splines fittings
     for (size_t i=0;i<splines.size();i++) {
-        splines.get(outputs.getLabel(i)).fitting(0.3, true);
+        splines.get(outputs.getLabel(i)).fittingPieces(0.3, true);
     }
     
     //Export computed splines
