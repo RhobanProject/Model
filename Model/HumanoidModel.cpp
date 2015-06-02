@@ -296,6 +296,39 @@ void HumanoidModel::setIKResult(
         prefix = "right ";
     }
 
+    //Check if Nan is returned
+    if (
+        std::isnan(result.theta[0]) ||
+        std::isnan(result.theta[1]) ||
+        std::isnan(result.theta[2]) ||
+        std::isnan(result.theta[3]) ||
+        std::isnan(result.theta[4]) ||
+        std::isnan(result.theta[5])
+    ) {
+        throw std::logic_error("LegIK NaN invalid result. "
+            + std::string("isLeftLeg=")
+            + std::to_string(isLeftLeg)
+            + std::string(" ")
+            + std::string("theta0=") 
+            + std::to_string(result.theta[0]) 
+            + std::string(" ")
+            + std::string("theta1=") 
+            + std::to_string(result.theta[1]) 
+            + std::string(" ")
+            + std::string("theta2=") 
+            + std::to_string(result.theta[2]) 
+            + std::string(" ")
+            + std::string("theta3=") 
+            + std::to_string(result.theta[3]) 
+            + std::string(" ")
+            + std::string("theta4=") 
+            + std::to_string(result.theta[4]) 
+            + std::string(" ")
+            + std::string("theta5=") 
+            + std::to_string(result.theta[5]) 
+        );
+    }
+
     Model::setDOF(prefix+"hip yaw", result.theta[0]);
     Model::setDOF(prefix+"hip roll", result.theta[1]);
     if (_type == GrosbanModel) {
