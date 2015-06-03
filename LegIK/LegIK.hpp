@@ -27,7 +27,7 @@ class Vector3D : public std::vector<double> {
   friend double scalar_prod(const Vector3D & v1, const Vector3D & v2);
   friend Vector3D vect_prod(const Vector3D & v1, const Vector3D & v2);
 
-  std::string pp(); 
+  std::string pp() const; 
 };
 
 /*****************************************************************************/
@@ -40,7 +40,7 @@ class Frame3D : public std::vector<Vector3D> {
   /* Ordre habituel des angles d'euler : precession, nutation et rotation propre */
   static Frame3D from_euler(double euler_psi, double euler_theta, double euler_phi);
   static Frame3D from_vectors(Vector3D e1, Vector3D e2, Vector3D e3);
-  std::string pp();
+  std::string pp() const;
 };
 
 /*****************************************************************************/

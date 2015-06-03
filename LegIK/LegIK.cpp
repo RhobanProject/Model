@@ -92,7 +92,7 @@ Vector3D vect_prod(const Vector3D & v1, const Vector3D & v2) {
 		  v1[0]*v2[1] - v1[1]*v2[0]);
 }
 
-std::string Vector3D::pp() {
+std::string Vector3D::pp() const {
   char str[256];
   sprintf(str, "(%6.3f, %6.3f, %6.3f)", (*this)[0], (*this)[1], (*this)[2]);
   return string(str);
@@ -132,7 +132,7 @@ Frame3D Frame3D::from_vectors(Vector3D e1, Vector3D e2, Vector3D e3) {
   return res;
 }
 
-string Frame3D::pp() {
+string Frame3D::pp() const {
   stringstream str;
   str << (*this)[0].pp() << endl;
   str << (*this)[1].pp() << endl;

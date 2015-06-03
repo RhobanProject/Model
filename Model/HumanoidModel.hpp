@@ -152,6 +152,15 @@ class HumanoidModel : public Model
          */
         void setIKResult(
             const LegIK::Position& result, bool isLeftLeg);
+
+        /**
+         * Check inverse kinematics computed value
+         * and throw an error in case of NaN
+         */
+        void checkNaN(
+            const LegIK::Position& result, 
+            const LegIK::Vector3D& pos,
+            const LegIK::Frame3D& orientation) const;
 };
 
 }

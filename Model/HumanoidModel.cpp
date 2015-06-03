@@ -126,6 +126,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
 
     //Update degrees of freedom on success
     if (isSucess) {
+        checkNaN(result, legIKTarget, legIKMatrix);
         setIKResult(result, true);
     } 
 
@@ -155,6 +156,7 @@ bool HumanoidModel::legIkRight(const std::string& frame,
 
     //Update degrees of freedom on success
     if (isSucess) {
+        checkNaN(result, legIKTarget, legIKMatrix);
         setIKResult(result, false);
     } 
 
@@ -296,6 +298,27 @@ void HumanoidModel::setIKResult(
         prefix = "right ";
     }
 
+    Model::setDOF(prefix+"hip yaw", result.theta[0]);
+    Model::setDOF(prefix+"hip roll", result.theta[1]);
+    if (_type == GrosbanModel) {
+        //Handle non alignement in zero position
+        //of hip and ankle Z (zaw) axes (knee angle of Grosban)
+        Model::setDOF(prefix+"hip pitch", -result.theta[2] - 0.0603);
+        Model::setDOF(prefix+"knee", result.theta[3] + 0.0603);
+        Model::setDOF(prefix+"foot pitch", -result.theta[4] + 0.0035);
+    } else {
+        Model::setDOF(prefix+"hip pitch", -result.theta[2]);
+        Model::setDOF(prefix+"knee", result.theta[3]);
+        Model::setDOF(prefix+"foot pitch", -result.theta[4]);
+    }
+    Model::setDOF(prefix+"foot roll", result.theta[5]);
+}
+
+void HumanoidModel::checkNaN(
+    const LegIK::Position& result, 
+    const LegIK::Vector3D& pos,
+    const LegIK::Frame3D& orientation) const
+{
     //Check if Nan is returned
     if (
         std::isnan(result.theta[0]) ||
@@ -306,9 +329,6 @@ void HumanoidModel::setIKResult(
         std::isnan(result.theta[5])
     ) {
         throw std::logic_error("LegIK NaN invalid result. "
-            + std::string("isLeftLeg=")
-            + std::to_string(isLeftLeg)
-            + std::string(" ")
             + std::string("theta0=") 
             + std::to_string(result.theta[0]) 
             + std::string(" ")
@@ -326,23 +346,13 @@ void HumanoidModel::setIKResult(
             + std::string(" ")
             + std::string("theta5=") 
             + std::to_string(result.theta[5]) 
+            + std::string(" pos=")
+            + pos.pp()
+            + std::string(" orientation=")
+            + orientation.pp()
         );
     }
 
-    Model::setDOF(prefix+"hip yaw", result.theta[0]);
-    Model::setDOF(prefix+"hip roll", result.theta[1]);
-    if (_type == GrosbanModel) {
-        //Handle non alignement in zero position
-        //of hip and ankle Z (zaw) axes (knee angle of Grosban)
-        Model::setDOF(prefix+"hip pitch", -result.theta[2] - 0.0603);
-        Model::setDOF(prefix+"knee", result.theta[3] + 0.0603);
-        Model::setDOF(prefix+"foot pitch", -result.theta[4] + 0.0035);
-    } else {
-        Model::setDOF(prefix+"hip pitch", -result.theta[2]);
-        Model::setDOF(prefix+"knee", result.theta[3]);
-        Model::setDOF(prefix+"foot pitch", -result.theta[4]);
-    }
-    Model::setDOF(prefix+"foot roll", result.theta[5]);
 }
 
 }
