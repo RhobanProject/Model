@@ -91,10 +91,12 @@ bool IKWalk::walk(HumanoidModel& model,
     //Compute feet lateral movement oscillation
     leftY += params.enabledGain
         * params.lateralGain
-        * stepSpline.pos(phaseLeft);
+        * (stepSpline.pos(phaseLeft) + 0.5
+            *(params.lateralGain >= 0.0 ? 1.0 : -1.0));
     rightY += params.enabledGain
         * params.lateralGain
-        * stepSpline.pos(phaseRight);
+        * (stepSpline.pos(phaseRight) + 0.5
+            *(params.lateralGain >= 0.0 ? -1.0 : 1.0));
     //Set feet lateral offset (feet distance from trunk center)
     leftY += params.footYOffset;
     rightY += -params.footYOffset;
