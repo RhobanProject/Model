@@ -117,6 +117,8 @@ set(TESTS_FILES
     testFittedSpline
     testDifferentiation
     testGaussianProcess
+    testTimeSeries
+    testLWPR
 )
 
 #Applications main files
