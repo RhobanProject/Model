@@ -35,6 +35,11 @@ set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBCMAES_DIRE
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibCMAES)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
+#Include LWPR (Fast non parametric regression)
+set(LWPR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LWPR" CACHE STRING "LWPR lib directory")
+set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LWPR_DIRECTORY}/include)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LWPR)
+
 #Include LibGP (Gaussian Process regression C++ library)
 set(LIBGP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibGP" CACHE STRING "LibGP lib directory")
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBGP_DIRECTORY}/include)
@@ -125,11 +130,15 @@ set(CODE_LIBRARIES
     rbdl
     rbdl_urdfreader
     cmaes
+    lwpr
     gp
 )
 
 #Build LibCMAES vendors
 add_subdirectory(${LIBCMAES_DIRECTORY})
+
+#Build LWPR vendors
+add_subdirectory(${LWPR_DIRECTORY})
 
 #Build LibGP vendors
 add_subdirectory(${LIBGP_DIRECTORY})
