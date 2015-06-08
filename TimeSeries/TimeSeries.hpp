@@ -73,6 +73,18 @@ class TimeSeries
         }
 
         /**
+         * Reset the series data to empty
+         */
+        inline void clear()
+        {
+            _indexEnd = 0;
+            _data.clear();
+            _count = 0;
+            _min = std::numeric_limits<double>::quiet_NaN();
+            _max = std::numeric_limits<double>::quiet_NaN();
+        }
+
+        /**
          * Return newest and oldest 
          * inserted point time
          */
@@ -135,7 +147,7 @@ class TimeSeries
             size_t indexUp = size()-1;
             while (indexUp-indexLow != 1) {
                 size_t i = (indexLow+indexUp)/2;
-                if (at(i).time >= time) {
+                if (at(i).time <= time) {
                     indexUp = i;
                 } else {
                     indexLow = i;
@@ -145,7 +157,7 @@ class TimeSeries
             //Linear interpolation
             double d1 = at(indexLow).time - at(indexUp).time;
             double d2 = time - at(indexUp).time;
-            return at(indexUp).value*d2/d1 + at(indexLow).value*(d1-d2)/d1;
+            return at(indexUp).value*(d1-d2)/d1 + at(indexLow).value*d2/d1;
         }
 
         /**

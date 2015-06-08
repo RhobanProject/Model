@@ -68,6 +68,8 @@ int main()
     assert(series2.timeMax() == 3.0);
     assert(series1.get(2.5) == 3.0);
     assert(series2.get(2.5) == 3.0);
+    assert(series1.get(3.0) == 3.5);
+    assert(series2.get(3.0) == 3.5);
     
     series1.append(4.0, 4.5);
     series2.append(4.0, 4.5);
@@ -92,14 +94,16 @@ int main()
     assert(series2[0].value == 5.5);
     assert(series1[4].time == 1.0);
     assert(series1[4].value == 1.5);
-    assert(series2[4].time == 1.0);
-    assert(series2[4].value == 1.5);
+    assert(series2[3].time == 2.0);
+    assert(series2[3].value == 2.5);
     assert(series1.timeMin() == 1.0);
     assert(series1.timeMax() == 5.0);
     assert(series2.timeMin() == 2.0);
     assert(series2.timeMax() == 5.0);
     assert(series1.get(4.5) == 5.0);
     assert(series2.get(4.5) == 5.0);
+    assert(series1.get(4.0) == 4.5);
+    assert(series2.get(4.0) == 4.5);
 
     std::ostringstream oss;
     series1.save(oss);
@@ -134,6 +138,10 @@ int main()
     series3.save(std::cout);
     series4.save(std::cout);
     series5.save(std::cout);
+    
+    series4.clear();
+    assert(series4.size() == 0);
+    assert(series4.count() == 0);
 
     return 0;
 }
