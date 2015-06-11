@@ -39,6 +39,10 @@ int main(int argc, char** argv)
     logs.plot()
         .plot("time:timestamp", "sensor:*")
         .render();
+    std::cout << "Plotting pressure" << std::endl;
+    logs.plot()
+        .plot("index", "pressure:*")
+        .render();
     std::cout << "Plotting timming" << std::endl;
     logs.plot()
         .plot("index", "time:*")
@@ -62,7 +66,6 @@ int main(int argc, char** argv)
         logs[0].extract("motor").rename("motor", "");
     Leph::VectorLabel walkParams = 
         logs[0].extract("walk");
-    double phase = logs[0]("time:phase");
             
     //Main loop
     double freq = 50.0;
@@ -115,7 +118,6 @@ int main(int argc, char** argv)
             Leph::IKWalk::convertVectorLabel(walkParams);
         bool success = Leph::IKWalk::walk(
             modelWalk.get(), params, logs[indexLog]("time:phase"), 0.02);
-        //bool success = Leph::IKWalk::walk(modelWalk.get(), params, phase, 0.02);
         if (!success) {
             std::cout << "IKWalk error" << std::endl;
             return -1;
@@ -127,7 +129,7 @@ int main(int argc, char** argv)
         //Set IMU data for motors real model state
         modelMotors.setOrientation(
             logs[indexLog]("sensor:pitch"), 
-            -logs[indexLog]("sensor:roll"));
+            logs[indexLog]("sensor:roll"));
         
         //Display captured center of mass ground projection
         if (viewMode == 1) {
