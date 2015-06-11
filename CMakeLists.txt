@@ -124,6 +124,7 @@ set(TESTS_FILES
 #Applications main files
 set(APPS_FILES
     appSplineGenerationCircle
+    appTestLearningFromLogs
 )
 
 #LephCode linked libraries
