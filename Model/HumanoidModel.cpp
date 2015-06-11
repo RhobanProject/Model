@@ -172,6 +172,87 @@ double HumanoidModel::feetDistance() const
 {
     return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
+
+bool HumanoidModel::cameraPixelToWorld(
+    const CameraParameters& params,
+    const Eigen::Vector2d& pixel,
+    Eigen::Vector3d& pos)
+{
+    double focalLength = 0.01;
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+
+    //Half width and height aperture distance on focal plane
+    double widthLen = focalLength*sin(params.widthAperture);
+    double heightLen = focalLength*sin(params.heightAperture);
+    //Pixel width and height distance from optical center
+    double pixelWidthPos = pixel.x()*widthLen;
+    double pixelHeightPos = pixel.y()*heightLen;
+
+    //Pixel position in world frame
+    Eigen::Vector3d pixelPos = center
+        + focalLength*orientation.col(0)
+        - pixelWidthPos*orientation.col(1)
+        - pixelHeightPos*orientation.col(2);
+
+    //Unnormalize forward pixel vector 
+    Eigen::Vector3d forward = pixelPos - center;
+
+    //Check if the asked point is above the horizon
+    if (forward.z() >= -0.0001) {
+        return false;
+    }
+
+    //Line abscisse intersection in the ground
+    double t = -center.z()/forward.z();
+
+    //Intersection point
+    Eigen::Vector3d pt = center + t*forward;
+
+    pos = pt;
+    return true;
+}
+
+double HumanoidModel::cameraScreenHorizon(
+    const CameraParameters& params,
+    double screenPosWidth)
+{
+    double focalLength = 0.01;
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+    
+    //Half width and height aperture distance on focal plane
+    double widthLen = focalLength*sin(params.widthAperture);
+    double heightLen = focalLength*sin(params.heightAperture);
+    //Pixel width distance from optical center
+    double pixelWidthPos = screenPosWidth*widthLen;
+    
+    //Position in world frame of asked width pixel line
+    //at zero height
+    Eigen::Vector3d pixelPos = center
+        + focalLength*orientation.col(0)
+        - pixelWidthPos*orientation.col(1);
+
+    //Get position on vertical line where the vector
+    //between the line's point and optical center is
+    //horizontal
+    double t = (center.z()-pixelPos.z())/orientation.col(2).z();
+    //Compute this point in world frame
+    Eigen::Vector3d horizonPos = pixelPos + t*orientation.col(2);
+
+    //Conversion to optical plane vertical coordinate
+    double horizonScreenHeight = 
+        (horizonPos-center).dot(orientation.col(2));
+
+    //Convertion to screen normalized height coordinate
+    return -horizonScreenHeight/heightLen;
+}
         
 Eigen::Matrix3d HumanoidModel::eulersToMatrix(
     const Eigen::Vector3d angles, EulerType eulerType) const

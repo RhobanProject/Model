@@ -34,6 +34,16 @@ enum EulerType {
 };
 
 /**
+ * Camera pixel 2D coordinates to
+ * 3D world coordinates parameters
+ */
+struct CameraParameters {
+    //Width and height angular aperture in radians
+    double widthAperture;
+    double heightAperture;
+};
+
+/**
  * HumanoidModel
  *
  * Inherit Model and implement
@@ -99,6 +109,36 @@ class HumanoidModel : public Model
          * between each feet
          */
         double feetDistance() const;
+
+        /**
+         * Compute 3d position in world frame of
+         * given normalized 2d pixel coordinate
+         * projected on the ground.
+         * params is used camera parameters.
+         * pixel is normalized between -1 and 1 relatively
+         * to image width and height in screen frame (X, Y).
+         * pos is updated position on the ground in
+         * world frame.
+         * False is returned if asked point is above
+         * the horizon and pos is not updated.
+         */
+        bool cameraPixelToWorld(
+            const CameraParameters& params,
+            const Eigen::Vector2d& pixel,
+            Eigen::Vector3d& pos);
+
+        /**
+         * Compute and return the height in
+         * pixel normalized coordinate of the 
+         * horizon line at given width pixel
+         * normalized coordinate.
+         * params is used camera parameters.
+         * screenWidth is width (X) pixel 
+         * coordinate between -1 and 1.
+         */
+        double cameraScreenHorizon(
+            const CameraParameters& params,
+            double screenPosWidth);
 
     private:
 
