@@ -10,11 +10,21 @@
 int main(int argc, char** argv)
 {
     //Command line arguments
-    if (argc != 2) {
-        std::cout << "Usage: ./app logsFile" << std::endl;
+    if (argc != 3) {
+        std::cout << "Usage: ./app [sigmaban|grosban] logsFile" << std::endl;
         return -1;
     }
-    std::string logsFile = argv[1];
+
+    Leph::RobotType type;
+    if (std::string(argv[1]) == "sigmaban") {
+        type = Leph::SigmabanModel;
+    } else if (std::string(argv[1]) == "grosban") {
+        type = Leph::GrosbanModel;
+    } else {
+        std::cout << "Usage: ./app [sigmaban|grosban] logsFile" << std::endl;
+        return -1;
+    }
+    std::string logsFile = argv[2];
     std::cout << "Loading " << logsFile << std::endl;
 
     //Loading data
@@ -53,9 +63,9 @@ int main(int argc, char** argv)
         .render();
     
     //Initialize model instances
-    Leph::HumanoidFixedModel modelOutputs(Leph::SigmabanModel);
-    Leph::HumanoidFixedModel modelMotors(Leph::SigmabanModel);
-    Leph::HumanoidFixedModel modelWalk(Leph::SigmabanModel);
+    Leph::HumanoidFixedModel modelOutputs(type);
+    Leph::HumanoidFixedModel modelMotors(type);
+    Leph::HumanoidFixedModel modelWalk(type);
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
 
