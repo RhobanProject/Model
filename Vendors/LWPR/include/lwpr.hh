@@ -432,6 +432,30 @@ class LWPR_Object {
       lwpr_predict(&model, &x[0], cutoff, &yp[0], &confidence[0], &maxW[0]);
       return yp;
    } 
+
+   /**
+    * Compute the Jabobian of LWPR model at given input vector x
+    * The returned jacobian is nOut x nIn matrix in major column.
+    */
+   std::vector<doubleVec> predictJ(const doubleVec& x, double cutoff = 0.001) {
+      doubleVec yp(model.nOut);
+      doubleVec J(model.nOut*model.nIn);
+
+      if (x.size()!=(unsigned) model.nIn) {
+         throw LWPR_Exception(LWPR_Exception::BAD_INPUT_DIM);
+      }      
+
+      lwpr_predict_J(&model, &x[0], cutoff, &yp[0], &J[0]);
+
+      std::vector<doubleVec> JJ(model.nOut);
+      for (size_t i=0;i<(size_t)model.nOut;i++) {
+         JJ[i] = doubleVec(model.nIn);
+         for (size_t j=0;j<(size_t)model.nIn;j++) {
+            JJ[i][j] = J[j*model.nOut + i];
+         }
+      }
+      return JJ;
+   }
    
    /** \brief Sets a spherical initial distance metric
       \param delta   Width parameter, distance matrix will be delta * eye(nIn)
