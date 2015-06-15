@@ -2,7 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <libcmaes/cmaes.h>
-#include <lwpr.hh>
+#include <lwpr_eigen.hpp>
 #include "Plot/Plot.hpp"
 
 std::default_random_engine generator;      
@@ -26,14 +26,6 @@ double cross(double x1,double x2)
     }
 }
 
-void printVect(const std::vector<double>& vect)
-{
-    for (size_t i=0;i<vect.size();i++) {
-        std::cout << vect[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
 double testLWPR(
     double paramNormIn1, double paramNormIn2,
     double paramInitAlpha,
@@ -46,10 +38,11 @@ double testLWPR(
 {
     //InitializeLWPR model with 
     //input and output dimensions
-    LWPR_Object model(2, 1);
+    LWPR_Object model(2);
 
     //Normalisation value for each input dimension (>0)
-    std::vector<double> paramNormIn = {paramNormIn1, paramNormIn2};
+    Eigen::VectorXd paramNormIn(2); 
+    paramNormIn << paramNormIn1, paramNormIn2;
     model.normIn(paramNormIn);
     //Use only diagonal matrix. Big speed up in high dimension
     //but lower performance in complex learning.
@@ -65,61 +58,61 @@ double testLWPR(
     model.penalty(paramPenalty);
     //Set diagonal (input_dim) or complet (input_dim*input_dim)
     //initial distance matrix (>0)
-    std::vector<double> paramInitD = {paramInitD1, paramInitD2};
+    Eigen::VectorXd paramInitD(2); 
+    paramInitD << paramInitD1, paramInitD2;
     model.setInitD(paramInitD);
     //Receptive field activation threshold (>0)
     model.wGen(paramWGen);
     //Receptive field remove threshold
     model.wPrune(paramWPrune);
     
-    std::vector<double> x(2);
-    std::vector<double> y(1);
+    Eigen::VectorXd x(2);
+    Eigen::VectorXd y(1);
     Leph::Plot plot;
     size_t count = 500;
     for (size_t i=0;i<count;i++) {
         //Generate a data point
-        x[0] = dRand();
-        x[1] = dRand();
-        y[0] = cross(x[0],x[1]) + 0.2*dRand();
+        x << dRand(), dRand();
+        y << cross(x[0],x[1]) + 0.2*dRand();
         // Update the model with one sample
         model.update(x,y);
         //Plot
         if (verbose) {
             plot.add(Leph::VectorLabel(
-                "x0", x[0],
-                "x1", x[1],
-                "target", y[0]
+                "x0", x(0),
+                "x1", x(1),
+                "target", y(0)
             ));
         }
     }
     
     double mse = 0.0; 
     size_t numTest = 0;  
-    for (x[1]=-1.0;x[1]<=1.0;x[1]+=0.05) {   
-        for (x[0]=-1.0;x[0]<=1.0;x[0]+=0.05) {
-            y[0] = cross(x[0], x[1]);
+    for (x(1)=-1.0;x(1)<=1.0;x(1)+=0.05) {   
+        for (x(0)=-1.0;x(0)<=1.0;x(0)+=0.05) {
+            y(0) = cross(x(0), x(1));
             // Use the model for predicting an output
-            std::vector<double> yp = model.predict(x);
-            std::vector<std::vector<double>> J = model.predictJ(x);
+            Eigen::VectorXd yp = model.predict(x);
+            Eigen::MatrixXd J = model.predictJ(x);
             //Compute prediction error
-            mse += (y[0]-yp[0])*(y[0]-yp[0]);
+            mse += (y-yp).squaredNorm();
             numTest++;
             //Plot
             if (verbose) {
                 plot.add(Leph::VectorLabel(
-                    "x0", x[0],
-                    "x1", x[1],
-                    "fitted", yp[0],
-                    "dy/dx0", J[0][0]/3.0,
-                    "dy/dx1", J[0][1]/3.0,
-                    "real", cross(x[0], x[1])
+                    "x0", x(0),
+                    "x1", x(1),
+                    "fitted", yp(0),
+                    "dy/dx0", J(0, 0)/3.0,
+                    "dy/dx1", J(0, 1)/3.0,
+                    "real", cross(x(0), x(1))
                 ));
             }
         }
     }
     if (verbose) {
         plot
-            .plot("x0", "x1", "real")
+            //.plot("x0", "x1", "real")
             .plot("x0", "x1", "target")
             .plot("x0", "x1", "fitted")
             .plot("x0", "x1", "dy/dx0")
@@ -140,28 +133,24 @@ double testLWPR(
         std::cout << "nData: " << model.nData() << std::endl;
         std::cout << "nIn: " << model.nIn() << std::endl;
         std::cout << "nOut: " << model.nOut() << std::endl;
-        std::cout << "numRFS: " << model.numRFS(0) << std::endl;
-        for (size_t i=0;i<(size_t)model.numRFS(0);i++) {
-            LWPR_ReceptiveFieldObject rf = model.getRF(0, i);
+        std::cout << "numRFS: " << model.numRFS() << std::endl;
+        for (size_t i=0;i<(size_t)model.numRFS();i++) {
+            LWPR_ReceptiveFieldObject rf = model.getRF(i);
             if (!rf.trustworthy()) continue;
             std::cout << "* RF " << i << ":" << std::endl;
             std::cout << "    nReg: " << rf.nReg() << std::endl;
-            std::cout << "    meanX (nIn): "; printVect(rf.meanX());
-            std::cout << "    varX (nIn): "; printVect(rf.varX());
-            std::cout << "    center (nIn): "; printVect(rf.center());
+            std::cout << "    meanX (nIn): " << rf.meanX().transpose() << std::endl;
+            std::cout << "    varX (nIn): " << rf.varX().transpose() << std::endl;
+            std::cout << "    center (nIn): " << rf.center().transpose() << std::endl;
             std::cout << "    trustworthy: " << rf.trustworthy() << std::endl;
             std::cout << "    U (nReg x nIn):" << std::endl;
-            for (size_t i=0;i<rf.U().size();i++) {
-                std::cout << "        "; printVect(rf.U()[i]);
-            }
+            std::cout << rf.U() << std::endl;
             std::cout << "    P (nReg x nIn):" << std::endl;
-            for (size_t i=0;i<rf.P().size();i++) {
-                std::cout << "        "; printVect(rf.P()[i]);
-            }
+            std::cout << rf.P() << std::endl;
             std::cout << "    beta0: " << rf.beta0() << std::endl;
-            std::cout << "    beta (nReg): ";  printVect(rf.beta());
-            std::cout << "    numData (nReg): ";  printVect(rf.numData());
-            std::cout << "    slope (nIn): ";  printVect(rf.slope());
+            std::cout << "    beta (nReg): " << rf.beta().transpose() << std::endl;
+            std::cout << "    numData (nReg): " << rf.numData().transpose() << std::endl;
+            std::cout << "    slope (nIn): " << rf.slope().transpose() << std::endl;
         }
     }
     return mse;
