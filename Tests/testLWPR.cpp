@@ -26,6 +26,14 @@ double cross(double x1,double x2)
     }
 }
 
+void printVect(const std::vector<double>& vect)
+{
+    for (size_t i=0;i<vect.size();i++) {
+        std::cout << vect[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
 double testLWPR(
     double paramNormIn1, double paramNormIn2,
     double paramInitAlpha,
@@ -41,7 +49,8 @@ double testLWPR(
     LWPR_Object model(2, 1);
 
     //Normalisation value for each input dimension (>0)
-    model.normIn({paramNormIn1, paramNormIn2});
+    std::vector<double> paramNormIn = {paramNormIn1, paramNormIn2};
+    model.normIn(paramNormIn);
     //Use only diagonal matrix. Big speed up in high dimension
     //but lower performance in complex learning.
     model.diagOnly(true);
@@ -56,7 +65,8 @@ double testLWPR(
     model.penalty(paramPenalty);
     //Set diagonal (input_dim) or complet (input_dim*input_dim)
     //initial distance matrix (>0)
-    model.setInitD({paramInitD1, paramInitD2});
+    std::vector<double> paramInitD = {paramInitD1, paramInitD2};
+    model.setInitD(paramInitD);
     //Receptive field activation threshold (>0)
     model.wGen(paramWGen);
     //Receptive field remove threshold
@@ -90,6 +100,7 @@ double testLWPR(
             y[0] = cross(x[0], x[1]);
             // Use the model for predicting an output
             std::vector<double> yp = model.predict(x);
+            std::vector<std::vector<double>> J = model.predictJ(x);
             //Compute prediction error
             mse += (y[0]-yp[0])*(y[0]-yp[0]);
             numTest++;
@@ -99,6 +110,8 @@ double testLWPR(
                     "x0", x[0],
                     "x1", x[1],
                     "fitted", yp[0],
+                    "dy/dx0", J[0][0]/3.0,
+                    "dy/dx1", J[0][1]/3.0,
                     "real", cross(x[0], x[1])
                 ));
             }
@@ -106,9 +119,10 @@ double testLWPR(
     }
     if (verbose) {
         plot
+            .plot("x0", "x1", "real")
             .plot("x0", "x1", "target")
             .plot("x0", "x1", "fitted")
-            //.plot("x0", "x1", "real")
+            .plot("x0", "x1", "dy/dx0")
             .render();
     }
 
@@ -122,6 +136,33 @@ double testLWPR(
         std::cout << "initD: " << paramInitD1 << " " << paramInitD2 << std::endl;
         std::cout << "wGen: " << paramWGen << std::endl;
         std::cout << "wPrune: " << paramWPrune << std::endl;
+        std::cout << "==================" << std::endl;
+        std::cout << "nData: " << model.nData() << std::endl;
+        std::cout << "nIn: " << model.nIn() << std::endl;
+        std::cout << "nOut: " << model.nOut() << std::endl;
+        std::cout << "numRFS: " << model.numRFS(0) << std::endl;
+        for (size_t i=0;i<(size_t)model.numRFS(0);i++) {
+            LWPR_ReceptiveFieldObject rf = model.getRF(0, i);
+            if (!rf.trustworthy()) continue;
+            std::cout << "* RF " << i << ":" << std::endl;
+            std::cout << "    nReg: " << rf.nReg() << std::endl;
+            std::cout << "    meanX (nIn): "; printVect(rf.meanX());
+            std::cout << "    varX (nIn): "; printVect(rf.varX());
+            std::cout << "    center (nIn): "; printVect(rf.center());
+            std::cout << "    trustworthy: " << rf.trustworthy() << std::endl;
+            std::cout << "    U (nReg x nIn):" << std::endl;
+            for (size_t i=0;i<rf.U().size();i++) {
+                std::cout << "        "; printVect(rf.U()[i]);
+            }
+            std::cout << "    P (nReg x nIn):" << std::endl;
+            for (size_t i=0;i<rf.P().size();i++) {
+                std::cout << "        "; printVect(rf.P()[i]);
+            }
+            std::cout << "    beta0: " << rf.beta0() << std::endl;
+            std::cout << "    beta (nReg): ";  printVect(rf.beta());
+            std::cout << "    numData (nReg): ";  printVect(rf.numData());
+            std::cout << "    slope (nIn): ";  printVect(rf.slope());
+        }
     }
     return mse;
 }
@@ -144,7 +185,7 @@ int main()
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(false);
     cmaparams.set_str_algo("acmaes");
-    cmaparams.set_max_iter(100);
+    cmaparams.set_max_iter(10);
 
     //Fitness function
     libcmaes::FitFunc fitness = []
