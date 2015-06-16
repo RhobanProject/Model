@@ -68,7 +68,6 @@ class VectorLabel
                 }
                 (*_labelToIndex)[(*_indexToLabel)[i]] = i;
             }
-            sortLabels();
         }
         VectorLabel(const Vector& vect) :
             _eigenVector(vect),
@@ -78,7 +77,6 @@ class VectorLabel
             _labelToIndex = std::make_shared<LabelContainer>();
             _indexToLabel = std::make_shared<IndexContainer>();
             defaultLabels();
-            sortLabels();
         }
         VectorLabel(const LabelList& labels, 
             const Vector& vect) :
@@ -97,7 +95,6 @@ class VectorLabel
                 }
                 (*_labelToIndex)[(*_indexToLabel)[i]] = i;
             }
-            sortLabels();
         }
 
         /**
@@ -133,7 +130,6 @@ class VectorLabel
         inline void append(const std::string& label, double value = 0.0)
         {
             appendAux(label, value);
-            sortLabels();
         }
         template <class ... LabelsValues>
         inline void append(const std::string& label, 
@@ -269,19 +265,14 @@ class VectorLabel
         inline void mergeUnion(const VectorLabel& v, 
             const std::string& filter = "")
         {
-            bool isAppended = false;
             for (const auto& label : v.labels()) {
                 if (filter == "" || toSection(label.first) == filter) {
                     if (!exist(label.first)) {
                         appendAux(label.first, v(label.first));
-                        isAppended = true;
                     } else {
                         operator()(label.first) = v(label.first);
                     }
                 }
-            }
-            if (isAppended) {
-                sortLabels();
             }
         }
         
@@ -314,16 +305,11 @@ class VectorLabel
         static inline VectorLabel mergeUnion(const VectorLabel& v1, 
             const VectorLabel& v2)
         {
-            bool isAppended = false;
             VectorLabel merged = v1;
             for (const auto& label : v2.labels()) {
                 if (!merged.exist(label.first)) {
                     merged.appendAux(label.first, v2(label.first));
-                    isAppended = true;
                 } 
-            }
-            if (isAppended) {
-                merged.sortLabels();
             }
 
             return merged;
@@ -337,16 +323,11 @@ class VectorLabel
         static inline VectorLabel mergeInter(const VectorLabel& v1, 
             const VectorLabel& v2)
         {
-            bool isAppended = false;
             VectorLabel merged;
             for (const auto& label : v1.labels()) {
                 if (v2.exist(label.first)) {
                     merged.appendAux(label.first, v1(label.first));
-                    isAppended = true;
                 } 
-            }
-            if (isAppended) {
-                merged.sortLabels();
             }
 
             return merged;
@@ -493,7 +474,6 @@ class VectorLabel
                     tmp(dstLabel) = _eigenVector(i);
                 }
             }
-            tmp.sortLabels();
 
             return tmp;
         }
@@ -817,24 +797,6 @@ class VectorLabel
             _eigenVector(len) = value;
             (*_labelToIndex)[label] = len;
             _indexToLabel->push_back(label);
-        }
-
-        /**
-         * Resort all labels and associated
-         * data structure and values in standart
-         * lexicographic label order
-         */
-        inline void sortLabels()
-        {
-            Vector tmp = _eigenVector;
-
-            std::sort(_indexToLabel->begin(), _indexToLabel->end());
-            for (size_t i=0;i<_indexToLabel->size();i++) {
-                size_t newIndex = i;
-                size_t oldIndex = _labelToIndex->at(_indexToLabel->at(newIndex));
-                (*_labelToIndex)[_indexToLabel->at(newIndex)] = newIndex;
-                _eigenVector[newIndex] = tmp[oldIndex];
-            }
         }
 };
 

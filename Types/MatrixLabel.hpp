@@ -138,9 +138,9 @@ class MatrixLabel
                 //Create a new points by copy
                 append(_container->front());
                 //Parse line values
-                //Labels are supposed sorted and all lines
-                //are supposed to have same labels and order 
-                //than first one
+                //All lines are supposed to have 
+                //same labels and order 
+                //than first line
                 for (size_t i=0;i<dimension();i++) {
                     double val;
                     logFile >> val;
