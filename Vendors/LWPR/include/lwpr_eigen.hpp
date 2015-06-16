@@ -34,6 +34,7 @@ Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <lwpr_xml.h>
 #include <string.h>
 #include <vector>
+#include <stdexcept>
 #include <Eigen/Dense>
 
 /** \brief Simple class for describing exceptions that may be
@@ -296,22 +297,24 @@ class LWPR_Object {
    
    /** \brief Write the model to an XML file
       \param filename   Name of the file, which will we overwritten if it already exists
-      \return
-         - 1 in case of success
-         - 0 if the file could not be written to
    */
-   int writeXML(const char *filename) {
-      return lwpr_write_xml(&model, filename);
+   void writeXML(const char *filename) {
+      int success = lwpr_write_xml(&model, filename);
+      if (!success) {
+          throw std::runtime_error(
+            "LWPR unable to write XML: " + std::string(filename));
+      }
    }
    
    /** \brief Write the model to a binary file
       \param filename   Name of the file, which will we overwritten if it already exists
-      \return
-         - 1 in case of success
-         - 0 if the file could not be written to
    */
-   int writeBinary(const char *filename) {
-      return lwpr_write_binary(&model, filename);
+   void writeBinary(const char *filename) {
+      int success = lwpr_write_binary(&model, filename);
+      if (!success) {
+          throw std::runtime_error(
+            "LWPR unable to write XML: " + std::string(filename));
+      }
    }
       
    /** \brief Updates an LWPR model with a given input/output pair (x,y). 

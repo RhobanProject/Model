@@ -152,8 +152,38 @@ double testLWPR(
             std::cout << "    numData (nReg): " << rf.numData().transpose() << std::endl;
             std::cout << "    slope (nIn): " << rf.slope().transpose() << std::endl;
         }
+        //Write LWPR model to binary file
+        model.writeBinary("/tmp/lwpr.bin");
     }
     return mse;
+}
+
+void loadLWPR()
+{
+    //Load LWPR from binary file
+    LWPR_Object model("/tmp/lwpr.bin");
+
+    Eigen::VectorXd x(2);
+    Eigen::VectorXd y(1);
+    Leph::Plot plot;
+    for (x(1)=-1.0;x(1)<=1.0;x(1)+=0.05) {   
+        for (x(0)=-1.0;x(0)<=1.0;x(0)+=0.05) {
+            y(0) = cross(x(0), x(1));
+            // Use the model for predicting an output
+            Eigen::VectorXd yp = model.predict(x);
+            //Plot
+            plot.add(Leph::VectorLabel(
+                "x0", x(0),
+                "x1", x(1),
+                "fitted", yp(0),
+                "real", cross(x(0), x(1))
+            ));
+        }
+    }
+    plot
+        .plot("x0", "x1", "real")
+        .plot("x0", "x1", "fitted")
+        .render();
 }
 
 int main()
@@ -198,6 +228,9 @@ int main()
         params(3), params(4), params(5), 
         params(6), params(7), params(8), 
         true);
+
+    //Test LWPR loading
+    loadLWPR();
 
     return 0;
 }
