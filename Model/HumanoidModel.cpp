@@ -39,26 +39,26 @@ HumanoidModel::HumanoidModel(
     RBDL::Model modelNew = 
         Leph::RBDLRootUpdate(modelOld, frameRootId, true);
     //Initialize base model
-    Model::initilializeModel(modelNew);
+    Model::initializeModel(modelNew);
 
     //Compute leg segments length
     Eigen::Vector3d hipPt = Model::position(
-        "right hip roll", "origin");
+        "right_hip_roll", "origin");
     Eigen::Vector3d kneePt = Model::position(
-        "right knee", "origin");
+        "right_knee", "origin");
     Eigen::Vector3d anklePt = Model::position(
-        "right foot pitch", "origin");
+        "right_ankle_pitch", "origin");
     Eigen::Vector3d footPt = Model::position(
-        "right foot tip", "origin");
+        "right_foot_tip", "origin");
     _legHipToKnee = (hipPt-kneePt).norm();
     _legKneeToAnkle = (kneePt-anklePt).norm();
     _legAnkleToGround = (anklePt-footPt).norm();
     //Compute standart translation 
     //from trunk in zero position
-    _trunkToHipLeft = Model::position("left hip roll", "trunk");
-    _trunkToHipRight = Model::position("right hip roll", "trunk");
-    _trunkToFootTipLeft = Model::position("left foot tip", "trunk");
-    _trunkToFootTipRight = Model::position("right foot tip", "trunk");
+    _trunkToHipLeft = Model::position("left_hip_roll", "trunk");
+    _trunkToHipRight = Model::position("right_hip_roll", "trunk");
+    _trunkToFootTipLeft = Model::position("left_foot_tip", "trunk");
+    _trunkToFootTipRight = Model::position("right_foot_tip", "trunk");
 }
         
 HumanoidModel::~HumanoidModel()
@@ -70,12 +70,12 @@ void HumanoidModel::boundingBox(size_t frameIndex,
     Eigen::Vector3d& center) const
 {
     if (_type == SigmabanModel) {
-        if (Model::getFrameName(frameIndex) == "left foot tip") {
+        if (Model::getFrameName(frameIndex) == "left_foot_tip") {
             sizeX = 0.062495;
             sizeY = 0.039995;
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.001845, 0.002495, 0.01);
-        } else if (Model::getFrameName(frameIndex) == "right foot tip") {
+        } else if (Model::getFrameName(frameIndex) == "right_foot_tip") {
             sizeX = 0.062495;
             sizeY = 0.039995;
             sizeZ = 0.01;
@@ -85,12 +85,12 @@ void HumanoidModel::boundingBox(size_t frameIndex,
                 sizeX, sizeY, sizeZ, center);
         }
     } else if (_type == GrosbanModel) {
-        if (Model::getFrameName(frameIndex) == "left foot tip") {
+        if (Model::getFrameName(frameIndex) == "left_foot_tip") {
             sizeX = 0.1225;
             sizeY = 0.065;
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.0034, 0.036, 0.01);
-        } else if (Model::getFrameName(frameIndex) == "right foot tip") {
+        } else if (Model::getFrameName(frameIndex) == "right_foot_tip") {
             sizeX = 0.1225;
             sizeY = 0.065;
             sizeZ = 0.01;
@@ -311,7 +311,7 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
     bool isLeftLeg)
 {
     Eigen::Vector3d target;
-    if (frame == "foot tip init") {
+    if (frame == "foot_tip_init") {
         //Special frame where foot tip in zero position
         target = footPos;
         if (isLeftLeg) {
@@ -347,7 +347,7 @@ LegIK::Frame3D HumanoidModel::buildTargetOrientation(
     Eigen::Matrix3d rotMatrixFrame = eulersToMatrix(
         angles, eulerType);
     Eigen::Matrix3d rotMatrixTarget = rotMatrixFrame;
-    if (frame == "foot tip init") {
+    if (frame == "foot_tip_init") {
         //Special frame where foot tip in zero position
         //No conversion
     } else {
@@ -374,25 +374,25 @@ void HumanoidModel::setIKResult(
 {
     std::string prefix;
     if (isLeftLeg) {
-        prefix = "left ";
+        prefix = "left_";
     } else {
-        prefix = "right ";
+        prefix = "right_";
     }
 
-    Model::setDOF(prefix+"hip yaw", result.theta[0]);
-    Model::setDOF(prefix+"hip roll", result.theta[1]);
+    Model::setDOF(prefix+"hip_yaw", result.theta[0]);
+    Model::setDOF(prefix+"hip_roll", result.theta[1]);
     if (_type == GrosbanModel) {
         //Handle non alignement in zero position
         //of hip and ankle Z (zaw) axes (knee angle of Grosban)
-        Model::setDOF(prefix+"hip pitch", -result.theta[2] - 0.0603);
+        Model::setDOF(prefix+"hip_pitch", -result.theta[2] - 0.0603);
         Model::setDOF(prefix+"knee", result.theta[3] + 0.0603);
-        Model::setDOF(prefix+"foot pitch", -result.theta[4] + 0.0035);
+        Model::setDOF(prefix+"ankle_pitch", -result.theta[4] + 0.0035);
     } else {
-        Model::setDOF(prefix+"hip pitch", -result.theta[2]);
+        Model::setDOF(prefix+"hip_pitch", -result.theta[2]);
         Model::setDOF(prefix+"knee", result.theta[3]);
-        Model::setDOF(prefix+"foot pitch", -result.theta[4]);
+        Model::setDOF(prefix+"ankle_pitch", -result.theta[4]);
     }
-    Model::setDOF(prefix+"foot roll", result.theta[5]);
+    Model::setDOF(prefix+"ankle_roll", result.theta[5]);
 }
 
 void HumanoidModel::checkNaN(
@@ -433,7 +433,6 @@ void HumanoidModel::checkNaN(
             + orientation.pp()
         );
     }
-
 }
 
 }

@@ -50,8 +50,8 @@ int main()
         }
         
         //Add some pitch/roll on support leg
-        model.get().setDOF("left foot pitch", 0.5*sin(t/2.0));
-        model.get().setDOF("left foot roll", 0.5*sin(t/3.0));
+        model.get().setDOF("left_ankle_pitch", 0.5*sin(t/2.0));
+        model.get().setDOF("left_ankle_roll", 0.5*sin(t/3.0));
 
         //Run inverse kinematics on right legs
         if (!model.get().legIkRight(frame, targetPos, targetAngles)) {
@@ -60,7 +60,7 @@ int main()
         
         //Track moving point
         viewer.addTrackedPoint(model.get()
-            .position("right foot tip", "origin"));
+            .position("right_foot_tip", "origin"));
         //Display model
         Leph::ModelDraw(model.get(), viewer);
         //Waiting

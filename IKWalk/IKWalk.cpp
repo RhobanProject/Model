@@ -198,9 +198,9 @@ bool IKWalk::walk(HumanoidModel& model,
 
     //Run inverse invert kinematics on both legs
     //using Pitch-Roll-Yaw convention
-    bool successLeft = model.legIkLeft("foot tip init", 
+    bool successLeft = model.legIkLeft("foot_tip_init", 
         posLeft, angleLeft, EulerPitchRollYaw);
-    bool successRight = model.legIkRight("foot tip init", 
+    bool successRight = model.legIkRight("foot_tip_init", 
         posRight, angleRight, EulerPitchRollYaw);
 
     //Check inverse kinematics success

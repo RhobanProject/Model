@@ -25,11 +25,11 @@ int main()
         //Adapt CartWalk convention to Model convention
         Leph::VectorLabel output = walk.lastOutputs()
             .rename("output", "");
-        output("left hip roll") *= -1;
-        output("left foot pitch") *= -1;
-        output("right hip pitch") *= -1;
-        output("right knee") *= -1;
-        output("right hip roll") *= -1;
+        output("left_hip_roll") *= -1;
+        output("left_ankle_pitch") *= -1;
+        output("right_hip_pitch") *= -1;
+        output("right_knee") *= -1;
+        output("right_hip_roll") *= -1;
         //Convertion to radian
         output.mulOp(M_PI/180.0);
         //Send motor output to model
@@ -40,7 +40,7 @@ int main()
         Eigen::Vector3d com = model.centerOfMass("origin");
         viewer.addTrackedPoint(com);    
         //Display looked at point on the ground
-        model.setDOF("tilt", 0.3*sin(2.0*t) + 0.8);
+        model.setDOF("head_pitch", 0.3*sin(2.0*t) + 0.8);
         Eigen::Vector3d lookAtPos1;
         Eigen::Vector3d lookAtPos2;
         Eigen::Vector3d lookAtPos3;

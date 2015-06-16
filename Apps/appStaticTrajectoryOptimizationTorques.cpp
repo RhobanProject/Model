@@ -31,44 +31,44 @@ void exploreCenterOfMassPose(
 void initDOF(Leph::InverseKinematics& inv)
 {
     //Add degrees of freedom subset
-    inv.addDOF("right hip yaw");
-    inv.addDOF("right hip pitch");
-    inv.addDOF("right hip roll");
-    inv.addDOF("right knee");
-    inv.addDOF("right foot pitch");
-    inv.addDOF("right foot roll");
-    inv.addDOF("left hip yaw");
-    inv.addDOF("left hip pitch");
-    inv.addDOF("left hip roll");
-    inv.addDOF("left knee");
-    inv.addDOF("left foot pitch");
-    inv.addDOF("left foot roll");
+    inv.addDOF("right_hip_yaw");
+    inv.addDOF("right_hip_pitch");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("right_knee");
+    inv.addDOF("right_ankle_pitch");
+    inv.addDOF("right_ankle_roll");
+    inv.addDOF("left_hip_yaw");
+    inv.addDOF("left_hip_pitch");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("left_knee");
+    inv.addDOF("left_ankle_pitch");
+    inv.addDOF("left_ankle_roll");
     
     //Add degree of freedom limit bounds
-    inv.setLowerBound("right hip yaw", -M_PI/4);
-    inv.setUpperBound("right hip yaw", M_PI/4);
-    inv.setLowerBound("right hip pitch", -M_PI/3);
-    inv.setUpperBound("right hip pitch", M_PI/3);
-    inv.setLowerBound("right hip roll", -M_PI/4);
-    inv.setUpperBound("right hip roll", M_PI/4);
-    inv.setLowerBound("right knee", 0.0);
-    inv.setUpperBound("right knee", M_PI/2);
-    inv.setLowerBound("right foot pitch", -M_PI/2);
-    inv.setUpperBound("right foot pitch", M_PI/2);
-    inv.setLowerBound("right foot roll", -M_PI/2);
-    inv.setUpperBound("right foot roll", M_PI/2);
-    inv.setLowerBound("left hip yaw", -M_PI/4);
-    inv.setUpperBound("left hip yaw", M_PI/4);
-    inv.setLowerBound("left hip pitch", -M_PI/3);
-    inv.setUpperBound("left hip pitch", M_PI/3);
-    inv.setLowerBound("left hip roll", -M_PI/4);
-    inv.setUpperBound("left hip roll", M_PI/4);
-    inv.setLowerBound("left knee", 0.0);
-    inv.setUpperBound("left knee", M_PI/2);
-    inv.setLowerBound("left foot pitch", -M_PI/2);
-    inv.setUpperBound("left foot pitch", M_PI/2);
-    inv.setLowerBound("left foot roll", -M_PI/2);
-    inv.setUpperBound("left foot roll", M_PI/2);
+    inv.setLowerBound("right_hip_yaw", -M_PI/4);
+    inv.setUpperBound("right_hip_yaw", M_PI/4);
+    inv.setLowerBound("right_hip_pitch", -M_PI/3);
+    inv.setUpperBound("right_hip_pitch", M_PI/3);
+    inv.setLowerBound("right_hip_roll", -M_PI/4);
+    inv.setUpperBound("right_hip_roll", M_PI/4);
+    inv.setLowerBound("right_knee", 0.0);
+    inv.setUpperBound("right_knee", M_PI/2);
+    inv.setLowerBound("right_ankle_pitch", -M_PI/2);
+    inv.setUpperBound("right_ankle_pitch", M_PI/2);
+    inv.setLowerBound("right_ankle_roll", -M_PI/2);
+    inv.setUpperBound("right_ankle_roll", M_PI/2);
+    inv.setLowerBound("left_hip_yaw", -M_PI/4);
+    inv.setUpperBound("left_hip_yaw", M_PI/4);
+    inv.setLowerBound("left_hip_pitch", -M_PI/3);
+    inv.setUpperBound("left_hip_pitch", M_PI/3);
+    inv.setLowerBound("left_hip_roll", -M_PI/4);
+    inv.setUpperBound("left_hip_roll", M_PI/4);
+    inv.setLowerBound("left_knee", 0.0);
+    inv.setUpperBound("left_knee", M_PI/2);
+    inv.setLowerBound("left_ankle_pitch", -M_PI/2);
+    inv.setUpperBound("left_ankle_pitch", M_PI/2);
+    inv.setLowerBound("left_ankle_roll", -M_PI/2);
+    inv.setUpperBound("left_ankle_roll", M_PI/2);
 }
 
 /**
@@ -83,7 +83,7 @@ Leph::InverseKinematics singleSupportPhaseModel(Leph::Model& model)
     //Set Center of Mass target position
     inv.addTargetCOM();
     //Set flying foot orientation constraints
-    inv.addTargetOrientation("flying foot", "right foot tip");
+    inv.addTargetOrientation("flying_foot", "right_foot_tip");
     
     return inv;
 }
@@ -95,8 +95,8 @@ Leph::InverseKinematics doubleSupportPhaseModel(Leph::Model& model)
     //Set Center of Mass target position
     inv.addTargetCOM();
     //Set flying foot position and orientation constraints
-    inv.addTargetOrientation("flying foot", "right foot tip");
-    inv.addTargetPosition("flying foot", "right foot tip");
+    inv.addTargetOrientation("flying_foot", "right_foot_tip");
+    inv.addTargetPosition("flying_foot", "right_foot_tip");
 
     return inv;
 }
@@ -129,12 +129,12 @@ Eigen::VectorXd findTargetPose(Leph::Model& model)
         inv.setDOFSubset(y);
         Eigen::VectorXd tau = model.inverseDynamics();
         //Set base torques to zero
-        tau(model.getDOFIndex("base Tx")) = 0.0;
-        tau(model.getDOFIndex("base Ty")) = 0.0;
-        tau(model.getDOFIndex("base Tz")) = 0.0;
-        tau(model.getDOFIndex("base yaw")) = 0.0;
-        tau(model.getDOFIndex("base pitch")) = 0.0;
-        tau(model.getDOFIndex("base roll")) = 0.0;
+        tau(model.getDOFIndex("base_x")) = 0.0;
+        tau(model.getDOFIndex("base_y")) = 0.0;
+        tau(model.getDOFIndex("base_z")) = 0.0;
+        tau(model.getDOFIndex("base_yaw")) = 0.0;
+        tau(model.getDOFIndex("base_pitch")) = 0.0;
+        tau(model.getDOFIndex("base_roll")) = 0.0;
         //Compute infinity norm and euclidian norm 
         value += 50.0*tau.lpNorm<Eigen::Infinity>();
         value += tau.norm();
@@ -144,7 +144,7 @@ Eigen::VectorXd findTargetPose(Leph::Model& model)
         value += 100.0*fvect.norm();
         //Compute flying foot constraint
         Eigen::Vector3d pos = 
-            model.position("right foot tip", "origin");
+            model.position("right_foot_tip", "origin");
         if (pos.z() < 0.05) {
             value += 10.0 + 10.0*(0.05-pos.z());
         }
@@ -152,16 +152,16 @@ Eigen::VectorXd findTargetPose(Leph::Model& model)
             value += 10.0 + 10.0*(pos.y()+2.0*0.039995);
         }
         //Compute limit constraint
-        for (size_t i=0;i<y.size();i++) {
+        for (size_t i=0;i<(size_t)y.size();i++) {
             if (y(i) < -M_PI/3.0 || y(i) > M_PI/3.0) {
                 value += 10.0;
             }
         }
-        if (model.getDOF("left knee") < 0.0) {
-            value += 10.0 - 10.0*model.getDOF("left knee");
+        if (model.getDOF("left_knee") < 0.0) {
+            value += 10.0 - 10.0*model.getDOF("left_knee");
         }
-        if (model.getDOFIndex("right knee") < 0.0) {
-            value += 10.0 - 10.0*model.getDOF("right knee");
+        if (model.getDOFIndex("right_knee") < 0.0) {
+            value += 10.0 - 10.0*model.getDOF("right_knee");
         }
 
         return value;
@@ -186,13 +186,13 @@ Eigen::VectorXd findTargetPose(Leph::Model& model)
     } while (false && cmasols.best_candidate().get_fvalue() >= 10.0);
     inv.setDOFSubset(cmasols.best_candidate().get_x_dvec());
     Eigen::VectorXd tau = model.inverseDynamics();
-    tau(model.getDOFIndex("base Tx")) = 0.0;
-    tau(model.getDOFIndex("base Ty")) = 0.0;
-    tau(model.getDOFIndex("base Tz")) = 0.0;
-    tau(model.getDOFIndex("base yaw")) = 0.0;
-    tau(model.getDOFIndex("base pitch")) = 0.0;
-    tau(model.getDOFIndex("base roll")) = 0.0;
-    for (size_t i=0;i<tau.size();i++) {
+    tau(model.getDOFIndex("base_x")) = 0.0;
+    tau(model.getDOFIndex("base_y")) = 0.0;
+    tau(model.getDOFIndex("base_z")) = 0.0;
+    tau(model.getDOFIndex("base_yaw")) = 0.0;
+    tau(model.getDOFIndex("base_pitch")) = 0.0;
+    tau(model.getDOFIndex("base_roll")) = 0.0;
+    for (size_t i=0;i<(size_t)tau.size();i++) {
         std::cout << model.getDOFName(i) 
             << ": " << tau(i) 
             << " pos=" << model.getDOF(model.getDOFName(i)) << std::endl;

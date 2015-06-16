@@ -253,7 +253,7 @@
       xyz="0 1 0" />
   </joint>
   <link
-    name="left_foot_pitch_link">
+    name="left_ankle_pitch_link">
     <inertial>
       <origin
         xyz="-0.0228 6.218E-05 0.015433"
@@ -293,7 +293,7 @@
     </collision>
   </link>
   <joint
-    name="left_foot_pitch"
+    name="left_ankle_pitch"
     type="continuous">
     <origin
       xyz="0 0 -0.25"
@@ -301,12 +301,12 @@
     <parent
       link="left_knee_link" />
     <child
-      link="left_foot_pitch_link" />
+      link="left_ankle_pitch_link" />
     <axis
       xyz="0 1 0" />
   </joint>
   <link
-    name="left_foot_roll_link">
+    name="left_ankle_roll_link">
     <inertial>
       <origin
         xyz="0.0033581 0.033917 -0.030792"
@@ -346,15 +346,15 @@
     </collision>
   </link>
   <joint
-    name="left_foot_roll"
+    name="left_ankle_roll"
     type="continuous">
     <origin
       xyz="0 0 0"
       rpy="0 2.4074E-35 0" />
     <parent
-      link="left_foot_pitch_link" />
+      link="left_ankle_pitch_link" />
     <child
-      link="left_foot_roll_link" />
+      link="left_ankle_roll_link" />
     <axis
       xyz="1 0 0" />
   </joint>
@@ -382,7 +382,7 @@
       xyz="0 0 -0.033"
       rpy="0 0 0" />
     <parent
-      link="left_foot_roll_link" />
+      link="left_ankle_roll_link" />
     <child
       link="left_foot_tip_link" />
     <axis
@@ -601,7 +601,7 @@
       xyz="0 1 0" />
   </joint>
   <link
-    name="right_foot_pitch_link">
+    name="right_ankle_pitch_link">
     <inertial>
       <origin
         xyz="-0.022807 -6.5185E-05 0.015433"
@@ -641,7 +641,7 @@
     </collision>
   </link>
   <joint
-    name="right_foot_pitch"
+    name="right_ankle_pitch"
     type="continuous">
     <origin
       xyz="0 0 -0.25"
@@ -649,12 +649,12 @@
     <parent
       link="right_knee_link" />
     <child
-      link="right_foot_pitch_link" />
+      link="right_ankle_pitch_link" />
     <axis
       xyz="0 1 0" />
   </joint>
   <link
-    name="right_foot_roll_link">
+    name="right_ankle_roll_link">
     <inertial>
       <origin
         xyz="0.0033581 -0.033917 -0.030923"
@@ -694,15 +694,15 @@
     </collision>
   </link>
   <joint
-    name="right_foot_roll"
+    name="right_ankle_roll"
     type="continuous">
     <origin
       xyz="0 0 0"
       rpy="-2.4652E-32 0 2.5178E-30" />
     <parent
-      link="right_foot_pitch_link" />
+      link="right_ankle_pitch_link" />
     <child
-      link="right_foot_roll_link" />
+      link="right_ankle_roll_link" />
     <axis
       xyz="1 0 0" />
   </joint>
@@ -730,14 +730,14 @@
       xyz="0 0 -0.03314"
       rpy="-9.1237E-29 -2.0615E-14 4.4235E-15" />
     <parent
-      link="right_foot_roll_link" />
+      link="right_ankle_roll_link" />
     <child
       link="right_foot_tip_link" />
     <axis
       xyz="0 0 0" />
   </joint>
   <link
-    name="left_arm_pitch_link">
+    name="left_shoulder_pitch_link">
     <inertial>
       <origin
         xyz="2.9684E-11 0.012089 -1.8243E-05"
@@ -777,7 +777,7 @@
     </collision>
   </link>
   <joint
-    name="left_arm_pitch"
+    name="left_shoulder_pitch"
     type="continuous">
     <origin
       xyz="0.010627 0.071185 0.20514"
@@ -785,12 +785,12 @@
     <parent
       link="trunk_link" />
     <child
-      link="left_arm_pitch_link" />
+      link="left_shoulder_pitch_link" />
     <axis
       xyz="0 1 0" />
   </joint>
   <link
-    name="left_arm_roll_link">
+    name="left_shoulder_roll_link">
     <inertial>
       <origin
         xyz="-0.0034086 -0.00028741 -0.042896"
@@ -830,15 +830,15 @@
     </collision>
   </link>
   <joint
-    name="left_arm_roll"
+    name="left_shoulder_roll"
     type="continuous">
     <origin
       xyz="0 0.0325 -4.9044E-05"
       rpy="-0.001509 -5.6246E-07 0.00070549" />
     <parent
-      link="left_arm_pitch_link" />
+      link="left_shoulder_pitch_link" />
     <child
-      link="left_arm_roll_link" />
+      link="left_shoulder_roll_link" />
     <axis
       xyz="1 0 0" />
   </joint>
@@ -889,7 +889,7 @@
       xyz="0.012 -0.00034424 -0.1405"
       rpy="0.001509 1.6271E-06 -0.00070549" />
     <parent
-      link="left_arm_roll_link" />
+      link="left_shoulder_roll_link" />
     <child
       link="left_elbow_link" />
     <axis
@@ -926,7 +926,7 @@
       xyz="0 0 0" />
   </joint>
   <link
-    name="right_arm_pitch_link">
+    name="right_shoulder_pitch_link">
     <inertial>
       <origin
         xyz="-2.9683E-11 -0.012089 1.8243E-05"
@@ -966,7 +966,7 @@
     </collision>
   </link>
   <joint
-    name="right_arm_pitch"
+    name="right_shoulder_pitch"
     type="continuous">
     <origin
       xyz="0.010727 -0.070561 0.20536"
@@ -974,12 +974,12 @@
     <parent
       link="trunk_link" />
     <child
-      link="right_arm_pitch_link" />
+      link="right_shoulder_pitch_link" />
     <axis
       xyz="0 1 0" />
   </joint>
   <link
-    name="right_arm_roll_link">
+    name="right_shoulder_roll_link">
     <inertial>
       <origin
         xyz="-0.0034083 0.00010673 -0.042896"
@@ -1019,15 +1019,15 @@
     </collision>
   </link>
   <joint
-    name="right_arm_roll"
+    name="right_shoulder_roll"
     type="continuous">
     <origin
       xyz="0 -0.0325 4.9044E-05"
       rpy="-0.001509 -5.6246E-07 0.00070549" />
     <parent
-      link="right_arm_pitch_link" />
+      link="right_shoulder_pitch_link" />
     <child
-      link="right_arm_roll_link" />
+      link="right_shoulder_roll_link" />
     <axis
       xyz="1 0 0" />
   </joint>
@@ -1078,7 +1078,7 @@
       xyz="0.012 -0.00034424 -0.1405"
       rpy="0.001509 1.6271E-06 -0.00070549" />
     <parent
-      link="right_arm_roll_link" />
+      link="right_shoulder_roll_link" />
     <child
       link="right_elbow_link" />
     <axis
@@ -1115,7 +1115,7 @@
       xyz="0 0 0" />
   </joint>
   <link
-    name="pan_link">
+    name="head_yaw_link">
     <inertial>
       <origin
         xyz="-1.6272E-15 -7.1828E-17 0.0095778"
@@ -1155,7 +1155,7 @@
     </collision>
   </link>
   <joint
-    name="pan"
+    name="head_yaw"
     type="continuous">
     <origin
       xyz="0.02642 0.0003237 0.21325"
@@ -1163,12 +1163,12 @@
     <parent
       link="trunk_link" />
     <child
-      link="pan_link" />
+      link="head_yaw_link" />
     <axis
       xyz="0 0 1" />
   </joint>
   <link
-    name="tilt_link">
+    name="head_pitch_link">
     <inertial>
       <origin
         xyz="-0.0020872 -8.007E-06 0.027896"
@@ -1208,15 +1208,15 @@
     </collision>
   </link>
   <joint
-    name="tilt"
+    name="head_pitch"
     type="continuous">
     <origin
       xyz="0 0 0.0275"
       rpy="2.1684E-19 4.2352E-22 -0.00070549" />
     <parent
-      link="pan_link" />
+      link="head_yaw_link" />
     <child
-      link="tilt_link" />
+      link="head_pitch_link" />
     <axis
       xyz="0 1 0" />
   </joint>
@@ -1244,7 +1244,7 @@
       xyz="0.015352 1.8405E-05 0.041705"
       rpy="0 -2.1176E-22 0.00070549" />
     <parent
-      link="tilt_link" />
+      link="head_pitch_link" />
     <child
       link="camera_link" />
     <axis

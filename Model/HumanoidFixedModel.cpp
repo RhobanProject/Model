@@ -5,8 +5,8 @@ namespace Leph {
 HumanoidFixedModel::HumanoidFixedModel(
     RobotType type) :
     _supportFoot(LeftSupportFoot),
-    _modelLeft(type, "left foot tip"),
-    _modelRight(type, "right foot tip")
+    _modelLeft(type, "left_foot_tip"),
+    _modelRight(type, "right_foot_tip")
 {
 }
         
@@ -45,26 +45,26 @@ void HumanoidFixedModel::updateBase()
     //new supporting foot
     if (_supportFoot == LeftSupportFoot) {
         Eigen::Vector3d posFoot = 
-            _modelLeft.position("right foot tip", "origin");
+            _modelLeft.position("right_foot_tip", "origin");
         if (posFoot.z() < 0.0) {
             Eigen::Matrix3d rotation = 
-                _modelLeft.orientation("right foot tip", "origin").transpose();
+                _modelLeft.orientation("right_foot_tip", "origin").transpose();
             _modelRight.importDOF(_modelLeft);
-            _modelRight.setDOF("base Tx", posFoot.x());
-            _modelRight.setDOF("base Ty", posFoot.y());
-            _modelRight.setDOF("base yaw", atan2(rotation(1, 0), rotation(0, 0)));
+            _modelRight.setDOF("base_x", posFoot.x());
+            _modelRight.setDOF("base_y", posFoot.y());
+            _modelRight.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
             _supportFoot = RightSupportFoot;
         }
     } else {
         Eigen::Vector3d posFoot = 
-            _modelRight.position("left foot tip", "origin");
+            _modelRight.position("left_foot_tip", "origin");
         if (posFoot.z() < 0.0) {
             Eigen::Matrix3d rotation = 
-                _modelRight.orientation("left foot tip", "origin").transpose();
+                _modelRight.orientation("left_foot_tip", "origin").transpose();
             _modelLeft.importDOF(_modelRight);
-            _modelLeft.setDOF("base Tx", posFoot.x());
-            _modelLeft.setDOF("base Ty", posFoot.y());
-            _modelLeft.setDOF("base yaw", atan2(rotation(1, 0), rotation(0, 0)));
+            _modelLeft.setDOF("base_x", posFoot.x());
+            _modelLeft.setDOF("base_y", posFoot.y());
+            _modelLeft.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
             _supportFoot = LeftSupportFoot;
         }
     }
@@ -83,9 +83,9 @@ void HumanoidFixedModel::setOrientation(
     //Computing rotation matrix from support foot tip to trunk
     Eigen::Matrix3d footToTrunk;
     if (_supportFoot == LeftSupportFoot) {
-        footToTrunk = _modelLeft.orientation("left foot tip", "trunk");
+        footToTrunk = _modelLeft.orientation("left_foot_tip", "trunk");
     } else {
-        footToTrunk = _modelRight.orientation("right foot tip", "trunk");
+        footToTrunk = _modelRight.orientation("right_foot_tip", "trunk");
     }
     
     //Computing rotation matrix to apply on floating base
@@ -103,11 +103,11 @@ void HumanoidFixedModel::setOrientation(
 
     //Assign floating base DOFs with fixed yaw
     if (_supportFoot == LeftSupportFoot) {
-        _modelLeft.setDOF("base roll", angles(0));
-        _modelLeft.setDOF("base pitch", angles(1));
+        _modelLeft.setDOF("base_roll", angles(0));
+        _modelLeft.setDOF("base_pitch", angles(1));
     } else {
-        _modelRight.setDOF("base roll", angles(0));
-        _modelRight.setDOF("base pitch", angles(1));
+        _modelRight.setDOF("base_roll", angles(0));
+        _modelRight.setDOF("base_pitch", angles(1));
     }
 }
 
@@ -119,11 +119,11 @@ Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     Eigen::VectorXd torque = get().inverseDynamics(
         velocity, acceleration);
 
-    double Fx = torque(get().getDOFIndex("base Tx"));
-    double Fy = torque(get().getDOFIndex("base Ty"));
-    double Fz = torque(get().getDOFIndex("base Tz"));
-    double MRoll = torque(get().getDOFIndex("base roll"));
-    double MPitch = torque(get().getDOFIndex("base pitch"));
+    double Fx = torque(get().getDOFIndex("base_x"));
+    double Fy = torque(get().getDOFIndex("base_y"));
+    double Fz = torque(get().getDOFIndex("base_z"));
+    double MRoll = torque(get().getDOFIndex("base_roll"));
+    double MPitch = torque(get().getDOFIndex("base_pitch"));
     
     double Mx;
     double My;
@@ -140,11 +140,11 @@ Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     VectorLabel torque = get().inverseDynamics(
         velocity, acceleration);
 
-    double Fx = torque("base Tx");
-    double Fy = torque("base Ty");
-    double Fz = torque("base Tz");
-    double MRoll = torque("base roll");
-    double MPitch = torque("base pitch");
+    double Fx = torque("base_x");
+    double Fy = torque("base_y");
+    double Fz = torque("base_z");
+    double MRoll = torque("base_roll");
+    double MPitch = torque("base_pitch");
     
     double Mx;
     double My;
@@ -162,9 +162,9 @@ void HumanoidFixedModel::convertFootMoment(
     //to foot
     Eigen::Matrix3d mat;
     if (_supportFoot == LeftSupportFoot) {
-        mat = get().orientation("left foot tip", "origin");
+        mat = get().orientation("left_foot_tip", "origin");
     } else {
-        mat = get().orientation("right foot tip", "origin");
+        mat = get().orientation("right_foot_tip", "origin");
     }
     mat.transposeInPlace();
 
@@ -184,9 +184,9 @@ Eigen::Vector3d HumanoidFixedModel::computeZMP(
 {
     Eigen::Vector3d posA;
     if (_supportFoot == LeftSupportFoot) {
-        posA = get().position("left foot tip", "origin");
+        posA = get().position("left_foot_tip", "origin");
     } else {
-        posA = get().position("right foot tip", "origin");
+        posA = get().position("right_foot_tip", "origin");
     }
 
     double Ax = posA.x();

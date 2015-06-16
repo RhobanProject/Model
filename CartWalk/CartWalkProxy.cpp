@@ -22,25 +22,25 @@ void CartWalkProxy::setPhase(double phase)
 VectorLabel CartWalkProxy::buildOutputs() const
 {
     return VectorLabel(
-        "output:left hip pitch", 0.0,
-        "output:left hip roll", 0.0,
-        "output:left hip yaw", 0.0,
-        "output:left knee", 0.0,
-        "output:left foot pitch", 0.0,
-        "output:left foot roll", 0.0,
-        "output:right hip pitch", 0.0,
-        "output:right hip roll", 0.0,
-        "output:right hip yaw", 0.0,
-        "output:right knee", 0.0,
-        "output:right foot pitch", 0.0,
-        "output:right foot roll", 0.0,
+        "output:left_hip_pitch", 0.0,
+        "output:left_hip_roll", 0.0,
+        "output:left_hip_yaw", 0.0,
+        "output:left_knee", 0.0,
+        "output:left_ankle_pitch", 0.0,
+        "output:left_ankle_roll", 0.0,
+        "output:right_hip_pitch", 0.0,
+        "output:right_hip_roll", 0.0,
+        "output:right_hip_yaw", 0.0,
+        "output:right_knee", 0.0,
+        "output:right_ankle_pitch", 0.0,
+        "output:right_ankle_roll", 0.0,
         "info:phase", 0.0,
-        "info:left spline X", 0.0,
-        "info:left spline Y", 0.0,
-        "info:left spline Z", 0.0,
-        "info:right spline X", 0.0,
-        "info:right spline Y", 0.0,
-        "info:right spline Z", 0.0
+        "info:left_spline_x", 0.0,
+        "info:left_spline_y", 0.0,
+        "info:left_spline_z", 0.0,
+        "info:right_spline_x", 0.0,
+        "info:right_spline_y", 0.0,
+        "info:right_spline_z", 0.0
     );
 }
 VectorLabel CartWalkProxy::buildParams() const
@@ -147,26 +147,26 @@ VectorLabel CartWalkProxy::exec(
     _walk.tick(deltaTime);
     
     VectorLabel outputs = buildOutputs();
-    outputs("output:left hip pitch") = _walk.a_l_hip_pitch;
-    outputs("output:left hip roll") = _walk.a_l_hip_roll;
-    outputs("output:left hip yaw") = _walk.a_l_hip_yaw;
-    outputs("output:left knee") = _walk.a_l_knee;
-    outputs("output:left foot pitch") = _walk.a_l_foot_pitch;
-    outputs("output:left foot roll") = _walk.a_l_foot_roll;
-    outputs("output:right hip pitch") = _walk.a_r_hip_pitch;
-    outputs("output:right hip roll") = _walk.a_r_hip_roll;
-    outputs("output:right hip yaw") = _walk.a_r_hip_yaw;
-    outputs("output:right knee") = _walk.a_r_knee;
-    outputs("output:right foot pitch") = _walk.a_r_foot_pitch;
-    outputs("output:right foot roll") = _walk.a_r_foot_roll;
+    outputs("output:left_hip_pitch") = _walk.a_l_hip_pitch;
+    outputs("output:left_hip_roll") = _walk.a_l_hip_roll;
+    outputs("output:left_hip_yaw") = _walk.a_l_hip_yaw;
+    outputs("output:left_knee") = _walk.a_l_knee;
+    outputs("output:left_ankle_pitch") = _walk.a_l_foot_pitch;
+    outputs("output:left_ankle_roll") = _walk.a_l_foot_roll;
+    outputs("output:right_hip_pitch") = _walk.a_r_hip_pitch;
+    outputs("output:right_hip_roll") = _walk.a_r_hip_roll;
+    outputs("output:right_hip_yaw") = _walk.a_r_hip_yaw;
+    outputs("output:right_knee") = _walk.a_r_knee;
+    outputs("output:right_ankle_pitch") = _walk.a_r_foot_pitch;
+    outputs("output:right_ankle_roll") = _walk.a_r_foot_roll;
 
     outputs("info:phase") = _walk.t;
-    outputs("info:left spline X") = _walk.sLX;
-    outputs("info:left spline Y") = _walk.sLY;
-    outputs("info:left spline Z") = _walk.sLZ;
-    outputs("info:right spline X") = _walk.sRX;
-    outputs("info:right spline Y") = _walk.sRY;
-    outputs("info:right spline Z") = _walk.sRZ;
+    outputs("info:left_spline_x") = _walk.sLX;
+    outputs("info:left_spline_y") = _walk.sLY;
+    outputs("info:left_spline_z") = _walk.sLZ;
+    outputs("info:right_spline_x") = _walk.sRX;
+    outputs("info:right_spline_y") = _walk.sRY;
+    outputs("info:right_spline_z") = _walk.sRZ;
 
     _lastOutputs = outputs;
 

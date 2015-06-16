@@ -16,24 +16,24 @@ int main()
     //Inverse Kinematics
     Leph::InverseKinematics inv(model.get());
     //Declare model degrees of freedom
-    inv.addDOF("right hip pitch");
-    inv.addDOF("right hip roll");
-    inv.addDOF("right knee");
-    inv.addDOF("right foot pitch");
-    inv.addDOF("right foot roll");
-    inv.addDOF("left hip pitch");
-    inv.addDOF("left hip roll");
-    inv.addDOF("left knee");
-    inv.addDOF("left foot pitch");
-    inv.addDOF("left foot roll");
+    inv.addDOF("right_hip_pitch");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("right_knee");
+    inv.addDOF("right_ankle_pitch");
+    inv.addDOF("right_ankle_roll");
+    inv.addDOF("left_hip_pitch");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("left_knee");
+    inv.addDOF("left_ankle_pitch");
+    inv.addDOF("left_ankle_roll");
     //Declare target position
-    inv.addTargetPosition("flying foot", "right foot tip");
+    inv.addTargetPosition("flying_foot", "right_foot_tip");
     //target of center of mass
     inv.addTargetCOM();
     inv.targetCOM().z() -= 0.04;
     inv.targetCOM().x() = 0.0;
     //Target orientation
-    inv.addTargetOrientation("flying foot", "right foot tip");
+    inv.addTargetOrientation("flying_foot", "right_foot_tip");
     inv.addTargetOrientation("trunk", "trunk");
 
     //Initial center of mass position
@@ -62,29 +62,28 @@ int main()
             tau = model.get().inverseDynamics();
         }
         else if (t >= 3.0 && t < 6.0) {
-            tau = model.get().inverseDynamicsClosedLoop("right foot tip", false);
+            tau = model.get().inverseDynamicsClosedLoop("right_foot_tip", false);
         }
         else if (t >= 6.0 && t < 9.0) {
-            tau = model.get().inverseDynamicsClosedLoop("right foot tip", true);
+            tau = model.get().inverseDynamicsClosedLoop("right_foot_tip", true);
         } else {
             break;
         }
-        tau(model.get().getDOFIndex("base Tx")) = 0.0;
-        tau(model.get().getDOFIndex("base Ty")) = 0.0;
-        tau(model.get().getDOFIndex("base Tz")) = 0.0;
-        tau(model.get().getDOFIndex("base yaw")) = 0.0;
-        tau(model.get().getDOFIndex("base pitch")) = 0.0;
-        tau(model.get().getDOFIndex("base roll")) = 0.0;
+        tau(model.get().getDOFIndex("base_x")) = 0.0;
+        tau(model.get().getDOFIndex("base_y")) = 0.0;
+        tau(model.get().getDOFIndex("base_z")) = 0.0;
+        tau(model.get().getDOFIndex("base_yaw")) = 0.0;
+        tau(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tau(model.get().getDOFIndex("base_roll")) = 0.0;
 
         //Plot all leg degrees of freedom
         Leph::VectorLabel log;
         for (size_t i=0;i<(size_t)tau.size();i++) {
             if (
                 model.get().getDOFName(i).find("elbow") == std::string::npos && 
-                model.get().getDOFName(i).find("arm") == std::string::npos && 
-                model.get().getDOFName(i).find("tilt") == std::string::npos && 
+                model.get().getDOFName(i).find("shoulder") == std::string::npos && 
                 model.get().getDOFName(i).find("base") == std::string::npos && 
-                model.get().getDOFName(i).find("pan") == std::string::npos
+                model.get().getDOFName(i).find("head") == std::string::npos
             ) {
                 log.append(model.get().getDOFName(i), fabs(tau(i)));
             }

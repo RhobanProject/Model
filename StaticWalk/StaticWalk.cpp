@@ -17,7 +17,7 @@ StaticWalk::StaticWalk(RobotType type) :
     initIK(_inverseModel, true);
     //Compute initial COM and foot position
     _initCOMZOffset = _model.centerOfMass("origin").z();
-    _initFootYOffset = _model.position("left foot tip", "right foot tip").y()/2.0;
+    _initFootYOffset = _model.position("left_foot_tip", "right_foot_tip").y()/2.0;
 }
         
 VectorLabel StaticWalk::buildParams() const
@@ -55,10 +55,10 @@ VectorLabel StaticWalk::initPose(const VectorLabel& params)
     initIK(tmpInv, false);
 
     //Reset target position
-    tmpInv.targetPosition("left foot") = 
-        _model.position("left foot tip", "origin");
-    tmpInv.targetPosition("right foot") = 
-        _model.position("right foot tip", "origin");
+    tmpInv.targetPosition("left_foot") = 
+        _model.position("left_foot_tip", "origin");
+    tmpInv.targetPosition("right_foot") = 
+        _model.position("right_foot_tip", "origin");
     tmpInv.targetCOM() = _model.centerOfMass("origin");
     
     //Set COM target
@@ -111,29 +111,29 @@ VectorLabel StaticWalk::exec(double dt, const VectorLabel& params)
     
     //Set feet and COM target
     //Foot X 
-    _inverseModel.targetPosition("left foot").x() = 
+    _inverseModel.targetPosition("left_foot").x() = 
         params("param:step")*splineFootX.posMod(_phase+0.5);
-    _inverseModel.targetPosition("right foot").x() = 
+    _inverseModel.targetPosition("right_foot").x() = 
         params("param:step")*splineFootX.posMod(_phase);
     //Foot Y
-    _inverseModel.targetPosition("left foot").y() = _initFootYOffset +
+    _inverseModel.targetPosition("left_foot").y() = _initFootYOffset +
         params("param:lateral")*(splineFootX.posMod(_phase)*0.5+0.5);
-    _inverseModel.targetPosition("right foot").y() = -_initFootYOffset -
+    _inverseModel.targetPosition("right_foot").y() = -_initFootYOffset -
         params("param:lateral")*(splineFootX.posMod(_phase)*0.5+0.5);
     //Foot Z
-    _inverseModel.targetPosition("left foot").z() = 
+    _inverseModel.targetPosition("left_foot").z() = 
         params("param:footZOffset")*splineFootZ.posMod(_phase+0.5);
-    _inverseModel.targetPosition("right foot").z() = 
+    _inverseModel.targetPosition("right_foot").z() = 
         params("param:footZOffset")*splineFootZ.posMod(_phase);
     //COM X
     double posCOM = splineCOM.posMod(_phase);
     _inverseModel.targetCOM().x() = 
-        _inverseModel.targetPosition("left foot").x()*posCOM
-        + _inverseModel.targetPosition("right foot").x()*(1.0-posCOM);
+        _inverseModel.targetPosition("left_foot").x()*posCOM
+        + _inverseModel.targetPosition("right_foot").x()*(1.0-posCOM);
     //COM Y
     _inverseModel.targetCOM().y() = 
-        _inverseModel.targetPosition("left foot").y()*posCOM
-        + _inverseModel.targetPosition("right foot").y()*(1.0-posCOM);
+        _inverseModel.targetPosition("left_foot").y()*posCOM
+        + _inverseModel.targetPosition("right_foot").y()*(1.0-posCOM);
     //COM Z
     _inverseModel.targetCOM().z() = 
         _initCOMZOffset - params("param:comZOffset");
@@ -159,8 +159,8 @@ bool StaticWalk::checkIKErrors(const InverseKinematics& inv,
     bool throwError) const
 {
     if (
-        inv.errorPosition("left foot") > 0.001 ||
-        inv.errorPosition("right foot") > 0.001 ||
+        inv.errorPosition("left_foot") > 0.001 ||
+        inv.errorPosition("right_foot") > 0.001 ||
         inv.errorCOM() > 0.001
     ) {
         if (throwError) {
@@ -178,32 +178,32 @@ void StaticWalk::initIK(InverseKinematics& inv,
     bool enableTrunkOrientation)
 {
     //Add allowed degrees of freedom
-    inv.addDOF("left foot roll");
-    inv.addDOF("left foot pitch");
-    inv.addDOF("left knee");
-    inv.addDOF("left hip roll");
-    inv.addDOF("left hip pitch");
-    inv.addDOF("left hip yaw");
-    inv.addDOF("right foot roll");
-    inv.addDOF("right foot pitch");
-    inv.addDOF("right knee");
-    inv.addDOF("right hip roll");
-    inv.addDOF("right hip pitch");
-    inv.addDOF("right hip yaw");
-    inv.addDOF("base Tx");
-    inv.addDOF("base Tz");
+    inv.addDOF("left_ankle_roll");
+    inv.addDOF("left_ankle_pitch");
+    inv.addDOF("left_knee");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("left_hip_pitch");
+    inv.addDOF("left_hip_yaw");
+    inv.addDOF("right_ankle_roll");
+    inv.addDOF("right_ankle_pitch");
+    inv.addDOF("right_knee");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("right_hip_pitch");
+    inv.addDOF("right_hip_yaw");
+    inv.addDOF("base_x");
+    inv.addDOF("base_z");
     if (enableTrunkOrientation) {
-        inv.addDOF("base Ty");
+        inv.addDOF("base_y");
     }
     //Add target constraints
-    inv.addTargetPosition("left foot", "left foot tip");
-    inv.addTargetPosition("right foot", "right foot tip");
-    inv.addTargetOrientation("left foot", "left foot tip");
-    inv.addTargetOrientation("right foot", "right foot tip");
+    inv.addTargetPosition("left_foot", "left_foot_tip");
+    inv.addTargetPosition("right_foot", "right_foot_tip");
+    inv.addTargetOrientation("left_foot", "left_foot_tip");
+    inv.addTargetOrientation("right_foot", "right_foot_tip");
     inv.addTargetCOM();
     //Add degrees of freedom bounds 
-    inv.setLowerBound("left knee", 0.0);
-    inv.setLowerBound("right knee", 0.0);
+    inv.setLowerBound("left_knee", 0.0);
+    inv.setLowerBound("right_knee", 0.0);
 }
 
 }

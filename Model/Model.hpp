@@ -204,7 +204,7 @@ class Model
         /**
          * Parse and initilialize RBDL model
          */
-        void initilializeModel(RBDL::Model& model);
+        void initializeModel(RBDL::Model& model);
 
     private:
     

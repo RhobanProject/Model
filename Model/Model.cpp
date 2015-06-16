@@ -36,7 +36,7 @@ Model::Model(const std::string& filename) :
     }
 
     //Parse and load RBDL model
-    initilializeModel(model);
+    initializeModel(model);
 }
         
 Model::Model(RBDL::Model& model) :
@@ -50,7 +50,7 @@ Model::Model(RBDL::Model& model) :
     _frameIndexToId()
 {
     //Parse and load RBDL model
-    initilializeModel(model);
+    initializeModel(model);
 }
         
 size_t Model::sizeDOF() const
@@ -354,12 +354,6 @@ std::string Model::filterJointName(const std::string& name) const
         filtered = filtered.substr(0, pos);
     } 
 
-    for (size_t i=0;i<filtered.length();i++) {
-        if (filtered[i] == '_') {
-            filtered[i] = ' ';
-        }
-    }
-
     return filtered;
 }
         
@@ -371,16 +365,10 @@ std::string Model::filterFrameName(const std::string& name) const
         filtered = filtered.substr(0, pos);
     } 
     
-    for (size_t i=0;i<filtered.length();i++) {
-        if (filtered[i] == '_') {
-            filtered[i] = ' ';
-        }
-    }
-    
     return filtered;
 }
         
-void Model::initilializeModel(RBDL::Model& model)
+void Model::initializeModel(RBDL::Model& model)
 {
     //Assign RBDL model
     _model = model;
@@ -393,12 +381,12 @@ void Model::initilializeModel(RBDL::Model& model)
         //Handle special case of 6 virtual bodies added by
         //the floating joint
         if (virtualDepth == 5) {
-            addDOF(filteredName + " Tx");
-            addDOF(filteredName + " Ty");
-            addDOF(filteredName + " Tz");
-            addDOF(filteredName + " yaw");
-            addDOF(filteredName + " pitch");
-            addDOF(filteredName + " roll");
+            addDOF(filteredName + "_x");
+            addDOF(filteredName + "_y");
+            addDOF(filteredName + "_z");
+            addDOF(filteredName + "_yaw");
+            addDOF(filteredName + "_pitch");
+            addDOF(filteredName + "_roll");
             i += 5;
             continue;
         } else if (virtualDepth > 0) {
@@ -462,7 +450,7 @@ void Model::loadLabelToEigen(const VectorLabel& vect,
         if (
             _dofNameToIndex.count(label) != 0 &&
             (setBase || 
-            label.find("base ") == std::string::npos)
+            label.find("base_") == std::string::npos)
         ) {
             dst(_dofNameToIndex.at(label)) = vect(i);
         }

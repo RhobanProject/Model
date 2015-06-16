@@ -24,14 +24,14 @@ int main()
         double t = logs[i]("time:timestamp");
         plot.add(Leph::VectorLabel(
             "t", t,
-            "target", logs[i]("motor:left knee")));
+            "target", logs[i]("motor:left_knee")));
         //Compute fitted position and derivative
         diff.add(t, logs[i]);
         if (diff.isFull()) {
             plot.add(Leph::VectorLabel(
                 "t", t,
-                "fitted", diff.position(t)("motor:left knee"),
-                "fitted acc", 1000.0*diff.acceleration(t)("motor:left knee")));
+                "fitted", diff.position(t)("motor:left_knee"),
+                "fitted acc", 1000.0*diff.acceleration(t)("motor:left_knee")));
         }
     }
     plot.plot("t", "all").render();

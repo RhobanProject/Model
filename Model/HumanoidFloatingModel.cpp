@@ -12,7 +12,7 @@ HumanoidFloatingModel::HumanoidFloatingModel(
 {
     //Center initial position of the model
     _statePosY = Model::position(
-        "left foot tip", "origin").y();
+        "left_foot_tip", "origin").y();
 }
  
 HumanoidFloatingModel::SupportFoot HumanoidFloatingModel::
@@ -24,9 +24,9 @@ HumanoidFloatingModel::SupportFoot HumanoidFloatingModel::
 std::string HumanoidFloatingModel::supportFootName() const
 {
     if (_supportFoot == LeftSupportFoot) {
-        return "left foot tip";
+        return "left_foot_tip";
     } else if (_supportFoot == RightSupportFoot) {
-        return "right foot tip";
+        return "right_foot_tip";
     } else {
         return "";
     }
@@ -34,9 +34,9 @@ std::string HumanoidFloatingModel::supportFootName() const
 std::string HumanoidFloatingModel::movingFootName() const
 {
     if (_supportFoot == LeftSupportFoot) {
-        return "right foot tip";
+        return "right_foot_tip";
     } else if (_supportFoot == RightSupportFoot) {
-        return "left foot tip";
+        return "left_foot_tip";
     } else {
         return "";
     }
@@ -66,9 +66,9 @@ void HumanoidFloatingModel::findSupportFoot()
 {
     //Feet position in trunk frame
     Eigen::Vector3d posLeftFoot = 
-        Model::position("left foot tip", "origin");
+        Model::position("left_foot_tip", "origin");
     Eigen::Vector3d posRightFoot = 
-        Model::position("right foot tip", "origin");
+        Model::position("right_foot_tip", "origin");
     
     //Select the lowest foot in origin frame
     bool swapSupportFoot = false;
@@ -112,9 +112,9 @@ void HumanoidFloatingModel::putSupportFootFlat()
     Eigen::Vector3d angles = rotation.eulerAngles(0, 1, 2);
     //Updating floating joint roll, pitch, yaw 
     //and apply yaw state rotation
-    Model::setDOF("base roll", angles(0));
-    Model::setDOF("base pitch", angles(1));
-    Model::setDOF("base yaw", angles(2) + _stateRotYaw);
+    Model::setDOF("base_roll", angles(0));
+    Model::setDOF("base_pitch", angles(1));
+    Model::setDOF("base_yaw", angles(2) + _stateRotYaw);
 }
         
 void HumanoidFloatingModel::putSupportFootOrigin()
@@ -126,9 +126,9 @@ void HumanoidFloatingModel::putSupportFootOrigin()
     Eigen::Matrix3d rotation = Model::orientation("origin", "trunk");
     posFoot = rotation*posFoot;
     //Apply translations
-    Model::setDOF("base Tx", -posFoot.x() + _statePosX);
-    Model::setDOF("base Ty", -posFoot.y() + _statePosY);
-    Model::setDOF("base Tz", -posFoot.z());
+    Model::setDOF("base_x", -posFoot.x() + _statePosX);
+    Model::setDOF("base_y", -posFoot.y() + _statePosY);
+    Model::setDOF("base_z", -posFoot.z());
 }
 
 }

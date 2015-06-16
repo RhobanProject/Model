@@ -83,9 +83,9 @@ int main()
         }
     }
     plot
-        .plot("time:time", "pos:left knee")
-        .plot("time:time", "vel:left knee")
-        .plot("time:time", "acc:left knee")
+        .plot("time:time", "pos:left_knee")
+        .plot("time:time", "vel:left_knee")
+        .plot("time:time", "acc:left_knee")
         .render();
     
     return 0;

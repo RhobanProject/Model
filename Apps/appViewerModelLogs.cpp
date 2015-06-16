@@ -147,10 +147,10 @@ int main(int argc, char** argv)
             modelOutputs.get().centerOfMass("origin"), 
             Leph::ModelViewer::Yellow);
         viewer.addTrackedPoint(
-            modelOutputs.get().position("left foot tip", "origin"), 
+            modelOutputs.get().position("left_foot_tip", "origin"), 
             Leph::ModelViewer::Red);
         viewer.addTrackedPoint(
-            modelOutputs.get().position("right foot tip", "origin"), 
+            modelOutputs.get().position("right_foot_tip", "origin"), 
             Leph::ModelViewer::Green);
         viewer.addTrackedPoint(
             modelOutputs.get().position("trunk", "origin"), 
@@ -164,10 +164,10 @@ int main(int argc, char** argv)
             modelMotors.get().centerOfMass("origin"), 
             Leph::ModelViewer::Yellow);
         viewer.addTrackedPoint(
-            modelMotors.get().position("left foot tip", "origin"), 
+            modelMotors.get().position("left_foot_tip", "origin"), 
             Leph::ModelViewer::Red);
         viewer.addTrackedPoint(
-            modelMotors.get().position("right foot tip", "origin"), 
+            modelMotors.get().position("right_foot_tip", "origin"), 
             Leph::ModelViewer::Green);
         viewer.addTrackedPoint(
             modelMotors.get().position("trunk", "origin"), 

@@ -15,33 +15,33 @@ int main()
     //Inverse Kinematics
     Leph::InverseKinematics inv(model);
     //Declare model degrees of freedom
-    inv.addDOF("right hip pitch");
-    inv.addDOF("right hip roll");
-    inv.addDOF("right knee");
-    inv.addDOF("right foot pitch");
-    inv.addDOF("right foot roll");
-    inv.addDOF("left hip pitch");
-    inv.addDOF("left hip roll");
-    inv.addDOF("left knee");
-    inv.addDOF("left foot pitch");
-    inv.addDOF("left foot roll");
-    inv.addDOF("base Tx");
-    inv.addDOF("base Ty");
-    inv.addDOF("base Tz");
+    inv.addDOF("right_hip_pitch");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("right_knee");
+    inv.addDOF("right_ankle_pitch");
+    inv.addDOF("right_ankle_roll");
+    inv.addDOF("left_hip_pitch");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("left_knee");
+    inv.addDOF("left_ankle_pitch");
+    inv.addDOF("left_ankle_roll");
+    inv.addDOF("base_x");
+    inv.addDOF("base_y");
+    inv.addDOF("base_z");
     //Declare degree of freefom box bounds 
     //XXX Not fully implemented
-    inv.setLowerBound("left knee", 0.0);
-    inv.setLowerBound("right knee", 0.0);
+    inv.setLowerBound("left_knee", 0.0);
+    inv.setLowerBound("right_knee", 0.0);
 
     //Declare target position
-    inv.addTargetPosition("flying foot", "right foot tip");
-    inv.addTargetPosition("support foot", "left foot tip");
+    inv.addTargetPosition("flying_foot", "right_foot_tip");
+    inv.addTargetPosition("support_foot", "left_foot_tip");
     //target of center of mass
     inv.addTargetCOM();
     inv.targetCOM().z() -= 0.05;
     //Target orientation
-    inv.addTargetOrientation("flying foot", "right foot tip");
-    inv.addTargetOrientation("support foot", "left foot tip");
+    inv.addTargetOrientation("flying_foot", "right_foot_tip");
+    inv.addTargetOrientation("support_foot", "left_foot_tip");
     
     Leph::Chrono chrono;
     double t = 0.0;
@@ -49,8 +49,8 @@ int main()
         t += 0.01;
 
         //Update targets
-        inv.targetPosition("flying foot").z() = 0.05+0.02*sin(t);
-        inv.targetPosition("flying foot").x() = 0.05+0.02*sin(2.0*t);
+        inv.targetPosition("flying_foot").z() = 0.05+0.02*sin(t);
+        inv.targetPosition("flying_foot").x() = 0.05+0.02*sin(2.0*t);
         inv.targetCOM().y() = 0.01*sin(t);
         inv.targetCOM().x() = 0.01*sin(2.0*t);
 
@@ -61,10 +61,10 @@ int main()
         chrono.print();
         std::cout << "ERRORS" << std::endl;
         std::cout << "COM pos: " << inv.errorCOM() << std::endl;
-        std::cout << "Flying foot pos: " << inv.errorPosition("flying foot") << std::endl;
-        std::cout << "Support foot pos: " << inv.errorPosition("support foot") << std::endl;
-        std::cout << "Flying foot orientation: " << inv.errorOrientation("flying foot") << std::endl;
-        std::cout << "Support foot orientation: " << inv.errorOrientation("support foot") << std::endl;
+        std::cout << "Flying foot pos: " << inv.errorPosition("flying_foot") << std::endl;
+        std::cout << "Support foot pos: " << inv.errorPosition("support_foot") << std::endl;
+        std::cout << "Flying foot orientation: " << inv.errorOrientation("flying_foot") << std::endl;
+        std::cout << "Support foot orientation: " << inv.errorOrientation("support_foot") << std::endl;
         
         //Display
         Eigen::Vector3d pt = model.centerOfMass("origin");

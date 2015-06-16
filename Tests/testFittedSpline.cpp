@@ -109,8 +109,8 @@ void testCapturedData()
     for (size_t i=0;i<logs.size();i++) {
         plot.add(Leph::VectorLabel(
             "t", logs[i]("time:timestamp"),
-            "target", logs[i]("motor:left knee")));
-        spline.addPoint(logs[i]("time:timestamp"), logs[i]("motor:left knee"));
+            "target", logs[i]("motor:left_knee")));
+        spline.addPoint(logs[i]("time:timestamp"), logs[i]("motor:left_knee"));
     }
     
     //Do fitting
@@ -144,7 +144,7 @@ void testCapturedDataWindow()
     for (size_t i=0;i<logs.size();i++) {
         plot.add(Leph::VectorLabel(
             "t", logs[i]("time:timestamp"),
-            "target", logs[i]("motor:left knee")));
+            "target", logs[i]("motor:left_knee")));
     }
     
     //Display fitted splines
@@ -160,7 +160,7 @@ void testCapturedDataWindow()
             << " " << indexBegin << " " << indexEnd << " --- " 
             << logs[indexBegin]("time:timestamp") << " " << logs[indexEnd]("time:timestamp") << std::endl;
         for (size_t i=indexBegin;i<=indexEnd;i++) {
-            spline.addPoint(logs[i]("time:timestamp"), logs[i]("motor:left knee"));
+            spline.addPoint(logs[i]("time:timestamp"), logs[i]("motor:left_knee"));
         }
         //Do fitting
         spline.fittingGlobal(3, 5);

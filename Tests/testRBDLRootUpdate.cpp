@@ -33,8 +33,8 @@ int main()
     //Viewer loop
     Leph::ModelViewer viewer(1200, 900);
     while (viewer.update()) {
-        wrappedModelNew.setDOF("base Tz", 
-            wrappedModelNew.getDOF("base Tz")+0.0005);
+        wrappedModelNew.setDOF("base_z", 
+            wrappedModelNew.getDOF("base_z")+0.0005);
         Leph::ModelDraw(wrappedModelNew, viewer);
     }
     

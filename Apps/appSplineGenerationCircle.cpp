@@ -26,30 +26,30 @@ int main()
     //Set foot model on zero z
     model.putOnGround();
     //Add allowed degrees of freedom
-    inverseModel.addDOF("left foot roll");
-    inverseModel.addDOF("left foot pitch");
-    inverseModel.addDOF("left knee");
-    inverseModel.addDOF("left hip roll");
-    inverseModel.addDOF("left hip pitch");
-    inverseModel.addDOF("left hip yaw");
-    inverseModel.addDOF("right foot roll");
-    inverseModel.addDOF("right foot pitch");
-    inverseModel.addDOF("right knee");
-    inverseModel.addDOF("right hip roll");
-    inverseModel.addDOF("right hip pitch");
-    inverseModel.addDOF("right hip yaw");
-    inverseModel.addDOF("base Tx");
-    inverseModel.addDOF("base Tz");
-    inverseModel.addDOF("base Ty");
+    inverseModel.addDOF("left_ankle_roll");
+    inverseModel.addDOF("left_ankle_pitch");
+    inverseModel.addDOF("left_knee");
+    inverseModel.addDOF("left_hip_roll");
+    inverseModel.addDOF("left_hip_pitch");
+    inverseModel.addDOF("left_hip_yaw");
+    inverseModel.addDOF("right_ankle_roll");
+    inverseModel.addDOF("right_ankle_pitch");
+    inverseModel.addDOF("right_knee");
+    inverseModel.addDOF("right_hip_roll");
+    inverseModel.addDOF("right_hip_pitch");
+    inverseModel.addDOF("right_hip_yaw");
+    inverseModel.addDOF("base_x");
+    inverseModel.addDOF("base_z");
+    inverseModel.addDOF("base_y");
     //Add target constraints
-    inverseModel.addTargetPosition("left foot", "left foot tip");
-    inverseModel.addTargetPosition("right foot", "right foot tip");
-    inverseModel.addTargetOrientation("left foot", "left foot tip");
-    inverseModel.addTargetOrientation("right foot", "right foot tip");
+    inverseModel.addTargetPosition("left_foot", "left_foot_tip");
+    inverseModel.addTargetPosition("right_foot", "right_foot_tip");
+    inverseModel.addTargetOrientation("left_foot", "left_foot_tip");
+    inverseModel.addTargetOrientation("right_foot", "right_foot_tip");
     inverseModel.addTargetCOM();
     //Add degrees of freedom bounds 
-    inverseModel.setLowerBound("left knee", 0.0);
-    inverseModel.setLowerBound("right knee", 0.0);
+    inverseModel.setLowerBound("left_knee", 0.0);
+    inverseModel.setLowerBound("right_knee", 0.0);
     //Compute initial COM
     double initCOMZOffset = model.centerOfMass("origin").z();
 
@@ -72,8 +72,8 @@ int main()
         }
         //Check target error
         if (
-            inverseModel.errorPosition("left foot") > 0.001 ||
-            inverseModel.errorPosition("right foot") > 0.001 ||
+            inverseModel.errorPosition("left_foot") > 0.001 ||
+            inverseModel.errorPosition("right_foot") > 0.001 ||
             inverseModel.errorCOM() > 0.001
         ) {
             std::cerr << "InverseKinematics failed to converge" << std::endl;

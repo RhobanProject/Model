@@ -79,11 +79,11 @@ int main()
         //Adapt CartWalk convention to Model convention
         Leph::VectorLabel output = walk.lastOutputs()
             .rename("output", "");
-        output("left hip roll") *= -1;
-        output("left foot pitch") *= -1;
-        output("right hip pitch") *= -1;
-        output("right knee") *= -1;
-        output("right hip roll") *= -1;
+        output("left_hip_roll") *= -1;
+        output("left_ankle_pitch") *= -1;
+        output("right_hip_pitch") *= -1;
+        output("right_knee") *= -1;
+        output("right_hip_roll") *= -1;
         //Convertion to radian
         output.mulOp(M_PI/180.0);
         //Send motor output to model
@@ -92,7 +92,7 @@ int main()
         modelOld.putOnGround();
         //Track moving points
         viewer.addTrackedPoint(
-            modelOld.position("right foot tip", "origin"), 
+            modelOld.position("right_foot_tip", "origin"), 
             Leph::ModelViewer::Yellow);
         viewer.addTrackedPoint(
             modelOld.centerOfMass("origin"), 
@@ -114,7 +114,7 @@ int main()
         modelNew.updateBase();
         //Track moving points
         viewer.addTrackedPoint(
-            modelNew.get().position("left foot tip", "origin"), 
+            modelNew.get().position("left_foot_tip", "origin"), 
             Leph::ModelViewer::Red);
         viewer.addTrackedPoint(
             modelNew.get().position("trunk", "origin"), 
@@ -123,7 +123,7 @@ int main()
             modelNew.get().centerOfMass("origin"), 
             Leph::ModelViewer::Blue);
         viewer.addTrackedPoint(
-            modelNew.get().position("right foot tip", "origin"), 
+            modelNew.get().position("right_foot_tip", "origin"), 
             Leph::ModelViewer::Purple);
         //Display model
         Leph::ModelDraw(modelNew.get(), viewer);
