@@ -72,6 +72,7 @@ set(SOURCES_FILES
     Utils/Scheduling.cpp
     Utils/Differentiation.cpp
     Utils/NewtonBinomial.cpp
+    Utils/LWPRUtils.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
