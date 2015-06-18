@@ -440,7 +440,7 @@ class VectorLabel
          * Return a sub VectorLabel with only labels
          * filtered with given section
          */
-        inline VectorLabel extract(const std::string& filter)
+        inline VectorLabel extract(const std::string& filter) const
         {
             VectorLabel tmp;
             tmp.mergeUnion(*this, filter);
