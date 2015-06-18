@@ -185,6 +185,31 @@ class LWPR_ReceptiveFieldObject {
       memcpy(be.data(), RF->beta, sizeof(double)*RF->nReg);      
       return be;
    }
+
+   /**
+    * Compute PLS variable importance for projection
+    * (nIn)
+    * Value are arround 0.0 and 2.0. Below 0.8 or 1.0
+    * is said to be little importance on prediction
+    */
+   Eigen::VectorXd vip() const {
+       Eigen::VectorXd ss(RF->nReg);
+       memcpy(ss.data(), RF->SSs2, sizeof(double)*RF->nReg);      
+       Eigen::MatrixXd u = U();
+       Eigen::VectorXd b = beta();
+       Eigen::VectorXd v(nIn);
+       for (size_t j=0;j<(size_t)v.size();j++) {
+           double sum1 = 0.0;
+           double sum2 = 0.0;
+           for (size_t k=0;k<(size_t)RF->nReg;k++) {
+               sum1 += b(k)*b(k)*ss(k)*u(k, j)*u(k, j)/u.row(k).squaredNorm();
+               sum2 += b(k)*b(k)*ss(k);
+           }
+           v(j) = sqrt(nIn*sum1/sum2);
+       }
+
+       return v;
+   }
    
    /** \brief Returns the weighted number of training data the RF has seen (nReg) */
    Eigen::VectorXd numData() const {
@@ -346,6 +371,11 @@ class LWPR_Object {
          throw LWPR_Exception(LWPR_Exception::OUT_OF_MEMORY);
       }
       return yp;
+   }
+   Eigen::VectorXd update(const Eigen::VectorXd& x, double y) {
+       Eigen::VectorXd yy(1);
+       yy(0) = y;
+       return update(x, yy);
    }
    
    /** \brief Computes the prediction of an LWPR model given an 
@@ -564,7 +594,7 @@ class LWPR_Object {
    bool useMeta() { return (bool) model.meta; }
    
    /** \brief Returns learning rate for 2nd order distance matrix updates */      
-   double metaRate() { return model.meta_rate; }
+   double metaRate() const { return model.meta_rate; }
 
    /** \brief Returns the kernel */   
    LWPR_Kernel kernel() { return model.kernel; }
@@ -616,7 +646,7 @@ class LWPR_Object {
    }
    
    /** \brief Returns the number of receptive fields for output dimension "outDim" */
-   int numRFS(int outDim = 0) {
+   int numRFS(int outDim = 0) const {
       if (outDim < 0 || outDim >= model.nOut) return 0;
       return model.sub[outDim].numRFS;
    }

@@ -5,9 +5,11 @@
 #include <cmath>
 #include <Eigen/Dense>
 #include <libcmaes/cmaes.h>
-#include <lwpr.hh>
+#include <lwpr_eigen.hpp>
+#include "Utils/LWPRUtils.h"
 #include "Plot/Plot.hpp"
-#include <Types/MatrixLabel.hpp>
+#include "Types/MatrixLabel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 
 /**
  * First test of LWPR regression on
@@ -21,236 +23,107 @@
 typedef std::vector<std::pair<std::string, size_t>> Inputs;
 
 /**
- * Convertion from and to std::vector to Eigen::Vector
+ * Load given logs data
  */
-std::vector<double> convert(const Eigen::VectorXd& vect)
-{
-    std::vector<double> result(vect.size());
-    for (size_t i=0;i<(size_t)vect.size();i++) {
-        result[i] = vect(i);
-    }
-    return result;
-}
-Eigen::VectorXd convert(const std::vector<double>& vect)
-{
-    Eigen::VectorXd result(vect.size());
-    for (size_t i=0;i<(size_t)vect.size();i++) {
-        result(i) = vect[i];
-    }
-    return result;
-}
-Eigen::VectorXd convert(const double* x, const int n)
-{
-    Eigen::VectorXd result(n);
-    for (size_t i=0;i<(size_t)n;i++) {
-        result(i) = x[i];
-    }
-    return result;
-}
-
-/**
- * Load logs data
- */
-std::vector<Leph::MatrixLabel> loadLogs()
+std::vector<Leph::MatrixLabel> loadLogs(
+    const std::vector<std::string>& logFiles)
 {
     std::vector<Leph::MatrixLabel> container;
 
     //Loading data
-    Leph::MatrixLabel logs1;
-    Leph::MatrixLabel logs2;
-    Leph::MatrixLabel logs3;
-    Leph::MatrixLabel logs4;
-    logs1.load("../../These/Data/logs-2015-05-16/model_2015-05-16-18-51-02.log");
-    logs2.load("../../These/Data/logs-2015-05-16/model_2015-05-16-18-51-58.log");
-    logs3.load("../../These/Data/logs-2015-05-16/model_2015-05-16-18-49-08.log");
-    logs4.load("../../These/Data/logs-2015-05-16/model_2015-05-16-18-49-57.log");
-    std::cout << "Loaded Log1 " << logs1.size() 
-        << " points with " << logs1.dimension() << " entries" << std::endl;
-    std::cout << "Loaded Log2 " << logs2.size() 
-        << " points with " << logs2.dimension() << " entries" << std::endl;
-    std::cout << "Loaded Log3 " << logs3.size() 
-        << " points with " << logs3.dimension() << " entries" << std::endl;
-    std::cout << "Loaded Log4 " << logs4.size() 
-        << " points with " << logs4.dimension() << " entries" << std::endl;
+    for (size_t i=0;i<logFiles.size();i++) {
+        Leph::MatrixLabel logs;
+        logs.load(logFiles[i]);
+        std::cout << "Loaded Log " << i << ": " << logs.size() 
+            << " points with " << logs.dimension() 
+            << " entries" << std::endl;
+        container.push_back(logs);
+    }
 
-    container.push_back(logs1);
-    container.push_back(logs2);
-    container.push_back(logs3);
-    container.push_back(logs4);
     return container;
 }
 
 /**
- * Return default LWPR meta parameters for given
- * input dimmension
+ * Compute and append model data 
+ * associated with captured logs
  */
-Eigen::VectorXd initLWPRMetaParams(size_t inputDim)
+void computeModelData(std::vector<Leph::MatrixLabel> logs)
 {
-    size_t paramDim = 2*inputDim + 5;
-    Eigen::VectorXd params(paramDim);
-
-    //NormIn
-    for (size_t i=0;i<inputDim;i++) {
-        params(i) = 1.0;
-    }
-    //InitAlpha
-    params(inputDim) = 50.0;
-    //MetaRate
-    params(inputDim + 1) = 250.0;
-    //Penalty
-    params(inputDim + 2) = 1e-6;
-    //InitD
-    for (size_t i=0;i<inputDim;i++) {
-        params(inputDim + 3 + i) = 100.0;
-    }
-    //WGen
-    params(2*inputDim + 3) = 0.2;
-    //WPrune
-    params(2*inputDim + 4) = 0.9;
-
-    return params;
-}
-
-/**
- * Create and set LWPR meta parameter from
- * given vector
- */
-LWPR_Object initLWPR(size_t inputDim, Eigen::VectorXd metaParams)
-{
-    //InitializeLWPR model with 
-    //input and output dimensions
-    LWPR_Object model(inputDim, 1);
-    
-    //Normalisation value for each input dimension (>0)
-    std::vector<double> paramsNormIn(inputDim);
-    for (size_t i=0;i<inputDim;i++) {
-        paramsNormIn[i] = metaParams(i);
-    }
-    model.normIn(paramsNormIn);
-    //Use only diagonal matrix. Big speed up in high dimension
-    //but lower performance in complex learning.
-    model.diagOnly(true);
-    //Learning rate for gradient descente (>0)
-    //(meta optimized)
-    model.setInitAlpha(metaParams(inputDim));
-    //Automatic tunning of distance metric 
-    model.useMeta(true);
-    //Meta tunning learning rate (>0)
-    model.metaRate(metaParams(inputDim + 1));
-    //Larger value enforce wider receptive field (>0)
-    model.penalty(metaParams(inputDim + 2));
-    //Set diagonal (input_dim) or complet (input_dim*input_dim)
-    //initial distance matrix (>0)
-    std::vector<double> paramsInitD(inputDim);
-    for (size_t i=0;i<inputDim;i++) {
-        paramsInitD[i] = metaParams(inputDim + 3 + i);
-    }
-    model.setInitD(paramsInitD);
-    //Receptive field activation threshold (>0)
-    model.wGen(metaParams(2*inputDim + 3));
-    //Receptive field remove threshold
-    model.wPrune(metaParams(2*inputDim + 4));
-
-    return model;
-}
-
-/**
- * Train given LWPR model with given data logs
- * and using input and output named values
- */
-void trainLWPR(LWPR_Object& model, 
-    const std::string& output,
-    const Inputs& inputs, 
-    const std::vector<Leph::MatrixLabel>& container)
-{
-    size_t inputDim = model.nIn();
-    if (inputDim != inputs.size()) {
-        throw std::logic_error("Train invalid input");
-    }
-
-    std::vector<double> x(inputDim);
-    std::vector<double> y(1);
-    for (size_t i=0;i<=2;i++) {
-        for (size_t j=10;j<container[i].size();j++) {
-            for (size_t k=0;k<inputs.size();k++) {
-                x[k] = container[i][j - inputs[k].second](inputs[k].first);
-            }
-            y[0] = container[i][j](output);
-            // Update the model with one sample
-            model.update(x,y);
+    std::cout << "Computing model" << std::endl;
+    for (size_t i=0;i<logs.size();i++) {
+        //Initialize model
+        Leph::HumanoidFixedModel modelOutputs(Leph::SigmabanModel);
+        Leph::HumanoidFixedModel modelMotors(Leph::SigmabanModel);
+        //Initialize VectorLabel DOF 
+        Leph::VectorLabel outputsDOF = 
+            logs[i][0].extract("output").rename("output", "");
+        Leph::VectorLabel motorsDOF = 
+            logs[i][0].extract("motor").rename("motor", "");
+        //Iterating over data
+        for (size_t j=0;j<logs[i].size();j++) {
+            //Retrieve DOF values
+            outputsDOF.assignOp(logs[i][j], "output", "");
+            motorsDOF.assignOp(logs[i][j], "motor", "");
+            //Assigning
+            modelOutputs.get().setDOF(outputsDOF, false);
+            modelMotors.get().setDOF(motorsDOF, false);
+            //Model update
+            modelOutputs.updateBase();
+            modelMotors.updateBase();
+            modelMotors.setOrientation(
+                logs[i][j]("sensor:pitch"), 
+                logs[i][j]("sensor:roll"));
+            //Compute model quantities
+            logs[i][j].setOrAppend("model output:left_foot_x", 
+                modelOutputs.get().position("left_foot_tip", "origin").x());
+            logs[i][j].setOrAppend("model output:left_foot_y", 
+                modelOutputs.get().position("left_foot_tip", "origin").y());
+            logs[i][j].setOrAppend("model output:left_foot_z", 
+                modelOutputs.get().position("left_foot_tip", "origin").z());
+            logs[i][j].setOrAppend("model output:right_foot_x", 
+                modelOutputs.get().position("right_foot_tip", "origin").x());
+            logs[i][j].setOrAppend("model output:right_foot_y", 
+                modelOutputs.get().position("right_foot_tip", "origin").y());
+            logs[i][j].setOrAppend("model output:right_foot_z", 
+                modelOutputs.get().position("right_foot_tip", "origin").z());
+            logs[i][j].setOrAppend("model output:trunk_x", 
+                modelOutputs.get().position("trunk", "origin").x());
+            logs[i][j].setOrAppend("model output:trunk_y", 
+                modelOutputs.get().position("trunk", "origin").y());
+            logs[i][j].setOrAppend("model output:trunk_z", 
+                modelOutputs.get().position("trunk", "origin").z());
+            logs[i][j].setOrAppend("model output:com_x", 
+                modelOutputs.get().centerOfMass("origin").x());
+            logs[i][j].setOrAppend("model output:com_y", 
+                modelOutputs.get().centerOfMass("origin").y());
+            logs[i][j].setOrAppend("model output:com_z", 
+                modelOutputs.get().centerOfMass("origin").z());
+            logs[i][j].setOrAppend("model motor:left_foot_x", 
+                modelMotors.get().position("left_foot_tip", "origin").x());
+            logs[i][j].setOrAppend("model motor:left_foot_y", 
+                modelMotors.get().position("left_foot_tip", "origin").y());
+            logs[i][j].setOrAppend("model motor:left_foot_z", 
+                modelMotors.get().position("left_foot_tip", "origin").z());
+            logs[i][j].setOrAppend("model motor:right_foot_x", 
+                modelMotors.get().position("right_foot_tip", "origin").x());
+            logs[i][j].setOrAppend("model motor:right_foot_y", 
+                modelMotors.get().position("right_foot_tip", "origin").y());
+            logs[i][j].setOrAppend("model motor:right_foot_z", 
+                modelMotors.get().position("right_foot_tip", "origin").z());
+            logs[i][j].setOrAppend("model motor:trunk_x", 
+                modelMotors.get().position("trunk", "origin").x());
+            logs[i][j].setOrAppend("model motor:trunk_y", 
+                modelMotors.get().position("trunk", "origin").y());
+            logs[i][j].setOrAppend("model motor:trunk_z", 
+                modelMotors.get().position("trunk", "origin").z());
+            logs[i][j].setOrAppend("model motor:com_x", 
+                modelMotors.get().centerOfMass("origin").x());
+            logs[i][j].setOrAppend("model motor:com_y", 
+                modelMotors.get().centerOfMass("origin").y());
+            logs[i][j].setOrAppend("model motor:com_z", 
+                modelMotors.get().centerOfMass("origin").z());
         }
     }
-}
-
-/**
- * Test LWPR model prediction on unseen data
- * and return mean error
- */
-double testLWPR(LWPR_Object& model, 
-    const std::string& output,
-    const Inputs& inputs, 
-    const std::vector<Leph::MatrixLabel>& container)
-{
-    size_t inputDim = model.nIn();
-    if (inputDim != inputs.size()) {
-        throw std::logic_error("Test invalid input");
-    }
-
-    double mse = 0.0;
-    size_t count = 0;
-    std::vector<double> x(inputDim);
-    std::vector<double> y(1);
-    for (size_t j=10;j<container[3].size();j++) {
-        for (size_t k=0;k<inputs.size();k++) {
-            x[k] = container[3][j - inputs[k].second](inputs[k].first);
-        }
-        y[0] = container[3][j](output);
-        // Predict future
-        std::vector<double> yp = model.predict(x);
-        mse += pow(yp[0]-y[0], 2);
-        count++;
-    }
-
-    return sqrt(mse/(double)count);
-}
-
-/**
- * Optimize and update given LWPR 
- * meta parametrs using CMAES
- */
-void optimizeMetaParameters(
-    Eigen::VectorXd& metaParams,
-    const std::string& output,
-    const Inputs& inputs, 
-    const std::vector<Leph::MatrixLabel>& container)
-{
-    //Starting point
-    std::vector<double> x0 = convert(metaParams);
-    //Optimization init
-    libcmaes::CMAParameters<> cmaparams(x0, 0.1);
-    cmaparams.set_quiet(false);
-    cmaparams.set_mt_feval(true);
-    cmaparams.set_str_algo("acmaes");
-    cmaparams.set_max_iter(10);
-    
-    //Fitness function
-    libcmaes::FitFunc fitness = [&output, &inputs, &container]
-        (const double* x, const int N) 
-    {
-        Eigen::VectorXd params = convert(x, N);
-        //Init LWPR model
-        LWPR_Object model = initLWPR(inputs.size(), params);
-        //Train LWMR
-        trainLWPR(model, output, inputs, container);
-        //Test LWPR
-        double mse = testLWPR(model, output, inputs, container);
-
-        return mse;
-    };
-    
-    //Run optimization
-    libcmaes::CMASolutions cmasols = libcmaes::cmaes<>(fitness, cmaparams);
-    metaParams = cmasols.best_candidate().get_x_dvec();
 }
 
 /**
@@ -267,19 +140,19 @@ void displayTest(LWPR_Object& model,
     }
     
     Leph::Plot plot;
-    std::vector<double> x(inputDim);
-    std::vector<double> y(1);
-    for (size_t j=10;j<container[3].size();j++) {
+    Eigen::VectorXd x(inputDim);
+    Eigen::VectorXd y(1);
+    for (size_t j=10;j<container.back().size();j++) {
         for (size_t k=0;k<inputs.size();k++) {
-            x[k] = container[3][j - inputs[k].second](inputs[k].first);
+            x(k) = container.back()[j - inputs[k].second](inputs[k].first);
         }
-        y[0] = container[3][j](output);
+        y(0) = container.back()[j](output);
         // Predict future
-        std::vector<double> yp = model.predict(x);
+        Eigen::VectorXd yp = model.predict(x);
         plot.add(Leph::VectorLabel(
-            "t", container[3][j]("time:timestamp"),
-            "y", y[0],
-            "yp", yp[0]
+            "t", container.back()[j]("time:timestamp"),
+            "y", y(0),
+            "yp", yp(0)
         ));
     }
     plot.plot("t", "all").render();
@@ -287,65 +160,107 @@ void displayTest(LWPR_Object& model,
 
 int main()
 {
+    std::vector<std::string> logFiles = {
+        "/home/leph/Code/These/Data/model_2015-06-12-10-20-01.log"
+        /*
+        "../../These/Data/logs-2015-05-16/model_2015-05-16-18-51-58.log",
+        "../../These/Data/logs-2015-05-16/model_2015-05-16-18-49-08.log",
+        "../../These/Data/logs-2015-05-16/model_2015-05-16-18-49-57.log",
+        "../../These/Data/logs-2015-05-16/model_2015-05-16-18-51-02.log"
+        */
+    };
+
     //Input and output definitions
     Inputs inputs = {
-        /*
-        {"motor:left foot pitch", 4},
-        {"motor:left foot roll", 4},
-        {"motor:left knee", 4},
-        {"motor:left hip yaw", 4},
-        {"motor:left hip pitch", 4},
-        {"motor:left hip roll", 4},
-        {"motor:right foot pitch", 4},
-        {"motor:right foot roll", 4},
-        {"motor:right knee", 4},
-        {"motor:right hip yaw", 4},
-        {"motor:right hip pitch", 4},
-        {"motor:right hip roll", 4},
-        {"sensor:roll", 4},
-        {"sensor:pitch", 4},
-        */
-        /*
-        {"motor:left foot pitch", 1},
-        {"motor:left foot roll", 1},
-        {"motor:left knee", 1},
-        {"motor:left hip yaw", 1},
-        {"motor:left hip pitch", 1},
-        {"motor:left hip roll", 1},
-        {"motor:right foot pitch", 1},
-        {"motor:right foot roll", 1},
-        {"motor:right knee", 1},
-        {"motor:right hip yaw", 1},
-        {"motor:right hip pitch", 1},
-        {"motor:right hip roll", 1},
-        {"sensor:roll", 1},
-        {"sensor:pitch", 1},
-        */
-        {"output:left knee", 5},
-        {"output:left knee", 6},
-        {"output:left knee", 7},
-        {"output:left knee", 8}
+        //{"model motor:trunk_y", 8},
+        {"model motor:trunk_y", 6},
+        //{"model motor:trunk_y", 4},
+        //{"walk:trunkYOffset", 6},
+        //{"walk:trunkXOffset", 6},
+        //{"walk:trunkYOffset", 4},
+        //{"walk:trunkXOffset", 4},
+        //{"walk:trunkYOffset", 2},
+        //{"walk:trunkXOffset", 2},
+        {"walk:trunkYOffset", 2},
+        //{"walk:trunkXOffset", 1}
     };
-    std::string output = "motor:left knee";
+    std::string output = "model motor:trunk_y";
 
     //Load data
-    std::vector<Leph::MatrixLabel> container = loadLogs();
+    std::vector<Leph::MatrixLabel> container = loadLogs(logFiles);
+    //Compute model related quantities
+    computeModelData(container);
+
+    //Do some plots
+    container[0].plot()
+        .plot("index", "model output:left_foot_z")
+        .plot("index", "model output:right_foot_z")
+        .plot("index", "model motor:left_foot_z")
+        .plot("index", "model motor:right_foot_z")
+        .render();
+    container[0].plot()
+        .plot("index", "model output:trunk_x")
+        .plot("index", "model output:trunk_y")
+        .plot("index", "model motor:trunk_x")
+        .plot("index", "model motor:trunk_y")
+        .render();
+    container[0].plot()
+        .plot("walk:trunkYOffset", "walk:trunkXOffset", "model motor:trunk_y")
+        .render();
+
+    //Generate Train and Test data vector
+    std::vector<Eigen::VectorXd> trainInputs;
+    std::vector<double> trainOutputs;
+    std::vector<Eigen::VectorXd> testInputs;
+    std::vector<double> testOutputs;
+    for (size_t i=0;i<(container.size() == 1 ? 1 : container.size()-1);i++) {
+        for (size_t j=10;j<container[i].size();j++) {
+            Eigen::VectorXd x(inputs.size());
+            for (size_t k=0;k<inputs.size();k++) {
+                x(k) = container[i][j - inputs[k].second](inputs[k].first);
+            }
+            double y = container[i][j](output);
+            //Append train data
+            trainInputs.push_back(x);
+            trainOutputs.push_back(y);
+        }
+    }
+    for (size_t j=10;j<container.back().size();j++) {
+        Eigen::VectorXd x(inputs.size());
+        for (size_t k=0;k<inputs.size();k++) {
+            x(k) = container.back()[j - inputs[k].second](inputs[k].first);
+        }
+        double y = container.back()[j](output);
+        //Append test data
+        testInputs.push_back(x);
+        testOutputs.push_back(y);
+    }
+
     //Init LWPR parameters
-    Eigen::VectorXd metaParams = initLWPRMetaParams(inputs.size());
+    Eigen::VectorXd metaParams = Leph::LWPRInitParameters(inputs.size());
     //Optimize parameters with CMAES
-    optimizeMetaParameters(metaParams, output, inputs, container);
+    metaParams = Leph::LWPROptimizeParameters(
+        inputs.size(),
+        metaParams, 
+        trainInputs, trainOutputs,
+        testInputs, testOutputs,
+        10, false);
     //Init LWPR model
-    LWPR_Object model = initLWPR(inputs.size(), metaParams);
+    LWPR_Object model = Leph::LWPRInit(inputs.size(), metaParams);
     //Train LWMR
-    trainLWPR(model, output, inputs, container);
+    for (size_t i=0;i<trainInputs.size();i++) {
+        model.update(trainInputs[i], trainOutputs[i]);
+    }
     //Test LWPR
-    double mse = testLWPR(model, output, inputs, container);
+    double mse = 0.0;
+    for (size_t i=0;i<testInputs.size();i++) {
+        Eigen::VectorXd yp = model.predict(testInputs[i]);
+        mse += pow(yp(0)-testOutputs[i], 2);
+    }
+    mse /= (double)testInputs.size();
     //Display informations
-    std::cout << "MeanError: " << mse << std::endl;
-    std::cout << "TrainingData: " << model.nData() << std::endl;
-    std::cout << "InputDims: " << model.nIn() << std::endl;
-    std::cout << "ReceptiveFields: " << model.numRFS(0) << std::endl;
-    std::cout << "MetaParameters: " << metaParams.transpose() << std::endl;
+    std::cout << "MeanError: " << sqrt(mse) << std::endl;
+    Leph::LWPRPrint(model);
     //Display prediction
     displayTest(model, output, inputs, container);
 

@@ -135,7 +135,7 @@ double testLWPR(
         std::cout << "nOut: " << model.nOut() << std::endl;
         std::cout << "numRFS: " << model.numRFS() << std::endl;
         for (size_t i=0;i<(size_t)model.numRFS();i++) {
-            LWPR_ReceptiveFieldObject rf = model.getRF(i);
+            const LWPR_ReceptiveFieldObject& rf = model.getRF(i);
             if (!rf.trustworthy()) continue;
             std::cout << "* RF " << i << ":" << std::endl;
             std::cout << "    nReg: " << rf.nReg() << std::endl;
@@ -149,9 +149,22 @@ double testLWPR(
             std::cout << rf.P() << std::endl;
             std::cout << "    beta0: " << rf.beta0() << std::endl;
             std::cout << "    beta (nReg): " << rf.beta().transpose() << std::endl;
+            std::cout << "    VIP (nIn): " << rf.vip().transpose() << std::endl;
             std::cout << "    numData (nReg): " << rf.numData().transpose() << std::endl;
             std::cout << "    slope (nIn): " << rf.slope().transpose() << std::endl;
+            plot.add(Leph::VectorLabel(
+                "x0", rf.center()(0),
+                "x1", rf.center()(1),
+                "vip0", rf.vip()(0),
+                "vip1", rf.vip()(1),
+                "real", cross(rf.center()(0), rf.center()(1))
+            ));
         }
+        plot
+            //.plot("x0", "x1", "real", Leph::Plot::Points, "vip0")
+            .plot("x0", "x1", "vip0")
+            .plot("x0", "x1", "vip1")
+            .render();
         //Write LWPR model to binary file
         model.writeBinary("/tmp/lwpr.bin");
     }
