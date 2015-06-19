@@ -224,5 +224,24 @@ void LWPRPrint(const LWPR_Object& model)
     }
 }
 
+void LWPRPrintParameters(size_t inputDim, 
+    const Eigen::VectorXd& params)
+{
+    if ((size_t)params.size() != 2*inputDim + 5) {
+        throw std::logic_error("LWPRUtils invalid dim");
+    }
+
+    std::cout << "LWPR parameters:" << std::endl;
+    std::cout << "NormIn (nIn): " 
+        << params.segment(0, inputDim).transpose() << std::endl;
+    std::cout << "InitAlpha: " << params(inputDim) << std::endl;
+    std::cout << "MetaRate: " << params(inputDim + 1) << std::endl;
+    std::cout << "Penalty: " << params(inputDim + 2) << std::endl;
+    std::cout << "InitD (nIn): " 
+        << params.segment(inputDim + 3, inputDim).transpose() << std::endl;
+    std::cout << "WGen: " << params(2*inputDim + 3) << std::endl;
+    std::cout << "WPrune: " << params(2*inputDim + 4) << std::endl;
+}
+
 }
 

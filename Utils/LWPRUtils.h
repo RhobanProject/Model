@@ -41,6 +41,13 @@ Eigen::VectorXd LWPROptimizeParameters(size_t inputDim,
  */
 void LWPRPrint(const LWPR_Object& model);
 
+/**
+ * Print on std::cout given LWPR
+ * meta parameters
+ */
+void LWPRPrintParameters(size_t inputDim, 
+    const Eigen::VectorXd& params);
+
 }
 
 #endif
