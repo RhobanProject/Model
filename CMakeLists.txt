@@ -120,6 +120,7 @@ set(TESTS_FILES
     testGaussianProcess
     testTimeSeries
     testLWPR
+    testLWPRAdvanced
 )
 
 #Applications main files
