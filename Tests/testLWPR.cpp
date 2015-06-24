@@ -69,7 +69,7 @@ double testLWPR(
     Eigen::VectorXd x(2);
     Eigen::VectorXd y(1);
     Leph::Plot plot;
-    size_t count = 500;
+    size_t count = 1000;
     for (size_t i=0;i<count;i++) {
         //Generate a data point
         x << dRand(), dRand();
@@ -88,11 +88,15 @@ double testLWPR(
     
     double mse = 0.0; 
     size_t numTest = 0;  
-    for (x(1)=-1.0;x(1)<=1.0;x(1)+=0.05) {   
-        for (x(0)=-1.0;x(0)<=1.0;x(0)+=0.05) {
+    double area = 1.5;
+    if (verbose) {
+        area = 1.0;
+    }
+    for (x(1)=-area;x(1)<=area;x(1)+=0.05) {   
+        for (x(0)=-area;x(0)<=area;x(0)+=0.05) {
             y(0) = cross(x(0), x(1));
             // Use the model for predicting an output
-            Eigen::VectorXd yp = model.predict(x);
+            Eigen::VectorXd yp = model.predict(x, 0.0);
             Eigen::MatrixXd J = model.predictJ(x);
             //Compute prediction error
             mse += (y-yp).squaredNorm();
@@ -111,6 +115,7 @@ double testLWPR(
         }
     }
     if (verbose) {
+        std::cout << "Plotting target and fitted function" << std::endl;
         plot
             //.plot("x0", "x1", "real")
             .plot("x0", "x1", "target")
@@ -160,6 +165,7 @@ double testLWPR(
                 "real", cross(rf.center()(0), rf.center()(1))
             ));
         }
+        std::cout << "Plotting RF center and VIP for x0 and x1" << std::endl;
         plot
             //.plot("x0", "x1", "real", Leph::Plot::Points, "vip0")
             .plot("x0", "x1", "vip0")
@@ -177,25 +183,28 @@ void loadLWPR()
     LWPR_Object model("/tmp/lwpr.bin");
 
     Eigen::VectorXd x(2);
-    Eigen::VectorXd y(1);
     Leph::Plot plot;
-    for (x(1)=-1.0;x(1)<=1.0;x(1)+=0.05) {   
-        for (x(0)=-1.0;x(0)<=1.0;x(0)+=0.05) {
-            y(0) = cross(x(0), x(1));
+    for (x(1)=-2.0;x(1)<=2.0;x(1)+=0.08) {   
+        for (x(0)=-2.0;x(0)<=2.0;x(0)+=0.08) {
             // Use the model for predicting an output
-            Eigen::VectorXd yp = model.predict(x);
+            Eigen::VectorXd confidence(1);
+            Eigen::VectorXd yp = model.predict(x, confidence, 0.0);
+            if (confidence(0) > 2.0) confidence(0) = 2.0;
             //Plot
             plot.add(Leph::VectorLabel(
                 "x0", x(0),
                 "x1", x(1),
                 "fitted", yp(0),
+                "confidence", yp(0) + confidence(0),
                 "real", cross(x(0), x(1))
             ));
         }
     }
+    std::cout << "Plotting real and loaded function" << std::endl;
     plot
         .plot("x0", "x1", "real")
-        .plot("x0", "x1", "fitted")
+        .plot("x0", "x1", "fitted", Leph::Plot::Points, "fitted")
+        .plot("x0", "x1", "confidence")
         .render();
 }
 
@@ -215,9 +224,9 @@ int main()
     //Optimization init
     libcmaes::CMAParameters<> cmaparams(x0, 0.1);
     cmaparams.set_quiet(false);
-    cmaparams.set_mt_feval(false);
+    cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("acmaes");
-    cmaparams.set_max_iter(10);
+    cmaparams.set_max_iter(50);
 
     //Fitness function
     libcmaes::FitFunc fitness = []
