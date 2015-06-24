@@ -12,7 +12,7 @@ Eigen::VectorXd LWPRInitParameters(size_t inputDim)
 
     //NormIn
     for (size_t i=0;i<inputDim;i++) {
-        params(i) = 1.0;
+        params(i) = 0.05;
     }
     //InitAlpha
     params(inputDim) = 50.0;
@@ -22,10 +22,10 @@ Eigen::VectorXd LWPRInitParameters(size_t inputDim)
     params(inputDim + 2) = 1e-6;
     //InitD
     for (size_t i=0;i<inputDim;i++) {
-        params(inputDim + 3 + i) = 100.0;
+        params(inputDim + 3 + i) = 1.0;
     }
     //WGen
-    params(2*inputDim + 3) = 0.2;
+    params(2*inputDim + 3) = 0.1;
     //WPrune
     params(2*inputDim + 4) = 0.9;
 
@@ -62,20 +62,20 @@ LWPR_Object LWPRInit(size_t inputDim,
     model.diagOnly(true);
     //Learning rate for gradient descente (>0)
     //(meta optimized)
-    model.setInitAlpha(params(inputDim));
+model.setInitAlpha(params(inputDim));
     //Automatic tunning of distance metric 
     model.useMeta(true);
     //Meta tunning learning rate (>0)
-    model.metaRate(params(inputDim + 1));
+model.metaRate(params(inputDim + 1));
     //Larger value enforce wider receptive field (>0)
-    model.penalty(params(inputDim + 2));
+model.penalty(params(inputDim + 2));
     //Set diagonal (input_dim) or complet (input_dim*input_dim)
     //initial distance matrix (>0)
     model.setInitD(params.segment(inputDim + 3, inputDim));
     //Receptive field activation threshold (>0)
-    model.wGen(params(2*inputDim + 3));
+//model.wGen(params(2*inputDim + 3));
     //Receptive field remove threshold
-    model.wPrune(params(2*inputDim + 4));
+//model.wPrune(params(2*inputDim + 4));
 
     return model;
 }
