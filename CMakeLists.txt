@@ -86,6 +86,7 @@ set(SOURCES_FILES
     Spline/Polynom.cpp
     Spline/Spline.cpp
     Spline/SmoothSpline.cpp
+    Spline/LinearSpline.cpp
     Spline/CubicSpline.cpp
     Spline/FittedSpline.cpp
     Spline/PolyFit.cpp
