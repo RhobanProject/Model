@@ -92,6 +92,7 @@ set(SOURCES_FILES
     Spline/PolyFit.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
+    Utils/IterativeLearningControl.cpp
 )
 
 #Tests main files
@@ -122,6 +123,7 @@ set(TESTS_FILES
     testTimeSeries
     testLWPR
     testLWPRAdvanced
+    testIterativeLearningControl
 )
 
 #Applications main files
