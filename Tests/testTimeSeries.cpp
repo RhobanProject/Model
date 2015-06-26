@@ -8,6 +8,8 @@ int main()
     Leph::TimeSeries series1("test1");
     Leph::TimeSeries series2("test2", 4);
 
+    assert(series1.name() == "test1");
+    assert(series2.name() == "test2");
     assert(series1.size() == 0);
     assert(series2.size() == 0);
     assert(series1.count() == 0);
@@ -16,6 +18,8 @@ int main()
     series1.append(1.0, 1.5);
     series2.append(1.0, 1.5);
     
+    assert(series1.name() == "test1");
+    assert(series2.name() == "test2");
     assert(series1.size() == 1);
     assert(series2.size() == 1);
     assert(series1.count() == 1);
@@ -104,6 +108,7 @@ int main()
     assert(series2.get(4.5) == 5.0);
     assert(series1.get(4.0) == 4.5);
     assert(series2.get(4.0) == 4.5);
+    std::cout << series2 << std::endl;
 
     std::ostringstream oss;
     series1.save(oss);

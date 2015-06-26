@@ -35,6 +35,8 @@ class TimeSeries
         /**
          * Initialization with empty or
          * given name
+         * maxSize is maximum size of internal rolling buffer.
+         * Infinite size is assumed if maxSize is -1
          */
         TimeSeries() :
             _name(""),
@@ -57,6 +59,14 @@ class TimeSeries
             _min(std::numeric_limits<double>::quiet_NaN()),
             _max(std::numeric_limits<double>::quiet_NaN())
         {
+        }
+
+        /**
+         * Return TimeSeries name
+         */
+        inline const std::string& name() const
+        {
+            return _name;
         }
 
         /**
@@ -362,6 +372,22 @@ class TimeSeries
         double _min;
         double _max;
 };
+
+/**
+ * Print operator
+ */
+inline std::ostream& operator<<(std::ostream& os, const TimeSeries& ts)
+{
+    os << "[" <<ts.name() << "] ";
+    if (ts.size() > 0) {
+        os << "t=" << ts.lastTime() << " val=" << ts.lastValue() 
+            << " (count=" << ts.count() << ") ";
+    } else {
+        os << "empty" << std::endl;
+    }
+
+    return os;
+}
 
 }
 
