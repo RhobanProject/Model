@@ -32,10 +32,11 @@ class IterativeLearningControl
         VectorLabel getOffsets(double phase) const;
 
         /**
-         * Return the suumed error of last cycle
-         * iteration
+         * Return the summed error of last cycle
+         * iteration and last update error
          */
-        const VectorLabel& getErrors() const;
+        const VectorLabel& getSumErrors() const;
+        const VectorLabel& getLastErrors() const;
 
         /**
          * Update the compensation spline. Current phase, 
@@ -45,6 +46,12 @@ class IterativeLearningControl
         void update(double phase, 
             const VectorLabel& goals, 
             const VectorLabel& motors);
+
+        /**
+         * Direct access to convergence learning rate
+         */
+        const double& learningRate() const;
+        double& learningRate();
 
     private:
 
@@ -75,8 +82,13 @@ class IterativeLearningControl
         /**
          * Error summed on last and current cycle
          */
-        VectorLabel _pastErrors;
-        VectorLabel _currentErrors;
+        VectorLabel _pastSumErrors;
+        VectorLabel _currentSumErrors;
+
+        /**
+         * Last update error
+         */
+        VectorLabel _lastErrors;
 };
 
 }

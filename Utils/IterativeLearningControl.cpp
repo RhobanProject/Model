@@ -9,14 +9,17 @@ IterativeLearningControl::IterativeLearningControl(
     _lag(lag),
     _container(),
     _currentOffsets(),
-    _nextOffsets()
+    _nextOffsets(),
+    _pastSumErrors(),
+    _currentSumErrors(),
+    _lastErrors()
 {
 }
         
 VectorLabel IterativeLearningControl::getOffsets(double phase) const
 {
     if (_container.size() == 0 && _currentOffsets.size() == 0) {
-        throw std::logic_error("IterativeLearningControl empty");
+        return Leph::VectorLabel();
     }
 
     VectorLabel offsets = _container.back();
@@ -27,9 +30,13 @@ VectorLabel IterativeLearningControl::getOffsets(double phase) const
     return offsets;
 }
         
-const VectorLabel& IterativeLearningControl::getErrors() const
+const VectorLabel& IterativeLearningControl::getSumErrors() const
 {
-    return _pastErrors;
+    return _pastSumErrors;
+}
+const VectorLabel& IterativeLearningControl::getLastErrors() const
+{
+    return _lastErrors;
 }
 
 void IterativeLearningControl::update(double phase, 
@@ -43,10 +50,10 @@ void IterativeLearningControl::update(double phase,
     }
     //Initialize splines container
     if (_currentOffsets.size() == 0) {
-        _pastErrors = motors;
-        _pastErrors.zeroOp();
-        _currentErrors = motors;
-        _currentErrors.zeroOp();
+        _pastSumErrors = motors;
+        _pastSumErrors.zeroOp();
+        _currentSumErrors = motors;
+        _currentSumErrors.zeroOp();
         for (size_t i=0;i<goals.size();i++) {
             _currentOffsets.push_back(LinearSpline());
             _nextOffsets.push_back(LinearSpline());
@@ -75,19 +82,31 @@ void IterativeLearningControl::update(double phase,
         for (size_t i=0;i<_nextOffsets.size();i++) {
             _nextOffsets[i] = LinearSpline();
         }
-        _pastErrors = _currentErrors;
-        _currentErrors.zeroOp();
+        _pastSumErrors = _currentSumErrors;
+        _currentSumErrors.zeroOp();
     }
 
     //Compute motors error
-    VectorLabel errors = motors;
-    errors.subOp(_container.front());
-    _currentErrors.addOp(errors);
-    errors.mulOp(-_learningRate);
-    errors.addOp(getOffsets(phase));
-    for (size_t i=0;i<errors.size();i++) {
-        _nextOffsets[i].addPoint(phase, errors(i));
+    _lastErrors = motors;
+    _lastErrors.subOp(_container.front());
+    for (size_t i=0;i<_lastErrors.size();i++) {
+        _currentSumErrors(i) += fabs(_lastErrors(i));
     }
+    Leph::VectorLabel deltas = _lastErrors;
+    deltas.mulOp(-_learningRate);
+    deltas.addOp(getOffsets(phase));
+    for (size_t i=0;i<deltas.size();i++) {
+        _nextOffsets[i].addPoint(phase, deltas(i));
+    }
+}
+
+const double& IterativeLearningControl::learningRate() const
+{
+    return _learningRate;
+}
+double& IterativeLearningControl::learningRate()
+{
+    return _learningRate;
 }
         
 }

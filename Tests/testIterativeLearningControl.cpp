@@ -37,10 +37,12 @@ int main()
                 "t", t, 
                 "goal", goal,
                 "offset", offset,
+                "error", ilc.getLastErrors().size() > 0 ? 
+                    ilc.getLastErrors()(0) : 0.0,
                 "motor", pos
             ));
         }
-        std::cout << "Error: " << ilc.getErrors()(0) << std::endl;
+        std::cout << "Error: " << ilc.getSumErrors()(0) << std::endl;
         if (k%5 == 0) {
             plot.plot("t", "all").render();
         }
