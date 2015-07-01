@@ -10,6 +10,10 @@ HumanoidFixedModel::HumanoidFixedModel(
 {
 }
         
+HumanoidFixedModel::~HumanoidFixedModel()
+{
+}
+        
 HumanoidFixedModel::SupportFoot HumanoidFixedModel::
     getSupportFoot() const
 {
@@ -18,7 +22,29 @@ HumanoidFixedModel::SupportFoot HumanoidFixedModel::
         
 void HumanoidFixedModel::setSupportFoot(SupportFoot foot)
 {
-    _supportFoot = foot;
+    if (_supportFoot != foot) {
+        if (foot == RightSupportFoot) {
+            Eigen::Vector3d posFoot = 
+                _modelLeft.position("right_foot_tip", "origin");
+            Eigen::Matrix3d rotation = 
+                _modelLeft.orientation("right_foot_tip", "origin").transpose();
+            _modelRight.importDOF(_modelLeft);
+            _modelRight.setDOF("base_x", posFoot.x());
+            _modelRight.setDOF("base_y", posFoot.y());
+            _modelRight.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
+            _supportFoot = RightSupportFoot;
+        } else {
+            Eigen::Vector3d posFoot = 
+                _modelRight.position("left_foot_tip", "origin");
+            Eigen::Matrix3d rotation = 
+                _modelRight.orientation("left_foot_tip", "origin").transpose();
+            _modelLeft.importDOF(_modelRight);
+            _modelLeft.setDOF("base_x", posFoot.x());
+            _modelLeft.setDOF("base_y", posFoot.y());
+            _modelLeft.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
+            _supportFoot = LeftSupportFoot;
+        }
+    }
 }
         
 const HumanoidModel& HumanoidFixedModel::get() const
@@ -47,25 +73,13 @@ void HumanoidFixedModel::updateBase()
         Eigen::Vector3d posFoot = 
             _modelLeft.position("right_foot_tip", "origin");
         if (posFoot.z() < 0.0) {
-            Eigen::Matrix3d rotation = 
-                _modelLeft.orientation("right_foot_tip", "origin").transpose();
-            _modelRight.importDOF(_modelLeft);
-            _modelRight.setDOF("base_x", posFoot.x());
-            _modelRight.setDOF("base_y", posFoot.y());
-            _modelRight.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
-            _supportFoot = RightSupportFoot;
+            setSupportFoot(RightSupportFoot);
         }
     } else {
         Eigen::Vector3d posFoot = 
             _modelRight.position("left_foot_tip", "origin");
         if (posFoot.z() < 0.0) {
-            Eigen::Matrix3d rotation = 
-                _modelRight.orientation("left_foot_tip", "origin").transpose();
-            _modelLeft.importDOF(_modelRight);
-            _modelLeft.setDOF("base_x", posFoot.x());
-            _modelLeft.setDOF("base_y", posFoot.y());
-            _modelLeft.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
-            _supportFoot = LeftSupportFoot;
+            setSupportFoot(LeftSupportFoot);
         }
     }
 }

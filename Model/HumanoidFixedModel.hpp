@@ -31,12 +31,18 @@ class HumanoidFixedModel
         HumanoidFixedModel(RobotType type);
         
         /**
+         * Virtual destructor
+         */
+        virtual ~HumanoidFixedModel();
+        
+        /**
          * Return the current support foot
          */
         SupportFoot getSupportFoot() const;
 
         /**
-         * Force given support foot
+         * Update the current support to given 
+         * support foot and update odometry
          */
         void setSupportFoot(SupportFoot foot);
 
@@ -52,7 +58,7 @@ class HumanoidFixedModel
          * and compute floating base tranformation
          * to integrate model displacement
          */
-        void updateBase();
+        virtual void updateBase();
 
         /**
          * Udpate support foot floating base (pitch, roll)
