@@ -60,11 +60,16 @@ int main()
         Eigen::VectorXd tau;
         if (t >= 0.0 && t < 3.0) {
             tau = model.get().inverseDynamics();
-        }
-        else if (t >= 3.0 && t < 6.0) {
+        } else if (t >= 3.0 && t < 6.0) {
+            Eigen::VectorXd vel(model.get().sizeDOF());
+            Eigen::VectorXd acc(model.get().sizeDOF());
+            vel.setZero();
+            acc.setZero();
+            acc(model.get().getDOFIndex("base_roll")) = 10.0;
+            tau = model.get().inverseDynamics(vel, acc);
+        } else if (t >= 6.0 && t < 9.0) {
             tau = model.get().inverseDynamicsClosedLoop("right_foot_tip", false);
-        }
-        else if (t >= 6.0 && t < 9.0) {
+        } else if (t >= 9.0 && t < 12.0) {
             tau = model.get().inverseDynamicsClosedLoop("right_foot_tip", true);
         } else {
             break;
