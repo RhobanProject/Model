@@ -78,6 +78,7 @@ set(SOURCES_FILES
     Model/HumanoidModel.cpp
     Model/HumanoidFloatingModel.cpp
     Model/HumanoidFixedModel.cpp
+    Model/HumanoidFixedPressureModel.cpp
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
@@ -180,10 +181,12 @@ if (BUILD_LEPH_CODE_VIEWER)
         testModelTorques
         testIKWalk
         testZeroMomentPoint
+        testHumanoidPressureModel
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
         appViewerModelLogs
+        appViewerModelZMP
         appStaticTrajectoryOptimizationTorques
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
