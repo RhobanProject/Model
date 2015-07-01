@@ -22,7 +22,6 @@ int main()
             .extract("motor").rename("motor", "");
         Leph::VectorLabel pressure = logs[index]
             .extract("pressure").rename("pressure", "");
-        std::cout << pressure << std::endl;
         model.get().setDOF(pos, false);
         model.setPressure(
             logs[index]("pressure:w"),
