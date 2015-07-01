@@ -98,10 +98,12 @@ class ModelViewer
         /**
          * Draw a wireframe box with given x,y,z half size at
          * given position and orientation
+         * Optional box color can be given
          */
         void drawBox(double sizeX, double sizeY, double sizeZ,
             const Eigen::Vector3d& center, 
-            const Eigen::Matrix3d& orientation);
+            const Eigen::Matrix3d& orientation,
+            double r = 0.3, double g = 0.6, double b = 0.6);
 
         /**
          * Add a position for drawing trajectory
@@ -167,6 +169,13 @@ class ModelViewer
          */
         void drawCube(float r, float g, float b, 
             bool isWireFrame = false);
+
+        /**
+         * Draw given trajectory with given color
+         */
+        void drawColorTrajectory(
+            const std::list<Eigen::Vector3d>& traj, 
+            double r, double g, double b);
 };
 
 }
