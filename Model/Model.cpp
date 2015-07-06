@@ -259,6 +259,12 @@ VectorLabel Model::inverseDynamics(
     //Convertion from VectorLabel
     loadLabelToEigen(velocity, vel, false);
     loadLabelToEigen(acceleration, acc, false);
+    //Given velocity and acceleration of
+    //base pitch and roll are also used
+    vel(Model::getDOFIndex("base_pitch")) = velocity("base_pitch");
+    vel(Model::getDOFIndex("base_roll")) = velocity("base_roll");
+    acc(Model::getDOFIndex("base_pitch")) = acceleration("base_pitch");
+    acc(Model::getDOFIndex("base_roll")) = acceleration("base_roll");
 
     //Call implementation
     Eigen::VectorXd torques = inverseDynamics(vel, acc);
