@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Model/HumanoidFixedPressureModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Types/MatrixLabel.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
@@ -12,6 +13,7 @@ int main()
 
     //Initialize model instances
     Leph::HumanoidFixedPressureModel model(Leph::SigmabanModel);
+    Leph::HumanoidFixedModel model2(Leph::SigmabanModel);
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling(50.0);
 
@@ -23,6 +25,7 @@ int main()
         Leph::VectorLabel pressure = logs[index]
             .extract("pressure").rename("pressure", "");
         model.get().setDOF(pos, false);
+        model2.get().setDOF(pos, false);
         model.setPressure(
             logs[index]("pressure:w"),
             logs[index]("pressure:w1")
@@ -38,8 +41,12 @@ int main()
         Eigen::Vector3d copMiddle = model.centerOfPressure("origin");
         //Update support foot and compute odometry
         model.updateBase();
+        model2.updateBase();
         //Set IMU data for motors real model state
         model.setOrientation(
+            logs[index]("sensor:pitch"), 
+            logs[index]("sensor:roll"));
+        model2.setOrientation(
             logs[index]("sensor:pitch"), 
             logs[index]("sensor:roll"));
         //Display foot pressure force
@@ -60,6 +67,7 @@ int main()
             copMiddle, Leph::ModelViewer::Yellow);
         //Display model
         Leph::ModelDraw(model.get(), viewer);
+        Leph::ModelDraw(model2.get(), viewer);
         //Scheduling
         scheduling.wait();
         index++;
