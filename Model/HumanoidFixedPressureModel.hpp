@@ -79,6 +79,12 @@ class HumanoidFixedPressureModel : public HumanoidFixedModel
         double _rightRatio;
         Eigen::Vector3d _leftCOP;
         Eigen::Vector3d _rightCOP;
+
+        /**
+         * Print warning message if pressure inputs
+         * are not valid
+         */
+        void checkPressure();
 };
 
 }

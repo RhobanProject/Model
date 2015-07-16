@@ -32,13 +32,12 @@ void HumanoidFixedPressureModel::setPressure(
     if (
         _weight < 0.0 || 
         _leftRatio < 0.0 || 
-        _rightRatio < 0.0 ||
-        _leftRatio > 1.0 || 
-        _rightRatio > 1.0
+        _rightRatio < 0.0
     ) {
         throw std::logic_error(
             "HumanoidFixedPressureModel invalid pressure inputs");
     }
+    checkPressure();
 }
 void HumanoidFixedPressureModel::setPressure(
     double weight, 
@@ -51,9 +50,7 @@ void HumanoidFixedPressureModel::setPressure(
     if (
         weight < 0.0 || 
         leftRatio < 0.0 || 
-        rightRatio < 0.0 ||
-        leftRatio > 1.0 || 
-        rightRatio > 1.0
+        rightRatio < 0.0
     ) {
         throw std::logic_error(
             "HumanoidFixedPressureModel invalid pressure inputs");
@@ -69,6 +66,9 @@ void HumanoidFixedPressureModel::setPressure(
     _rightCOP.x() = rightX;
     _rightCOP.y() = rightY;
     _rightCOP.z() = 0.0;
+    
+    //Check inputs ratio
+    checkPressure();
 }
         
 void HumanoidFixedPressureModel::updateBase()
@@ -134,6 +134,24 @@ Eigen::Vector3d HumanoidFixedPressureModel::centerOfPressure
     Eigen::Vector3d right = centerOfPressureRight(frame);
 
     return _leftRatio*left + _rightRatio*right;
+}
+        
+void HumanoidFixedPressureModel::checkPressure()
+{
+    if (_leftRatio > 1.0) {
+        std::cerr << 
+            "Warning: HumanoidFixedPressureModel invalid left ratio: " 
+            << _leftRatio << std::endl;
+        _leftRatio = 1.0;
+        _rightRatio = 0.0;
+    }
+    if (_rightRatio > 1.0) {
+        std::cerr << 
+            "Warning: HumanoidFixedPressureModel invalid right ratio: " 
+            << _leftRatio << std::endl;
+        _rightRatio = 1.0;
+        _leftRatio = 0.0;
+    }
 }
 
 }
