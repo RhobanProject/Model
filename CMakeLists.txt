@@ -185,6 +185,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
+        appViewerModelLogsOld
         appViewerModelLogs
         appViewerModelZMP
         appStaticTrajectoryOptimizationTorques
