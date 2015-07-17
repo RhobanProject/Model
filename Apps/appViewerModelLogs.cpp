@@ -61,6 +61,15 @@ int main(int argc, char** argv)
     logs.plot()
         .plot("index", "walk:*")
         .render();
+    std::cout << "Plotting base" << std::endl;
+    std::cout << "Measured walked distance: " << sqrt(
+        pow(logs[0]("motor:base_x")-logs[logs.size()-1]("motor:base_x"), 2) +
+        pow(logs[0]("motor:base_y")-logs[logs.size()-1]("motor:base_y"), 2)) << std::endl;
+    logs.plot()
+        .plot("index", "motor:base_x")
+        .plot("index", "motor:base_y")
+        .plot("index", "motor:base_yaw")
+        .render();
     
     //Initialize model instances
     Leph::HumanoidFixedModel modelOutputs(type);
