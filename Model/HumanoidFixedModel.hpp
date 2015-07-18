@@ -47,6 +47,14 @@ class HumanoidFixedModel
         void setSupportFoot(SupportFoot foot);
 
         /**
+         * Compute using given support foot
+         * orientation the robot base yaw 
+         * or set it manually
+         */
+        void setYaw(SupportFoot foot);
+        void setYaw(SupportFoot foot, double yaw);
+
+        /**
          * Return Leph::HumanoidModel fixed
          * on current supporting foot tip
          */
