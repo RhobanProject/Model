@@ -3,6 +3,79 @@
 #include <sstream>
 #include "TimeSeries/TimeSeries.hpp"
 
+void testFutureMode()
+{
+    Leph::TimeSeries series("test");
+    
+    assert(series.name() == "test");
+    assert(series.size() == 0);
+    assert(series.sizeFuture() == 0);
+    assert(series.isFutureMode() == false);
+    
+    series.append(1.0, 1.5);
+    series.append(2.0, 2.5);
+
+    series.enableFutureMode();
+    assert(series.name() == "test");
+    assert(series.size() == 2);
+    assert(series.timeMin() == 1.0);
+    assert(series.timeMax() == 2.0);
+    assert(series.lastValue() == 2.5);
+    assert(series.get(1.5) == 2.0);
+    assert(series.sizeFuture() == 0);
+    assert(series.isFutureMode() == true);
+    
+    series.append(3.0, 3.5);
+    series.append(4.0, 4.5);
+    assert(series.name() == "test");
+    assert(series.size() == 4);
+    assert(series.timeMin() == 1.0);
+    assert(series.timeMax() == 4.0);
+    assert(series.lastValue() == 4.5);
+    assert(series.get(1.5) == 2.0);
+    assert(series.get(2.5) == 3.0);
+    assert(series.get(3.5) == 4.0);
+    assert(series.sizeFuture() == 2);
+    assert(series.isFutureMode() == true);
+
+    series.disableFutureMode();
+    assert(series.name() == "test");
+    assert(series.size() == 2);
+    assert(series.timeMin() == 1.0);
+    assert(series.timeMax() == 2.0);
+    assert(series.lastValue() == 2.5);
+    assert(series.get(1.5) == 2.0);
+    assert(series.sizeFuture() == 2);
+    assert(series.isFutureMode() == false);
+    
+    series.append(3.0, 3.5);
+    assert(series.size() == 3);
+    assert(series.timeMin() == 1.0);
+    assert(series.timeMax() == 3.0);
+    assert(series.lastValue() == 3.5);
+    assert(series.get(1.5) == 2.0);
+    assert(series.sizeFuture() == 2);
+    assert(series.isFutureMode() == false);
+    assert(series.atFuture(0).time == 4.0);
+    assert(series.atFuture(1).time == 3.0);
+
+    try {
+        series.enableFutureMode();
+        assert(false);
+    } catch (...) {
+    }
+    assert(series.isFutureMode() == false);
+
+    series.clearFuture();
+    assert(series.size() == 3);
+    assert(series.timeMin() == 1.0);
+    assert(series.timeMax() == 3.0);
+    assert(series.lastValue() == 3.5);
+    assert(series.get(1.5) == 2.0);
+    assert(series.sizeFuture() == 0);
+    assert(series.isFutureMode() == false);
+}
+
 int main()
 {
     Leph::TimeSeries series1("test1");
@@ -12,8 +85,10 @@ int main()
     assert(series2.name() == "test2");
     assert(series1.size() == 0);
     assert(series2.size() == 0);
-    assert(series1.count() == 0);
-    assert(series2.count() == 0);
+    assert(series1.sizeFuture() == 0);
+    assert(series2.sizeFuture() == 0);
+    assert(series1.isFutureMode() == false);
+    assert(series2.isFutureMode() == false);
 
     series1.append(1.0, 1.5);
     series2.append(1.0, 1.5);
@@ -22,12 +97,6 @@ int main()
     assert(series2.name() == "test2");
     assert(series1.size() == 1);
     assert(series2.size() == 1);
-    assert(series1.count() == 1);
-    assert(series2.count() == 1);
-    assert(series1.min() == 1.5);
-    assert(series1.max() == 1.5);
-    assert(series2.min() == 1.5);
-    assert(series2.max() == 1.5);
     assert(series1.lastTime() == 1.0);
     assert(series1.lastValue() == 1.5);
     assert(series2.lastTime() == 1.0);
@@ -40,6 +109,10 @@ int main()
     assert(series1.timeMax() == 1.0);
     assert(series2.timeMin() == 1.0);
     assert(series2.timeMax() == 1.0);
+    assert(series1.sizeFuture() == 0);
+    assert(series2.sizeFuture() == 0);
+    assert(series1.isFutureMode() == false);
+    assert(series2.isFutureMode() == false);
     
     series1.append(2.0, 2.5);
     series2.append(2.0, 2.5);
@@ -48,12 +121,6 @@ int main()
     
     assert(series1.size() == 3);
     assert(series2.size() == 3);
-    assert(series1.count() == 3);
-    assert(series2.count() == 3);
-    assert(series1.min() == 1.5);
-    assert(series1.max() == 3.5);
-    assert(series2.min() == 1.5);
-    assert(series2.max() == 3.5);
     assert(series1.lastTime() == 3.0);
     assert(series1.lastValue() == 3.5);
     assert(series2.lastTime() == 3.0);
@@ -82,12 +149,6 @@ int main()
     
     assert(series1.size() == 5);
     assert(series2.size() == 4);
-    assert(series1.count() == 5);
-    assert(series2.count() == 5);
-    assert(series1.min() == 1.5);
-    assert(series1.max() == 5.5);
-    assert(series2.min() == 1.5);
-    assert(series2.max() == 5.5);
     assert(series1.lastTime() == 5.0);
     assert(series1.lastValue() == 5.5);
     assert(series2.lastTime() == 5.0);
@@ -125,9 +186,6 @@ int main()
     series5.load(iss);
 
     assert(series3.size() == 5);
-    assert(series3.count() == 5);
-    assert(series3.min() == 1.5);
-    assert(series3.max() == 5.5);
     assert(series3.lastTime() == 5.0);
     assert(series3.lastValue() == 5.5);
     assert(series3[0].time == 5.0);
@@ -146,7 +204,8 @@ int main()
     
     series4.clear();
     assert(series4.size() == 0);
-    assert(series4.count() == 0);
+
+    testFutureMode();
 
     return 0;
 }
