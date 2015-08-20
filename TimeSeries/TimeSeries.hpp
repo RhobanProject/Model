@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <limits>
 #include <cmath>
+#include "TimeSeries/MetaSeries.hpp"
 
 namespace Leph {
 
@@ -20,8 +21,9 @@ namespace Leph {
  * as a rolling buffer to save memory.
  * Future data point can also be inserted 
  * and clear. 
+ * Meta data are computed by sub class.
  */
-class TimeSeries
+class TimeSeries : public MetaSeries
 {
     public:
 
@@ -41,6 +43,7 @@ class TimeSeries
          * Infinite size is assumed if maxSize is -1
          */
         TimeSeries() :
+            MetaSeries(),
             _name(""),
             _maxSize(-1),
             _indexEnd(0),
@@ -52,6 +55,7 @@ class TimeSeries
         TimeSeries(
             const std::string& name, 
             size_t maxSize = -1) :
+            MetaSeries(),
             _name(name),
             _maxSize(maxSize),
             _indexEnd(0),
@@ -219,6 +223,8 @@ class TimeSeries
                 if (_maxSize != (size_t)-1 && _indexEnd >= _maxSize) {
                     _indexEnd = 0;
                 }
+                //Update meta data
+                MetaSeries::metaUpdate(time, value);
             }
         }
 
@@ -452,6 +458,9 @@ inline std::ostream& operator<<(std::ostream& os, const TimeSeries& ts)
         os << "false";
     }
     os << ")";
+
+    //Print Meta data
+    os << " " << (MetaSeries)ts;
 
     return os;
 }

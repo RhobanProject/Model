@@ -76,6 +76,33 @@ void testFutureMode()
     assert(series.isFutureMode() == false);
 }
 
+void testMeta()
+{
+    Leph::TimeSeries series("test");
+    
+    assert(series.metaCount() == 0);
+    
+    series.append(1.0, 1.5);
+    assert(series.metaCount() == 1);
+    assert(series.metaMin() == 1.5);
+    assert(series.metaMax() == 1.5);
+    
+    series.append(2.0, 2.5);
+    series.append(3.0, 3.5);
+    assert(series.metaCount() == 3);
+    assert(series.metaMin() == 1.5);
+    assert(series.metaMax() == 3.5);
+
+    std::cout << series << std::endl;
+        
+    series.enableFutureMode();
+    series.append(4.0, 4.5);
+    series.append(5.0, 5.5);
+    assert(series.metaCount() == 3);
+    assert(series.metaMin() == 1.5);
+    assert(series.metaMax() == 3.5);
+}
+
 int main()
 {
     Leph::TimeSeries series1("test1");
@@ -206,6 +233,8 @@ int main()
     assert(series4.size() == 0);
 
     testFutureMode();
+
+    testMeta();
 
     return 0;
 }
