@@ -1,6 +1,36 @@
 #include <iostream>
 #include <cassert>
 #include "TimeSeries/MetaParameter.hpp"
+#include "TimeSeries/Optimizable.hpp"
+
+class TestOptimizable : public Leph::Optimizable
+{
+    public:
+
+        TestOptimizable() :
+            Leph::Optimizable()
+        {
+            Leph::Optimizable::resetParameters();
+        }
+
+        virtual inline size_t sizeParameters() const override
+        {
+            return 2;
+        }
+
+        virtual Leph::MetaParameter defaultParameter(size_t index) const override
+        {
+            if (index == 0) {
+                Leph::MetaParameter param("param1", 1.0);
+                return param;
+            } else {
+                Leph::MetaParameter param("param1", 2.0);
+                param.setMinimum(0.0);
+                param.setMaximum(10.0);
+                return param;
+            }
+        }
+};
 
 int main()
 {
@@ -40,6 +70,13 @@ int main()
     std::cout << param2 << std::endl;
     std::cout << param3 << std::endl;
     
+    TestOptimizable testOptimizable;
+    assert(testOptimizable.sizeParameters() == 2);
+    assert(testOptimizable.getParameter(0).value() == 1.0);
+    assert(testOptimizable.getParameter(1).value() == 2.0);
+    assert(testOptimizable.setParameter(1, 3.0) == true);
+    assert(testOptimizable.setParameter(1, 11.0) == false);
+
     return 0;
 }
 
