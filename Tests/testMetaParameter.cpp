@@ -13,7 +13,7 @@ class TestOptimizable : public Leph::Optimizable
             Leph::Optimizable::resetParameters();
         }
 
-        virtual inline size_t sizeParameters() const override
+        virtual inline size_t parameterSize() const override
         {
             return 2;
         }
@@ -71,7 +71,7 @@ int main()
     std::cout << param3 << std::endl;
     
     TestOptimizable testOptimizable;
-    assert(testOptimizable.sizeParameters() == 2);
+    assert(testOptimizable.parameterSize() == 2);
     assert(testOptimizable.getParameter(0).value() == 1.0);
     assert(testOptimizable.getParameter(1).value() == 2.0);
     assert(testOptimizable.setParameter(1, 3.0) == true);

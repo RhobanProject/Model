@@ -81,17 +81,24 @@ void testMeta()
     Leph::TimeSeries series("test");
     
     assert(series.metaCount() == 0);
+    assert(series.isTimeValid(1.0) == false);
+    assert(series.isTimeValid(1.5) == false);
     
     series.append(1.0, 1.5);
     assert(series.metaCount() == 1);
     assert(series.metaMin() == 1.5);
     assert(series.metaMax() == 1.5);
+    assert(series.isTimeValid(1.0) == false);
+    assert(series.isTimeValid(1.5) == false);
     
     series.append(2.0, 2.5);
     series.append(3.0, 3.5);
     assert(series.metaCount() == 3);
     assert(series.metaMin() == 1.5);
     assert(series.metaMax() == 3.5);
+    assert(series.isTimeValid(1.0) == true);
+    assert(series.isTimeValid(1.5) == true);
+    assert(series.isTimeValid(0.5) == false);
 
     std::cout << series << std::endl;
         
@@ -168,6 +175,15 @@ int main()
     assert(series2.get(2.5) == 3.0);
     assert(series1.get(3.0) == 3.5);
     assert(series2.get(3.0) == 3.5);
+    assert(series1.getLowerIndex(2.5) == 0);
+    assert(series1.getUpperIndex(2.5) == 1);
+    assert(series1.getLowerIndex(2.0) == 0);
+    assert(series1.getUpperIndex(2.0) == 1);
+    assert(series1.getLowerIndex(3.0) == 0);
+    assert(series1.getUpperIndex(3.0) == 1);
+    assert(series1.getClosestIndex(3.0) == 0);
+    assert(series1.getClosestIndex(2.0) == 1);
+    assert(series1.getClosestIndex(1.0) == 2);
     
     series1.append(4.0, 4.5);
     series2.append(4.0, 4.5);
@@ -196,6 +212,12 @@ int main()
     assert(series2.get(4.5) == 5.0);
     assert(series1.get(4.0) == 4.5);
     assert(series2.get(4.0) == 4.5);
+    assert(series1.getLowerIndex(2.5) == 2);
+    assert(series1.getUpperIndex(2.5) == 3);
+    assert(series1.getLowerIndex(2.0) == 2);
+    assert(series1.getUpperIndex(2.0) == 3);
+    assert(series1.getLowerIndex(3.0) == 1);
+    assert(series1.getUpperIndex(3.0) == 2);
     std::cout << series2 << std::endl;
 
     std::ostringstream oss;

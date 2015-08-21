@@ -119,36 +119,73 @@ class TimeSeries : public MetaSeries
         }
 
         /**
+         * Return true if given time is bounded between
+         * minimum and maximum series time
+         */
+        inline bool isTimeValid(double time) const
+        {
+            if (size() < 2) {
+                return false;
+            } else {
+                return (time >= timeMin() && time <= timeMax());
+            }
+        }
+
+        /**
          * Compute and do linear interpolation
          * of series values at given time.
-         * NaN is returned if out of bound
-         * time is asked.
          */
         inline double get(double time) const
         {
-            if (size() < 2) {
-                throw std::logic_error("TimeSeries not enough points");
-            }
-            if (time < timeMin() || time > timeMax()) {
-                throw std::logic_error("TimeSeries out of bound");
-            }
-
-            //Bijection search
-            size_t indexLow = 0;
-            size_t indexUp = size()-1;
-            while (indexUp-indexLow != 1) {
-                size_t i = (indexLow+indexUp)/2;
-                if (at(i).time <= time) {
-                    indexUp = i;
-                } else {
-                    indexLow = i;
-                }
-            }
+            size_t indexLow;
+            size_t indexUp;
+            bisectionSearch(time, indexLow, indexUp);
 
             //Linear interpolation
             double d1 = at(indexLow).time - at(indexUp).time;
             double d2 = time - at(indexUp).time;
             return at(indexUp).value*(d1-d2)/d1 + at(indexLow).value*d2/d1;
+        }
+
+        /**
+         * Find the value whose timestamp is lower and
+         * upper given time and return its index in
+         * internal (time resersed order) container
+         */
+        inline size_t getLowerIndex(double time) const
+        {
+            size_t indexLow;
+            size_t indexUp;
+            bisectionSearch(time, indexLow, indexUp);
+
+            return indexLow;
+        }
+        inline size_t getUpperIndex(double time) const
+        {
+            size_t indexLow;
+            size_t indexUp;
+            bisectionSearch(time, indexLow, indexUp);
+
+            return indexUp;
+        }
+
+        /**
+         * Find the closest index from given
+         * associated time
+         */
+        inline size_t getClosestIndex(double time) const
+        {
+            size_t indexLow;
+            size_t indexUp;
+            bisectionSearch(time, indexLow, indexUp);
+
+            double distLow = fabs(time-at(indexLow).time);
+            double distUp = fabs(time-at(indexUp).time);
+            if (distLow < distUp) {
+                return indexLow;
+            } else {
+                return indexUp;
+            }
         }
 
         /**
@@ -438,6 +475,34 @@ class TimeSeries : public MetaSeries
          * Future data points container
          */
         std::vector<Point> _dataFuture;
+
+        /**
+         * Compute a bijection search onto data internal
+         * values container for upper index and lower index
+         * between given time
+         */
+        inline void bisectionSearch
+            (double time, size_t& indexLow, size_t& indexUp) const
+        {
+            if (size() < 2) {
+                throw std::logic_error("TimeSeries not enough points");
+            }
+            if (time < timeMin() || time > timeMax()) {
+                throw std::logic_error("TimeSeries out of bound");
+            }
+
+            //Bijection search
+            indexLow = 0;
+            indexUp = size()-1;
+            while (indexUp-indexLow != 1) {
+                size_t i = (indexLow+indexUp)/2;
+                if (at(i).time <= time) {
+                    indexUp = i;
+                } else {
+                    indexLow = i;
+                }
+            }
+        }
 };
 
 /**
