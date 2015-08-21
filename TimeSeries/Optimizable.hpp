@@ -45,7 +45,7 @@ class Optimizable
             _parameters.clear();
             //Initialize the parameters 
             //container with default values
-            size_t size = sizeParameters();
+            size_t size = parameterSize();
             for (size_t i=0;i<size;i++) {
                 _parameters.push_back(defaultParameter(i));
             }
@@ -57,10 +57,11 @@ class Optimizable
          */
         inline const MetaParameter& getParameter(size_t index) const
         {
-            if (sizeParameters() != _parameters.size()) {
+            size_t paramSize = parameterSize();
+            if (paramSize != _parameters.size()) {
                 throw std::logic_error("Optimizable parameters not resetted");
             }
-            if (index >= sizeParameters()) {
+            if (index >= paramSize) {
                 throw std::logic_error(
                     "Optimizable invalid parameter index");
             }
@@ -76,10 +77,11 @@ class Optimizable
          */
         inline bool setParameter(size_t index, double value)
         {
-            if (sizeParameters() != _parameters.size()) {
+            size_t paramSize = parameterSize();
+            if (paramSize != _parameters.size()) {
                 resetParameters();
             }
-            if (index >= sizeParameters()) {
+            if (index >= paramSize) {
                 throw std::logic_error(
                     "Optimizable invalid parameter index");
             }
@@ -92,7 +94,7 @@ class Optimizable
          * meta parameters
          * (Must be implemented)
          */
-        virtual size_t sizeParameters() const = 0;
+        virtual size_t parameterSize() const = 0;
 
         /**
          * Return the default initialization 
@@ -106,7 +108,7 @@ class Optimizable
 
         /**
          * Meta parameters container 
-         * of size sizeParameters()
+         * of size parameterSize()
          */
         std::vector<MetaParameter> _parameters;
 };
