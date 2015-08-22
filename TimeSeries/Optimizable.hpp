@@ -1,6 +1,7 @@
 #ifndef LEPH_OPTIMIZABLE_HPP
 #define LEPH_OPTIMIZABLE_HPP
 
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 #include "TimeSeries/MetaParameter.hpp"
@@ -103,6 +104,16 @@ class Optimizable
          * (Must be implemented)
          */
         virtual MetaParameter defaultParameter(size_t index) const = 0;
+
+        /**
+         * Display on given stream parameters 
+         */
+        inline void parameterPrint(std::ostream& os = std::cout)
+        {
+            for (size_t i=0;i<_parameters.size();i++) {
+                os << "[" << i << "] " << _parameters[i] << std::endl;
+            }
+        }
 
     private:
 

@@ -83,9 +83,6 @@ class Concept : public Optimizable
          */
         inline bool computePropagate()
         {
-            //Float precision for time check
-            double FLOAT_EPSILON = 0.0001;
-
             //Check inputs outputs initialization
             if (_inputSeries.size() == 0 || _outputSeries.size() == 0) {
                 throw std::logic_error(
@@ -149,7 +146,7 @@ class Concept : public Optimizable
             while (true) {
                 //Find the time associated with the 
                 //first next updated input
-                currentTime += FLOAT_EPSILON;
+                currentTime += TIME_EPSILON;
                 double nextTime = std::numeric_limits<double>::quiet_NaN();
                 bool isFinished = false;
                 for (size_t i=0;i<_inputSeries.size();i++) {

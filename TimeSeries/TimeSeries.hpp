@@ -13,6 +13,12 @@
 namespace Leph {
 
 /**
+ * Numeric epsilon constant for time
+ * (set to be < 1ms if time is in seconds)
+ */
+const double TIME_EPSILON = 0.0001;
+
+/**
  * TimeSeries
  *
  * Simple time series 
