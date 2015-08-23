@@ -89,15 +89,13 @@ void HumanoidFloatingModel::findSupportFoot()
     //is update with last position and orientation of 
     //old moving foot (same foot)
     if (swapSupportFoot) {
-        //Moving foot position and orientation in world frame
+        //Moving foot position in world frame
         Eigen::Vector3d posFootWorld = 
             Model::position(supportFootName(), "origin");
-        Eigen::Matrix3d rotationWorld = 
-            Model::orientation(supportFootName(), "origin").transpose();
         //Updating state
         _statePosX = posFootWorld.x();
         _statePosY = posFootWorld.y();
-        _stateRotYaw = atan2(rotationWorld(1, 0), rotationWorld(0, 0));
+        _stateRotYaw = Model::orientationYaw(supportFootName(), "origin");
     }
 }
         

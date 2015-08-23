@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <cmath>
 #include "Model/Model.hpp"
 #include "Model/RBDLClosedLoop.h"
 
@@ -193,6 +194,26 @@ Eigen::Matrix3d Model::orientation(
     return orientation(
         getFrameIndex(srcFrame), 
         getFrameIndex(dstFrame));
+}
+        
+double Model::orientationYaw(
+    size_t srcFrameIndex,
+    size_t dstFrameIndex)
+{
+    Eigen::Matrix3d rotation = 
+        orientation(srcFrameIndex, dstFrameIndex);
+    rotation.transposeInPlace();
+
+    return atan2(rotation(1, 0), rotation(0, 0));
+}
+double Model::orientationYaw(
+    const std::string& srcFrame,
+    const std::string& dstFrame)
+{
+    Eigen::Matrix3d rotation = orientation(srcFrame, dstFrame);
+    rotation.transposeInPlace();
+    
+    return atan2(rotation(1, 0), rotation(0, 0));
 }
         
 Eigen::Vector3d Model::centerOfMass(size_t frameIndex)

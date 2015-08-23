@@ -131,6 +131,19 @@ class Model
             const std::string& dstFrame);
 
         /**
+         * Compute from rotation matrix
+         * the euler yaw angle associated
+         * with rotation of srcFrame arround
+         * the Z axis of dstFrame.
+         */
+        double orientationYaw(
+            size_t srcFrameIndex,
+            size_t dstFrameIndex);
+        double orientationYaw(
+            const std::string& srcFrame,
+            const std::string& dstFrame);
+
+        /**
          * Return the position of center of mass with
          * respect to given frame
          * Current degrees of freedom angular values are used

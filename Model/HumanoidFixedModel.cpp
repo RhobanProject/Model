@@ -46,13 +46,11 @@ void HumanoidFixedModel::setSupportFoot(SupportFoot foot)
 void HumanoidFixedModel::setYaw(SupportFoot foot)
 {
     if (foot == RightSupportFoot) {
-        Eigen::Matrix3d rotation = 
-            _modelLeft.orientation("right_foot_tip", "origin").transpose();
-        _modelRight.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
+        _modelRight.setDOF("base_yaw", 
+            _modelLeft.orientationYaw("right_foot_tip", "origin"));
     } else {
-        Eigen::Matrix3d rotation = 
-            _modelRight.orientation("left_foot_tip", "origin").transpose();
-        _modelLeft.setDOF("base_yaw", atan2(rotation(1, 0), rotation(0, 0)));
+        _modelLeft.setDOF("base_yaw", 
+            _modelRight.orientationYaw("left_foot_tip", "origin"));
     }
 }
 void HumanoidFixedModel::setYaw(SupportFoot foot, double yaw)
