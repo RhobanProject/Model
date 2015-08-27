@@ -70,6 +70,48 @@ int main()
         .plot("in1", "in2", "fitted", Leph::Plot::Points)
         .render();
 
+    //Test propagate and future mode
+    std::cout << "Testing propagate and future mode" << std::endl;
+    double oldTime = time;
+    //Generate input data
+    for (double y=-15.0;y<=15.0;y+=2.1) {
+        for (double x=-15.0;x<=15.0;x+=2.1) {
+            time += 1.0;
+            input1.append(time, x);
+            input2.append(time, y);
+        }
+    }
+    //Compute future prediction
+    output.enableFutureMode();
+    regression.computePropagate();
+    //Disable future mode and append real data
+    output.disableFutureMode();
+    for (double t=oldTime+1.0;t<time;t+=1.0) {
+        output.append(t, function(input1.get(t), input2.get(t)));
+        regression.learn(t);
+    }
+    //Plot future and real data
+    plot.clear();
+    for (size_t i=0;i<output.sizeFuture();i++) {
+        double t = output.atFuture(i).time;
+        if (!output.isTimeValid(t)) {
+            continue;
+        }
+        plot.add(Leph::VectorLabel(
+            "time", t,
+            "in1", input1.get(t),
+            "in2", input2.get(t),
+            "old", output.atFuture(i).value,
+            "fitted", regression.predict(t),
+            "target", output.get(t)
+        ));
+    }
+    plot
+        .plot("in1", "in2", "target", Leph::Plot::Points)
+        .plot("in1", "in2", "fitted", Leph::Plot::Points)
+        .plot("in1", "in2", "old", Leph::Plot::Points)
+        .render();
+
     return 0;
 }
 

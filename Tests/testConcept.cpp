@@ -19,11 +19,12 @@ class TestConcept1 : public Leph::Concept
         {
             return 2;
         }
-        virtual inline size_t parameterSize() const override
+        virtual size_t parameterSize() const override
         {
             return 0;
         }
-        virtual Leph::MetaParameter defaultParameter(size_t index) const override
+        virtual Leph::MetaParameter defaultParameter
+            (size_t index) const override
         {
             (void)index;
             return Leph::MetaParameter();
@@ -43,7 +44,8 @@ class TestConcept1 : public Leph::Concept
             Concept::getOutput(0)->append(time, 
                 Concept::getInput(0)->get(time)*2.0);
             Concept::getOutput(1)->append(time, 
-                Concept::getInput(0)->get(time) + Concept::getInput(1)->get(time));
+                Concept::getInput(0)->get(time) 
+                + Concept::getInput(1)->get(time));
 
             return true;
         }
@@ -65,11 +67,12 @@ class TestConcept2 : public Leph::Concept
         {
             return 1;
         }
-        virtual inline size_t parameterSize() const override
+        virtual size_t parameterSize() const override
         {
             return 0;
         }
-        virtual Leph::MetaParameter defaultParameter(size_t index) const override
+        virtual Leph::MetaParameter defaultParameter
+            (size_t index) const override
         {
             (void)index;
             return Leph::MetaParameter();

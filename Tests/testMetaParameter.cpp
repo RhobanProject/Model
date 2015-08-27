@@ -77,6 +77,8 @@ int main()
     assert(testOptimizable.setParameter(1, 3.0) == true);
     assert(testOptimizable.setParameter(1, 11.0) == false);
 
+    testOptimizable.parameterPrint();
+
     return 0;
 }
 

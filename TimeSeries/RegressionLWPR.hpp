@@ -57,7 +57,7 @@ class RegressionLWPR : public Regression
             }
             if (index >= size+3 && index <= 2*size+2) {
                 param = MetaParameter("InitD", 1.0);
-                param.setMinimum(0.0);
+                param.setMinimum(0.00001);
             }
             if (index == 2*size+3) {
                 param = MetaParameter("WGen", 0.1);

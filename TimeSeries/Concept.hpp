@@ -91,7 +91,7 @@ class Concept : public Optimizable
 
             //Check if all input are non empty
             for (size_t i=0;i<_inputSeries.size();i++) {
-                if (_inputSeries[i]->size() == 0) {
+                if (_inputSeries[i]->size() < 2) {
                     return false;
                 }
             }
@@ -131,7 +131,10 @@ class Concept : public Optimizable
                         outputsTimeMax = _outputSeries[i]->timeMax();
                     }
                 }
-                if (outputsTimeMax <= inputsTimeMax) {
+                if (
+                    outputsTimeMax <= inputsTimeMax && 
+                    outputsTimeMax >= inputsTimeMin
+                ) {
                     //We fill values from output
                     //maximum values if fresh input values
                     //are available

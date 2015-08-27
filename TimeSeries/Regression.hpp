@@ -100,7 +100,7 @@ class Regression : public Optimizable
          * (pointer are intialized to nullptr and
          * must be defined)
          */
-        inline void setOutput(const TimeSeries* ptr)
+        inline void setOutput(TimeSeries* ptr)
         {
             if (ptr == nullptr) {
                 throw std::logic_error("Regression null output pointer");
@@ -140,6 +140,12 @@ class Regression : public Optimizable
         {
             if (inputSize() == 0 || _outputSeries == nullptr) {
                 throw std::logic_error("Regression not initialized");
+            }
+            //Check for empty inputs
+            for (size_t i=0;i<inputSize();i++) {
+                if (_inputSeries[i].series->size() == 0) {
+                    return false;
+                }
             }
 
             //Find real min and max time bound
@@ -197,6 +203,12 @@ class Regression : public Optimizable
             if (inputSize() == 0 || _outputSeries == nullptr) {
                 throw std::logic_error("Regression not initialized");
             }
+            //Check for empty inputs
+            for (size_t i=0;i<inputSize();i++) {
+                if (_inputSeries[i].series->size() == 0) {
+                    return -1.0;
+                }
+            }
 
             //Find real min and max time bound
             double timeMin = beginTime;
@@ -237,7 +249,7 @@ class Regression : public Optimizable
                     double yp = predict(nextTime);
                     //Compute prediction error
                     double error = yp - _outputSeries->get(nextTime);
-                    sumSquareError = pow(error, 2);
+                    sumSquareError += pow(error, 2);
                     countPoint++;
                 } catch (const std::runtime_error& e) {
                 }
@@ -338,6 +350,88 @@ class Regression : public Optimizable
             }
         }
 
+        /**
+         * Try to complete output series by
+         * predicting values from inputs.
+         * (TimeSeries output must be in future mode).
+         * An new output value is created wghn all
+         * inputs are updated.
+         * False is returned if inputs are not available
+         * and output is not updated.
+         */
+        inline bool computePropagate()
+        {
+            if (inputSize() == 0 || _outputSeries == nullptr) {
+                throw std::logic_error("Regression not initialized");
+            }
+            //Check for empty inputs
+            for (size_t i=0;i<inputSize();i++) {
+                if (_inputSeries[i].series->size() == 0) {
+                    return false;
+                }
+            }
+            //Check for output future mode
+            if (!_outputSeries->isFutureMode()) {
+                throw std::logic_error(
+                    "Regression propagate not in future mode");
+            }
+            
+            //Find min and max time bound
+            double timeMin;
+            if (_outputSeries->size() == 0) {
+                timeMin = _inputSeries.front().series->timeMin();
+            } else {
+                timeMin = _outputSeries->timeMax();
+            }
+            double timeMax = _inputSeries.front().series->timeMax();
+            for (size_t i=0;i<_inputSeries.size();i++) {
+                if (_inputSeries[i].series->timeMin() > timeMin) {
+                    timeMin = _inputSeries[i].series->timeMin();
+                }
+                if (_inputSeries[i].series->timeMax() < timeMax) {
+                    timeMax = _inputSeries[i].series->timeMax();
+                }
+            }
+            if (timeMin > timeMax) {
+                return false;
+            }
+            
+            //Go through all ranged input values
+            bool isUpdated = false;
+            double currentTime = timeMin;
+            while (currentTime < timeMax) {
+                //Find the time associated with 
+                //all inputs updated at least once
+                currentTime += TIME_EPSILON;
+                double nextTime = std::numeric_limits<double>::quiet_NaN();
+                for (size_t i=0;i<_inputSeries.size();i++) {
+                    size_t indexLow = _inputSeries[i].series
+                        ->getLowerIndex(currentTime);
+                    double timeLow = _inputSeries[i].series
+                        ->at(indexLow).time;
+                    if (std::isnan(nextTime) || timeLow > nextTime) {
+                        nextTime = timeLow;
+                    }
+                }
+                if (std::isnan(nextTime)) {
+                    throw std::logic_error("Regression error nan");
+                }
+                //Try to predic at this time if all inputs
+                //are available
+                try {
+                    double yp = predict(nextTime);
+                    isUpdated = true;
+                    //Insert to output
+                    _outputSeries->append(nextTime, yp);
+                } catch (const std::runtime_error& e) {
+                }
+                //Go to next point
+                currentTime = nextTime;
+            }
+
+            return isUpdated;
+        }
+
     protected:
         
         /**
@@ -354,7 +448,7 @@ class Regression : public Optimizable
          * with given input retrieved at time t - deltaTime.
          */
         std::vector<Input> _inputSeries;
-        const TimeSeries* _outputSeries;
+        TimeSeries* _outputSeries;
 };
 
 }
