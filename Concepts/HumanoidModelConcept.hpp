@@ -24,13 +24,13 @@ namespace Leph {
  * 9:  right_hip_pitch
  * 10: right_hip_roll
  * 11: right_hip_yaw
- * 12: left_arm_pitch
- * 13: left_arm_roll
+ * 12: left_shoulder_pitch
+ * 13: left_shoulder_roll
  * 14: left_elbow
- * 15: right_arm_pitch
- * 16: right_arm_roll
+ * 15: right_shoulder_pitch
+ * 16: right_shoulder_roll
  * 17: right_elbow
- * 18: head_roll
+ * 18: head_yaw
  * 19: head_pitch
  * 20: sensor_pitch
  * 21: sensor_roll
@@ -42,6 +42,7 @@ namespace Leph {
  * 27: pressure_left_y
  * 28: pressure_right_x
  * 29: pressure_right_y
+ * 30: is_fallen
  * Outputs:
  * 0:  is_support_foot_left
  * 1:  trunk_x

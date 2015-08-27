@@ -13,7 +13,7 @@ std::string HumanoidModelConcept::name() const
 }
 size_t HumanoidModelConcept::inputSize() const
 {
-    return 30;
+    return 31;
 }
 size_t HumanoidModelConcept::outputSize() const
 {
@@ -39,6 +39,21 @@ bool HumanoidModelConcept::doCompute(double time)
             return false;
         }
     }
+    //Check if all output series are 
+    //available for writing
+    for (size_t i=0;i<outputSize();i++) {
+        if (
+            Concept::getOutput(i)->size() > 0 && 
+            Concept::getOutput(i)->timeMax() >= time
+        ) {
+            return false;
+        }
+    }
+    //No model computation in case of robot fall
+    if (Concept::getInput(30)->get(time) > 0.5) {
+        return false;
+    }
+    
     //Update degrees of freedom in the model
     _model.get().setDOF("left_ankle_roll", Concept::getInput(0)->get(time));
     _model.get().setDOF("left_ankle_pitch", Concept::getInput(1)->get(time));
@@ -52,13 +67,13 @@ bool HumanoidModelConcept::doCompute(double time)
     _model.get().setDOF("right_hip_pitch", Concept::getInput(9)->get(time));
     _model.get().setDOF("right_hip_roll", Concept::getInput(10)->get(time));
     _model.get().setDOF("right_hip_yaw", Concept::getInput(11)->get(time));
-    _model.get().setDOF("left_arm_pitch", Concept::getInput(12)->get(time));
-    _model.get().setDOF("left_arm_roll", Concept::getInput(13)->get(time));
+    _model.get().setDOF("left_shoulder_pitch", Concept::getInput(12)->get(time));
+    _model.get().setDOF("left_shoulder_roll", Concept::getInput(13)->get(time));
     _model.get().setDOF("left_elbow", Concept::getInput(14)->get(time));
-    _model.get().setDOF("right_arm_pitch", Concept::getInput(15)->get(time));
-    _model.get().setDOF("right_arm_roll", Concept::getInput(16)->get(time));
+    _model.get().setDOF("right_shoulder_pitch", Concept::getInput(15)->get(time));
+    _model.get().setDOF("right_shoulder_roll", Concept::getInput(16)->get(time));
     _model.get().setDOF("right_elbow", Concept::getInput(17)->get(time));
-    _model.get().setDOF("head_roll", Concept::getInput(18)->get(time));
+    _model.get().setDOF("head_yaw", Concept::getInput(18)->get(time));
     _model.get().setDOF("head_pitch", Concept::getInput(19)->get(time));
     //Set feet pressure
     _model.setPressure(
