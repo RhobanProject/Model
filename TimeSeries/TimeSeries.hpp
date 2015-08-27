@@ -359,14 +359,10 @@ class TimeSeries : public MetaSeries
         inline void enableFutureMode()
         {
             _isFutureMode = false;
-            //Future mode is forbiden on empty series
-            if (size() == 0) {
-                throw std::logic_error(
-                    "TimeSeries future invalid if empty");
-            }
             //Check that past and future data series
             //does not overlap
             if (sizeFuture() > 0 && 
+                size() > 0 &&
                 lastTime() >= _dataFuture.front().time
             ) {
                 throw std::logic_error(
