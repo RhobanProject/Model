@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <limits>
 #include <cmath>
+#include "Utils/Angle.h"
 #include "TimeSeries/MetaSeries.hpp"
 
 namespace Leph {
@@ -151,6 +152,25 @@ class TimeSeries : public MetaSeries
             double d1 = at(indexLow).time - at(indexUp).time;
             double d2 = time - at(indexUp).time;
             return at(indexUp).value*(d1-d2)/d1 + at(indexLow).value*d2/d1;
+        }
+
+        /**
+         * Compute and do linear interpolation
+         * of series values at given time specialized
+         * for angular values
+         */
+        inline double getAngular(double time) const
+        {
+            size_t indexLow;
+            size_t indexUp;
+            bisectionSearch(time, indexLow, indexUp);
+
+            //Linear interpolation
+            double d1 = at(indexLow).time - at(indexUp).time;
+            double d2 = time - at(indexUp).time;
+            return AngleWeightedMean(
+                d1-d2, at(indexUp).value, 
+                d2, at(indexLow).value);
         }
 
         /**

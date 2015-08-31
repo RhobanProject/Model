@@ -163,10 +163,14 @@ class Regression : public Optimizable
             //Go through all ranged input values
             bool isUpdated = false;
             double currentTime = timeMin;
-            while (currentTime < timeMax) {
+            while (currentTime + TIME_EPSILON < timeMax) {
                 //Find the time associated with 
                 //all inputs updated at least once
                 currentTime += TIME_EPSILON;
+                //Check output available
+                if (!_outputSeries->isTimeValid(currentTime)) {
+                    continue;
+                }
                 double nextTime = std::numeric_limits<double>::quiet_NaN();
                 for (size_t i=0;i<_inputSeries.size();i++) {
                     size_t indexLow = _inputSeries[i].series
@@ -176,6 +180,14 @@ class Regression : public Optimizable
                     if (std::isnan(nextTime) || timeLow > nextTime) {
                         nextTime = timeLow;
                     }
+                }
+                //And output
+                size_t indexLow = _outputSeries
+                    ->getLowerIndex(currentTime);
+                double timeLow = _outputSeries
+                    ->at(indexLow).time;
+                if (std::isnan(nextTime) || timeLow > nextTime) {
+                    nextTime = timeLow;
                 }
                 if (std::isnan(nextTime)) {
                     throw std::logic_error("Regression error nan");
@@ -226,10 +238,14 @@ class Regression : public Optimizable
             double sumSquareError = 0.0;
             int countPoint = 0;
             double currentTime = timeMin;
-            while (currentTime < timeMax) {
+            while (currentTime + TIME_EPSILON < timeMax) {
                 //Find the time associated with 
                 //all inputs updated at least once
                 currentTime += TIME_EPSILON;
+                //Check output available
+                if (!_outputSeries->isTimeValid(currentTime)) {
+                    continue;
+                }
                 double nextTime = std::numeric_limits<double>::quiet_NaN();
                 for (size_t i=0;i<_inputSeries.size();i++) {
                     size_t indexLow = _inputSeries[i].series
@@ -240,11 +256,22 @@ class Regression : public Optimizable
                         nextTime = timeLow;
                     }
                 }
+                //And output
+                size_t indexLow = _outputSeries
+                    ->getLowerIndex(currentTime);
+                double timeLow = _outputSeries
+                    ->at(indexLow).time;
+                if (std::isnan(nextTime) || timeLow > nextTime) {
+                    nextTime = timeLow;
+                }
                 if (std::isnan(nextTime)) {
                     throw std::logic_error("Regression error nan");
                 }
                 //Try to predic at this time if all inputs
                 //are available
+                if (!_outputSeries->isTimeValid(nextTime)) {
+                    continue;
+                }
                 try {
                     double yp = predict(nextTime);
                     //Compute prediction error
@@ -353,7 +380,6 @@ class Regression : public Optimizable
         /**
          * Try to complete output series by
          * predicting values from inputs.
-         * (TimeSeries output must be in future mode).
          * An new output value is created wghn all
          * inputs are updated.
          * False is returned if inputs are not available
@@ -369,11 +395,6 @@ class Regression : public Optimizable
                 if (_inputSeries[i].series->size() == 0) {
                     return false;
                 }
-            }
-            //Check for output future mode
-            if (!_outputSeries->isFutureMode()) {
-                throw std::logic_error(
-                    "Regression propagate not in future mode");
             }
             
             //Find min and max time bound

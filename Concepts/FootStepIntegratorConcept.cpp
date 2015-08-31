@@ -65,12 +65,12 @@ bool FootStepIntegratorConcept::doCompute(double time)
     if (fabs(timeLeft - time) < TIME_EPSILON) {
         deltaX = Concept::getInput(0)->get(time);
         deltaY = Concept::getInput(1)->get(time);
-        deltaTheta = Concept::getInput(2)->get(time);
+        deltaTheta = Concept::getInput(2)->getAngular(time);
         t = timeLeft;
     } else if (fabs(timeRight - time) < TIME_EPSILON) {
         deltaX = Concept::getInput(3)->get(time);
         deltaY = Concept::getInput(4)->get(time);
-        deltaTheta = Concept::getInput(5)->get(time);
+        deltaTheta = Concept::getInput(5)->getAngular(time);
         t = timeRight;
     } else {
         return false;

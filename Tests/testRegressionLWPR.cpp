@@ -112,6 +112,9 @@ int main()
         .plot("in1", "in2", "old", Leph::Plot::Points)
         .render();
 
+    regression.save("/tmp/saveRegressionLWPR.bin");
+    regression.load("/tmp/saveRegressionLWPR.bin");
+
     return 0;
 }
 

@@ -184,6 +184,42 @@ class RegressionLWPR : public Regression
             return vect;
         }
 
+        /**
+         * Write and read in given file path
+         * to save and load LWPR model.
+         * Note that meta parameters are not yet updated
+         * on load.
+         */
+        inline void save(const std::string& filepath) const
+        {
+            if (inputSize() == 0 || Regression::getOutput() == nullptr) {
+                throw std::logic_error("Regression not initialized");
+            }
+
+            _model->writeBinary(filepath.c_str());
+        }
+        inline void load(const std::string& filepath)
+        {
+            if (inputSize() == 0 || Regression::getOutput() == nullptr) {
+                throw std::logic_error("Regression not initialized");
+            }
+
+            //InitializeLWPR model with 
+            //input dimension
+            if (_model != nullptr) {
+                delete _model;
+            }
+            _model = new LWPR_Object(filepath.c_str());
+
+            //Check loaded model consistancy
+            if ((size_t)_model->nIn() != inputSize() || 
+                (size_t)_model->nOut() != 1
+            ) {
+                throw std::runtime_error(
+                    "RegressionLWPR load invalid model");
+            }
+        }
+
     protected:
 
         virtual inline void onAddInput() override

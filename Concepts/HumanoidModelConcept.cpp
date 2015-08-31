@@ -92,7 +92,7 @@ bool HumanoidModelConcept::doCompute(double time)
         Concept::getInput(21)->get(time));
     //Override computed body orientation using gyro integration
     _model.setYaw(_model.getSupportFoot(), 
-        Concept::getInput(22)->get(time));
+        Concept::getInput(22)->getAngular(time));
 
     //Write output is_support_foot_left
     double is_support_foot_left = (_model.getSupportFoot() 
