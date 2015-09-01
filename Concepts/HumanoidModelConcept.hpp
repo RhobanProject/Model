@@ -45,10 +45,10 @@ namespace Leph {
  * 30: is_fallen
  * Outputs:
  * 0:  is_support_foot_left
- * 1:  trunk_x
- * 2:  trunk_y
- * 3:  trunk_z
- * 4:  trunk_theta
+ * 1:  head_x
+ * 2:  head_y
+ * 3:  head_z
+ * 4:  head_theta
  * 5:  left_foot_x
  * 6:  left_foot_y
  * 7:  left_foot_z

@@ -385,7 +385,7 @@ class Regression : public Optimizable
          * False is returned if inputs are not available
          * and output is not updated.
          */
-        inline bool computePropagate()
+        inline bool computePropagate(const TimeSeries* clock = nullptr)
         {
             if (inputSize() == 0 || _outputSeries == nullptr) {
                 throw std::logic_error("Regression not initialized");
@@ -426,9 +426,25 @@ class Regression : public Optimizable
                 currentTime += TIME_EPSILON;
                 double nextTime = std::numeric_limits<double>::quiet_NaN();
                 for (size_t i=0;i<_inputSeries.size();i++) {
+                    if (!_inputSeries[i].series->isTimeValid(currentTime)) {
+                        continue;
+                    }
                     size_t indexLow = _inputSeries[i].series
                         ->getLowerIndex(currentTime);
                     double timeLow = _inputSeries[i].series
+                        ->at(indexLow).time;
+                    if (std::isnan(nextTime) || timeLow > nextTime) {
+                        nextTime = timeLow;
+                    }
+                }
+                //And optional clock
+                if (clock != nullptr) {
+                    if (!clock->isTimeValid(currentTime)) {
+                        continue;
+                    }
+                    size_t indexLow = clock
+                        ->getLowerIndex(currentTime);
+                    double timeLow = clock
                         ->at(indexLow).time;
                     if (std::isnan(nextTime) || timeLow > nextTime) {
                         nextTime = timeLow;

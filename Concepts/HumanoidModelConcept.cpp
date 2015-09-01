@@ -106,14 +106,14 @@ bool HumanoidModelConcept::doCompute(double time)
         Concept::getOutput(0)->append(time, is_support_foot_left);
     }
 
-    //Write output trunk pose
-    Eigen::Vector3d trunkPos = 
-        _model.get().position("trunk", "origin");
-    Concept::getOutput(1)->append(time, trunkPos.x());
-    Concept::getOutput(2)->append(time, trunkPos.y());
-    Concept::getOutput(3)->append(time, trunkPos.z());
+    //Write output head pose
+    Eigen::Vector3d headPos = 
+        _model.get().position("camera", "origin");
+    Concept::getOutput(1)->append(time, headPos.x());
+    Concept::getOutput(2)->append(time, headPos.y());
+    Concept::getOutput(3)->append(time, headPos.z());
     Concept::getOutput(4)->append(time, 
-        _model.get().orientationYaw("trunk", "origin"));
+        _model.get().orientationYaw("camera", "origin"));
     
     //Write output left foot pos
     Eigen::Vector3d leftPos = 
