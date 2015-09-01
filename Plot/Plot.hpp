@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include "Utils/time.h"
 #include "Types/VectorLabel.hpp"
+#include "TimeSeries/TimeSeries.hpp"
 
 namespace Leph {
 
@@ -57,6 +58,28 @@ class Plot
         inline void add(const VectorLabel& vect)
         {
             _database.push_back(vect);
+        }
+
+        /**
+         * Add given TimeSeries with optionally
+         * an other name
+         */
+        inline void add(const TimeSeries& series)
+        {
+            for (size_t i=0;i<series.size();i++) {
+                _database.push_back(VectorLabel(
+                    "time", series[i].time,
+                    series.name(), series[i].value));
+            }
+        }
+        inline void add(const std::string& name, 
+            const TimeSeries& series)
+        {
+            for (size_t i=0;i<series.size();i++) {
+                _database.push_back(VectorLabel(
+                    "time", series[i].time,
+                    name, series[i].value));
+            }
         }
 
         /**
