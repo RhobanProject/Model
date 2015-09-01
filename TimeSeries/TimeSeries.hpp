@@ -534,9 +534,11 @@ inline std::ostream& operator<<(std::ostream& os, const TimeSeries& ts)
 {
     os << "[" <<ts.name() << "] ";
     if (ts.size() > 0) {
-        os << "t=" << ts.lastTime() << " val=" << ts.lastValue();
+        os << "size=" << ts.size() << " ";
+        os << "tMin=" << ts.timeMin() << " tMax=" << ts.timeMax();
+        os << " val=" << ts.lastValue();
     } else {
-        os << "empty" << std::endl;
+        os << "empty";
     }
     os << " (modeFuture=";
     if (ts.isFutureMode()) {

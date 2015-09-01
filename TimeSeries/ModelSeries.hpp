@@ -100,6 +100,15 @@ class ModelSeries
             }
         }
 
+        /**
+         * Display all TimeSeries state
+         */
+        inline void printSeries() const
+        {
+            for (auto& series : _series) {
+                std::cout << *(series.second) << std::endl;
+            }
+        }
 
         /**
          * Add the given newly allocated Concept to 
