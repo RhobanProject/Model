@@ -62,6 +62,10 @@ set(SOURCES_FILES
     CartWalk/SigmabanLeg.cpp
     CartWalk/CartWalkProxy.cpp  
     CartWalk/CartWalkGradient.cpp  
+    Concepts/HumanoidModelConcept.cpp
+    Concepts/FootStepDifferentiatorConcept.cpp
+    Concepts/FootStepIntegratorConcept.cpp
+    Concepts/FallDetectorConcept.cpp
     LinearRegression/SimpleLinearRegression.cpp
     LinearRegression/MedianLinearRegression.cpp
     Gradient/FiniteDifferenceGradient.cpp
@@ -94,6 +98,7 @@ set(SOURCES_FILES
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
     Utils/IterativeLearningControl.cpp
+    TimeSeries/SeriesUtils.cpp
 )
 
 #Tests main files
@@ -121,7 +126,11 @@ set(TESTS_FILES
     testFittedSpline
     testDifferentiation
     testGaussianProcess
+    testMetaSeries
     testTimeSeries
+    testMetaParameter
+    testConcept
+    testRegressionLWPR
     testLWPR
     testLWPRAdvanced
     testIterativeLearningControl
