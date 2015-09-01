@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdexcept>
 #include <fstream>
+#include <limits>
 #include "TimeSeries/TimeSeries.hpp"
 #include "TimeSeries/Concept.hpp"
 #include "TimeSeries/RegressionLWPR.hpp"
@@ -232,6 +233,27 @@ class ModelSeries
                 model.second->optimizeParameters(beginLearnTime, endLearnTime, 
                     beginTestTime, endTestTime, maxIteration, isQuiet);
             }
+        }
+
+        /**
+         * Learn all regressions using all possible 
+         * data points whose time are above given time
+         * threshold.
+         * True is returned if some regressions have
+         * been updated
+         */
+        inline bool regressionsLearn(double time)
+        {
+            double beginTime = time - TIME_EPSILON;
+            double endTime = std::numeric_limits<double>::max();
+            bool isUpdate = false;
+            for (auto& model : _regressions) {
+                if (model.second->rangeLearn(beginTime, endTime)) {
+                    isUpdate = true;
+                }
+            }
+
+            return isUpdate;
         }
 
         /**
