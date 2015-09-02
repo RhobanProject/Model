@@ -39,12 +39,17 @@ double modelPredict(
     const std::vector<double>& inputs);
 
 /**
- * Compute and return the mean error between
- * the two given time series
+ * Compute the mean error and variance between
+ * the two given time series.
  */
-double seriesDistance(
+void seriesCompare(
     const Leph::TimeSeries& series1, 
-    const Leph::TimeSeries& series2);
+    const Leph::TimeSeries& series2,
+    double beginTime,
+    double endTime,
+    double& meanError,
+    double& variance,
+    int& count);
 
 /**
  * Set up and configure the ModelSeries
@@ -64,6 +69,7 @@ void appendModelSeries(
     Leph::ModelSeries& model, 
     double time, 
     const Leph::VectorLabel& logs);
+
 }
 
 #endif

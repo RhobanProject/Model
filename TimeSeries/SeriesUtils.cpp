@@ -92,28 +92,42 @@ double modelPredict(
         .model().predict(vect, 0.0)(0);
 }
 
-double seriesDistance(
+void seriesCompare(
     const Leph::TimeSeries& series1, 
-    const Leph::TimeSeries& series2)
+    const Leph::TimeSeries& series2,
+    double beginTime,
+    double endTime,
+    double& meanError,
+    double& variance,
+    int& count)
 {
     if (series1.size() < 2 ||
         series2.size() < 2
     ) {
-        return -1.0;
+        meanError= -1.0;
+        variance = -1.0;
+        count = 0;
     }
 
-    double min = series1.timeMin();
+    double min = beginTime;
+    if (min < series1.timeMin()) {
+        min = series1.timeMin();
+    }
     if (min < series2.timeMin()) {
         min = series2.timeMin();
     }
-    double max = series1.timeMax();
+    double max = endTime;
+    if (max > series1.timeMax()) {
+        max = series1.timeMax();
+    }
     if (max > series2.timeMax()) {
         max = series2.timeMax();
     }
 
     double time = min;
+    double sum = 0.0;
     double sumSquared = 0.0;
-    int count = 0;
+    count = 0;
     while (time < max) {
         size_t index1 = series1.getLowerIndex(time);
         size_t index2 = series2.getLowerIndex(time);
@@ -122,16 +136,19 @@ double seriesDistance(
         double t = (t1 > t1) ? t1 : t2;
         double val1 = series1.get(t);
         double val2 = series2.get(t);
-        sumSquared += pow(val1-val2, 2);
+        sum += fabs(val1-val2);
+        sumSquared += pow(fabs(val1-val2), 2);
         count++;
         time = t;
         time += Leph::TIME_EPSILON;
     }
 
     if (count == 0) {
-        return -1.0;
+        meanError = -1.0;
+        variance = -1.0;
     } else {
-        return sqrt(sumSquared/count);
+        meanError = sum/count;
+        variance = sumSquared/count - meanError*meanError;
     }
 }
 
