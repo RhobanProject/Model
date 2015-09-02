@@ -130,6 +130,12 @@ class Regression : public Optimizable
         virtual void resetRegression() = 0;
 
         /**
+         * Return true if the regression has enought data
+         * and is ready to predict
+         */
+        virtual bool isRegressionValid() const = 0;
+
+        /**
          * Learn ranged points between beginTime and endTime from
          * inputs and outputs series. A new learning point is
          * created each time all inputs are new.
@@ -336,6 +342,10 @@ class Regression : public Optimizable
                         throw std::runtime_error(
                             "Regression no learning point");
                     }
+                    //Check for invalid regression
+                    if (!this->isRegressionValid()) {
+                        return 1000.0;
+                    }
                     //Test LWPR
                     double mse = this->rangeMSE(beginTimeTest, endTimeTest);
                     if (mse < 0.0) {
@@ -371,9 +381,21 @@ class Regression : public Optimizable
             Eigen::VectorXd bestParams = 
                 cmasols.best_candidate().get_x_dvec();
 
+
             //Set founded parameters
+            Optimizable::resetParameters();
             for (size_t i=0;i<parameterSize();i++) {
                 Optimizable::setParameter(i, bestParams(i));
+            }
+            //Relearn using best parameters
+            resetRegression();
+            if (rangeLearn(beginTimeLearn, endTimeLearn) == false) {
+                throw std::runtime_error(
+                    "Regression no learning point");
+            }
+            //Check for invalid regression
+            if (!isRegressionValid()) {
+                std::cout << "WARNING OPTIMIZATION FAILED" << std::endl; //TODO
             }
         }
 

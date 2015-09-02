@@ -246,15 +246,13 @@ class ModelSeries
 
         /**
          * Learn all regressions using all possible 
-         * data points whose time are above given time
-         * threshold.
+         * data points between given time or 
+         * whose time are above given time threshold.
          * True is returned if some regressions have
          * been updated
          */
-        inline bool regressionsLearn(double time)
+        inline bool regressionsLearn(double beginTime, double endTime)
         {
-            double beginTime = time - TIME_EPSILON;
-            double endTime = std::numeric_limits<double>::max();
             bool isUpdate = false;
             for (auto& model : _regressions) {
                 if (model.second->rangeLearn(beginTime, endTime)) {
@@ -263,6 +261,12 @@ class ModelSeries
             }
 
             return isUpdate;
+        }
+        inline bool regressionsLearn(double time)
+        {
+            return regressionsLearn(
+                time - TIME_EPSILON, 
+                std::numeric_limits<double>::max());
         }
 
         /**
