@@ -198,10 +198,15 @@ class ModelSeries
          * Add given input TimeSeries to given named
          * regression
          */
-        inline void regressionAddInput(const std::string& name, 
+        inline void regressionAddInputDeltaTime(const std::string& name, 
             const std::string& input, double deltaTime = 0.0)
         {
-            regression(name).addInput(&series(input), deltaTime);
+            regression(name).addInputDeltaTime(&series(input), deltaTime);
+        }
+        inline void regressionAddInputDeltaIndex(const std::string& name, 
+            const std::string& input, size_t deltaIndex = 0)
+        {
+            regression(name).addInputDeltaIndex(&series(input), deltaIndex);
         }
 
         /**

@@ -28,7 +28,9 @@ class Regression : public Optimizable
          */
         struct Input {
             const TimeSeries* series;
+            bool isDeltaTime;
             double deltaTime;
+            size_t deltaIndex;
         };
 
         /**
@@ -80,14 +82,27 @@ class Regression : public Optimizable
          * Time lag could be either an float time offset or
          * an index offset
          */
-        inline void addInput(const TimeSeries* ptr, double deltaTime = 0.0)
+        inline void addInputDeltaTime(const TimeSeries* ptr, double deltaTime = 0.0)
         {
             if (ptr == nullptr) {
                 throw std::logic_error("Regression null input pointer");
             }
 
             //Append input
-            _inputSeries.push_back({ptr, deltaTime});
+            _inputSeries.push_back({ptr, true, deltaTime, 0});
+            //Reset meta parameters
+            Optimizable::resetParameters();
+            //Call handler
+            onAddInput();
+        }
+        inline void addInputDeltaIndex(const TimeSeries* ptr, size_t deltaIndex = 0)
+        {
+            if (ptr == nullptr) {
+                throw std::logic_error("Regression null input pointer");
+            }
+
+            //Append input
+            _inputSeries.push_back({ptr, false, 0.0, deltaIndex});
             //Reset meta parameters
             Optimizable::resetParameters();
             //Call handler

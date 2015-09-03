@@ -191,12 +191,26 @@ class RegressionLWPR : public Regression
             //Parse all registered inputs
             for (size_t i=0;i<size;i++) {
                 const TimeSeries* series = Regression::getInput(i).series;
-                double delta = Regression::getInput(i).deltaTime;
-                if (series->isTimeValid(time-delta)) {
-                    vect(i) = series->get(time-delta);
+                if (Regression::getInput(i).isDeltaTime) {
+                    double delta = Regression::getInput(i).deltaTime;
+                    if (series->isTimeValid(time-delta)) {
+                        vect(i) = series->get(time-delta);
+                    } else {
+                        //No result if asked lagged time is not available
+                        return Eigen::VectorXd();
+                    }
                 } else {
-                    //No result if asked lagged time is not available
-                    return Eigen::VectorXd();
+                    size_t delta = Regression::getInput(i).deltaIndex;
+                    if (!series->isTimeValid(time)) {
+                        return Eigen::VectorXd();
+                    } 
+                    size_t index = series->getClosestIndex(time);
+                    double t = series->at(index).time;
+                    if (fabs(time-t) < TIME_EPSILON && index+delta < series->size()) {
+                       vect(i) = series->at(index+delta).value; 
+                    } else {
+                        return Eigen::VectorXd();
+                    }
                 }
             }
 

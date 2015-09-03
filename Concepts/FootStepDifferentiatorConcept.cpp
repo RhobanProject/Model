@@ -9,7 +9,7 @@ std::string FootStepDifferentiatorConcept::name() const
 }
 size_t FootStepDifferentiatorConcept::inputSize() const
 {
-    return 4;
+    return 5;
 }
 size_t FootStepDifferentiatorConcept::outputSize() const
 {
@@ -55,6 +55,13 @@ bool FootStepDifferentiatorConcept::doCompute(double time)
         ) {
             return false;
         }
+    }
+    //Check that input differentiation is valid
+    if (
+        Concept::getInput(4)->get(timeSupport1) < 0.5 ||
+        Concept::getInput(4)->get(timeSupport2) < 0.5 
+    ) {
+        return false;
     }
     
     //Retrieving pose

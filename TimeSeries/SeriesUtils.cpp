@@ -8,7 +8,7 @@ namespace Leph {
 
 void plotPhase(
     Leph::Plot& plot,
-    Leph::ModelSeries& model, 
+    const Leph::ModelSeries& model, 
     const std::string& name1, 
     const std::vector<std::string>& names)
 {
@@ -196,6 +196,7 @@ void initModelSeries(Leph::ModelSeries& model,
     model.addSeries("pressure_right_x");
     model.addSeries("pressure_right_y");
     //Inputs Mocap
+    model.addSeries("mocap_is_data");
     model.addSeries("mocap_is_valid");
     model.addSeries("mocap_x");
     model.addSeries("mocap_y");
@@ -326,7 +327,8 @@ void initModelSeries(Leph::ModelSeries& model,
         {"is_support_foot_left",
         "head_x",
         "head_y",
-        "head_theta"},
+        "head_theta",
+        "mocap_is_valid"},
         //Outputs
         {"delta_head_x_on_support_left",
         "delta_head_y_on_support_left",
@@ -334,6 +336,7 @@ void initModelSeries(Leph::ModelSeries& model,
         "delta_head_x_on_support_right",
         "delta_head_y_on_support_right",
         "delta_head_theta_on_support_right"});
+    /*
     model.addConcept(
         //FootStepDifferentiatorConcept allocation
         new Leph::FootStepDifferentiatorConcept(),
@@ -341,7 +344,8 @@ void initModelSeries(Leph::ModelSeries& model,
         {"is_support_foot_left",
         "left_foot_x",
         "left_foot_y",
-        "left_foot_theta"},
+        "left_foot_theta",
+        "mocap_is_valid"},
         //Outputs
         {"delta_left_foot_x_on_support_left",
         "delta_left_foot_y_on_support_left",
@@ -356,7 +360,8 @@ void initModelSeries(Leph::ModelSeries& model,
         {"is_support_foot_left",
         "right_foot_x",
         "right_foot_y",
-        "right_foot_theta"},
+        "right_foot_theta",
+        "mocap_is_valid"},
         //Outputs
         {"delta_right_foot_x_on_support_left",
         "delta_right_foot_y_on_support_left",
@@ -364,6 +369,7 @@ void initModelSeries(Leph::ModelSeries& model,
         "delta_right_foot_x_on_support_right",
         "delta_right_foot_y_on_support_right",
         "delta_right_foot_theta_on_support_right"});
+    */
     if (withMocapConcept) {
         model.addConcept(
             //FootStepDifferentiatorConcept allocation
@@ -372,7 +378,8 @@ void initModelSeries(Leph::ModelSeries& model,
             {"is_support_foot_left",
             "mocap_x",
             "mocap_y",
-            "mocap_theta"},
+            "mocap_theta",
+            "mocap_is_valid"},
             //Outputs
             {"delta_mocap_x_on_support_left",
             "delta_mocap_y_on_support_left",
@@ -416,29 +423,29 @@ void initModelSeries(Leph::ModelSeries& model,
         const std::string& regressionName, const std::string& seriesName)
     {
         model.addRegression(regressionName, seriesName);
-        model.regressionAddInput(regressionName, "delta_head_x_on_support_left");
-        model.regressionAddInput(regressionName, "delta_head_y_on_support_left");
-        model.regressionAddInput(regressionName, "delta_head_theta_on_support_left");
-        model.regressionAddInput(regressionName, "delta_head_x_on_support_left", 1.0);
-        model.regressionAddInput(regressionName, "delta_head_y_on_support_left", 1.0);
-        model.regressionAddInput(regressionName, "delta_head_theta_on_support_left", 1.0);
-        model.regressionAddInput(regressionName, "pressure_left_x", 1.0);
-        model.regressionAddInput(regressionName, "pressure_left_y", 1.0);
-        model.regressionAddInput(regressionName, "pressure_left_ratio", 1.0);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x_on_support_left");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y_on_support_left");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta_on_support_left");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x_on_support_left", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y_on_support_left", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta_on_support_left", 1);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_left_x", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_left_y", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_left_ratio", 1.0);
     };
     auto funcAddRegressionDeltaRight = [](Leph::ModelSeries& model, 
         const std::string& regressionName, const std::string& seriesName)
     {
         model.addRegression(regressionName, seriesName);
-        model.regressionAddInput(regressionName, "delta_head_x_on_support_right");
-        model.regressionAddInput(regressionName, "delta_head_y_on_support_right");
-        model.regressionAddInput(regressionName, "delta_head_theta_on_support_right");
-        model.regressionAddInput(regressionName, "delta_head_x_on_support_right", 1.0);
-        model.regressionAddInput(regressionName, "delta_head_y_on_support_right", 1.0);
-        model.regressionAddInput(regressionName, "delta_head_theta_on_support_right", 1.0);
-        model.regressionAddInput(regressionName, "pressure_right_x", 1.0);
-        model.regressionAddInput(regressionName, "pressure_right_y", 1.0);
-        model.regressionAddInput(regressionName, "pressure_right_ratio", 1.0);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x_on_support_right");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y_on_support_right");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta_on_support_right");
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x_on_support_right", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y_on_support_right", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta_on_support_right", 1);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_right_x", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_right_y", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "pressure_right_ratio", 1.0);
     };
     if (withDeltaRegression) {
         funcAddRegressionDeltaLeft(model, 
@@ -461,16 +468,16 @@ void initModelSeries(Leph::ModelSeries& model,
         const std::string& regressionName, const std::string& seriesName)
     {
         model.addRegression(regressionName, seriesName);
-        model.regressionAddInput(regressionName, "walk_enabled");
-        model.regressionAddInput(regressionName, "walk_step");
-        model.regressionAddInput(regressionName, "walk_lateral");
-        model.regressionAddInput(regressionName, "walk_turn");
-        model.regressionAddInput(regressionName, "walk_step", 1.0);
-        model.regressionAddInput(regressionName, "walk_lateral", 1.0);
-        model.regressionAddInput(regressionName, "walk_turn", 1.0);
-        model.regressionAddInput(regressionName, "walk_step", 2.0);
-        model.regressionAddInput(regressionName, "walk_lateral", 2.0);
-        model.regressionAddInput(regressionName, "walk_turn", 2.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_enabled");
+        model.regressionAddInputDeltaTime(regressionName, "walk_step");
+        model.regressionAddInputDeltaTime(regressionName, "walk_lateral");
+        model.regressionAddInputDeltaTime(regressionName, "walk_turn");
+        model.regressionAddInputDeltaTime(regressionName, "walk_step", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_lateral", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_turn", 1.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_step", 2.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_lateral", 2.0);
+        model.regressionAddInputDeltaTime(regressionName, "walk_turn", 2.0);
     };
     if (withWalkRegression) {
         funcAddRegressionWalk(model, 
@@ -493,10 +500,6 @@ void appendModelSeries(
     double time, 
     const Leph::VectorLabel& logs)
 {
-    static double initGyroYaw = logs("sensor:gyro_yaw");
-    static double initMocapX = logs("mocap:z");
-    static double initMocapY = logs("mocap:x");
-    static double initMocapTheta = logs("mocap:azimuth");
     //Loading low level inputs
     //Degrees of freedom
     model.series("left_ankle_roll").append(time, 
@@ -545,7 +548,7 @@ void appendModelSeries(
     model.series("sensor_roll").append(time, 
         logs("sensor:roll"));
     model.series("sensor_gyro_yaw").append(time, 
-        logs("sensor:gyro_yaw") - initGyroYaw);
+        logs("sensor:gyro_yaw"));
     model.series("sensor_gyro_x").append(time, 
         logs("sensor:gyro_x"));
     model.series("sensor_gyro_y").append(time, 
@@ -582,15 +585,16 @@ void appendModelSeries(
     bool isMocapValid = logs("mocap:is_valid");
     if (isMocapValid) {
         model.series("mocap_x").append(time,
-            (logs("mocap:z") - initMocapX));
+            logs("mocap:z"));
         model.series("mocap_y").append(time,
-            (logs("mocap:x") - initMocapY));
-        double mocapTheta = (logs("mocap:azimuth") 
-            - initMocapTheta)*M_PI/180.0;
+            logs("mocap:x"));
+        double mocapTheta = logs("mocap:azimuth")*M_PI/180.0;
         model.series("mocap_theta").append(time, mocapTheta);
     }
-    model.series("mocap_is_valid").append(time,
+    model.series("mocap_is_data").append(time,
         isMocapValid);
+    model.series("mocap_is_valid").append(time,
+        logs("mocap:check"));
 }
 
 }

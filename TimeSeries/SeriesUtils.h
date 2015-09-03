@@ -17,7 +17,7 @@ namespace Leph {
  */
 void plotPhase(
     Leph::Plot& plot,
-    Leph::ModelSeries& model, 
+    const Leph::ModelSeries& model, 
     const std::string& name1, 
     const std::vector<std::string>& names);
 /**

@@ -16,6 +16,7 @@ namespace Leph {
  * 1: x
  * 2: y
  * 3: theta
+ * 4: is_valid
  * Outputs:
  * 0: delta_x_on_left_foot
  * 1: delta_y_on_left_foot
