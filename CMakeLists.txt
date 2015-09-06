@@ -134,6 +134,7 @@ set(TESTS_FILES
     testLWPR
     testLWPRAdvanced
     testIterativeLearningControl
+    testGrobanToe
 )
 
 #Applications main files
@@ -170,6 +171,8 @@ execute_process(COMMAND "/bin/bash" "-c"
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
+execute_process(COMMAND "/bin/bash" "-c" 
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/GrosbanToe.urdf GrosbanToe.urdf")
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)

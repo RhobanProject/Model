@@ -443,6 +443,7 @@ std::string Model::getRBDLBodyName(size_t bodyId,
 {
     //If this is a virtual body that was added by a multi dof joint
     if (_model.mBodies[bodyId].mMass < 0.001) {
+      std::cout << "Virtual body:" << std::endl;
         //If there is not a unique child we do not know what to do
         if (_model.mu[bodyId].size() != 1) {
             return "";
