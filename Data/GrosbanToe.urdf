@@ -90,6 +90,54 @@
       <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
   </link>
+  <link name="left_shoulder_pitch_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="left_shoulder_roll_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="left_elbow_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="left_hand_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="right_shoulder_pitch_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="right_shoulder_roll_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="right_elbow_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
+  <link name="right_hand_link">
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+  </link>
   <joint name="right_hip_yaw" type="continuous">
     <origin xyz="0 -0.1 -0.05" rpy="0 0 0"/>
     <parent link="trunk_link"/>
@@ -173,6 +221,52 @@
     <parent link="left_ankle_roll_link"/>
     <child link="left_toe_link"/>
     <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="left_shoulder_pitch" type="continuous">
+    <origin xyz="0 0.15 0.1" rpy="0 0 0"/>
+    <parent link="trunk_link"/>
+    <child link="left_shoulder_pitch_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="left_shoulder_roll" type="continuous">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="left_shoulder_pitch_link"/>
+    <child link="left_shoulder_roll_link"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <joint name="left_elbow" type="continuous">
+    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <parent link="left_shoulder_roll_link"/>
+    <child link="left_elbow_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="left_hand" type="fixed">
+    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <parent link="left_elbow_link"/>
+    <child link="left_hand_link"/>
+  </joint>
+  <joint name="right_shoulder_pitch" type="continuous">
+    <origin xyz="0 -0.15 0.1" rpy="0 0 0"/>
+    <parent link="trunk_link"/>
+    <child link="right_shoulder_pitch_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="right_shoulder_roll" type="continuous">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="right_shoulder_pitch_link"/>
+    <child link="right_shoulder_roll_link"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <joint name="right_elbow" type="continuous">
+    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <parent link="right_shoulder_roll_link"/>
+    <child link="right_elbow_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="right_hand" type="fixed">
+    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <parent link="right_elbow_link"/>
+    <child link="right_hand_link"/>
   </joint>
 </robot>
        
