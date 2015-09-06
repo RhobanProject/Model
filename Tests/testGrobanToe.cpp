@@ -3,6 +3,7 @@
 #include <urdfreader/urdfreader.h>
 #include "Model/RBDLRootUpdate.h"
 #include "Model/Model.hpp"
+#include "Model/HumanoidModelWithToe.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 
@@ -10,19 +11,20 @@ namespace RBDL = RigidBodyDynamics;
 
 int main()
 {
-    //URDF loading
-    RBDL::Model model;
-    if (!RBDL::Addons::URDFReadFromFile(
-        "GrosbanToe.urdf", &model, false)
-    ) {
-        std::runtime_error("Model unable to load URDF file");
-    }
-
-    std::cout << RBDL::Utils::GetModelDOFOverview(model) << std::endl;
-    std::cout << RBDL::Utils::GetModelHierarchy(model) << std::endl;
-
+//    //URDF loading
+//    RBDL::Model model;
+//    if (!RBDL::Addons::URDFReadFromFile(
+//        "GrosbanToe.urdf", &model, false)
+//    ) {
+//        std::runtime_error("Model unable to load URDF file");
+//    }
+//
+//    std::cout << RBDL::Utils::GetModelDOFOverview(model) << std::endl;
+//    std::cout << RBDL::Utils::GetModelHierarchy(model) << std::endl;
+//
     //Load model into wrapping class
-    Leph::Model wrappedModel(model);
+    //Leph::Model wrappedModel(model);
+  Leph::HumanoidModelWithToe wrappedModel("GrosbanToe.urdf","ROOT");
     std::cout << wrappedModel.getDOF() << std::endl;
     
     //Viewer loop

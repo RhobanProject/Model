@@ -80,6 +80,7 @@ set(SOURCES_FILES
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
+    Model/HumanoidModelWithToe.cpp
     Model/HumanoidFloatingModel.cpp
     Model/HumanoidFixedModel.cpp
     Model/HumanoidFixedPressureModel.cpp
