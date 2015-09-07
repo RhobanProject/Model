@@ -235,7 +235,7 @@
     <axis xyz="0 1 0"/>
   </joint>
   <joint name="left_shoulder_pitch" type="continuous">
-    <origin xyz="0 0.1 0.1" rpy="0 0 0"/>
+    <origin xyz="0 0.07 0.2" rpy="0 0 0"/>
     <parent link="trunk_link"/>
     <child link="left_shoulder_pitch_link"/>
     <axis xyz="0 1 0"/>
@@ -247,18 +247,18 @@
     <axis xyz="1 0 0"/>
   </joint>
   <joint name="left_elbow" type="continuous">
-    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.14" rpy="0 0 0"/>
     <parent link="left_shoulder_roll_link"/>
     <child link="left_elbow_link"/>
     <axis xyz="0 1 0"/>
   </joint>
   <joint name="left_hand" type="fixed">
-    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.18" rpy="0 0 0"/>
     <parent link="left_elbow_link"/>
     <child link="left_hand_link"/>
   </joint>
   <joint name="right_shoulder_pitch" type="continuous">
-    <origin xyz="0 -0.1 0.1" rpy="0 0 0"/>
+    <origin xyz="0 -0.07 0.2" rpy="0 0 0"/>
     <parent link="trunk_link"/>
     <child link="right_shoulder_pitch_link"/>
     <axis xyz="0 1 0"/>
@@ -270,18 +270,18 @@
     <axis xyz="1 0 0"/>
   </joint>
   <joint name="right_elbow" type="continuous">
-    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.14" rpy="0 0 0"/>
     <parent link="right_shoulder_roll_link"/>
     <child link="right_elbow_link"/>
     <axis xyz="0 1 0"/>
   </joint>
   <joint name="right_hand" type="fixed">
-    <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.18" rpy="0 0 0"/>
     <parent link="right_elbow_link"/>
     <child link="right_hand_link"/>
   </joint>
   <joint name="head_yaw" type="continuous">
-    <origin xyz="0 0 0.15" rpy="0 0 0"/>
+    <origin xyz="0 0 0.21" rpy="0 0 0"/>
     <parent link="trunk_link"/>
     <child link="head_yaw_link"/>
     <axis xyz="0 0 1"/>
