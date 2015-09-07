@@ -11,12 +11,10 @@ namespace Leph {
  * Implement an position intregration
  * from delta inputs with respect to footstep.
  * Inputs:
- * 0: delta_x_support_left
- * 1: delta_y_support_left
- * 2: delta_theta_support_left
- * 3: delta_x_support_right
- * 4: delta_y_support_right
- * 5: delta_theta_support_right
+ * 0: is_support_foot_left
+ * 1: delta_x
+ * 2: delta_y
+ * 3: delta_theta
  * Outputs:
  * 0: pos_x
  * 1: pos_y

@@ -57,6 +57,7 @@ namespace Leph {
  * 10: right_foot_y
  * 11: right_foot_z
  * 12: right_foot_theta
+ * 13: support_length
  */
 class HumanoidModelConcept : public Concept
 {

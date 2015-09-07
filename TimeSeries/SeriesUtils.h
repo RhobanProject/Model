@@ -18,8 +18,11 @@ namespace Leph {
 void plotPhase(
     Leph::Plot& plot,
     const Leph::ModelSeries& model, 
-    const std::string& name1, 
-    const std::vector<std::string>& names);
+    const std::string& labelX, 
+    const std::string& nameX, 
+    const std::string& labelY, 
+    const std::string& nameY);
+
 /**
  * Add to given Plot the given 
  * TimeSeries name against its future data
@@ -39,7 +42,7 @@ double modelPredict(
     const std::vector<double>& inputs);
 
 /**
- * Compute the mean error and variance between
+ * Compute the sum error and sum squared error between
  * the two given time series.
  */
 void seriesCompare(
@@ -47,8 +50,8 @@ void seriesCompare(
     const Leph::TimeSeries& series2,
     double beginTime,
     double endTime,
-    double& meanError,
-    double& variance,
+    double& sumError,
+    double& sumSquaredError,
     int& count);
 
 /**

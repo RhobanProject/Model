@@ -18,12 +18,9 @@ namespace Leph {
  * 3: theta
  * 4: is_valid
  * Outputs:
- * 0: delta_x_on_left_foot
- * 1: delta_y_on_left_foot
- * 2: delta_theta_on_left_foot
- * 3: delta_x_on_right_foot
- * 4: delta_y_on_right_foot
- * 5: delta_theta_on_right_foot
+ * 0: delta_x
+ * 1: delta_y
+ * 2: delta_theta
  */
 class FootStepDifferentiatorConcept : public Concept
 {

@@ -13,7 +13,7 @@ size_t FootStepDifferentiatorConcept::inputSize() const
 }
 size_t FootStepDifferentiatorConcept::outputSize() const
 {
-    return 6;
+    return 3;
 }
 
 size_t FootStepDifferentiatorConcept::parameterSize() const
@@ -39,7 +39,6 @@ bool FootStepDifferentiatorConcept::doCompute(double time)
     //Retrieve last and second last support foot swap
     size_t indexSupport1 = Concept::getInput(0)->getClosestIndex(time);
     double timeSupport1 = Concept::getInput(0)->at(indexSupport1).time;
-    double valueSupport1 = Concept::getInput(0)->at(indexSupport1).value;
     if (fabs(time-timeSupport1) > TIME_EPSILON) {
         return false;
     }
@@ -90,15 +89,9 @@ bool FootStepDifferentiatorConcept::doCompute(double time)
     double deltaY = sin(-theta2)*tmpX + cos(-theta2)*tmpY;
 
     //Write to outputs
-    if (valueSupport1 < 0.5) {
-        Concept::getOutput(0)->append(timeSupport1, deltaX);
-        Concept::getOutput(1)->append(timeSupport1, deltaY);
-        Concept::getOutput(2)->append(timeSupport1, deltaTheta);
-    } else {
-        Concept::getOutput(3)->append(timeSupport1, deltaX);
-        Concept::getOutput(4)->append(timeSupport1, deltaY);
-        Concept::getOutput(5)->append(timeSupport1, deltaTheta);
-    }
+    Concept::getOutput(0)->append(timeSupport1, deltaX);
+    Concept::getOutput(1)->append(timeSupport1, deltaY);
+    Concept::getOutput(2)->append(timeSupport1, deltaTheta);
 
     return true;
 }
