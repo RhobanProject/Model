@@ -293,8 +293,17 @@ void InverseKinematics::randomDOFNoise(double ampl)
     //Random noise on DOF subset
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_real_distribution<double> distribution(-ampl, ampl);
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
+        double pos = _dofs(i);
+        double amplLow = ampl;
+        double amplUp = ampl;
+        if (_isLowerBounds[i]) {
+            amplLow = std::min(ampl, pos-_lowerBounds[i]);
+        }
+        if (_isUpperBounds[i]) {
+            amplUp = std::min(ampl, _upperBounds[i]-pos);
+        }
+        std::uniform_real_distribution<double> distribution(-amplLow, amplUp);
         _dofs(i) += distribution(generator);
     }
     //Save all computed DOF in model
