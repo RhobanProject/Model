@@ -311,6 +311,26 @@ class ModelSeries
         }
 
         /**
+         * Write and read all registered regresssions meta parameter 
+         * into given folder path (with trailling "/").
+         */
+        inline void regressionsParameterSave(const std::string& folderPath) const
+        {
+            for (auto& model : _regressions) {
+                std::string filepath = folderPath + model.first + ".params";
+                model.second->parameterSave(filepath);
+            }
+        }
+        inline void regressionsParameterLoad(const std::string& folderPath)
+        {
+            for (auto& model : _regressions) {
+                std::string filepath = folderPath + model.first + ".params";
+                model.second->parameterLoad(filepath);
+                model.second->resetRegression();
+            }
+        }
+
+        /**
          * Write all contained TimeSeries 
          * into given file name
          */
