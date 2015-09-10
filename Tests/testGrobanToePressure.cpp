@@ -22,24 +22,19 @@ int main()
 
   double t = 0;
   double period = 100;
-  double amplitude = 0.08;
+  double amplitude = 0.15;
+  float feetSpacing = 0.2;
+  double trunkZ = 0.5;
 
   
-  double baseX =model.get().position("trunk","origin").x();
-  double baseY =model.get().position("trunk","origin").y();
-  double baseZ =model.get().position("trunk","origin").z() - 0.15;
-
-  Eigen::Vector3d baseRightFootPos = model.get().position("right_toe_tip","origin");
-
-  Eigen::Matrix3d baseTrunkOrientation = model.get().orientation("trunk","origin");
-  Eigen::Matrix3d baseRightFootOrientation = model.get().orientation("right_toe_tip","origin");
-
   Leph::Chrono chrono;
 
 
   while (viewer.update()) {
 
     double diff = sin( t / period);
+    double correctionX = amplitude * sin(t/period);
+    double correctionY = amplitude * sin(2*t/period);
     // Faking pressures
     model.setPressure("LeftBase",  diff, 0, 0);
     model.setPressure("LeftToe" , -diff, 0, 0);
@@ -47,11 +42,8 @@ int main()
     model.updateBase();
 
     double toeAmplitude = 10 * M_PI / 180;
-    model.get().setDOF("left_toe", -std::fabs(diff) * toeAmplitude);
+    //model.get().setDOF("left_toe", -std::fabs(diff) * toeAmplitude);
 
-    chrono.start("InverseKinematics");
-
-    //Inverse Kinematics
     Leph::InverseKinematics inv(model.get());
     //Declare model degrees of freedom
     inv.addDOF("right_hip_yaw");
@@ -66,44 +58,47 @@ int main()
     inv.addDOF("left_knee");
     inv.addDOF("left_ankle_pitch");
     inv.addDOF("left_ankle_roll");
-    //inv.addDOF("base_x");
-    //inv.addDOF("base_y");
-    //inv.addDOF("base_z");
-    //Declare degree of freedom box bounds 
-    //XXX Not fully implemented
+    inv.addDOF("base_x");
+    inv.addDOF("base_y");
+    inv.addDOF("base_z");
+    //inv.addDOF("base_pitch");
+    //inv.addDOF("base_yaw");
+    //inv.addDOF("base_roll");
+    // Declare bounds
     //inv.setLowerBound("left_knee", 0.0);
     //inv.setLowerBound("right_knee", 0.0);
 
-
-    //Declare target position
-    inv.addTargetPosition("flying_foot", "right_toe_tip");
+    // Declare target Position
+    inv.addTargetPosition("LeftFoot", "left_arch_tip");
+    inv.addTargetPosition("RightFoot", "right_arch_tip");
     inv.addTargetPosition("trunk", "trunk");
-    inv.addTargetPosition("support_foot", "left_toe_tip");
     //Target orientation
-    inv.addTargetOrientation("flying_foot", "right_toe_tip");
+    inv.addTargetOrientation("LeftFoot", "left_arch_tip");
     inv.addTargetOrientation("trunk", "trunk");
-    inv.addTargetOrientation("support_foot", "left_toe_tip");
+    inv.addTargetOrientation("RightFoot", "right_arch_tip");
 
-    //Update targets
-    inv.targetPosition("trunk").x() = baseX+amplitude*sin(2.0*t / period);
-    inv.targetPosition("trunk").y() = baseY+amplitude*sin(t / period);
-    inv.targetPosition("trunk").z() = baseZ;
-    inv.targetPosition("flying_foot") = baseRightFootPos;
+    //Set Positions
+    inv.targetPosition("LeftFoot")  = Eigen::Vector3d(0,  feetSpacing/2,      0);
+    inv.targetPosition("RightFoot") = Eigen::Vector3d(0, -feetSpacing/2,      0);
+    inv.targetPosition("trunk")     = Eigen::Vector3d(correctionX,     correctionY, trunkZ);
 
-    inv.targetOrientation("trunk") = baseTrunkOrientation;
-    inv.targetOrientation("flying_foot") = baseRightFootOrientation;
+    //Set Orientations
+    inv.targetOrientation("LeftFoot")  = Eigen::Matrix3d::Identity();
+    inv.targetOrientation("RightFoot") = Eigen::Matrix3d::Identity();
+    inv.targetOrientation("trunk")     = Eigen::Matrix3d::Identity();
 
+    chrono.start("InverseKinematics");
 
     //Compute Inverse Kinematics
     inv.run(0.0001, 100);
     chrono.stop("InverseKinematics");
     chrono.print();
     std::cout << "ERRORS" << std::endl;
-    std::cout << "Flying foot pos: " << inv.errorPosition("flying_foot") << std::endl;
-    std::cout << "Support foot pos: " << inv.errorPosition("support_foot") << std::endl;
-    std::cout << "Trunk foot pos: " << inv.errorPosition("trunk") << std::endl;
-    std::cout << "Flying foot orientation: " << inv.errorOrientation("flying_foot") << std::endl;
-    std::cout << "Support foot orientation: " << inv.errorOrientation("support_foot") << std::endl;
+    std::cout << "Left foot pos: " << inv.errorPosition("LeftFoot") << std::endl;
+    std::cout << "Right foot pos: " << inv.errorPosition("RightFoot") << std::endl;
+    std::cout << "Trunk pos: " << inv.errorPosition("trunk") << std::endl;
+    std::cout << "Left foot orientation: " << inv.errorOrientation("LeftFoot") << std::endl;
+    std::cout << "Right foot orientation: " << inv.errorOrientation("RightFoot") << std::endl;
 
     Eigen::Vector3d pt = model.get().position("trunk", "origin");
     viewer.addTrackedPoint(pt); 
