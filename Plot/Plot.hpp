@@ -35,6 +35,8 @@ class Plot
             Points,
             Lines,
             LinesPoints,
+            ErrorsPoints,
+            ErrorsLines,
             None,
         };
 
@@ -129,6 +131,14 @@ class Plot
                 }
                 return *this;
             } else {
+                if (
+                    (style == ErrorsLines || 
+                    style == ErrorsPoints) &&
+                    palette == ""
+                ) {
+                    throw std::logic_error(
+                        "Plot errors need third column");
+                }
                 Plot2D request;
                 request.xAxis = xAxis;
                 request.yAxis = yAxis;
@@ -192,6 +202,13 @@ class Plot
                 }
                 return *this;
             } else {
+                if (
+                    style == ErrorsLines || 
+                    style == ErrorsPoints
+                ) {
+                    throw std::logic_error(
+                        "Plot errors not implemented in 3D");
+                }
                 Plot3D request;
                 request.xAxis = xAxis;
                 request.yAxis = yAxis;
@@ -431,7 +448,14 @@ class Plot
                 }
                 isFirst = false;
                 if (isPalette) {
-                    commands += "'-' using 1:2:3 palette with ";
+                    if (
+                        _plots2D[i].style == ErrorsLines || 
+                        _plots2D[i].style == ErrorsPoints
+                    ) {
+                        commands += "'-' using 1:2:3 with ";
+                    } else {
+                        commands += "'-' using 1:2:3 palette with ";
+                    }
                 } else {
                     commands += "'-' using 1:2 with ";
                 }
@@ -443,6 +467,12 @@ class Plot
                 }
                 if (_plots2D[i].style == LinesPoints) {
                     commands += "linespoints";
+                }
+                if (_plots2D[i].style == ErrorsPoints) {
+                    commands += "yerrorpoints";
+                }
+                if (_plots2D[i].style == ErrorsLines) {
+                    commands += "yerrorlines";
                 }
                 if (isPalette) {
                     commands += " title '" + _plots2D[i].xAxis 

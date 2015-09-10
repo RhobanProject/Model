@@ -78,6 +78,9 @@ int main()
     assert(testOptimizable.setParameter(1, 11.0) == false);
 
     testOptimizable.parameterPrint();
+    testOptimizable.parameterSave("/tmp/testMetaParameter.params");
+    testOptimizable.parameterLoad("/tmp/testMetaParameter.params");
+    testOptimizable.parameterPrint();
 
     return 0;
 }

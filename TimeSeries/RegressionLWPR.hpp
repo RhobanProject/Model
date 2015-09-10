@@ -41,7 +41,7 @@ class RegressionLWPR : public Regression
             MetaParameter param;
             if (index < size) {
                 param = MetaParameter("NormIn", 1.0);
-                param.setMinimum(0.0);
+                param.setMinimum(0.01);
             }
             if (index == size) {
                 param = MetaParameter("InitAlpha", 50.0);
@@ -57,16 +57,16 @@ class RegressionLWPR : public Regression
             }
             if (index >= size+3 && index <= 2*size+2) {
                 param = MetaParameter("InitD", 1.0);
-                param.setMinimum(0.00001);
+                param.setMinimum(0.01);
             }
             if (index == 2*size+3) {
                 param = MetaParameter("WGen", 0.1);
-                param.setMinimum(0.0);
-                param.setMaximum(0.999);
+                param.setMinimum(0.01);
+                param.setMaximum(0.99);
             }
             if (index == 2*size+4) {
                 param = MetaParameter("WPrune", 0.9);
-                param.setMinimum(0.0);
+                param.setMinimum(0.01);
             }
             
             return param;
@@ -90,6 +90,10 @@ class RegressionLWPR : public Regression
         }
         virtual inline double predict(double time) const override
         {
+            if (!isRegressionValid()) {
+                //TODO
+                std::cout << "WARNING prediction with invalid regression" << std::endl;
+            }
             Eigen::VectorXd in = retrieveInputs(time);
             if ((size_t)in.size() == inputSize()) {
                 double yp = _model->predict(in, 0.0)(0);
@@ -144,6 +148,21 @@ class RegressionLWPR : public Regression
             //Receptive field remove threshold
             _model->wPrune(Optimizable::getParameter(2*size+4).value());
         }
+        
+        inline virtual bool isRegressionValid() const override
+        {
+            //Check if there is at least one 
+            //valid receptive field
+            size_t countRFTrustworthy = 0;
+            for (size_t i=0;i<(size_t)_model->numRFS();i++) {
+                const LWPR_ReceptiveFieldObject& rf = _model->getRF(i);
+                if (rf.trustworthy()) {
+                    countRFTrustworthy++;
+                }
+            }
+
+            return (countRFTrustworthy > 0);
+        }
 
         /**
          * Access to internal LWPR model
@@ -172,12 +191,26 @@ class RegressionLWPR : public Regression
             //Parse all registered inputs
             for (size_t i=0;i<size;i++) {
                 const TimeSeries* series = Regression::getInput(i).series;
-                double delta = Regression::getInput(i).deltaTime;
-                if (series->isTimeValid(time-delta)) {
-                    vect(i) = series->get(time-delta);
+                if (Regression::getInput(i).isDeltaTime) {
+                    double delta = Regression::getInput(i).deltaTime;
+                    if (series->isTimeValid(time-delta)) {
+                        vect(i) = series->get(time-delta);
+                    } else {
+                        //No result if asked lagged time is not available
+                        return Eigen::VectorXd();
+                    }
                 } else {
-                    //No result if asked lagged time is not available
-                    return Eigen::VectorXd();
+                    size_t delta = Regression::getInput(i).deltaIndex;
+                    if (!series->isTimeValid(time)) {
+                        return Eigen::VectorXd();
+                    } 
+                    size_t index = series->getClosestIndex(time);
+                    double t = series->at(index).time;
+                    if (fabs(time-t) < TIME_EPSILON && index+delta < series->size()) {
+                       vect(i) = series->at(index+delta).value; 
+                    } else {
+                        return Eigen::VectorXd();
+                    }
                 }
             }
 

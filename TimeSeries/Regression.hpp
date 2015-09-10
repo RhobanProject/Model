@@ -28,7 +28,9 @@ class Regression : public Optimizable
          */
         struct Input {
             const TimeSeries* series;
+            bool isDeltaTime;
             double deltaTime;
+            size_t deltaIndex;
         };
 
         /**
@@ -80,14 +82,27 @@ class Regression : public Optimizable
          * Time lag could be either an float time offset or
          * an index offset
          */
-        inline void addInput(const TimeSeries* ptr, double deltaTime = 0.0)
+        inline void addInputDeltaTime(const TimeSeries* ptr, double deltaTime = 0.0)
         {
             if (ptr == nullptr) {
                 throw std::logic_error("Regression null input pointer");
             }
 
             //Append input
-            _inputSeries.push_back({ptr, deltaTime});
+            _inputSeries.push_back({ptr, true, deltaTime, 0});
+            //Reset meta parameters
+            Optimizable::resetParameters();
+            //Call handler
+            onAddInput();
+        }
+        inline void addInputDeltaIndex(const TimeSeries* ptr, size_t deltaIndex = 0)
+        {
+            if (ptr == nullptr) {
+                throw std::logic_error("Regression null input pointer");
+            }
+
+            //Append input
+            _inputSeries.push_back({ptr, false, 0.0, deltaIndex});
             //Reset meta parameters
             Optimizable::resetParameters();
             //Call handler
@@ -128,6 +143,12 @@ class Regression : public Optimizable
          * Reset learned model to empty
          */
         virtual void resetRegression() = 0;
+
+        /**
+         * Return true if the regression has enought data
+         * and is ready to predict
+         */
+        virtual bool isRegressionValid() const = 0;
 
         /**
          * Learn ranged points between beginTime and endTime from
@@ -336,6 +357,10 @@ class Regression : public Optimizable
                         throw std::runtime_error(
                             "Regression no learning point");
                     }
+                    //Check for invalid regression
+                    if (!this->isRegressionValid()) {
+                        return 1000.0;
+                    }
                     //Test LWPR
                     double mse = this->rangeMSE(beginTimeTest, endTimeTest);
                     if (mse < 0.0) {
@@ -371,9 +396,21 @@ class Regression : public Optimizable
             Eigen::VectorXd bestParams = 
                 cmasols.best_candidate().get_x_dvec();
 
+
             //Set founded parameters
+            Optimizable::resetParameters();
             for (size_t i=0;i<parameterSize();i++) {
                 Optimizable::setParameter(i, bestParams(i));
+            }
+            //Relearn using best parameters
+            resetRegression();
+            if (rangeLearn(beginTimeLearn, endTimeLearn) == false) {
+                throw std::runtime_error(
+                    "Regression no learning point");
+            }
+            //Check for invalid regression
+            if (!isRegressionValid()) {
+                std::cout << "WARNING OPTIMIZATION FAILED" << std::endl; //TODO
             }
         }
 

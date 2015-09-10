@@ -224,7 +224,8 @@ class TimeSeries : public MetaSeries
         {
             if (index >= size()) {
                 throw std::logic_error(
-                    "TimeSeries index out of bounds");
+                    "TimeSeries index out of bounds: index=" 
+                        + std::to_string(index) + "name=" + name());
             }
             if (_isFutureMode && index < sizeFuture()) {
                 return atFuture(index);
@@ -510,7 +511,8 @@ class TimeSeries : public MetaSeries
                 throw std::logic_error("TimeSeries not enough points");
             }
             if (time < timeMin() || time > timeMax()) {
-                throw std::logic_error("TimeSeries out of bound");
+                throw std::logic_error("TimeSeries out of bound: time=" 
+                    + std::to_string(time) + " name:" + name());
             }
 
             //Bijection search

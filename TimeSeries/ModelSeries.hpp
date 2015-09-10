@@ -198,10 +198,15 @@ class ModelSeries
          * Add given input TimeSeries to given named
          * regression
          */
-        inline void regressionAddInput(const std::string& name, 
+        inline void regressionAddInputDeltaTime(const std::string& name, 
             const std::string& input, double deltaTime = 0.0)
         {
-            regression(name).addInput(&series(input), deltaTime);
+            regression(name).addInputDeltaTime(&series(input), deltaTime);
+        }
+        inline void regressionAddInputDeltaIndex(const std::string& name, 
+            const std::string& input, size_t deltaIndex = 0)
+        {
+            regression(name).addInputDeltaIndex(&series(input), deltaIndex);
         }
 
         /**
@@ -246,15 +251,13 @@ class ModelSeries
 
         /**
          * Learn all regressions using all possible 
-         * data points whose time are above given time
-         * threshold.
+         * data points between given time or 
+         * whose time are above given time threshold.
          * True is returned if some regressions have
          * been updated
          */
-        inline bool regressionsLearn(double time)
+        inline bool regressionsLearn(double beginTime, double endTime)
         {
-            double beginTime = time - TIME_EPSILON;
-            double endTime = std::numeric_limits<double>::max();
             bool isUpdate = false;
             for (auto& model : _regressions) {
                 if (model.second->rangeLearn(beginTime, endTime)) {
@@ -263,6 +266,12 @@ class ModelSeries
             }
 
             return isUpdate;
+        }
+        inline bool regressionsLearn(double time)
+        {
+            return regressionsLearn(
+                time - TIME_EPSILON, 
+                std::numeric_limits<double>::max());
         }
 
         /**
@@ -298,6 +307,26 @@ class ModelSeries
             for (auto& model : _regressions) {
                 std::string filepath = folderPath + model.first + ".bin";
                 model.second->load(filepath);
+            }
+        }
+
+        /**
+         * Write and read all registered regresssions meta parameter 
+         * into given folder path (with trailling "/").
+         */
+        inline void regressionsParameterSave(const std::string& folderPath) const
+        {
+            for (auto& model : _regressions) {
+                std::string filepath = folderPath + model.first + ".params";
+                model.second->parameterSave(filepath);
+            }
+        }
+        inline void regressionsParameterLoad(const std::string& folderPath)
+        {
+            for (auto& model : _regressions) {
+                std::string filepath = folderPath + model.first + ".params";
+                model.second->parameterLoad(filepath);
+                model.second->resetRegression();
             }
         }
 

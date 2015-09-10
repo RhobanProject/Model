@@ -10,7 +10,7 @@ std::string FootStepIntegratorConcept::name() const
 }
 size_t FootStepIntegratorConcept::inputSize() const
 {
-    return 6;
+    return 4;
 }
 size_t FootStepIntegratorConcept::outputSize() const
 {
@@ -52,29 +52,16 @@ bool FootStepIntegratorConcept::doCompute(double time)
     }
 
     //Find the last support foot
-    size_t indexLeft = Concept::getInput(0)->getClosestIndex(time);
-    size_t indexRight = Concept::getInput(3)->getClosestIndex(time);
-    double timeLeft = Concept::getInput(0)->at(indexLeft).time;
-    double timeRight = Concept::getInput(3)->at(indexRight).time;
+    size_t index = Concept::getInput(0)->getClosestIndex(time);
+    double t = Concept::getInput(0)->at(index).time;
 
     //Retrieve delta
-    double deltaX;
-    double deltaY;
-    double deltaTheta;
-    double t;
-    if (fabs(timeLeft - time) < TIME_EPSILON) {
-        deltaX = Concept::getInput(0)->get(time);
-        deltaY = Concept::getInput(1)->get(time);
-        deltaTheta = Concept::getInput(2)->getAngular(time);
-        t = timeLeft;
-    } else if (fabs(timeRight - time) < TIME_EPSILON) {
-        deltaX = Concept::getInput(3)->get(time);
-        deltaY = Concept::getInput(4)->get(time);
-        deltaTheta = Concept::getInput(5)->getAngular(time);
-        t = timeRight;
-    } else {
+    if (fabs(t - time) > TIME_EPSILON) {
         return false;
-    }
+    } 
+    double deltaX = Concept::getInput(1)->get(time);
+    double deltaY = Concept::getInput(2)->get(time);
+    double deltaTheta = Concept::getInput(3)->getAngular(time);
     
     //Check that outputs are available
     for (size_t i=0;i<outputSize();i++) {

@@ -17,7 +17,7 @@ size_t HumanoidModelConcept::inputSize() const
 }
 size_t HumanoidModelConcept::outputSize() const
 {
-    return 13;
+    return 14;
 }
         
 size_t HumanoidModelConcept::parameterSize() const
@@ -103,6 +103,12 @@ bool HumanoidModelConcept::doCompute(double time)
         Concept::getOutput(0)->size() == 0 || 
         Concept::getOutput(0)->lastValue() != is_support_foot_left
     ) {
+        //Compute support length
+        if (Concept::getOutput(0)->size() > 0) {
+            double supportLength = time - Concept::getOutput(0)->lastTime();
+            Concept::getOutput(13)->append(time, supportLength);
+        }
+        //Append support foot
         Concept::getOutput(0)->append(time, is_support_foot_left);
     }
 
