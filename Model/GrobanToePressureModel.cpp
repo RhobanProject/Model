@@ -12,9 +12,9 @@ namespace Leph {
 
   std::map<std::string,std::string> GrobanToePressureModel::pressureToFrame(
     {
-      {"LeftBase" ,"left_arch_tip" },
+      {"LeftBase" ,"left_ankle_roll" },
       {"LeftToe"  ,"left_toe_tip"  },
-      {"RightBase","right_arch_tip"},
+      {"RightBase","right_ankle_roll"},
       {"RightToe" ,"right_toe_tip" }
     });
 
@@ -27,7 +27,6 @@ namespace Leph {
         pressureWeights[supp.first] = 0;
       }
       currentSupport = support;
-      
     }
 
     GrobanToePressureModel::~GrobanToePressureModel()
@@ -71,6 +70,13 @@ namespace Leph {
         models[newSupport].setDOF("base_x", posFrame.x());
         models[newSupport].setDOF("base_y", posFrame.y());
         models[newSupport].setDOF("base_yaw", frameYaw);
+        //TODO fix the problem due to using left_arch_tip and right_arch_tip
+        if (newSupport.find("Base") != std::string::npos) {
+          models[newSupport].setDOF("base_z", 0.0667);
+        }
+        else {
+          models[newSupport].setDOF("base_z", 0.0);
+        }
         currentSupport = newSupport;
       }
 

@@ -24,52 +24,76 @@ int main()
   double period = 100;
   double amplitude = 0.08;
 
-  //Inverse Kinematics
-  Leph::InverseKinematics inv(model.get());
-  //Declare model degrees of freedom
-  inv.addDOF("right_hip_yaw");
-  inv.addDOF("right_hip_pitch");
-  inv.addDOF("right_hip_roll");
-  inv.addDOF("right_knee");
-  inv.addDOF("right_ankle_pitch");
-  inv.addDOF("right_ankle_roll");
-  inv.addDOF("left_hip_yaw");
-  inv.addDOF("left_hip_pitch");
-  inv.addDOF("left_hip_roll");
-  inv.addDOF("left_knee");
-  inv.addDOF("left_ankle_pitch");
-  inv.addDOF("left_ankle_roll");
-  //inv.addDOF("base_x");
-  //inv.addDOF("base_y");
-  //inv.addDOF("base_z");
-  //Declare degree of freedom box bounds 
-  //XXX Not fully implemented
-  //inv.setLowerBound("left_knee", 0.0);
-  //inv.setLowerBound("right_knee", 0.0);
+  
+  double baseX =model.get().position("trunk","origin").x();
+  double baseY =model.get().position("trunk","origin").y();
+  double baseZ =model.get().position("trunk","origin").z() - 0.15;
 
+  Eigen::Vector3d baseRightFootPos = model.get().position("right_toe_tip","origin");
 
-  //Declare target position
-  inv.addTargetPosition("flying_foot", "right_toe_tip");
-  inv.addTargetPosition("trunk", "trunk");
-  inv.addTargetPosition("support_foot", "left_toe_tip");
-  //Target orientation
-  inv.addTargetOrientation("flying_foot", "right_toe_tip");
-  inv.addTargetOrientation("trunk", "trunk");
-  inv.addTargetOrientation("support_foot", "left_toe_tip");
+  Eigen::Matrix3d baseTrunkOrientation = model.get().orientation("trunk","origin");
+  Eigen::Matrix3d baseRightFootOrientation = model.get().orientation("right_toe_tip","origin");
 
   Leph::Chrono chrono;
 
-  double baseX =inv.targetPosition("trunk").x();
-  double baseY =inv.targetPosition("trunk").y() - amplitude;
-  inv.targetPosition("trunk").z() -= 0.15;
 
   while (viewer.update()) {
 
-    //Update targets
-    inv.targetPosition("trunk").y() = baseY+amplitude*sin(t / period);
-    inv.targetPosition("trunk").x() = baseX+amplitude*sin(2.0*t / period);
+    double diff = sin( t / period);
+    // Faking pressures
+    model.setPressure("LeftBase",  diff, 0, 0);
+    model.setPressure("LeftToe" , -diff, 0, 0);
+
+    model.updateBase();
+
+    double toeAmplitude = 10 * M_PI / 180;
+    model.get().setDOF("left_toe", -std::fabs(diff) * toeAmplitude);
 
     chrono.start("InverseKinematics");
+
+    //Inverse Kinematics
+    Leph::InverseKinematics inv(model.get());
+    //Declare model degrees of freedom
+    inv.addDOF("right_hip_yaw");
+    inv.addDOF("right_hip_pitch");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("right_knee");
+    inv.addDOF("right_ankle_pitch");
+    inv.addDOF("right_ankle_roll");
+    inv.addDOF("left_hip_yaw");
+    inv.addDOF("left_hip_pitch");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("left_knee");
+    inv.addDOF("left_ankle_pitch");
+    inv.addDOF("left_ankle_roll");
+    //inv.addDOF("base_x");
+    //inv.addDOF("base_y");
+    //inv.addDOF("base_z");
+    //Declare degree of freedom box bounds 
+    //XXX Not fully implemented
+    //inv.setLowerBound("left_knee", 0.0);
+    //inv.setLowerBound("right_knee", 0.0);
+
+
+    //Declare target position
+    inv.addTargetPosition("flying_foot", "right_toe_tip");
+    inv.addTargetPosition("trunk", "trunk");
+    inv.addTargetPosition("support_foot", "left_toe_tip");
+    //Target orientation
+    inv.addTargetOrientation("flying_foot", "right_toe_tip");
+    inv.addTargetOrientation("trunk", "trunk");
+    inv.addTargetOrientation("support_foot", "left_toe_tip");
+
+    //Update targets
+    inv.targetPosition("trunk").x() = baseX+amplitude*sin(2.0*t / period);
+    inv.targetPosition("trunk").y() = baseY+amplitude*sin(t / period);
+    inv.targetPosition("trunk").z() = baseZ;
+    inv.targetPosition("flying_foot") = baseRightFootPos;
+
+    inv.targetOrientation("trunk") = baseTrunkOrientation;
+    inv.targetOrientation("flying_foot") = baseRightFootOrientation;
+
+
     //Compute Inverse Kinematics
     inv.run(0.0001, 100);
     chrono.stop("InverseKinematics");
