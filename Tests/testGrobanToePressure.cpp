@@ -22,9 +22,9 @@ int main()
 
   double t = 0;
   double period = 100;
-  double amplitude = 0.15;
+  double amplitude = 0.10;
   float feetSpacing = 0.2;
-  double trunkZ = 0.5;
+  double trunkZ = 0.45;
 
   
   Leph::Chrono chrono;
