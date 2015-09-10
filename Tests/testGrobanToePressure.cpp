@@ -65,8 +65,8 @@ int main()
     //inv.addDOF("base_yaw");
     //inv.addDOF("base_roll");
     // Declare bounds
-    //inv.setLowerBound("left_knee", 0.0);
-    //inv.setLowerBound("right_knee", 0.0);
+    inv.setLowerBound("left_knee", 0.5);
+    inv.setLowerBound("right_knee", 0.5);
 
     // Declare target Position
     inv.addTargetPosition("LeftFoot", "left_arch_tip");

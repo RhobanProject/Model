@@ -45,8 +45,8 @@ int main()
   //inv.addDOF("base_z");
   //Declare degree of freedom box bounds 
   //XXX Not fully implemented
-  //inv.setLowerBound("left_knee", 0.0);
-  //inv.setLowerBound("right_knee", 0.0);
+  inv.setLowerBound("left_knee", 0.5);
+  inv.setLowerBound("right_knee", 0.5);
 
 
   //Declare target position
