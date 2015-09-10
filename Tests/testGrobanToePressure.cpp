@@ -3,7 +3,7 @@
 #include <urdfreader/urdfreader.h>
 #include "Model/RBDLRootUpdate.h"
 #include "Model/Model.hpp"
-#include "Model/HumanoidModelWithToe.hpp"
+#include "Model/GrobanToePressureModel.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
 #include "Viewer/ModelViewer.hpp"
@@ -14,9 +14,8 @@ namespace RBDL = RigidBodyDynamics;
 int main()
 {
   //Load model into wrapping class
-  Leph::HumanoidModelWithToe model("GrosbanToe.urdf","left_toe_tip");
-  std::cout << model.getDOF() << std::endl;
-  std::cout << model.getDOF() << std::endl;
+  Leph::GrobanToePressureModel model("GrosbanToe.urdf","LeftToe");
+  std::cout << model.get().getDOF() << std::endl;
     
   //Viewer loop
   Leph::ModelViewer viewer(1200, 900);
@@ -26,7 +25,7 @@ int main()
   double amplitude = 0.08;
 
   //Inverse Kinematics
-  Leph::InverseKinematics inv(model);
+  Leph::InverseKinematics inv(model.get());
   //Declare model degrees of freedom
   inv.addDOF("right_hip_yaw");
   inv.addDOF("right_hip_pitch");
@@ -82,7 +81,7 @@ int main()
     std::cout << "Flying foot orientation: " << inv.errorOrientation("flying_foot") << std::endl;
     std::cout << "Support foot orientation: " << inv.errorOrientation("support_foot") << std::endl;
 
-    Eigen::Vector3d pt = model.position("trunk", "origin");
+    Eigen::Vector3d pt = model.get().position("trunk", "origin");
     viewer.addTrackedPoint(pt); 
 
 
@@ -90,7 +89,7 @@ int main()
     //model.setDOF("left_hip_pitch", - angle);
     //model.setDOF("left_knee", 2 * angle);
     //model.setDOF("left_ankle_pitch", - angle);
-    Leph::ModelDraw(model, viewer);
+    Leph::ModelDraw(model.get(), viewer);
     t += 1;
   }
     

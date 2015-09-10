@@ -78,6 +78,7 @@ set(SOURCES_FILES
     Utils/NewtonBinomial.cpp
     Utils/LWPRUtils.cpp
     Ncurses/InterfaceCLI.cpp
+    Model/GrobanToePressureModel.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
     Model/HumanoidModelWithToe.cpp
@@ -136,6 +137,7 @@ set(TESTS_FILES
     testLWPRAdvanced
     testIterativeLearningControl
     testGrobanToe
+    testGrobanToePressure
 )
 
 #Applications main files

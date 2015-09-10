@@ -14,6 +14,7 @@ namespace Leph {
   class HumanoidModelWithToe : public Model
   {
   public:
+    HumanoidModelWithToe();
 
     /**
      * Initialize the model with given

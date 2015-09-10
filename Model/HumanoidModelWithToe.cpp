@@ -3,6 +3,10 @@
 
 namespace Leph {
 
+  HumanoidModelWithToe::HumanoidModelWithToe(): Model()
+  {
+  }
+
   HumanoidModelWithToe::HumanoidModelWithToe(
     const std::string& filename,
     const std::string& frameRoot) :
