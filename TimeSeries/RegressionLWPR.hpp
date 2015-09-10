@@ -32,7 +32,7 @@ class RegressionLWPR : public Regression
          */
         virtual inline size_t parameterSize() const override
         {
-            return 2*Regression::inputSize() + 5;
+            return Regression::inputSize() + 2;
         }
         virtual inline MetaParameter defaultParameter
             (size_t index) const override
@@ -44,28 +44,11 @@ class RegressionLWPR : public Regression
                 param.setMinimum(0.01);
             }
             if (index == size) {
-                param = MetaParameter("InitAlpha", 50.0);
-                param.setMinimum(0.0);
-            }
-            if (index == size+1) {
-                param = MetaParameter("MetaRate", 250.0);
-                param.setMinimum(0.0);
-            }
-            if (index == size+2) {
                 param = MetaParameter("Penalty", 1e-6);
                 param.setMinimum(0.0);
             }
-            if (index >= size+3 && index <= 2*size+2) {
+            if (index == size+1) {
                 param = MetaParameter("InitD", 1.0);
-                param.setMinimum(0.01);
-            }
-            if (index == 2*size+3) {
-                param = MetaParameter("WGen", 0.1);
-                param.setMinimum(0.01);
-                param.setMaximum(0.99);
-            }
-            if (index == 2*size+4) {
-                param = MetaParameter("WPrune", 0.9);
                 param.setMinimum(0.01);
             }
             
@@ -90,12 +73,18 @@ class RegressionLWPR : public Regression
         }
         virtual inline double predict(double time) const override
         {
-            if (!isRegressionValid()) {
-                //TODO
-                std::cout << "WARNING prediction with invalid regression" << std::endl;
-            }
             Eigen::VectorXd in = retrieveInputs(time);
             if ((size_t)in.size() == inputSize()) {
+                if (!isRegressionValid()) {
+                    std::cout << "WARNING prediction with invalid regression" << std::endl;
+                    return in(0); //TODO
+                }
+                /*
+                Eigen::VectorXd confidence;
+                Eigen::VectorXd maxW;
+                Eigen::VectorXd yp = _model->predict(in, confidence, maxW, 0.000);
+                return yp(0);
+                */
                 double yp = _model->predict(in, 0.0)(0);
                 return yp;
             } else {
@@ -112,43 +101,41 @@ class RegressionLWPR : public Regression
         {
             size_t size = Regression::inputSize();
 
-            //InitializeLWPR model with 
-            //input dimension
-            if (_model != nullptr) {
-                delete _model;
+            try {
+                //InitializeLWPR model with 
+                //input dimension
+                if (_model != nullptr) {
+                    delete _model;
+                }
+                _model = new LWPR_Object(size);
+        
+                //Normalisation value for each input dimension (>0)
+                Eigen::VectorXd vect(size);
+                for (size_t i=0;i<size;i++) {
+                    vect(i) = Optimizable::getParameter(i).value();
+                }
+                _model->normIn(vect);
+                //Use only diagonal matrix. Big speed up in high dimension
+                //but lower performance in complex learning.
+                _model->diagOnly(false);
+                //Automatic tunning of distance metric 
+                _model->useMeta(true);
+                //Larger value enforce wider receptive field (>0)
+                _model->penalty(Optimizable::getParameter(size).value());
+                //Set diagonal (input_dim) or complet (input_dim*input_dim)
+                //initial distance matrix (>0)
+                _model->setInitD(Optimizable::getParameter(size+1).value());
+            } catch (const LWPR_Exception& e) {
+                Optimizable::parameterPrint();
+                throw std::logic_error(
+                    "RegressionLWPR parameters exception: " 
+                    + std::string(e.getString()));
             }
-            _model = new LWPR_Object(size);
-    
-            //Normalisation value for each input dimension (>0)
-            Eigen::VectorXd vect(size);
-            for (size_t i=0;i<size;i++) {
-                vect(i) = Optimizable::getParameter(i).value();
-            }
-            _model->normIn(vect);
-            //Use only diagonal matrix. Big speed up in high dimension
-            //but lower performance in complex learning.
-            _model->diagOnly(true);
-            //Learning rate for gradient descente (>0)
-            //(meta optimized)
-            _model->setInitAlpha(Optimizable::getParameter(size).value());
-            //Automatic tunning of distance metric 
-            _model->useMeta(true);
-            //Meta tunning learning rate (>0)
-            _model->metaRate(Optimizable::getParameter(size+1).value());
-            //Larger value enforce wider receptive field (>0)
-            _model->penalty(Optimizable::getParameter(size+2).value());
-            //Set diagonal (input_dim) or complet (input_dim*input_dim)
-            //initial distance matrix (>0)
-            for (size_t i=0;i<size;i++) {
-                vect(i) = Optimizable::getParameter(size+3+i).value();
-            }
-            _model->setInitD(vect);
-            //Receptive field activation threshold (>0)
-            _model->wGen(Optimizable::getParameter(2*size+3).value());
-            //Receptive field remove threshold
-            _model->wPrune(Optimizable::getParameter(2*size+4).value());
         }
         
+        /**
+         * Inherit Regression
+         */
         inline virtual bool isRegressionValid() const override
         {
             //Check if there is at least one 
@@ -229,7 +216,13 @@ class RegressionLWPR : public Regression
                 throw std::logic_error("Regression not initialized");
             }
 
-            _model->writeBinary(filepath.c_str());
+            try {
+                _model->writeBinary(filepath.c_str());
+            } catch (const LWPR_Exception& e) {
+                throw std::logic_error(
+                    "RegressionLWPR exception save: "
+                    + std::string(e.getString()));
+            }
         }
         inline void load(const std::string& filepath)
         {
@@ -242,7 +235,13 @@ class RegressionLWPR : public Regression
             if (_model != nullptr) {
                 delete _model;
             }
-            _model = new LWPR_Object(filepath.c_str());
+            try {
+                _model = new LWPR_Object(filepath.c_str());
+            } catch (const LWPR_Exception& e) {
+                throw std::logic_error(
+                    "RegressionLWPR exception load: " 
+                    + std::string(e.getString()));
+            }
 
             //Check loaded model consistancy
             if ((size_t)_model->nIn() != inputSize() || 

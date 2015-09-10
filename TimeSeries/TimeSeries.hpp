@@ -225,7 +225,7 @@ class TimeSeries : public MetaSeries
             if (index >= size()) {
                 throw std::logic_error(
                     "TimeSeries index out of bounds: index=" 
-                        + std::to_string(index) + "name=" + name());
+                        + std::to_string(index) + " name=" + name());
             }
             if (_isFutureMode && index < sizeFuture()) {
                 return atFuture(index);
@@ -508,7 +508,8 @@ class TimeSeries : public MetaSeries
             (double time, size_t& indexLow, size_t& indexUp) const
         {
             if (size() < 2) {
-                throw std::logic_error("TimeSeries not enough points");
+                throw std::logic_error("TimeSeries not enough points: time="
+                    + std::to_string(time) + " name:" + name());
             }
             if (time < timeMin() || time > timeMax()) {
                 throw std::logic_error("TimeSeries out of bound: time=" 

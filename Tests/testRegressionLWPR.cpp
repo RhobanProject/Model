@@ -41,8 +41,8 @@ int main()
     plot.clear();
 
     Leph::RegressionLWPR regression;
-    regression.addInput(&input1);
-    regression.addInput(&input2);
+    regression.addInputDeltaTime(&input1);
+    regression.addInputDeltaTime(&input2);
     regression.setOutput(&output);
 
     regression.optimizeParameters(0, time, 0, time, 50, false);

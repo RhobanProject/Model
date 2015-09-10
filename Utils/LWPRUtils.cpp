@@ -209,6 +209,15 @@ void LWPRPrint(const LWPR_Object& model)
             if (minRFVIP(i) > v(i)) minRFVIP(i) = v(i);
             if (maxRFVIP(i) < v(i)) maxRFVIP(i) = v(i);
         }
+        /*
+        if (model.numRFS() < 5) {
+            std::cout << "RF:" << i << std::endl;
+            std::cout << "center=" << std::endl;
+            std::cout << rf.center().transpose() << std::endl;
+            std::cout << "D=" << std::endl;
+            std::cout << rf.D() << std::endl;
+        }
+        */
     }
     std::cout << "RF Trustworthy: " << countRFTrustworthy << std::endl;
     std::cout << "RF min nReg: " << minRFReg << std::endl;

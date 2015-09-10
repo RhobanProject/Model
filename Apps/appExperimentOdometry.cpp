@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <tuple>
+#include <algorithm>
 #include "TimeSeries/SeriesUtils.h"
 #include "Utils/LWPRUtils.h"
 #include "Plot/Plot.hpp"
@@ -26,12 +28,15 @@ static Gaussian mergeGaussian(const std::vector<Gaussian>& vect)
 
     for (size_t i=0;i<vect.size();i++) {
         result.mean += vect[i].mean;
-        result.var += vect[i].var;
-        result.count += vect[i].count;
+        result.var += pow(vect[i].mean, 2);
+        result.count++;
     }
-    result.mean /= (double)vect.size();
-    result.var /= pow((double)vect.size(), 2);
-    result.count /= (double)vect.size();
+    if (result.count < 1.0) {
+        throw std::logic_error("MergeGaussian empty");
+    }
+    result.mean = result.mean/(double)result.count;
+    result.var = result.var/(double)result.count;
+    result.var -= result.mean * result.mean;
 
     return result;
 }
@@ -47,13 +52,14 @@ static double confidenceBounds(const Gaussian& g)
 /**
  * Setup 3 models, and do lot of good things
  */
-static void setUpModels(const Leph::MatrixLabel& logs, 
+static void setUpModels(const Leph::MatrixLabel& logs, bool invModel,
+    size_t beginIndex,
+    size_t endIndex,
     Leph::ModelSeries& modelWithMocap,
     Leph::ModelSeries& modelNoMocap,
     Leph::ModelSeries& modelNoSensor,
-    bool doOptimization,
+    bool doPreLoad,
     bool doLearning,
-    int maxIteration,
     double timeLearning, 
     double timeTesting,
     bool isQuiet)
@@ -66,11 +72,13 @@ static void setUpModels(const Leph::MatrixLabel& logs,
     
     //Load data into TimeSeries
     if (!isQuiet) std::cout << "Injecting data" << std::endl;
-    for (size_t i=0;i<logs.size();i++) {
+    if (beginIndex == (size_t)-1) beginIndex = 0;
+    if (endIndex == (size_t)-1) endIndex = logs.size();
+    for (size_t i=beginIndex;i<endIndex;i++) {
         double time = logs[i]("time:timestamp")/1000.0;
-        Leph::appendModelSeries(modelWithMocap, time, logs[i]);
-        Leph::appendModelSeries(modelNoMocap, time, logs[i]);
-        Leph::appendModelSeries(modelNoSensor, time, logs[i]);
+        Leph::appendModelSeries(modelWithMocap, time, logs[i], invModel);
+        Leph::appendModelSeries(modelNoMocap, time, logs[i], invModel);
+        Leph::appendModelSeries(modelNoSensor, time, logs[i], invModel);
     }
 
     //Compute all values throught Concepts graph
@@ -78,24 +86,36 @@ static void setUpModels(const Leph::MatrixLabel& logs,
     modelWithMocap.propagateConcepts();
     modelNoMocap.propagateConcepts();
     modelNoSensor.propagateConcepts();
-        
+    
+    //Load regressions meta parameters
+    modelWithMocap.regressionsParameterLoad("/tmp/");
+
+    if (doPreLoad) {
+        modelWithMocap.regressionsLoad("/tmp/");
+    }
+
     //Learn Regression models
-    if (doOptimization || doLearning) {
+    if (doLearning) {
         if (!isQuiet) std::cout << "Learning regressions" << std::endl;
         double beginTime = modelWithMocap.series("mocap_x").timeMin();
         double endTime = modelWithMocap.series("mocap_x").timeMax();
-        double beginLearnTime = beginTime + 5.0;
+        double beginLearnTime = beginTime + 10.0;
         double endLearnTime = timeLearning;
+        if (timeLearning < 0.0) {
+            endLearnTime = beginTime + (endTime-beginTime)/2.0;
+        }
         double beginTestTime = timeTesting;
-        double endTestTime = endTime - 5.0;
-        if (doOptimization) {
-            modelWithMocap.regressionsOptimizeParameters(
-                beginLearnTime, endLearnTime, 
-                beginTestTime, endTestTime, maxIteration, isQuiet);
+        if (timeTesting < 0.0) {
+            beginTestTime = beginTime + (endTime-beginTime)/2.0;
         }
-        if (doLearning) {
-            modelWithMocap.regressionsLearn(beginLearnTime, endLearnTime);
+        double endTestTime = endTime - 10.0;
+        //Do learning
+        bool isSuccess = modelWithMocap.regressionsLearn(beginLearnTime, endLearnTime);
+        if (!isSuccess) {
+            std::cout << "WARNING: LEARNING FAILED from " 
+                << beginLearnTime << " to " << endLearnTime << std::endl;
         }
+
         //Saving Regressions
         modelWithMocap.regressionsSave("/tmp/");
         //Displaying regression prediction error
@@ -104,26 +124,39 @@ static void setUpModels(const Leph::MatrixLabel& logs,
             modelWithMocap.regressionsPrintMSE(beginTestTime, endTestTime);
         }
     }
-    
-    //Loading regressions
+
+    //Load data into others models
     modelWithMocap.regressionsLoad("/tmp/");
     modelNoMocap.regressionsLoad("/tmp/");
     modelNoSensor.regressionsLoad("/tmp/");
-
+    
     //Propagate regressions
     modelNoMocap.propagateRegressions();
-    modelNoSensor.regression("model_direct_delta_x_left")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_left"));
-    modelNoSensor.regression("model_direct_delta_y_left")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_left"));
-    modelNoSensor.regression("model_direct_delta_theta_left")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_left"));
-    modelNoSensor.regression("model_direct_delta_x_right")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_right"));
-    modelNoSensor.regression("model_direct_delta_y_right")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_right"));
-    modelNoSensor.regression("model_direct_delta_theta_right")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x_on_support_right"));
+    modelNoSensor.regression("model_walk_delta_x")
+        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
+    modelNoSensor.regression("model_walk_delta_y")
+        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
+    modelNoSensor.regression("model_walk_delta_theta")
+        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
+    //Fix odometry integration too late
+    double t1 = std::max(
+            modelNoMocap.series("delta_mocap_x").timeMin(),
+            modelWithMocap.series("integrated_mocap_x").timeMin());
+    double t2 = std::max(
+            modelNoSensor.series("delta_mocap_x").timeMin(),
+            modelWithMocap.series("integrated_mocap_x").timeMin());
+    modelNoMocap.series("integrated_mocap_x").append(t1, 
+        modelWithMocap.series("integrated_mocap_x").get(t1));
+    modelNoMocap.series("integrated_mocap_y").append(t1, 
+        modelWithMocap.series("integrated_mocap_y").get(t1));
+    modelNoMocap.series("integrated_mocap_theta").append(t1, 
+        modelWithMocap.series("integrated_mocap_theta").get(t1));
+    modelNoSensor.series("integrated_mocap_x").append(t2, 
+        modelWithMocap.series("integrated_mocap_x").get(t2));
+    modelNoSensor.series("integrated_mocap_y").append(t2, 
+        modelWithMocap.series("integrated_mocap_y").get(t2));
+    modelNoSensor.series("integrated_mocap_theta").append(t2, 
+        modelWithMocap.series("integrated_mocap_theta").get(t2));
     //Propagate concepts
     modelNoMocap.propagateConcepts();
     modelNoSensor.propagateConcepts();
@@ -178,194 +211,257 @@ static void processRawDataMocapValidity(Leph::MatrixLabel& logs)
 }
 
 /**
+ * Retrieve and return from given data logs
+ * sequence of mocap valid
+ */
+std::vector<std::pair<size_t, size_t>> processCutSequences(
+    const Leph::MatrixLabel& logs)
+{
+    std::vector<std::pair<size_t, size_t>> result;
+
+    size_t beginIndex = 0;
+    size_t endIndex = 0;
+    bool state = false;
+    for (size_t i=0;i<logs.size();i++) {
+        if (logs[i]("mocap:check") > 0.5) {
+            if (state == false) {
+                beginIndex = i;
+            } else if (i - beginIndex > 50*20) {
+                endIndex = i;
+                result.push_back({beginIndex, endIndex});
+                beginIndex = i;
+            }
+            state = true;
+        } else {
+            if (state == true) {
+                endIndex = i;
+                if (endIndex - beginIndex > 50*10) {
+                    result.push_back({beginIndex, endIndex});
+                }
+            }
+            state = false;
+        }
+    }
+
+    return result;
+}
+
+/**
  * Plot given models
  */
 static void plotModels(
     const Leph::ModelSeries& modelWithMocap, 
     const Leph::ModelSeries& modelNoMocap,
-    const Leph::ModelSeries& modelNoSensor)
+    const Leph::ModelSeries& modelNoSensor, 
+    bool onlyOdometry = false)
 {
     Leph::Plot plot;
     
-    plot.add(modelWithMocap.series("mocap_is_valid"));
-    plot.add(modelWithMocap.series("mocap_is_data"));
-    plot.add(modelWithMocap.series("mocap_x"));
-    plot.add(modelWithMocap.series("mocap_y"));
-    plot.add(modelWithMocap.series("mocap_theta"));
-    plot.plot("time", "all").render();
-    plot.clear();
-    
-    plot.add(modelWithMocap.series("mocap_is_valid"));
-    plot.add(modelWithMocap.series("mocap_is_data"));
-    plot.add(modelWithMocap.series("is_support_foot_left"));
-    plot.add(modelWithMocap.series("mocap_x"));
-    plot.add(modelWithMocap.series("mocap_y"));
-    plot.add(modelWithMocap.series("mocap_theta"));
-    plot.add(modelWithMocap.series("delta_mocap_x_on_support_left"));
-    plot.add(modelWithMocap.series("delta_mocap_x_on_support_right"));
-    plot.add(modelWithMocap.series("walk_step"));
-    plot.add(modelWithMocap.series("walk_lateral"));
-    plot.add(modelWithMocap.series("walk_turn"));
-    plot.plot("time", "all").render();
-    plot.clear();
-    
-    plot.add(modelWithMocap.series("mocap_is_valid"));
-    plot.add(modelWithMocap.series("is_support_foot_left"));
-    plot.add(modelWithMocap.series("mocap_x"));
-    plot.add(modelWithMocap.series("mocap_y"));
-    plot.add(modelWithMocap.series("head_x"));
-    plot.add(modelWithMocap.series("head_y"));
-    plot.add(modelWithMocap.series("sensor_roll"));
-    plot.plot("time", "all").render();
-    plot.clear();
-
-    plot.add("x_mocap_delta_left", modelWithMocap.series("delta_mocap_x_on_support_left"));
-    plot.add("x_model_delta_left", modelNoMocap.series("delta_head_x_on_support_left"));
-    plot.add("x_learn_delta_left", modelNoMocap.series("delta_mocap_x_on_support_left"));
-    plot.plot("time", "all").render();
-    plot.clear();
-
-    plot.add("x_mocap_delta_right", modelWithMocap.series("delta_mocap_x_on_support_right"));
-    plot.add("x_model_delta_right", modelNoMocap.series("delta_head_x_on_support_right"));
-    plot.add("x_learn_delta_right", modelNoMocap.series("delta_mocap_x_on_support_right"));
-    plot.plot("time", "all").render();
-    plot.clear();
-    
-    plot.add("y_mocap_delta_left", modelWithMocap.series("delta_mocap_y_on_support_left"));
-    plot.add("y_model_delta_left", modelNoMocap.series("delta_head_y_on_support_left"));
-    plot.add("y_learn_delta_left", modelNoMocap.series("delta_mocap_y_on_support_left"));
-    plot.plot("time", "all").render();
-    plot.clear();
-
-    plot.add("y_mocap_delta_right", modelWithMocap.series("delta_mocap_y_on_support_right"));
-    plot.add("y_model_delta_right", modelNoMocap.series("delta_head_y_on_support_right"));
-    plot.add("y_learn_delta_right", modelNoMocap.series("delta_mocap_y_on_support_right"));
-    plot.plot("time", "all").render();
-    plot.clear();
-
-    plot.add("theta_mocap_delta_left", modelWithMocap.series("delta_mocap_theta_on_support_left"));
-    plot.add("theta_model_delta_left", modelNoMocap.series("delta_head_theta_on_support_left"));
-    plot.add("theta_learn_delta_left", modelNoMocap.series("delta_mocap_theta_on_support_left"));
-    plot.plot("time", "all").render();
-    plot.clear();
-
-    plot.add("theta_mocap_delta_right", modelWithMocap.series("delta_mocap_theta_on_support_right"));
-    plot.add("theta_model_delta_right", modelNoMocap.series("delta_head_theta_on_support_right"));
-    plot.add("theta_learn_delta_right", modelNoMocap.series("delta_mocap_theta_on_support_right"));
-    plot.plot("time", "all").render();
-    plot.clear();
+    if (!onlyOdometry) {
+        plot.add(modelWithMocap.series("mocap_is_valid"));
+        plot.add(modelWithMocap.series("mocap_x"));
+        plot.add(modelWithMocap.series("mocap_y"));
+        plot.add(modelWithMocap.series("mocap_theta"));
+        plot.add(modelWithMocap.series("delta_mocap_x"));
+        plot.add(modelWithMocap.series("walk_step"));
+        plot.add(modelWithMocap.series("walk_lateral"));
+        plot.add(modelWithMocap.series("walk_turn"));
+        plot.plot("time", "all").render();
+        plot.clear();
         
-    plot.add("mocap_x", modelWithMocap.series("integrated_mocap_x"));
-    plot.add("model_x", modelNoMocap.series("integrated_head_x"));
-    plot.add("learn_x", modelNoMocap.series("integrated_mocap_x"));
-    plot.plot("time", "all").render();
-    plot.clear();
+        plot.add(modelWithMocap.series("sensor_roll"));
+        plot.add(modelWithMocap.series("sensor_pitch"));
+        plot.add(modelWithMocap.series("mocap_x"));
+        plot.add(modelWithMocap.series("mocap_y"));
+        plot.add(modelWithMocap.series("is_support_foot_left"));
+        plot.plot("time", "all").render();
+        plot.clear();
 
-    plot.add("mocap_y", modelWithMocap.series("integrated_mocap_y"));
-    plot.add("model_y", modelNoMocap.series("integrated_head_y"));
-    plot.add("learn_y", modelNoMocap.series("integrated_mocap_y"));
-    plot.plot("time", "all").render();
+        plot.add("x_mocap_delta", modelWithMocap.series("delta_mocap_x"));
+        plot.add("x_model_delta", modelNoMocap.series("delta_head_x"));
+        plot.add("x_learn_delta", modelNoMocap.series("delta_mocap_x"));
+        plot.add("x_walk_delta", modelNoSensor.series("delta_mocap_x"));
+        plot.add("x_order_delta", modelNoSensor.series("walk_step"));
+        plot.plot("time", "all").render();
+        plot.clear();
 
-    plot.clear();
-    plot.add("mocap_theta", modelWithMocap.series("integrated_mocap_theta"));
-    plot.add("model_theta", modelNoMocap.series("integrated_head_theta"));
-    plot.add("learn_theta", modelNoMocap.series("integrated_mocap_theta"));
-    plot.plot("time", "all").render();
-    plot.clear();
+        plot.add("y_mocap_delta", modelWithMocap.series("delta_mocap_y"));
+        plot.add("y_model_delta", modelNoMocap.series("delta_head_y"));
+        plot.add("y_learn_delta", modelNoMocap.series("delta_mocap_y"));
+        plot.add("y_walk_delta", modelNoSensor.series("delta_mocap_y"));
+        plot.add("y_order_delta", modelNoSensor.series("walk_lateral"));
+        plot.plot("time", "all").render();
+        plot.clear();
 
-    Leph::plotPhase(plot, modelWithMocap, "integrated_mocap_x", {"integrated_mocap_y"});
-    Leph::plotPhase(plot, modelNoMocap, "integrated_mocap_x", {"integrated_mocap_y"});
-    Leph::plotPhase(plot, modelNoMocap, "integrated_head_x", {"integrated_head_y"});
+        plot.add("theta_mocap_delta", modelWithMocap.series("delta_mocap_theta"));
+        plot.add("theta_model_delta", modelNoMocap.series("delta_head_theta"));
+        plot.add("theta_learn_delta", modelNoMocap.series("delta_mocap_theta"));
+        plot.add("theta_walk_delta", modelNoSensor.series("delta_mocap_theta"));
+        plot.add("theta_order_delta", modelNoSensor.series("walk_turn"));
+        plot.plot("time", "all").render();
+        plot.clear();
+
+        plot.add("mocap_x", modelWithMocap.series("integrated_mocap_x"));
+        plot.add("model_x", modelNoMocap.series("integrated_head_x"));
+        plot.add("learn_x", modelNoMocap.series("integrated_mocap_x"));
+        plot.add("walk_x", modelNoSensor.series("integrated_mocap_x"));
+        plot.add("order_x", modelNoSensor.series("integrated_walk_x"));
+        plot.plot("time", "all").render();
+        plot.clear();
+
+        plot.add("mocap_y", modelWithMocap.series("integrated_mocap_y"));
+        plot.add("model_y", modelNoMocap.series("integrated_head_y"));
+        plot.add("learn_y", modelNoMocap.series("integrated_mocap_y"));
+        plot.add("walk_y", modelNoSensor.series("integrated_mocap_y"));
+        plot.add("order_y", modelNoSensor.series("integrated_walk_y"));
+        plot.plot("time", "all").render();
+
+        plot.clear();
+        plot.add("mocap_theta", modelWithMocap.series("integrated_mocap_theta"));
+        plot.add("model_theta", modelNoMocap.series("integrated_head_theta"));
+        plot.add("learn_theta", modelNoMocap.series("integrated_mocap_theta"));
+        plot.add("walk_theta", modelNoSensor.series("integrated_mocap_theta"));
+        plot.add("order_theta", modelNoSensor.series("integrated_walk_theta"));
+        plot.plot("time", "all").render();
+        plot.clear();
+    }
+
+    Leph::plotPhase(plot, modelWithMocap, 
+        "mocap_x", "integrated_mocap_x",
+        "mocap_y", "integrated_mocap_y");
+    Leph::plotPhase(plot, modelNoMocap, 
+        "learn_x", "integrated_mocap_x",
+        "learn_y", "integrated_mocap_y");
+    Leph::plotPhase(plot, modelNoMocap, 
+        "model_x", "integrated_head_x",
+        "model_y", "integrated_head_y");
+    Leph::plotPhase(plot, modelNoSensor, 
+        "walk_x", "integrated_mocap_x",
+        "walk_y", "integrated_mocap_y");
+    Leph::plotPhase(plot, modelNoSensor, 
+        "order_x", "integrated_walk_x",
+        "order_y", "integrated_walk_y");
     plot
-        .plot("integrated_mocap_x", "integrated_mocap_y", Leph::Plot::LinesPoints, "time")
-        .plot("integrated_head_x", "integrated_head_y")
+        .plot("mocap_x", "mocap_y")
+        .plot("learn_x", "learn_y")
+        .plot("model_x", "model_y")
+        .plot("walk_x", "walk_y")
+        .plot("order_x", "order_y")
         .render();
     plot.clear();
 }
 
-int main()
+/**
+ * Optimize all regressions meta parameters from given
+ * data logs and save then in /tmp folder
+ */
+static void computeAndFindMetaParameters(const Leph::MatrixLabel& logs, bool invMocap,
+    int maxIteration, int retry)
 {
-    //Learn and Test logs filename container
-    std::vector<std::string> fileLogsLearn = {
-        "../../These/Data/model_2015-09-02-17-52-53.log",
-        //"../../These/Data/model_2015-09-02-18-02-44.log",
-        //"../../These/Data/model_2015-09-02-18-13-59.log",
-        //"../../These/Data/model_2015-09-02-16-58-24.log",
-    };
-    std::vector<std::string> fileLogsTest = {
-        "../../These/Data/model_2015-09-02-18-26-24.log",
-        "../../These/Data/model_2015-09-02-18-27-54.log",
-        "../../These/Data/model_2015-09-02-18-56-25.log",
-        "../../These/Data/model_2015-09-02-19-01-34.log",
-    };
-    std::vector<Leph::MatrixLabel> dataLogsLearn;
-    std::vector<Leph::MatrixLabel> dataLogsTest;
+    //Initialize ModelSeries
+    Leph::ModelSeries modelWithMocap;
+    Leph::initModelSeries(modelWithMocap, true, true, true);
+    //Load data into TimeSeries
+    for (size_t i=0;i<logs.size();i++) {
+        double time = logs[i]("time:timestamp")/1000.0;
+        Leph::appendModelSeries(modelWithMocap, time, logs[i], invMocap);
+    }
+    //Compute all values throught Concepts graph
+    modelWithMocap.propagateConcepts();
+        
+    double beginTime = modelWithMocap.series("mocap_x").timeMin();
+    double endTime = modelWithMocap.series("mocap_x").timeMax();
+    double beginLearnTime = beginTime + 5.0;
+    double endLearnTime = beginTime + (endTime-beginTime)/2.0;
+    double beginTestTime = beginTime + (endTime-beginTime)/2.0;
+    double endTestTime = endTime - 10.0;
+    //Optimize and save meta parameters
+    modelWithMocap.regressionsOptimizeParameters(
+        beginLearnTime, endLearnTime, 
+        beginTestTime, endTestTime, 
+        maxIteration, true,
+        retry, "/tmp/");
+    //Saving Regressions
+    modelWithMocap.regressionsSave("/tmp/");
+}
 
+/**
+ * Load given data file name into given 
+ * container and update min/max time
+ */
+static void loadDataFiles(
+    const std::vector<std::string>& fileLogsLearn,
+    std::vector<Leph::MatrixLabel>& dataLogsLearn,
+    double& dataTimeLearnMin,
+    double& dataTimeLearnMax)
+{
     //Load data from model logs
-    double dataTimeLearnMin = -1.0;
-    double dataTimeLearnMax = -1.0;
-    double dataTimeTestMin = -1.0;
-    double dataTimeTestMax = -1.0;
     std::cout << "Loading data" << std::endl;
+    dataTimeLearnMin = -1.0;
+    dataTimeLearnMax = -1.0;
+    dataLogsLearn.clear();
     for (size_t i=0;i<fileLogsLearn.size();i++) {
+        //Data loading
         dataLogsLearn.push_back(Leph::MatrixLabel());
         dataLogsLearn.back().load(fileLogsLearn[i]);
-        processRawDataMocapValidity(dataLogsLearn.back());
-        //Print data informations
+        //Retrieve data min and max time
         size_t size = dataLogsLearn.back().size();
         size_t dim = dataLogsLearn.back().dimension();
         double tMin = dataLogsLearn.back()[0]("time:timestamp")/1000.0;
         double tMax = dataLogsLearn.back()[size-1]("time:timestamp")/1000.0;
+        if (dataTimeLearnMin < 0.0 || dataTimeLearnMin < tMin) {
+            dataTimeLearnMin = tMin;
+        }
+        if (dataTimeLearnMax < 0.0 || dataTimeLearnMax > tMax) {
+            dataTimeLearnMax = tMax;
+        }
+        //Print data informations
         std::cout << "Loaded Learn " << fileLogsLearn[i] << ": "
             << size << " points with " 
             << dim << " entries from t="
             << tMin << "..." << tMax << std::endl;
-        if (dataTimeLearnMin < 0.0 || dataTimeLearnMin > tMin) {
-            dataTimeLearnMin = tMin;
-        }
-        if (dataTimeLearnMax < 0.0 || dataTimeLearnMax < tMax) {
-            dataTimeLearnMax = tMax;
-        }
     }
-    for (size_t i=0;i<fileLogsTest.size();i++) {
-        dataLogsTest.push_back(Leph::MatrixLabel());
-        dataLogsTest.back().load(fileLogsTest[i]);
-        processRawDataMocapValidity(dataLogsTest.back());
-        //Print data informations
-        size_t size = dataLogsTest.back().size();
-        size_t dim = dataLogsTest.back().dimension();
-        double tMin = dataLogsTest.back()[0]("time:timestamp")/1000.0;
-        double tMax = dataLogsTest.back()[size-1]("time:timestamp")/1000.0;
-        std::cout << "Loaded Test " << fileLogsTest[i] << ": "
-            << size << " points with " 
-            << dim << " entries from t="
-            << tMin << "..." << tMax << std::endl;
-        if (dataTimeTestMin < 0.0 || dataTimeTestMin > tMin) {
-            dataTimeTestMin = tMin;
-        }
-        if (dataTimeTestMax < 0.0 || dataTimeTestMax < tMax) {
-            dataTimeTestMax = tMax;
-        }
-    }
+    //Compute data middle and length time
     std::cout << "dataTimeLearnMin=" << dataTimeLearnMin << " dataTimeLearnMax=" << dataTimeLearnMax << std::endl;
-    std::cout << "dataTimeTestMin=" << dataTimeTestMin << " dataTimeTestMax=" << dataTimeTestMax << std::endl;
-    double dataTimeLearnLength = dataTimeLearnMax - dataTimeLearnMin;
-    double dataTimeTestLength = dataTimeTestMax - dataTimeTestMin;
-    double dataTimeLearnMiddle = 0.5*dataTimeLearnMax + 0.5*dataTimeLearnMin;
-    double dataTimeTestMiddle = 0.5*dataTimeTestMax + 0.5*dataTimeTestMin;
 
-    //Shift mocap data offset to zero
-    for (size_t i=1;i<dataLogsLearn[0].size();i++) {
-        dataLogsLearn[0][i]("mocap:x") -= dataLogsLearn[0][0]("mocap:x");
-        dataLogsLearn[0][i]("mocap:y") -= dataLogsLearn[0][0]("mocap:y");
-        dataLogsLearn[0][i]("mocap:z") -= dataLogsLearn[0][0]("mocap:z");
-        dataLogsLearn[0][i]("mocap:azimuth") -= dataLogsLearn[0][0]("mocap:azimuth");
-        dataLogsLearn[0][i]("sensor:gyro_yaw") -= dataLogsLearn[0][0]("sensor:gyro_yaw");
+    //Do some data post processing
+    std::cout << "Data post processing" << std::endl;
+    for (size_t j=0;j<dataLogsLearn.size();j++) {
+        //Analyse Motion Capture data validity
+        processRawDataMocapValidity(dataLogsLearn[j]);
     }
+}
 
+/**
+ * Plot 1
+ * Show data prediction error convergence 
+ */
+static void makePlotConvergence()
+{
+    //Learn logs filename container
+    std::vector<std::string> fileLogsLearn = {
+        //Grass open loop
+        //"../../These/Data/model_2015-09-07-18-36-45.log",
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
+    };
+    
+    //Load data into MatrixLabel and post proccess it
+    double dataTimeLearnMin;
+    double dataTimeLearnMax;
+    std::vector<Leph::MatrixLabel> dataLogsLearn;
+    loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
+    double dataTimeLearnLength = dataTimeLearnMax - dataTimeLearnMin;
+    double dataTimeLearnMiddle = 0.5*dataTimeLearnMax + 0.5*dataTimeLearnMin;
+    
+    //Optimize model
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+    
+    //Generate the data statistics
     Leph::Plot plotData;
-    /*
-    for (double time=dataTimeLearnMin+8.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/20.0) {
+    for (double time=dataTimeLearnMin+5.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/15.0) {
         //Init statitics container
         std::vector<Gaussian> modelX;
         std::vector<Gaussian> modelY;
@@ -380,73 +476,63 @@ int main()
         std::vector<Gaussian> walkLearnY;
         std::vector<Gaussian> walkLearnTheta;
         for (size_t i=0;i<dataLogsLearn.size();i++) {
-            for (int k=1;k<=1;k++) {
-                //Init models
-                Leph::ModelSeries modelWithMocap;
-                Leph::ModelSeries modelNoMocap;
-                Leph::ModelSeries modelNoSensor;
-                setUpModels(dataLogsLearn[i], 
-                    modelWithMocap,
-                    modelNoMocap,
-                    modelNoSensor,
-                    true, //doOptimization
-                    false, //doLearning
-                    100, //maxIteration
-                    time, //timeLearning
-                    dataTimeLearnMiddle, //timeTesting
-                    true); //isQuiet
+            //Init models
+            Leph::ModelSeries modelWithMocap;
+            Leph::ModelSeries modelNoMocap;
+            Leph::ModelSeries modelNoSensor;
+            setUpModels(dataLogsLearn[i], true,
+                -1, -1, //Sub sequence
+                modelWithMocap,
+                modelNoMocap,
+                modelNoSensor,
+                false, //doPreLoad
+                true, //doLearning
+                time, //timeLearning
+                dataTimeLearnMiddle, //timeTesting
+                true); //isQuiet
 
-                //Lambda computing error statistics on given
-                //TimeSeries name
-                auto func = [&modelWithMocap](
-                    Leph::ModelSeries& model, 
-                    const std::string& name1, 
-                    const std::string& name2, 
-                    bool doSufixe) -> Gaussian 
-                {
-                    //Time interval
-                    double beginTime = modelWithMocap.series("mocap_x").timeMin() + 10.0;
-                    double endTime = modelWithMocap.series("mocap_x").timeMax() - 10.0;
-                    //Compute error
-                    double meanErrorLeft;
-                    double varLeft;
-                    int countLeft;
-                    double meanErrorRight;
-                    double varRight;
-                    int countRight;
-                    Leph::seriesCompare(
-                        modelWithMocap.series(name1 + "_left"), 
-                        model.series(name2 + (doSufixe ? "_left" : "")), 
-                        beginTime, endTime, 
-                        meanErrorLeft, varLeft, countLeft);
-                    Leph::seriesCompare(
-                        modelWithMocap.series(name1 + "_right"), 
-                        model.series(name2 + (doSufixe ? "_right" : "")), 
-                        beginTime, endTime, 
-                        meanErrorRight, varRight, countRight);
-                    //Return stats
-                    Gaussian stats;
-                    stats.mean = 0.5*meanErrorLeft + 0.5*meanErrorRight;
-                    stats.var = 0.5*0.5*varLeft + 0.5*0.5*varRight;
-                    stats.count = 0.5*countLeft + 0.5*countRight;
-                    return stats;
-                };
+            //Lambda computing error statistics on given
+            //TimeSeries name
+            auto func = [&modelWithMocap, &dataTimeLearnMiddle](
+                Leph::ModelSeries& model, 
+                const std::string& name1, 
+                const std::string& name2) -> Gaussian 
+            {
+                //Time interval
+                double beginTime = dataTimeLearnMiddle;
+                double endTime = modelWithMocap.series("mocap_x").timeMax() - 10.0;
+                //Compute error
+                double sumError;
+                double sumSquaredError;
+                int count;
+                Leph::seriesCompare(
+                    modelWithMocap.series(name1), 
+                    model.series(name2), 
+                    beginTime, endTime, 
+                    sumError, sumSquaredError, count);
+                //Return stats
+                Gaussian stats;
+                stats.mean = sumError/(double)count;
+                stats.var = sumSquaredError/(double)count 
+                    - pow(sumError/(double)count, 2);
+                stats.count = count;
+                return stats;
+            };
 
-                //Computing statistics
-                std::cout << "Generated time=" << time << " log=" << i << " k=" << k << std::endl;
-                modelX.push_back(func(modelNoMocap, "delta_mocap_x_on_support", "delta_head_x_on_support", true));
-                modelY.push_back(func(modelNoMocap, "delta_mocap_y_on_support", "delta_head_y_on_support", true));
-                modelTheta.push_back(func(modelNoMocap, "delta_mocap_theta_on_support", "delta_head_theta_on_support", true));
-                modelLearnX.push_back(func(modelNoMocap, "delta_mocap_x_on_support", "delta_mocap_x_on_support", true));
-                modelLearnY.push_back(func(modelNoMocap, "delta_mocap_y_on_support", "delta_mocap_y_on_support", true));
-                modelLearnTheta.push_back(func(modelNoMocap, "delta_mocap_theta_on_support", "delta_mocap_theta_on_support", true));
-                walkX.push_back(func(modelNoSensor, "delta_mocap_x_on_support", "walk_step", false));
-                walkY.push_back(func(modelNoSensor, "delta_mocap_y_on_support", "walk_lateral", false));
-                walkTheta.push_back(func(modelNoSensor, "delta_mocap_theta_on_support", "walk_turn", false));
-                walkLearnX.push_back(func(modelNoSensor, "delta_mocap_x_on_support", "delta_mocap_x_on_support", true));
-                walkLearnY.push_back(func(modelNoSensor, "delta_mocap_y_on_support", "delta_mocap_y_on_support", true));
-                walkLearnTheta.push_back(func(modelNoSensor, "delta_mocap_theta_on_support", "delta_mocap_theta_on_support", true));
-            }
+            //Computing statistics
+            std::cout << "Generated time=" << time << " log=" << i << std::endl;
+            modelX.push_back(func(modelNoMocap, "delta_mocap_x", "delta_head_x"));
+            modelY.push_back(func(modelNoMocap, "delta_mocap_y", "delta_head_y"));
+            modelTheta.push_back(func(modelNoMocap, "delta_mocap_theta", "delta_head_theta"));
+            modelLearnX.push_back(func(modelNoMocap, "delta_mocap_x", "delta_mocap_x"));
+            modelLearnY.push_back(func(modelNoMocap, "delta_mocap_y", "delta_mocap_y"));
+            modelLearnTheta.push_back(func(modelNoMocap, "delta_mocap_theta", "delta_mocap_theta"));
+            walkX.push_back(func(modelNoSensor, "delta_mocap_x", "walk_step"));
+            walkY.push_back(func(modelNoSensor, "delta_mocap_y", "walk_lateral"));
+            walkTheta.push_back(func(modelNoSensor, "delta_mocap_theta", "walk_turn"));
+            walkLearnX.push_back(func(modelNoSensor, "delta_mocap_x", "delta_mocap_x"));
+            walkLearnY.push_back(func(modelNoSensor, "delta_mocap_y", "delta_mocap_y"));
+            walkLearnTheta.push_back(func(modelNoSensor, "delta_mocap_theta", "delta_mocap_theta"));
         }
         Gaussian modelXGaussian = mergeGaussian(modelX);
         Gaussian modelYGaussian = mergeGaussian(modelY);
@@ -462,123 +548,583 @@ int main()
         Gaussian walkLearnThetaGaussian = mergeGaussian(walkLearnTheta);
         plotData.add(Leph::VectorLabel(
             "time", time,
-            "model_x_mean", modelXGaussian.mean,
-            "model_x_bound", confidenceBounds(modelXGaussian),
-            "model_y_mean", modelYGaussian.mean,
-            "model_y_bound", confidenceBounds(modelYGaussian),
-            "model_theta_mean", modelThetaGaussian.mean,
-            "model_theta_bound", confidenceBounds(modelThetaGaussian),
-            "model_learn_x_mean", modelLearnXGaussian.mean,
-            "model_learn_x_bound", confidenceBounds(modelLearnXGaussian),
-            "model_learn_y_mean", modelLearnYGaussian.mean,
-            "model_learn_y_bound", confidenceBounds(modelLearnYGaussian),
-            "model_learn_theta_mean", modelLearnThetaGaussian.mean,
-            "model_learn_theta_bound", confidenceBounds(modelLearnThetaGaussian),
-            "walk_x_mean", walkXGaussian.mean,
-            "walk_x_bound", confidenceBounds(walkXGaussian),
-            "walk_y_mean", walkYGaussian.mean,
-            "walk_y_bound", confidenceBounds(walkYGaussian),
-            "walk_theta_mean", walkThetaGaussian.mean,
-            "walk_theta_bound", confidenceBounds(walkThetaGaussian),
-            "walk_learn_x_mean", walkLearnXGaussian.mean,
-            "walk_learn_x_bound", confidenceBounds(walkLearnXGaussian),
-            "walk_learn_y_mean", walkLearnYGaussian.mean,
-            "walk_learn_y_bound", confidenceBounds(walkLearnYGaussian),
-            "walk_learn_theta_mean", walkLearnThetaGaussian.mean,
-            "walk_learn_theta_bound", confidenceBounds(walkLearnThetaGaussian)
+            "model_x", modelXGaussian.mean,
+            "model_x_error", confidenceBounds(modelXGaussian),
+            "model_y", modelYGaussian.mean,
+            "model_y_error", confidenceBounds(modelYGaussian),
+            "model_theta", modelThetaGaussian.mean,
+            "model_theta_error", confidenceBounds(modelThetaGaussian),
+            "model_learn_x", modelLearnXGaussian.mean,
+            "model_learn_x_error", confidenceBounds(modelLearnXGaussian),
+            "model_learn_y", modelLearnYGaussian.mean,
+            "model_learn_y_error", confidenceBounds(modelLearnYGaussian),
+            "model_learn_theta", modelLearnThetaGaussian.mean,
+            "model_learn_theta_error", confidenceBounds(modelLearnThetaGaussian),
+            "walk_x", walkXGaussian.mean,
+            "walk_x_error", confidenceBounds(walkXGaussian),
+            "walk_y", walkYGaussian.mean,
+            "walk_y_error", confidenceBounds(walkYGaussian),
+            "walk_theta", walkThetaGaussian.mean,
+            "walk_theta_error", confidenceBounds(walkThetaGaussian),
+            "walk_learn_x", walkLearnXGaussian.mean,
+            "walk_learn_x_error", confidenceBounds(walkLearnXGaussian),
+            "walk_learn_y", walkLearnYGaussian.mean,
+            "walk_learn_y_error", confidenceBounds(walkLearnYGaussian),
+            "walk_learn_theta", walkLearnThetaGaussian.mean,
+            "walk_learn_theta_error", confidenceBounds(walkLearnThetaGaussian)
         ));
     }
-    plotData.plot("time", "all").render();
+    plotData
+        .plot("time", "model_x", Leph::Plot::ErrorsLines, "model_x_error")
+        //.plot("time", "model_y", Leph::Plot::ErrorsLines, "model_y_error")
+        //.plot("time", "model_theta", Leph::Plot::ErrorsLines, "model_theta_error")
+        .plot("time", "model_learn_x", Leph::Plot::ErrorsLines, "model_learn_x_error")
+        //.plot("time", "model_learn_y", Leph::Plot::ErrorsLines, "model_learn_y_error")
+        //.plot("time", "model_learn_theta", Leph::Plot::ErrorsLines, "model_learn_theta_error")
+        .plot("time", "walk_x", Leph::Plot::ErrorsLines, "walk_x_error")
+        //.plot("time", "walk_y", Leph::Plot::ErrorsLines, "walk_y_error")
+        //.plot("time", "walk_theta", Leph::Plot::ErrorsLines, "walk_theta_error")
+        .plot("time", "walk_learn_x", Leph::Plot::ErrorsLines, "walk_learn_x_error")
+        //.plot("time", "walk_learn_y", Leph::Plot::ErrorsLines, "walk_learn_y_error")
+        //.plot("time", "walk_learn_theta", Leph::Plot::ErrorsLines, "walk_learn_theta_error")
+        .render();
+    plotData
+        .plot("time", "model_y", Leph::Plot::ErrorsLines, "model_y_error")
+        .plot("time", "model_learn_y", Leph::Plot::ErrorsLines, "model_learn_y_error")
+        .plot("time", "walk_y", Leph::Plot::ErrorsLines, "walk_y_error")
+        .plot("time", "walk_learn_y", Leph::Plot::ErrorsLines, "walk_learn_y_error")
+        .render();
+    plotData
+        .plot("time", "model_theta", Leph::Plot::ErrorsLines, "model_theta_error")
+        .plot("time", "model_learn_theta", Leph::Plot::ErrorsLines, "model_learn_theta_error")
+        .plot("time", "walk_theta", Leph::Plot::ErrorsLines, "walk_theta_error")
+        .plot("time", "walk_learn_theta", Leph::Plot::ErrorsLines, "walk_learn_theta_error")
+        .render();
     plotData.clear();
-    */
-    
-    //Optimize best model
-    {
-    Leph::ModelSeries tmpModelWithMocap;
-    Leph::ModelSeries tmpModelNoMocap;
-    Leph::ModelSeries tmpModelNoSensor;
-    setUpModels(dataLogsLearn.front(), 
-        tmpModelWithMocap,
-        tmpModelNoMocap,
-        tmpModelNoSensor,
-        true, //doOptimization
-        false, //doLearning
-        100, //maxIteration
-        dataTimeLearnMiddle, //timeLearning
-        dataTimeLearnMiddle, //timeTesting
-        false); //isQuiet
-    plotModels(tmpModelWithMocap, tmpModelNoMocap, tmpModelNoSensor);
-    }
-    {
-    Leph::ModelSeries tmpModelWithMocap;
-    Leph::ModelSeries tmpModelNoMocap;
-    Leph::ModelSeries tmpModelNoSensor;
-    setUpModels(dataLogsTest.front(), 
-        tmpModelWithMocap,
-        tmpModelNoMocap,
-        tmpModelNoSensor,
-        false, //doOptimization
-        false, //doLearning
-        100, //maxIteration
-        dataTimeLearnMiddle, //timeLearning
-        dataTimeLearnMiddle, //timeTesting
-        false); //isQuiet
-    plotModels(tmpModelWithMocap, tmpModelNoMocap, tmpModelNoSensor);
-    }
+}
 
-    for (size_t i=0;i<dataLogsTest.size();i++) {
+/**
+ * Plot 2
+ * Validate the quality of different methods 
+ * of odometry computations
+ */
+static void makePlotOdometry()
+{
+    //Learn logs filename container
+    std::vector<std::string> fileLogsLearn = {
+        //Grass open loop
+        "../../These/Data/model_2015-09-07-18-36-45.log",
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
+    };
+    
+    //Load data into MatrixLabel and post proccess it
+    double dataTimeLearnMin;
+    double dataTimeLearnMax;
+    std::vector<Leph::MatrixLabel> dataLogsLearn;
+    loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
+    double dataTimeLearnMiddle = 0.5*dataTimeLearnMax + 0.5*dataTimeLearnMin;
+    
+    //Optimize model
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+    /*
+    for (size_t i=1;i<dataLogsLearn.size();i++) {
         //Init models
         Leph::ModelSeries modelWithMocap;
         Leph::ModelSeries modelNoMocap;
         Leph::ModelSeries modelNoSensor;
-        setUpModels(dataLogsTest[i], 
+        std::cout << "Learning " << i << " from " 
+            << dataLogsLearn[i][dataLogsLearn[i].size()/2]("time:timestamp")/1000.0 << std::endl;
+        setUpModels(dataLogsLearn[i], true,
+            -1, -1,
             modelWithMocap,
             modelNoMocap,
             modelNoSensor,
-            false, //doOptimization
-            false, //doLearning
-            500, //maxIteration
-            dataTimeLearnMiddle, //timeLearning
-            dataTimeLearnMiddle, //timeTesting
+            true, //doPreLoad
+            true, //doLearning
+            dataLogsLearn[i][dataLogsLearn[i].size()/2]("time:timestamp")/1000.0, //timeLearning
+            dataLogsLearn[i][dataLogsLearn[i].size()/2]("time:timestamp")/1000.0, //timeTesting
+            false); //isQuiet
+    }
+    */
+    
+    Leph::Plot plotData;
+    //Odometry statistics
+    std::vector<std::vector<Gaussian>> statsDistModel;
+    std::vector<std::vector<Gaussian>> statsDistLearn;
+    std::vector<std::vector<Gaussian>> statsDistWalk;
+    std::vector<std::vector<Gaussian>> statsDistOrder;
+    std::vector<std::vector<Gaussian>> statsAngleModel;
+    std::vector<std::vector<Gaussian>> statsAngleLearn;
+    std::vector<std::vector<Gaussian>> statsAngleWalk;
+    std::vector<std::vector<Gaussian>> statsAngleOrder;
+    for (size_t i=0;i<dataLogsLearn.size();i++) {
+        //Optimize Model
+        std::cout << "Learning log " << i << std::endl;
+        /*
+        Leph::ModelSeries modelWithMocap;
+        Leph::ModelSeries modelNoMocap;
+        Leph::ModelSeries modelNoSensor;
+        setUpModels(dataLogsLearn[i], false,
+            -1, -1,
+            modelWithMocap,
+            modelNoMocap,
+            modelNoSensor,
+            false, //doPreLoad
+            true, //doLearning
+            -1, //timeLearning
+            -1, //timeTesting
             true); //isQuiet
-
-        //Lambda computing cartesian distance between real mocap position 
-        //and integreted one at given time.
-        auto funcPos = [&modelWithMocap](
-            Leph::ModelSeries& model, 
-            const std::string& name, 
-            double time) -> double 
-        {
-            if (
-                !modelWithMocap.series("integrated_mocap_x").isTimeValid(time) ||
-                !modelWithMocap.series("integrated_mocap_y").isTimeValid(time) ||
-                !model.series(name + "_x").isTimeValid(time) ||
-                !model.series(name + "_y").isTimeValid(time)
-            ) {
-                return -1.0;
+        */
+        //Inspect learning data logs
+        //plotModels(modelWithMocap, modelNoMocap, modelNoSensor);
+        //Cutting learn data into tests sequences
+        std::vector<std::pair<size_t, size_t>> seqs = processCutSequences(dataLogsLearn[i]);
+        //For all test sequences
+        for (size_t j=0;j<seqs.size();j++) {
+            size_t len = seqs[j].second-seqs[j].first;
+            std::cout << "Log=" << i << " Sequence length=" 
+                << len/50.0 << " Start=" << seqs[j].first << std::endl;
+            //Load model
+            Leph::ModelSeries tmpModelWithMocap;
+            Leph::ModelSeries tmpModelNoMocap;
+            Leph::ModelSeries tmpModelNoSensor;
+            setUpModels(dataLogsLearn[i], true,
+                seqs[j].first, seqs[j].second,
+                tmpModelWithMocap,
+                tmpModelNoMocap,
+                tmpModelNoSensor,
+                false, //doPreLoad
+                false, //doLearning
+                dataTimeLearnMiddle, //timeLearning
+                dataTimeLearnMiddle, //timeTesting
+                true); //isQuiet
+            //Compute odometry cartesian errors
+            double timeMin = tmpModelNoSensor.series("integrated_mocap_x").timeMin();
+            double timeMax = tmpModelNoSensor.series("integrated_mocap_x").timeMax();
+            size_t index = 0;
+            while (timeMin + index*1.0 + 1.0 < timeMax) {
+                double time = timeMin + index*1.0 + 1.0;
+                while (statsDistModel.size() < index+1) statsDistModel.push_back(std::vector<Gaussian>());
+                while (statsDistLearn.size() < index+1) statsDistLearn.push_back(std::vector<Gaussian>());
+                while (statsDistWalk.size() < index+1) statsDistWalk.push_back(std::vector<Gaussian>());
+                while (statsDistOrder.size() < index+1) statsDistOrder.push_back(std::vector<Gaussian>());
+                while (statsAngleModel.size() < index+1) statsAngleModel.push_back(std::vector<Gaussian>());
+                while (statsAngleLearn.size() < index+1) statsAngleLearn.push_back(std::vector<Gaussian>());
+                while (statsAngleWalk.size() < index+1) statsAngleWalk.push_back(std::vector<Gaussian>());
+                while (statsAngleOrder.size() < index+1) statsAngleOrder.push_back(std::vector<Gaussian>());
+                double mocapX = tmpModelWithMocap.series("integrated_mocap_x").get(time);
+                double mocapY = tmpModelWithMocap.series("integrated_mocap_y").get(time);
+                double modelX = tmpModelNoMocap.series("integrated_head_x").get(time);
+                double modelY = tmpModelNoMocap.series("integrated_head_y").get(time);
+                double learnX = tmpModelNoMocap.series("integrated_mocap_x").get(time);
+                double learnY = tmpModelNoMocap.series("integrated_mocap_y").get(time);
+                double walkX = tmpModelNoSensor.series("integrated_mocap_x").get(time);
+                double walkY = tmpModelNoSensor.series("integrated_mocap_y").get(time);
+                double orderX = tmpModelNoSensor.series("integrated_walk_x").get(time);
+                double orderY = tmpModelNoSensor.series("integrated_walk_y").get(time);
+                double distModel = sqrt(pow(mocapX-modelX, 2) + pow(mocapY-modelY, 2));
+                double distLearn = sqrt(pow(mocapX-learnX, 2) + pow(mocapY-learnY, 2));
+                double distWalk = sqrt(pow(mocapX-walkX, 2) + pow(mocapY-walkY, 2));
+                double distOrder = sqrt(pow(mocapX-orderX, 2) + pow(mocapY-orderY, 2));
+                double mocapAngle = tmpModelWithMocap.series("integrated_mocap_theta").get(time);
+                double modelAngle = tmpModelNoMocap.series("integrated_head_theta").get(time);
+                double learnAngle = tmpModelNoMocap.series("integrated_mocap_theta").get(time);
+                double walkAngle = tmpModelNoSensor.series("integrated_mocap_theta").get(time);
+                double orderAngle = tmpModelNoSensor.series("integrated_walk_theta").get(time);
+                double distModelAngle = fabs(Leph::AngleDistance(mocapAngle, modelAngle));
+                double distLearnAngle = fabs(Leph::AngleDistance(mocapAngle, learnAngle));
+                double distWalkAngle = fabs(Leph::AngleDistance(mocapAngle, walkAngle));
+                double distOrderAngle = fabs(Leph::AngleDistance(mocapAngle, orderAngle));
+                statsDistModel[index].push_back({distModel, 0.0, 1.0});
+                statsDistLearn[index].push_back({distLearn, 0.0, 1.0});
+                statsDistWalk[index].push_back({distWalk, 0.0, 1.0});
+                statsDistOrder[index].push_back({distOrder, 0.0, 1.0});
+                statsAngleModel[index].push_back({distModelAngle, 0.0, 1.0});
+                statsAngleLearn[index].push_back({distLearnAngle, 0.0, 1.0});
+                statsAngleWalk[index].push_back({distWalkAngle, 0.0, 1.0});
+                statsAngleOrder[index].push_back({distOrderAngle, 0.0, 1.0});
+                index++;
             }
-            double mocapX = modelWithMocap.series("integrated_mocap_x").get(time);
-            double mocapY = modelWithMocap.series("integrated_mocap_y").get(time);
-            double posX = model.series(name + "_x").get(time);
-            double posY = model.series(name + "_y").get(time);
-
-            return sqrt(pow(mocapX-posX, 2) + pow(mocapY-posY, 2));
-        }; 
-
-        size_t indexUp = modelWithMocap.series("integrated_mocap_x").size();
-        size_t indexLow = 0;
-        for (size_t j=indexLow;j<indexUp;j++) {
-            double t = modelWithMocap.series("integrated_mocap_x").at(j).time;
-            plotData.add(Leph::VectorLabel(
-                "time", t,
-                "model", funcPos(modelNoMocap, "integrated_head", t),
-                "model_learn", funcPos(modelNoMocap, "integrated_mocap", t),
-                "walk_learn", funcPos(modelNoSensor, "integrated_mocap", t)
-            ));
+            //plotModels(tmpModelWithMocap, tmpModelNoMocap, tmpModelNoSensor, true);
         }
     }
-    plotData.plot("time", "all").render();
+    //Merge computed statistics
+    for (size_t j=0;j<statsDistModel.size();j++) {
+        Gaussian mergedDistModel = mergeGaussian(statsDistModel[j]);
+        Gaussian mergedDistLearn = mergeGaussian(statsDistLearn[j]);
+        Gaussian mergedDistWalk = mergeGaussian(statsDistWalk[j]);
+        Gaussian mergedDistOrder = mergeGaussian(statsDistOrder[j]);
+        Gaussian mergedAngleModel = mergeGaussian(statsAngleModel[j]);
+        Gaussian mergedAngleLearn = mergeGaussian(statsAngleLearn[j]);
+        Gaussian mergedAngleWalk = mergeGaussian(statsAngleWalk[j]);
+        Gaussian mergedAngleOrder = mergeGaussian(statsAngleOrder[j]);
+        std::cout << "time=" << j*1.0+1.0 << " count=" << statsDistModel[j].size() << std::endl;
+        if (statsDistModel[j].size() < 5) {
+            std::cout << "WARNING low statistics" << std::endl;
+        }
+        plotData.add(Leph::VectorLabel(
+            "time", j*1.0+1.0,
+            "model_dist", mergedDistModel.mean,
+            "model_dist_error", confidenceBounds(mergedDistModel),
+            "learn_dist", mergedDistLearn.mean,
+            "learn_dist_error", confidenceBounds(mergedDistLearn),
+            "walk_dist", mergedDistWalk.mean,
+            "walk_dist_error", confidenceBounds(mergedDistWalk),
+            "order_dist", mergedDistOrder.mean,
+            "order_dist_error", confidenceBounds(mergedDistOrder),
+            "model_angle", mergedAngleModel.mean,
+            "model_angle_error", confidenceBounds(mergedAngleModel),
+            "learn_angle", mergedAngleLearn.mean,
+            "learn_angle_error", confidenceBounds(mergedAngleLearn),
+            "walk_angle", mergedAngleWalk.mean,
+            "walk_angle_error", confidenceBounds(mergedAngleWalk),
+            "order_angle", mergedAngleOrder.mean,
+            "order_angle_error", confidenceBounds(mergedAngleOrder)
+        ));
+    }
+    //Plot
+    plotData
+        .plot("time", "model_dist", Leph::Plot::ErrorsLines, "model_dist_error")
+        .plot("time", "learn_dist", Leph::Plot::ErrorsLines, "learn_dist_error")
+        .plot("time", "walk_dist", Leph::Plot::ErrorsLines, "walk_dist_error")
+        .plot("time", "order_dist", Leph::Plot::ErrorsLines, "order_dist_error")
+        .render();
+    plotData
+        .plot("time", "model_angle", Leph::Plot::ErrorsLines, "model_angle_error")
+        .plot("time", "learn_angle", Leph::Plot::ErrorsLines, "learn_angle_error")
+        .plot("time", "walk_angle", Leph::Plot::ErrorsLines, "walk_angle_error")
+        .plot("time", "order_angle", Leph::Plot::ErrorsLines, "order_angle_error")
+        .render();
     plotData.clear();
+}
+
+/**
+ * Plot 3
+ * Show typical 2d cartesian odometry trajectories
+ */
+static void makePlotTrajectory()
+{
+    //Learn logs filename container
+    std::vector<std::string> fileLogsLearn = {
+        //Grass open loop
+        "../../These/Data/model_2015-09-07-18-36-45.log",
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
+    };
+    
+    //Load data into MatrixLabel and post proccess it
+    double dataTimeLearnMin;
+    double dataTimeLearnMax;
+    std::vector<Leph::MatrixLabel> dataLogsLearn;
+    loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
+    
+    //Optimize model
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+
+    //Display some of trajectory
+    for (size_t i=0;i<dataLogsLearn.size();i++) {
+        //Cutting learn data into tests sequences
+        std::vector<std::pair<size_t, size_t>> seqs = processCutSequences(dataLogsLearn[i]);
+        //For all test sequences
+        for (size_t j=0;j<seqs.size();j++) {
+            if (
+                (i == 0 && j == 9) ||
+                (i == 0 && j == 10) ||
+                (i == 1 && j == 5) ||
+                (i == 1 && j == 7) ||
+                (i == 2 && j == 2) ||
+                (i == 2 && j == 4)
+            ) {
+                size_t len = seqs[j].second-seqs[j].first;
+                std::cout << "Log=" << i << " Sequence length=" 
+                    << len/50.0 << " Start=" << seqs[j].first << std::endl;
+                //Load model
+                Leph::ModelSeries tmpModelWithMocap;
+                Leph::ModelSeries tmpModelNoMocap;
+                Leph::ModelSeries tmpModelNoSensor;
+                setUpModels(dataLogsLearn[i], true,
+                    seqs[j].first, seqs[j].second,
+                    tmpModelWithMocap,
+                    tmpModelNoMocap,
+                    tmpModelNoSensor,
+                    false, //doPreLoad
+                    false, //doLearning
+                    0, //timeLearning
+                    0, //timeTesting
+                    true); //isQuiet
+                plotModels(tmpModelWithMocap, tmpModelNoMocap, tmpModelNoSensor, true);
+            }
+        }
+    }
+}
+
+/**
+ * Plot 4
+ * Show difference between closed/open
+ * loop and carpet/grass
+ */
+static void makePlotCompare()
+{
+    //Learn logs filename container
+    std::vector<std::string> fileLogsGrassOpen = {
+        //Grass open loop
+        "../../These/Data/model_2015-09-07-18-36-45.log",
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
+    };
+    std::vector<std::string> fileLogsGrassClose = {
+        //Grass close loop
+        "../../These/Data/model_2015-09-08-12-34-30.log",
+        "../../These/Data/model_2015-09-08-12-43-20.log",
+        "../../These/Data/model_2015-09-08-12-57-14.log",
+        "../../These/Data/model_2015-09-08-13-00-55.log",
+        "../../These/Data/model_2015-09-08-13-08-03.log",
+        "../../These/Data/model_2015-09-08-13-14-43.log",
+    };
+    std::vector<std::string> fileLogsCarpetOpen = {
+        //Carpet open loop
+        "../../These/Data/model_2015-09-07-22-50-54.log",
+        "../../These/Data/model_2015-09-07-23-02-59.log",
+        "../../These/Data/model_2015-09-07-23-13-14.log",
+        "../../These/Data/model_2015-09-07-23-29-48.log",
+        "../../These/Data/model_2015-09-07-23-44-20.log",
+    };
+    std::vector<std::string> fileLogsCarpetClose = {
+        //Carpet close loop
+        "../../These/Data/model_2015-09-08-14-59-11.log",
+        "../../These/Data/model_2015-09-08-15-07-29.log",
+        "../../These/Data/model_2015-09-08-15-14-19.log",
+        "../../These/Data/model_2015-09-08-15-27-13.log",
+    };
+    
+    //Load data into MatrixLabel and post proccess it
+    double dataTimeMinGrassOpen;
+    double dataTimeMaxGrassOpen;
+    std::vector<Leph::MatrixLabel> dataLogsGrassOpen;
+    loadDataFiles(fileLogsGrassOpen, dataLogsGrassOpen, dataTimeMinGrassOpen, dataTimeMaxGrassOpen);
+    double dataTimeMinGrassClose;
+    double dataTimeMaxGrassClose;
+    std::vector<Leph::MatrixLabel> dataLogsGrassClose;
+    loadDataFiles(fileLogsGrassClose, dataLogsGrassClose, dataTimeMinGrassClose, dataTimeMaxGrassClose);
+    double dataTimeMinCarpetOpen;
+    double dataTimeMaxCarpetOpen;
+    std::vector<Leph::MatrixLabel> dataLogsCarpetOpen;
+    loadDataFiles(fileLogsCarpetOpen, dataLogsCarpetOpen, dataTimeMinCarpetOpen, dataTimeMaxCarpetOpen);
+    double dataTimeMinCarpetClose;
+    double dataTimeMaxCarpetClose;
+    std::vector<Leph::MatrixLabel> dataLogsCarpetClose;
+    loadDataFiles(fileLogsCarpetClose, dataLogsCarpetClose, dataTimeMinCarpetClose, dataTimeMaxCarpetClose);
+
+    //
+    auto func = [](const std::vector<Leph::MatrixLabel>& dataLogs, bool invMocap)
+    {
+        //Optimize model
+        computeAndFindMetaParameters(dataLogs[0], invMocap, 100, 1);
+        Leph::Plot plotData;
+        //Odometry statistics
+        std::vector<std::vector<Gaussian>> statsDistModel;
+        std::vector<std::vector<Gaussian>> statsDistLearn;
+        std::vector<std::vector<Gaussian>> statsDistWalk;
+        std::vector<std::vector<Gaussian>> statsDistOrder;
+        std::vector<std::vector<Gaussian>> statsAngleModel;
+        std::vector<std::vector<Gaussian>> statsAngleLearn;
+        std::vector<std::vector<Gaussian>> statsAngleWalk;
+        std::vector<std::vector<Gaussian>> statsAngleOrder;
+        for (size_t i=0;i<dataLogs.size();i++) {
+            //Optimize Model
+            std::cout << "Learning log " << i << std::endl;
+            //Cutting learn data into tests sequences
+            std::vector<std::pair<size_t, size_t>> seqs = processCutSequences(dataLogs[i]);
+            //For all test sequences
+            for (size_t j=0;j<seqs.size();j++) {
+                size_t len = seqs[j].second-seqs[j].first;
+                std::cout << "Log=" << i << " Sequence length=" 
+                    << len/50.0 << " Start=" << seqs[j].first << std::endl;
+                //Load model
+                Leph::ModelSeries tmpModelWithMocap;
+                Leph::ModelSeries tmpModelNoMocap;
+                Leph::ModelSeries tmpModelNoSensor;
+                setUpModels(dataLogs[i], invMocap,
+                    seqs[j].first, seqs[j].second,
+                    tmpModelWithMocap,
+                    tmpModelNoMocap,
+                    tmpModelNoSensor,
+                    false, //doPreLoad
+                    false, //doLearning
+                    0, //timeLearning
+                    0, //timeTesting
+                    true); //isQuiet
+                //Compute odometry cartesian errors
+                double timeMin = tmpModelNoSensor.series("integrated_mocap_x").timeMin();
+                double timeMax = tmpModelNoSensor.series("integrated_mocap_x").timeMax();
+                size_t index = 0;
+                while (timeMin + index*1.0 + 1.0 < timeMax) {
+                    double time = timeMin + index*1.0 + 1.0;
+                    while (statsDistModel.size() < index+1) statsDistModel.push_back(std::vector<Gaussian>());
+                    while (statsDistLearn.size() < index+1) statsDistLearn.push_back(std::vector<Gaussian>());
+                    while (statsDistWalk.size() < index+1) statsDistWalk.push_back(std::vector<Gaussian>());
+                    while (statsDistOrder.size() < index+1) statsDistOrder.push_back(std::vector<Gaussian>());
+                    while (statsAngleModel.size() < index+1) statsAngleModel.push_back(std::vector<Gaussian>());
+                    while (statsAngleLearn.size() < index+1) statsAngleLearn.push_back(std::vector<Gaussian>());
+                    while (statsAngleWalk.size() < index+1) statsAngleWalk.push_back(std::vector<Gaussian>());
+                    while (statsAngleOrder.size() < index+1) statsAngleOrder.push_back(std::vector<Gaussian>());
+                    double mocapX = tmpModelWithMocap.series("integrated_mocap_x").get(time);
+                    double mocapY = tmpModelWithMocap.series("integrated_mocap_y").get(time);
+                    double modelX = tmpModelNoMocap.series("integrated_head_x").get(time);
+                    double modelY = tmpModelNoMocap.series("integrated_head_y").get(time);
+                    double learnX = tmpModelNoMocap.series("integrated_mocap_x").get(time);
+                    double learnY = tmpModelNoMocap.series("integrated_mocap_y").get(time);
+                    double walkX = tmpModelNoSensor.series("integrated_mocap_x").get(time);
+                    double walkY = tmpModelNoSensor.series("integrated_mocap_y").get(time);
+                    double orderX = tmpModelNoSensor.series("integrated_walk_x").get(time);
+                    double orderY = tmpModelNoSensor.series("integrated_walk_y").get(time);
+                    double distModel = sqrt(pow(mocapX-modelX, 2) + pow(mocapY-modelY, 2));
+                    double distLearn = sqrt(pow(mocapX-learnX, 2) + pow(mocapY-learnY, 2));
+                    double distWalk = sqrt(pow(mocapX-walkX, 2) + pow(mocapY-walkY, 2));
+                    double distOrder = sqrt(pow(mocapX-orderX, 2) + pow(mocapY-orderY, 2));
+                    double mocapAngle = tmpModelWithMocap.series("integrated_mocap_theta").get(time);
+                    double modelAngle = tmpModelNoMocap.series("integrated_head_theta").get(time);
+                    double learnAngle = tmpModelNoMocap.series("integrated_mocap_theta").get(time);
+                    double walkAngle = tmpModelNoSensor.series("integrated_mocap_theta").get(time);
+                    double orderAngle = tmpModelNoSensor.series("integrated_walk_theta").get(time);
+                    double distModelAngle = fabs(Leph::AngleDistance(mocapAngle, modelAngle));
+                    double distLearnAngle = fabs(Leph::AngleDistance(mocapAngle, learnAngle));
+                    double distWalkAngle = fabs(Leph::AngleDistance(mocapAngle, walkAngle));
+                    double distOrderAngle = fabs(Leph::AngleDistance(mocapAngle, orderAngle));
+                    statsDistModel[index].push_back({distModel, 0.0, 1.0});
+                    statsDistLearn[index].push_back({distLearn, 0.0, 1.0});
+                    statsDistWalk[index].push_back({distWalk, 0.0, 1.0});
+                    statsDistOrder[index].push_back({distOrder, 0.0, 1.0});
+                    statsAngleModel[index].push_back({distModelAngle, 0.0, 1.0});
+                    statsAngleLearn[index].push_back({distLearnAngle, 0.0, 1.0});
+                    statsAngleWalk[index].push_back({distWalkAngle, 0.0, 1.0});
+                    statsAngleOrder[index].push_back({distOrderAngle, 0.0, 1.0});
+                    index++;
+                }
+            }
+        }
+        //Merge computed statistics
+        for (size_t j=0;j<statsDistModel.size();j++) {
+            Gaussian mergedDistModel = mergeGaussian(statsDistModel[j]);
+            Gaussian mergedDistLearn = mergeGaussian(statsDistLearn[j]);
+            Gaussian mergedDistWalk = mergeGaussian(statsDistWalk[j]);
+            Gaussian mergedDistOrder = mergeGaussian(statsDistOrder[j]);
+            Gaussian mergedAngleModel = mergeGaussian(statsAngleModel[j]);
+            Gaussian mergedAngleLearn = mergeGaussian(statsAngleLearn[j]);
+            Gaussian mergedAngleWalk = mergeGaussian(statsAngleWalk[j]);
+            Gaussian mergedAngleOrder = mergeGaussian(statsAngleOrder[j]);
+            std::cout << "time=" << j*1.0+1.0 << " count=" << statsDistModel[j].size() << std::endl;
+            if (statsDistModel[j].size() < 5) {
+                std::cout << "WARNING low statistics" << std::endl;
+            }
+            plotData.add(Leph::VectorLabel(
+                "time", j*1.0+1.0,
+                "model_dist", mergedDistModel.mean,
+                "model_dist_error", confidenceBounds(mergedDistModel),
+                "learn_dist", mergedDistLearn.mean,
+                "learn_dist_error", confidenceBounds(mergedDistLearn),
+                "walk_dist", mergedDistWalk.mean,
+                "walk_dist_error", confidenceBounds(mergedDistWalk),
+                "order_dist", mergedDistOrder.mean,
+                "order_dist_error", confidenceBounds(mergedDistOrder),
+                "model_angle", mergedAngleModel.mean,
+                "model_angle_error", confidenceBounds(mergedAngleModel),
+                "learn_angle", mergedAngleLearn.mean,
+                "learn_angle_error", confidenceBounds(mergedAngleLearn),
+                "walk_angle", mergedAngleWalk.mean,
+                "walk_angle_error", confidenceBounds(mergedAngleWalk),
+                "order_angle", mergedAngleOrder.mean,
+                "order_angle_error", confidenceBounds(mergedAngleOrder)
+            ));
+        }
+        //Plot
+        plotData
+            .plot("time", "model_dist", Leph::Plot::ErrorsLines, "model_dist_error")
+            .plot("time", "learn_dist", Leph::Plot::ErrorsLines, "learn_dist_error")
+            .plot("time", "walk_dist", Leph::Plot::ErrorsLines, "walk_dist_error")
+            .plot("time", "order_dist", Leph::Plot::ErrorsLines, "order_dist_error")
+            .render();
+        plotData
+            .plot("time", "model_angle", Leph::Plot::ErrorsLines, "model_angle_error")
+            .plot("time", "learn_angle", Leph::Plot::ErrorsLines, "learn_angle_error")
+            .plot("time", "walk_angle", Leph::Plot::ErrorsLines, "walk_angle_error")
+            .plot("time", "order_angle", Leph::Plot::ErrorsLines, "order_angle_error")
+            .render();
+        plotData.clear();
+    };
+    func(dataLogsGrassOpen, true); 
+    func(dataLogsGrassClose, false); 
+    func(dataLogsCarpetOpen, true); 
+    func(dataLogsCarpetClose, false); 
+}
+
+int main()
+{
+    makePlotConvergence();
+    makePlotOdometry();
+    makePlotTrajectory();
+    makePlotCompare();
+    return 0;
+
+    //Learn logs filename container
+    std::vector<std::string> fileLogsLearn = {
+        //Grass closed loop long log do not fall continuous
+        /*
+        "../../These/Data/model_2015-09-08-19-03-42.log",
+        "../../These/Data/model_2015-09-08-19-07-21.log",
+        "../../These/Data/model_2015-09-08-19-11-27.log",
+        "../../These/Data/model_2015-09-08-19-16-07.log",
+        */
+
+        //Carpet closed loop
+        "../../These/Data/model_2015-09-08-14-59-11.log",
+        "../../These/Data/model_2015-09-08-15-07-29.log",
+        "../../These/Data/model_2015-09-08-15-14-19.log",
+        "../../These/Data/model_2015-09-08-15-27-13.log",
+
+        //Grass with closed loop
+        /*
+        "../../These/Data/model_2015-09-08-12-34-30.log",
+        "../../These/Data/model_2015-09-08-12-43-20.log",
+        "../../These/Data/model_2015-09-08-12-57-14.log",
+        "../../These/Data/model_2015-09-08-13-00-55.log",
+        "../../These/Data/model_2015-09-08-13-08-03.log",
+        "../../These/Data/model_2015-09-08-13-14-43.log",
+        */
+
+        //Carpet
+        /*
+        "../../These/Data/model_2015-09-07-22-50-54.log",
+        "../../These/Data/model_2015-09-07-23-02-59.log",
+        "../../These/Data/model_2015-09-07-23-13-14.log",
+        "../../These/Data/model_2015-09-07-23-29-48.log",
+        "../../These/Data/model_2015-09-07-23-44-20.log",
+        */
+
+        //Artificial grass
+        /*
+        "../../These/Data/model_2015-09-07-18-36-45.log",
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
+        */
+        
+        //IUT
+        /*
+        "../../These/Data/model_2015-09-02-17-52-53.log",
+        "../../These/Data/model_2015-09-02-18-02-44.log",
+        "../../These/Data/model_2015-09-02-18-13-59.log",
+        "../../These/Data/model_2015-09-02-16-58-24.log",
+        */
+    };
 
     return 0;
 }

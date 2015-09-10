@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <limits>
+#include "Utils/LWPRUtils.h"
 #include "TimeSeries/TimeSeries.hpp"
 #include "TimeSeries/Concept.hpp"
 #include "TimeSeries/RegressionLWPR.hpp"
@@ -237,15 +238,34 @@ class ModelSeries
          * Run parameters optimization on all registered
          * regressions with given learn and test bound time and
          * maximum of iterations.
+         * The optimization is run retry times and then found
+         * parameters are saved in given folder path
+         * (with trailling '/').
          */
         inline void regressionsOptimizeParameters(
             double beginLearnTime, double endLearnTime,
             double beginTestTime, double endTestTime,
-            int maxIteration, bool isQuiet) 
+            int maxIteration, bool isQuiet,
+            int retry = 1, const std::string& folderPath = "/tmp/") 
         {
             for (auto& model : _regressions) {
-                model.second->optimizeParameters(beginLearnTime, endLearnTime, 
-                    beginTestTime, endTestTime, maxIteration, isQuiet);
+                std::cout << "Optimizing regression " << model.first << std::endl;
+                std::string filepath = folderPath + model.first + ".params";
+                double minError = -1.0;
+                for (int k=1;k<=retry;k++) {
+                    model.second->optimizeParameters(
+                        beginLearnTime, endLearnTime, 
+                        beginTestTime, endTestTime, 
+                        maxIteration, isQuiet);
+                    double error = model.second->rangeMSE(
+                        beginTestTime, endTestTime);
+                    std::cout << "CurrentMSE: " << error << " BestMSE: " 
+                        << minError << " retry=" << k << std::endl;
+                    if (minError < 0.0 || minError > error) {
+                        minError = error;
+                        model.second->parameterSave(filepath);
+                    }
+                }
             }
         }
 

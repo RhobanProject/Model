@@ -71,7 +71,8 @@ void initModelSeries(Leph::ModelSeries& model,
 void appendModelSeries(
     Leph::ModelSeries& model, 
     double time, 
-    const Leph::VectorLabel& logs);
+    const Leph::VectorLabel& logs,
+    bool invMocap);
 
 }
 
