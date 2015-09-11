@@ -32,6 +32,11 @@ namespace Leph {
     GrobanToePressureModel::~GrobanToePressureModel()
     {
     }
+
+  const std::string & GrobanToePressureModel::getBasename() const
+    {
+      return currentSupport;
+    }
   
     HumanoidModelWithToe& GrobanToePressureModel::get()
     {

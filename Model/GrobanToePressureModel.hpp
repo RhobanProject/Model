@@ -30,6 +30,8 @@ namespace Leph {
     HumanoidModelWithToe& get();
     const HumanoidModelWithToe& get() const;
 
+    const std::string & getBasename() const;
+
     /**
      * Set current pressure state for a given tag
      */

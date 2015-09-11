@@ -138,6 +138,7 @@ set(TESTS_FILES
     testIterativeLearningControl
     testGrobanToe
     testGrobanToePressure
+    testToeWalk
 )
 
 #Applications main files
