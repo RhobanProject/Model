@@ -440,12 +440,12 @@ static void makePlotConvergence()
 {
     //Learn logs filename container
     std::vector<std::string> fileLogsLearn = {
-        //Grass open loop
-        //"../../These/Data/model_2015-09-07-18-36-45.log",
-        "../../These/Data/model_2015-09-07-18-56-56.log",
-        "../../These/Data/model_2015-09-07-19-08-06.log",
-        "../../These/Data/model_2015-09-07-19-22-53.log",
-        "../../These/Data/model_2015-09-07-19-31-25.log",
+        "../../These/Data/model_2015-09-08-12-34-30.log",
+        "../../These/Data/model_2015-09-08-12-43-20.log",
+        "../../These/Data/model_2015-09-08-12-57-14.log",
+        "../../These/Data/model_2015-09-08-13-00-55.log",
+        "../../These/Data/model_2015-09-08-13-08-03.log",
+        "../../These/Data/model_2015-09-08-13-14-43.log",
     };
     
     //Load data into MatrixLabel and post proccess it
@@ -454,14 +454,14 @@ static void makePlotConvergence()
     std::vector<Leph::MatrixLabel> dataLogsLearn;
     loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
     double dataTimeLearnLength = dataTimeLearnMax - dataTimeLearnMin;
-    double dataTimeLearnMiddle = 0.5*dataTimeLearnMax + 0.5*dataTimeLearnMin;
+    double dataTimeLearnMiddle = 0.75*dataTimeLearnMax + 0.25*dataTimeLearnMin;
     
     //Optimize model
-    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+    computeAndFindMetaParameters(dataLogsLearn[0], false, 100, 1);
     
     //Generate the data statistics
     Leph::Plot plotData;
-    for (double time=dataTimeLearnMin+5.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/15.0) {
+    for (double time=dataTimeLearnMin+5.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/30.0) {
         //Init statitics container
         std::vector<Gaussian> modelX;
         std::vector<Gaussian> modelY;
@@ -480,7 +480,7 @@ static void makePlotConvergence()
             Leph::ModelSeries modelWithMocap;
             Leph::ModelSeries modelNoMocap;
             Leph::ModelSeries modelNoSensor;
-            setUpModels(dataLogsLearn[i], true,
+            setUpModels(dataLogsLearn[i], false,
                 -1, -1, //Sub sequence
                 modelWithMocap,
                 modelNoMocap,
@@ -576,17 +576,9 @@ static void makePlotConvergence()
     }
     plotData
         .plot("time", "model_x", Leph::Plot::ErrorsLines, "model_x_error")
-        //.plot("time", "model_y", Leph::Plot::ErrorsLines, "model_y_error")
-        //.plot("time", "model_theta", Leph::Plot::ErrorsLines, "model_theta_error")
         .plot("time", "model_learn_x", Leph::Plot::ErrorsLines, "model_learn_x_error")
-        //.plot("time", "model_learn_y", Leph::Plot::ErrorsLines, "model_learn_y_error")
-        //.plot("time", "model_learn_theta", Leph::Plot::ErrorsLines, "model_learn_theta_error")
         .plot("time", "walk_x", Leph::Plot::ErrorsLines, "walk_x_error")
-        //.plot("time", "walk_y", Leph::Plot::ErrorsLines, "walk_y_error")
-        //.plot("time", "walk_theta", Leph::Plot::ErrorsLines, "walk_theta_error")
         .plot("time", "walk_learn_x", Leph::Plot::ErrorsLines, "walk_learn_x_error")
-        //.plot("time", "walk_learn_y", Leph::Plot::ErrorsLines, "walk_learn_y_error")
-        //.plot("time", "walk_learn_theta", Leph::Plot::ErrorsLines, "walk_learn_theta_error")
         .render();
     plotData
         .plot("time", "model_y", Leph::Plot::ErrorsLines, "model_y_error")
@@ -660,7 +652,7 @@ static void makePlotOdometry()
     std::vector<std::vector<Gaussian>> statsAngleLearn;
     std::vector<std::vector<Gaussian>> statsAngleWalk;
     std::vector<std::vector<Gaussian>> statsAngleOrder;
-    for (size_t i=0;i<dataLogsLearn.size();i++) {
+    for (size_t i=1;i<dataLogsLearn.size();i++) {
         //Optimize Model
         std::cout << "Learning log " << i << std::endl;
         /*
@@ -937,7 +929,7 @@ static void makePlotCompare()
         std::vector<std::vector<Gaussian>> statsAngleLearn;
         std::vector<std::vector<Gaussian>> statsAngleWalk;
         std::vector<std::vector<Gaussian>> statsAngleOrder;
-        for (size_t i=0;i<dataLogs.size();i++) {
+        for (size_t i=1;i<dataLogs.size();i++) {
             //Optimize Model
             std::cout << "Learning log " << i << std::endl;
             //Cutting learn data into tests sequences
