@@ -356,7 +356,7 @@ static void plotModels(
  * data logs and save then in /tmp folder
  */
 static void computeAndFindMetaParameters(const Leph::MatrixLabel& logs, bool invMocap,
-    int maxIteration, int retry)
+    int maxIteration, int retry, bool doFullLearning = false)
 {
     //Initialize ModelSeries
     Leph::ModelSeries modelWithMocap;
@@ -381,6 +381,10 @@ static void computeAndFindMetaParameters(const Leph::MatrixLabel& logs, bool inv
         beginTestTime, endTestTime, 
         maxIteration, true,
         retry, "/tmp/");
+    //Learn and log part
+    if (doFullLearning) {
+        modelWithMocap.regressionsLearn(endLearnTime, endTestTime);
+    }
     //Saving Regressions
     modelWithMocap.regressionsSave("/tmp/");
 }
@@ -605,10 +609,10 @@ static void makePlotOdometry()
     //Learn logs filename container
     std::vector<std::string> fileLogsLearn = {
         //Grass open loop
+        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-18-36-45.log",
         "../../These/Data/model_2015-09-07-18-56-56.log",
         "../../These/Data/model_2015-09-07-19-08-06.log",
-        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-19-31-25.log",
     };
     
@@ -617,10 +621,9 @@ static void makePlotOdometry()
     double dataTimeLearnMax;
     std::vector<Leph::MatrixLabel> dataLogsLearn;
     loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
-    double dataTimeLearnMiddle = 0.5*dataTimeLearnMax + 0.5*dataTimeLearnMin;
     
     //Optimize model
-    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1, true);
     /*
     for (size_t i=1;i<dataLogsLearn.size();i++) {
         //Init models
@@ -655,23 +658,6 @@ static void makePlotOdometry()
     for (size_t i=1;i<dataLogsLearn.size();i++) {
         //Optimize Model
         std::cout << "Learning log " << i << std::endl;
-        /*
-        Leph::ModelSeries modelWithMocap;
-        Leph::ModelSeries modelNoMocap;
-        Leph::ModelSeries modelNoSensor;
-        setUpModels(dataLogsLearn[i], false,
-            -1, -1,
-            modelWithMocap,
-            modelNoMocap,
-            modelNoSensor,
-            false, //doPreLoad
-            true, //doLearning
-            -1, //timeLearning
-            -1, //timeTesting
-            true); //isQuiet
-        */
-        //Inspect learning data logs
-        //plotModels(modelWithMocap, modelNoMocap, modelNoSensor);
         //Cutting learn data into tests sequences
         std::vector<std::pair<size_t, size_t>> seqs = processCutSequences(dataLogsLearn[i]);
         //For all test sequences
@@ -690,8 +676,8 @@ static void makePlotOdometry()
                 tmpModelNoSensor,
                 false, //doPreLoad
                 false, //doLearning
-                dataTimeLearnMiddle, //timeLearning
-                dataTimeLearnMiddle, //timeTesting
+                0, //timeLearning
+                0, //timeTesting
                 true); //isQuiet
             //Compute odometry cartesian errors
             double timeMin = tmpModelNoSensor.series("integrated_mocap_x").timeMin();
@@ -802,10 +788,10 @@ static void makePlotTrajectory()
     //Learn logs filename container
     std::vector<std::string> fileLogsLearn = {
         //Grass open loop
+        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-18-36-45.log",
         "../../These/Data/model_2015-09-07-18-56-56.log",
         "../../These/Data/model_2015-09-07-19-08-06.log",
-        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-19-31-25.log",
     };
     
@@ -816,21 +802,21 @@ static void makePlotTrajectory()
     loadDataFiles(fileLogsLearn, dataLogsLearn, dataTimeLearnMin, dataTimeLearnMax);
     
     //Optimize model
-    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1, true);
 
     //Display some of trajectory
-    for (size_t i=0;i<dataLogsLearn.size();i++) {
+    for (size_t i=1;i<dataLogsLearn.size();i++) {
         //Cutting learn data into tests sequences
         std::vector<std::pair<size_t, size_t>> seqs = processCutSequences(dataLogsLearn[i]);
         //For all test sequences
         for (size_t j=0;j<seqs.size();j++) {
             if (
-                (i == 0 && j == 9) ||
-                (i == 0 && j == 10) ||
-                (i == 1 && j == 5) ||
-                (i == 1 && j == 7) ||
-                (i == 2 && j == 2) ||
-                (i == 2 && j == 4)
+                (i == 1 && j == 2) || 
+                (i == 1 && j == 7) || 
+                (i == 1 && j == 8) || 
+                (i == 1 && j == 10) ||
+                (i == 2 && j == 1) || 
+                (i == 4 && j == 6)
             ) {
                 size_t len = seqs[j].second-seqs[j].first;
                 std::cout << "Log=" << i << " Sequence length=" 
