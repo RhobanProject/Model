@@ -1043,12 +1043,14 @@ static void makePlotCompare()
             .plot("time", "walk_dist", Leph::Plot::ErrorsLines, "walk_dist_error")
             .plot("time", "order_dist", Leph::Plot::ErrorsLines, "order_dist_error")
             .render();
+        /*
         plotData
             .plot("time", "model_angle", Leph::Plot::ErrorsLines, "model_angle_error")
             .plot("time", "learn_angle", Leph::Plot::ErrorsLines, "learn_angle_error")
             .plot("time", "walk_angle", Leph::Plot::ErrorsLines, "walk_angle_error")
             .plot("time", "order_angle", Leph::Plot::ErrorsLines, "order_angle_error")
             .render();
+        */
         plotData.clear();
     };
     func(dataLogsGrassOpen, true); 
