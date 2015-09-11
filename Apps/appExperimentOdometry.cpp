@@ -440,12 +440,12 @@ static void makePlotConvergence()
 {
     //Learn logs filename container
     std::vector<std::string> fileLogsLearn = {
-        "../../These/Data/model_2015-09-08-12-34-30.log",
-        "../../These/Data/model_2015-09-08-12-43-20.log",
-        "../../These/Data/model_2015-09-08-12-57-14.log",
-        "../../These/Data/model_2015-09-08-13-00-55.log",
-        "../../These/Data/model_2015-09-08-13-08-03.log",
-        "../../These/Data/model_2015-09-08-13-14-43.log",
+        //Artificial grass open loop
+        //"../../These/Data/model_2015-09-07-18-36-45.log", //Too few points
+        "../../These/Data/model_2015-09-07-18-56-56.log",
+        "../../These/Data/model_2015-09-07-19-08-06.log",
+        "../../These/Data/model_2015-09-07-19-22-53.log",
+        "../../These/Data/model_2015-09-07-19-31-25.log",
     };
     
     //Load data into MatrixLabel and post proccess it
@@ -457,11 +457,11 @@ static void makePlotConvergence()
     double dataTimeLearnMiddle = 0.75*dataTimeLearnMax + 0.25*dataTimeLearnMin;
     
     //Optimize model
-    computeAndFindMetaParameters(dataLogsLearn[0], false, 100, 1);
+    computeAndFindMetaParameters(dataLogsLearn[0], true, 100, 1);
     
     //Generate the data statistics
     Leph::Plot plotData;
-    for (double time=dataTimeLearnMin+5.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/30.0) {
+    for (double time=dataTimeLearnMin+5.0;time<=dataTimeLearnMiddle;time+=dataTimeLearnLength/20.0) {
         //Init statitics container
         std::vector<Gaussian> modelX;
         std::vector<Gaussian> modelY;
@@ -480,7 +480,7 @@ static void makePlotConvergence()
             Leph::ModelSeries modelWithMocap;
             Leph::ModelSeries modelNoMocap;
             Leph::ModelSeries modelNoSensor;
-            setUpModels(dataLogsLearn[i], false,
+            setUpModels(dataLogsLearn[i], true,
                 -1, -1, //Sub sequence
                 modelWithMocap,
                 modelNoMocap,
