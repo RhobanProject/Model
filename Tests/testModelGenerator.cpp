@@ -108,6 +108,10 @@ int main()
   bodies["ToePlate"].mCenterOfMass = Eigen::Vector3d::Zero();
   bodies["ToePlate"].mInertia = Eigen::Matrix3d::Identity();
   bodies["ToePlate"].mIsVirtual = false;
+  bodies["pressure"].mMass = 0.002;///TODO measure
+  bodies["pressure"].mCenterOfMass = Eigen::Vector3d::Zero();
+  bodies["pressure"].mInertia = Eigen::Matrix3d::Identity();
+  bodies["pressure"].mIsVirtual = false;
 
   bool addFloatingBase = true;
 
@@ -191,6 +195,25 @@ int main()
     addFixedBody(rbdlModel, legSide + "_toe", "ToePlate",
                  coeff.cwiseProduct(toeToToePlate),
                  legSide + "_toe_tip");
+
+    
+    Eigen::Vector3d archSize(0.125,0.092,0);
+    Eigen::Vector3d toeSize(0.032, 0.110,0);
+    std::vector<Eigen::Vector3d> pressureCoeffs = {Eigen::Vector3d( 0.5, 0.5,0),
+                                                   Eigen::Vector3d(-0.5, 0.5,0),
+                                                   Eigen::Vector3d(-0.5,-0.5,0),
+                                                   Eigen::Vector3d( 0.5,-0.5,0)};
+    for (unsigned int i = 0; i < pressureCoeffs.size(); i++) {
+      std::ostringstream archOss, toeOss;
+      archOss << legSide << "_arch_pressure" << i << std::endl;
+      toeOss << legSide << "_toe_pressure" << i << std::endl;
+      addFixedBody(rbdlModel, legSide + "_arch_tip", "pressure",
+                   pressureCoeffs[i].cwiseProduct(archSize),
+                   archOss.str());
+      addFixedBody(rbdlModel, legSide + "_toe_tip", "pressure",
+                   pressureCoeffs[i].cwiseProduct(toeSize),
+                   toeOss.str());
+    }
     
   }
 
