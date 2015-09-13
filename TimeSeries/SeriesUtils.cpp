@@ -1,5 +1,6 @@
 #include "TimeSeries/SeriesUtils.h"
 #include "Concepts/HumanoidModelConcept.hpp"
+#include "Concepts/HumanoidSensorsModelConcept.hpp"
 #include "Concepts/FootStepDifferentiatorConcept.hpp"
 #include "Concepts/FootStepIntegratorConcept.hpp"
 #include "Concepts/FallDetectorConcept.hpp"
@@ -143,30 +144,52 @@ void seriesCompare(
 void initModelSeries(Leph::ModelSeries& model, 
     bool withMocapConcept,
     bool withDeltaRegression,
-    bool withWalkRegression)
+    bool withWalkRegression,
+    bool noSensor)
 {
     //Declare TimeSeries
+    //Goals DOF
+    model.addSeries("goal_left_ankle_roll");
+    model.addSeries("goal_left_ankle_pitch");
+    model.addSeries("goal_left_knee");
+    model.addSeries("goal_left_hip_pitch");
+    model.addSeries("goal_left_hip_roll");
+    model.addSeries("goal_left_hip_yaw");
+    model.addSeries("goal_right_ankle_roll");
+    model.addSeries("goal_right_ankle_pitch");
+    model.addSeries("goal_right_knee");
+    model.addSeries("goal_right_hip_pitch");
+    model.addSeries("goal_right_hip_roll");
+    model.addSeries("goal_right_hip_yaw");
+    model.addSeries("goal_left_shoulder_pitch");
+    model.addSeries("goal_left_shoulder_roll");
+    model.addSeries("goal_left_elbow");
+    model.addSeries("goal_right_shoulder_pitch");
+    model.addSeries("goal_right_shoulder_roll");
+    model.addSeries("goal_right_elbow");
+    model.addSeries("goal_head_yaw");
+    model.addSeries("goal_head_pitch");
     //Inputs DOF
-    model.addSeries("left_ankle_roll");
-    model.addSeries("left_ankle_pitch");
-    model.addSeries("left_knee");
-    model.addSeries("left_hip_pitch");
-    model.addSeries("left_hip_roll");
-    model.addSeries("left_hip_yaw");
-    model.addSeries("right_ankle_roll");
-    model.addSeries("right_ankle_pitch");
-    model.addSeries("right_knee");
-    model.addSeries("right_hip_pitch");
-    model.addSeries("right_hip_roll");
-    model.addSeries("right_hip_yaw");
-    model.addSeries("left_shoulder_pitch");
-    model.addSeries("left_shoulder_roll");
-    model.addSeries("left_elbow");
-    model.addSeries("right_shoulder_pitch");
-    model.addSeries("right_shoulder_roll");
-    model.addSeries("right_elbow");
-    model.addSeries("head_yaw");
-    model.addSeries("head_pitch");
+    model.addSeries("pos_left_ankle_roll");
+    model.addSeries("pos_left_ankle_pitch");
+    model.addSeries("pos_left_knee");
+    model.addSeries("pos_left_hip_pitch");
+    model.addSeries("pos_left_hip_roll");
+    model.addSeries("pos_left_hip_yaw");
+    model.addSeries("pos_right_ankle_roll");
+    model.addSeries("pos_right_ankle_pitch");
+    model.addSeries("pos_right_knee");
+    model.addSeries("pos_right_hip_pitch");
+    model.addSeries("pos_right_hip_roll");
+    model.addSeries("pos_right_hip_yaw");
+    model.addSeries("pos_left_shoulder_pitch");
+    model.addSeries("pos_left_shoulder_roll");
+    model.addSeries("pos_left_elbow");
+    model.addSeries("pos_right_shoulder_pitch");
+    model.addSeries("pos_right_shoulder_roll");
+    model.addSeries("pos_right_elbow");
+    model.addSeries("pos_head_yaw");
+    model.addSeries("pos_head_pitch");
     //Inputs sensors
     model.addSeries("sensor_pitch");
     model.addSeries("sensor_roll");
@@ -189,34 +212,28 @@ void initModelSeries(Leph::ModelSeries& model,
     model.addSeries("mocap_x");
     model.addSeries("mocap_y");
     model.addSeries("mocap_theta");
-    //Humanoid model outputs
-    model.addSeries("is_support_foot_left");
-    model.addSeries("support_length");
-    model.addSeries("head_x");
-    model.addSeries("head_y");
-    model.addSeries("head_z");
-    model.addSeries("head_theta");
-    model.addSeries("left_foot_x");
-    model.addSeries("left_foot_y");
-    model.addSeries("left_foot_z");
-    model.addSeries("left_foot_theta");
-    model.addSeries("right_foot_x");
-    model.addSeries("right_foot_y");
-    model.addSeries("right_foot_z");
-    model.addSeries("right_foot_theta");
+    //Humanoid with sensors model outputs
+    model.addSeries("pos_is_support_foot_left");
+    model.addSeries("pos_support_length");
+    model.addSeries("pos_head_x");
+    model.addSeries("pos_head_y");
+    model.addSeries("pos_head_z");
+    model.addSeries("pos_head_theta");
+    //Humanoid with sensors model outputs
+    model.addSeries("goal_is_support_foot_left");
+    model.addSeries("goal_support_length");
+    model.addSeries("goal_head_x");
+    model.addSeries("goal_head_y");
+    model.addSeries("goal_head_z");
+    model.addSeries("goal_head_theta");
     //FootStep Differentiator outputs
-    //head
-    model.addSeries("delta_head_x");
-    model.addSeries("delta_head_y");
-    model.addSeries("delta_head_theta");
-    //Left foot
-    model.addSeries("delta_left_foot_x");
-    model.addSeries("delta_left_foot_y");
-    model.addSeries("delta_left_foot_theta");
-    //Right foot
-    model.addSeries("delta_right_foot_x");
-    model.addSeries("delta_right_foot_y");
-    model.addSeries("delta_right_foot_theta");
+    model.addSeries("goal_delta_head_x");
+    model.addSeries("goal_delta_head_y");
+    model.addSeries("goal_delta_head_theta");
+    //FootStep Differentiator outputs (with sensors)
+    model.addSeries("pos_delta_head_x");
+    model.addSeries("pos_delta_head_y");
+    model.addSeries("pos_delta_head_theta");
     //Mocap
     model.addSeries("delta_mocap_x");
     model.addSeries("delta_mocap_y");
@@ -226,8 +243,6 @@ void initModelSeries(Leph::ModelSeries& model,
     model.addSeries("walk_lateral");
     model.addSeries("walk_turn");
     model.addSeries("walk_enabled");
-    //Fall Detector output
-    model.addSeries("is_fallen");
     //FootStep Integrator output
     //head
     model.addSeries("integrated_head_x");
@@ -244,29 +259,29 @@ void initModelSeries(Leph::ModelSeries& model,
 
     //Initialize Model Concept
     model.addConcept(
-        //HumanoidModelConcept allocation
-        new Leph::HumanoidModelConcept(Leph::SigmabanModel), 
+        //HumanoidModelConcept allocation with sensors
+        new Leph::HumanoidSensorsModelConcept(Leph::SigmabanModel), 
         //Inputs
-        {"left_ankle_roll",
-        "left_ankle_pitch",
-        "left_knee",
-        "left_hip_pitch",
-        "left_hip_roll",
-        "left_hip_yaw",
-        "right_ankle_roll",
-        "right_ankle_pitch",
-        "right_knee",
-        "right_hip_pitch",
-        "right_hip_roll",
-        "right_hip_yaw",
-        "left_shoulder_pitch",
-        "left_shoulder_roll",
-        "left_elbow",
-        "right_shoulder_pitch",
-        "right_shoulder_roll",
-        "right_elbow",
-        "head_yaw",
-        "head_pitch",
+        {"pos_left_ankle_roll",
+        "pos_left_ankle_pitch",
+        "pos_left_knee",
+        "pos_left_hip_pitch",
+        "pos_left_hip_roll",
+        "pos_left_hip_yaw",
+        "pos_right_ankle_roll",
+        "pos_right_ankle_pitch",
+        "pos_right_knee",
+        "pos_right_hip_pitch",
+        "pos_right_hip_roll",
+        "pos_right_hip_yaw",
+        "pos_left_shoulder_pitch",
+        "pos_left_shoulder_roll",
+        "pos_left_elbow",
+        "pos_right_shoulder_pitch",
+        "pos_right_shoulder_roll",
+        "pos_right_elbow",
+        "pos_head_yaw",
+        "pos_head_pitch",
         "sensor_pitch",
         "sensor_roll",
         "sensor_gyro_yaw",
@@ -276,51 +291,78 @@ void initModelSeries(Leph::ModelSeries& model,
         "pressure_left_x",
         "pressure_left_y",
         "pressure_right_x",
-        "pressure_right_y",
-        "is_fallen"},
+        "pressure_right_y"},
         //Outputs
-        {"is_support_foot_left",
-        "head_x",
-        "head_y",
-        "head_z",
-        "head_theta",
-        "left_foot_x",
-        "left_foot_y",
-        "left_foot_z",
-        "left_foot_theta",
-        "right_foot_x",
-        "right_foot_y",
-        "right_foot_z",
-        "right_foot_theta",
-        "support_length"});
-    //Fall Detector concept
+        {"pos_is_support_foot_left",
+        "pos_head_x",
+        "pos_head_y",
+        "pos_head_z",
+        "pos_head_theta",
+        "pos_support_length"});
     model.addConcept(
-        new Leph::FallDetectorConcept(),
+        //HumanoidModelConcept allocation
+        new Leph::HumanoidModelConcept(Leph::SigmabanModel), 
         //Inputs
-        {"sensor_pitch",
-        "sensor_roll"},
-        //Output
-        {"is_fallen"});
+        {"goal_left_ankle_roll",
+        "goal_left_ankle_pitch",
+        "goal_left_knee",
+        "goal_left_hip_pitch",
+        "goal_left_hip_roll",
+        "goal_left_hip_yaw",
+        "goal_right_ankle_roll",
+        "goal_right_ankle_pitch",
+        "goal_right_knee",
+        "goal_right_hip_pitch",
+        "goal_right_hip_roll",
+        "goal_right_hip_yaw",
+        "goal_left_shoulder_pitch",
+        "goal_left_shoulder_roll",
+        "goal_left_elbow",
+        "goal_right_shoulder_pitch",
+        "goal_right_shoulder_roll",
+        "goal_right_elbow",
+        "goal_head_yaw",
+        "goal_head_pitch"},
+        //Outputs
+        {"goal_is_support_foot_left",
+        "goal_head_x",
+        "goal_head_y",
+        "goal_head_z",
+        "goal_head_theta",
+        "goal_support_length"});
     //Differentiation footstep concept
     model.addConcept(
         //FootStepDifferentiatorConcept allocation
         new Leph::FootStepDifferentiatorConcept(),
         //Inputs
-        {"is_support_foot_left",
-        "head_x",
-        "head_y",
-        "head_theta",
+        {"pos_is_support_foot_left",
+        "pos_head_x",
+        "pos_head_y",
+        "pos_head_theta",
         "mocap_is_valid"},
         //Outputs
-        {"delta_head_x",
-        "delta_head_y",
-        "delta_head_theta"});
+        {"pos_delta_head_x",
+        "pos_delta_head_y",
+        "pos_delta_head_theta"});
+    model.addConcept(
+        //FootStepDifferentiatorConcept allocation
+        new Leph::FootStepDifferentiatorConcept(),
+        //Inputs
+        {"goal_is_support_foot_left",
+        "goal_head_x",
+        "goal_head_y",
+        "goal_head_theta",
+        "mocap_is_valid"},
+        //Outputs
+        {"goal_delta_head_x",
+        "goal_delta_head_y",
+        "goal_delta_head_theta"});
     if (withMocapConcept) {
         model.addConcept(
             //FootStepDifferentiatorConcept allocation
             new Leph::FootStepDifferentiatorConcept(),
             //Inputs
-            {"is_support_foot_left",
+            {"pos_is_support_foot_left",
             "mocap_x",
             "mocap_y",
             "mocap_theta",
@@ -334,10 +376,10 @@ void initModelSeries(Leph::ModelSeries& model,
         //FootStepIntegratorConcept allocation
         new Leph::FootStepIntegratorConcept(),
         //Inputs
-        {"is_support_foot_left",
-        "delta_head_x",
-        "delta_head_y",
-        "delta_head_theta"},
+        {"pos_is_support_foot_left",
+        "pos_delta_head_x",
+        "pos_delta_head_y",
+        "pos_delta_head_theta"},
         //Outputs
         {"integrated_head_x",
         "integrated_head_y",
@@ -346,7 +388,7 @@ void initModelSeries(Leph::ModelSeries& model,
         //FootStepIntegratorConcept allocation
         new Leph::FootStepIntegratorConcept(),
         //Inputs
-        {"is_support_foot_left", 
+        {(noSensor ? "goal_is_support_foot_left" : "pos_is_support_foot_left"), 
         "delta_mocap_x",
         "delta_mocap_y",
         "delta_mocap_theta"},
@@ -358,10 +400,10 @@ void initModelSeries(Leph::ModelSeries& model,
         //FootStepIntegratorConcept allocation
         new Leph::FootStepIntegratorConcept(),
         //Inputs
-        {"is_support_foot_left",
-        "walk_step",
-        "walk_lateral",
-        "walk_turn"},
+        {"goal_is_support_foot_left",
+        "goal_delta_head_x",
+        "goal_delta_head_y",
+        "goal_delta_head_theta"},
         //Outputs
         {"integrated_walk_x",
         "integrated_walk_y",
@@ -373,15 +415,15 @@ void initModelSeries(Leph::ModelSeries& model,
         const std::string& regressionName, const std::string& seriesName)
     {
         model.addRegression(regressionName, seriesName);
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x");
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y");
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta");
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_x", 1);
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_y", 1);
-        model.regressionAddInputDeltaIndex(regressionName, "delta_head_theta", 1);
-        model.regressionAddInputDeltaIndex(regressionName, "support_length");
-        model.regressionAddInputDeltaIndex(regressionName, "support_length", 1);
-        model.regressionAddInputDeltaIndex(regressionName, "is_support_foot_left");
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_x");
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_y");
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_theta");
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_x", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_y", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "pos_delta_head_theta", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "pos_support_length");
+        model.regressionAddInputDeltaIndex(regressionName, "pos_support_length", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "pos_is_support_foot_left");
     };
     if (withDeltaRegression) {
         funcAddRegressionDelta(model, 
@@ -398,14 +440,23 @@ void initModelSeries(Leph::ModelSeries& model,
         const std::string& regressionName, const std::string& seriesName)
     {
         model.addRegression(regressionName, seriesName);
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_x");
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_y");
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_theta");
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_x", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_y", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "goal_delta_head_theta", 1);
+        model.regressionAddInputDeltaIndex(regressionName, "goal_is_support_foot_left");
+        /*
         model.regressionAddInputDeltaTime(regressionName, "walk_step");
         model.regressionAddInputDeltaTime(regressionName, "walk_lateral");
         model.regressionAddInputDeltaTime(regressionName, "walk_turn");
-        model.regressionAddInputDeltaTime(regressionName, "walk_step", 0.5);
-        model.regressionAddInputDeltaTime(regressionName, "walk_lateral", 0.5);
-        model.regressionAddInputDeltaTime(regressionName, "walk_turn", 0.5);
-        model.regressionAddInputDeltaIndex(regressionName, "is_support_foot_left");
+        model.regressionAddInputDeltaTime(regressionName, "walk_step", 0.75);
+        model.regressionAddInputDeltaTime(regressionName, "walk_lateral", 0.75);
+        model.regressionAddInputDeltaTime(regressionName, "walk_turn", 0.75);
+        model.regressionAddInputDeltaIndex(regressionName, "goal_is_support_foot_left");
         model.regressionAddInputDeltaTime(regressionName, "walk_enabled");
+        */
     };
     if (withWalkRegression) {
         funcAddRegressionWalk(model, 
@@ -424,47 +475,88 @@ void appendModelSeries(
     bool invMocap)
 {
     //Loading low level inputs
-    //Degrees of freedom
-    model.series("left_ankle_roll").append(time, 
+    //Degrees of freedom position
+    model.series("pos_left_ankle_roll").append(time, 
         logs("pos:left_ankle_roll"));
-    model.series("left_ankle_pitch").append(time, 
+    model.series("pos_left_ankle_pitch").append(time, 
         logs("pos:left_ankle_pitch"));
-    model.series("left_knee").append(time, 
+    model.series("pos_left_knee").append(time, 
         logs("pos:left_knee"));
-    model.series("left_hip_pitch").append(time, 
+    model.series("pos_left_hip_pitch").append(time, 
         logs("pos:left_hip_pitch"));
-    model.series("left_hip_roll").append(time, 
+    model.series("pos_left_hip_roll").append(time, 
         logs("pos:left_hip_roll"));
-    model.series("left_hip_yaw").append(time, 
+    model.series("pos_left_hip_yaw").append(time, 
         logs("pos:left_hip_yaw"));
-    model.series("right_ankle_roll").append(time, 
+    model.series("pos_right_ankle_roll").append(time, 
         logs("pos:right_ankle_roll"));
-    model.series("right_ankle_pitch").append(time, 
+    model.series("pos_right_ankle_pitch").append(time, 
         logs("pos:right_ankle_pitch"));
-    model.series("right_knee").append(time, 
+    model.series("pos_right_knee").append(time, 
         logs("pos:right_knee"));
-    model.series("right_hip_pitch").append(time, 
+    model.series("pos_right_hip_pitch").append(time, 
         logs("pos:right_hip_pitch"));
-    model.series("right_hip_roll").append(time, 
+    model.series("pos_right_hip_roll").append(time, 
         logs("pos:right_hip_roll"));
-    model.series("right_hip_yaw").append(time, 
+    model.series("pos_right_hip_yaw").append(time, 
         logs("pos:right_hip_yaw"));
-    model.series("left_shoulder_roll").append(time, 
+    model.series("pos_left_shoulder_roll").append(time, 
         logs("pos:left_shoulder_roll"));
-    model.series("left_shoulder_pitch").append(time, 
+    model.series("pos_left_shoulder_pitch").append(time, 
         logs("pos:left_shoulder_pitch"));
-    model.series("left_elbow").append(time, 
+    model.series("pos_left_elbow").append(time, 
         logs("pos:left_elbow"));
-    model.series("right_shoulder_roll").append(time, 
+    model.series("pos_right_shoulder_roll").append(time, 
         logs("pos:right_shoulder_roll"));
-    model.series("right_shoulder_pitch").append(time, 
+    model.series("pos_right_shoulder_pitch").append(time, 
         logs("pos:right_shoulder_pitch"));
-    model.series("right_elbow").append(time, 
+    model.series("pos_right_elbow").append(time, 
         logs("pos:right_elbow"));
-    model.series("head_yaw").append(time, 
+    model.series("pos_head_yaw").append(time, 
         logs("pos:head_yaw"));
-    model.series("head_pitch").append(time, 
+    model.series("pos_head_pitch").append(time, 
         logs("pos:head_pitch"));
+    //Degrees of freedom goal
+    model.series("goal_left_ankle_roll").append(time, 
+        logs("goal:left_ankle_roll"));
+    model.series("goal_left_ankle_pitch").append(time, 
+        logs("goal:left_ankle_pitch"));
+    model.series("goal_left_knee").append(time, 
+        logs("goal:left_knee"));
+    model.series("goal_left_hip_pitch").append(time, 
+        logs("goal:left_hip_pitch"));
+    model.series("goal_left_hip_roll").append(time, 
+        logs("goal:left_hip_roll"));
+    model.series("goal_left_hip_yaw").append(time, 
+        logs("goal:left_hip_yaw"));
+    model.series("goal_right_ankle_roll").append(time, 
+        logs("goal:right_ankle_roll"));
+    model.series("goal_right_ankle_pitch").append(time, 
+        logs("goal:right_ankle_pitch"));
+    model.series("goal_right_knee").append(time, 
+        logs("goal:right_knee"));
+    model.series("goal_right_hip_pitch").append(time, 
+        logs("goal:right_hip_pitch"));
+    model.series("goal_right_hip_roll").append(time, 
+        logs("goal:right_hip_roll"));
+    model.series("goal_right_hip_yaw").append(time, 
+        logs("goal:right_hip_yaw"));
+    model.series("goal_left_shoulder_roll").append(time, 
+        logs("goal:left_shoulder_roll"));
+    model.series("goal_left_shoulder_pitch").append(time, 
+        logs("goal:left_shoulder_pitch"));
+    model.series("goal_left_elbow").append(time, 
+        logs("goal:left_elbow"));
+    model.series("goal_right_shoulder_roll").append(time, 
+        logs("goal:right_shoulder_roll"));
+    model.series("goal_right_shoulder_pitch").append(time, 
+        logs("goal:right_shoulder_pitch"));
+    model.series("goal_right_elbow").append(time, 
+        logs("goal:right_elbow"));
+    model.series("goal_head_yaw").append(time, 
+        logs("goal:head_yaw"));
+    model.series("goal_head_pitch").append(time, 
+        logs("goal:head_pitch"));
     //Sensors
     //TODO SHIFT XXX
     double timeShift = 0.14;

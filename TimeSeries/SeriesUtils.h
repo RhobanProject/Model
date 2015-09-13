@@ -60,7 +60,8 @@ void seriesCompare(
 void initModelSeries(Leph::ModelSeries& model, 
     bool withMocapConcept,
     bool withDeltaRegression,
-    bool withWalkRegression);
+    bool withWalkRegression,
+    bool noSensor = false);
 
 /**
  * Append to given ModelSeries data from

@@ -1,16 +1,16 @@
-#ifndef LEPH_HUMANOIDMODELCONCEPT_HPP
-#define LEPH_HUMANOIDMODELCONCEPT_HPP
+#ifndef LEPH_HUMANOIDSENSORSMODELCONCEPT_HPP
+#define LEPH_HUMANOIDSENSORSMODELCONCEPT_HPP
 
 #include "TimeSeries/Concept.hpp"
-#include "Model/HumanoidFixedModel.hpp"
+#include "Model/HumanoidFixedPressureModel.hpp"
 
 namespace Leph {
 
 /**
- * HumanoidModelConcept
+ * HumanoidSensorsModelConcept
  *
  * Implement the robot Humanoid
- * Fixed Model (without sensors) as a Concept.
+ * Fixed Pressure Model as a Concept.
  * Inputs:
  * 0:  left_ankle_roll
  * 1:  left_ankle_pitch
@@ -32,6 +32,16 @@ namespace Leph {
  * 17: right_elbow
  * 18: head_yaw
  * 19: head_pitch
+ * 20: sensor_pitch
+ * 21: sensor_roll
+ * 22: sensor_gyro_yaw
+ * 23: pressure_weight
+ * 24: pressure_left_ratio
+ * 25: pressure_right_ratio
+ * 26: pressure_left_x
+ * 27: pressure_left_y
+ * 28: pressure_right_x
+ * 29: pressure_right_y
  * Outputs:
  * 0:  is_support_foot_left
  * 1:  head_x
@@ -40,14 +50,14 @@ namespace Leph {
  * 4:  head_theta
  * 5:  support_length
  */
-class HumanoidModelConcept : public Concept
+class HumanoidSensorsModelConcept : public Concept
 {
     public:
         
         /**
          * Initialization with robot type
          */
-        HumanoidModelConcept(RobotType type);
+        HumanoidSensorsModelConcept(RobotType type);
         
         /**
          * Inherit Concept
@@ -75,7 +85,7 @@ class HumanoidModelConcept : public Concept
         /**
          * Internal Humanoid model
          */
-        HumanoidFixedModel _model;
+        HumanoidFixedPressureModel _model;
 };
 
 }

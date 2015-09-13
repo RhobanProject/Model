@@ -127,11 +127,13 @@ class ModelSeries
             //Check inputs and ouputs numbers
             if (inputs.size() != _concepts.back()->inputSize()) {
                 throw std::logic_error(
-                    "ModelSeries invalid input number for concept");
+                    "ModelSeries invalid input number for concept: " 
+                    + concept->name());
             }
             if (outputs.size() != _concepts.back()->outputSize()) {
                 throw std::logic_error(
-                    "ModelSeries invalid output number for concept");
+                    "ModelSeries invalid output number for concept: " 
+                    + concept->name());
             }
             //Register inputs and outputs series
             for (size_t i=0;i<inputs.size();i++) {

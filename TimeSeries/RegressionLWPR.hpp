@@ -192,12 +192,16 @@ class RegressionLWPR : public Regression
                         return Eigen::VectorXd();
                     } 
                     size_t index = series->getClosestIndex(time);
+                    /*
                     double t = series->at(index).time;
                     if (fabs(time-t) < TIME_EPSILON && index+delta < series->size()) {
                        vect(i) = series->at(index+delta).value; 
                     } else {
+                        std::cout << "WARNING regression input no near value" << std::endl; //TODO
                         return Eigen::VectorXd();
                     }
+                    */
+                    vect(i) = series->at(index+delta).value; 
                 }
             }
 

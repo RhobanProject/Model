@@ -68,7 +68,7 @@ static void setUpModels(const Leph::MatrixLabel& logs, bool invModel,
     if (!isQuiet) std::cout << "Initiating ModelSeries" << std::endl;
     Leph::initModelSeries(modelWithMocap, true, true, true);
     Leph::initModelSeries(modelNoMocap, false, true, false);
-    Leph::initModelSeries(modelNoSensor, false, false, true);
+    Leph::initModelSeries(modelNoSensor, false, false, true, true);
     
     //Load data into TimeSeries
     if (!isQuiet) std::cout << "Injecting data" << std::endl;
@@ -132,12 +132,8 @@ static void setUpModels(const Leph::MatrixLabel& logs, bool invModel,
     
     //Propagate regressions
     modelNoMocap.propagateRegressions();
-    modelNoSensor.regression("model_walk_delta_x")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
-    modelNoSensor.regression("model_walk_delta_y")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
-    modelNoSensor.regression("model_walk_delta_theta")
-        .computePropagate(&modelWithMocap.series("delta_mocap_x"));
+    modelNoSensor.propagateRegressions();
+
     //Fix odometry integration too late
     double t1 = std::max(
             modelNoMocap.series("delta_mocap_x").timeMin(),
@@ -273,31 +269,31 @@ static void plotModels(
         plot.add(modelWithMocap.series("sensor_pitch"));
         plot.add(modelWithMocap.series("mocap_x"));
         plot.add(modelWithMocap.series("mocap_y"));
-        plot.add(modelWithMocap.series("is_support_foot_left"));
+        plot.add(modelWithMocap.series("pos_is_support_foot_left"));
         plot.plot("time", "all").render();
         plot.clear();
 
         plot.add("x_mocap_delta", modelWithMocap.series("delta_mocap_x"));
-        plot.add("x_model_delta", modelNoMocap.series("delta_head_x"));
+        plot.add("x_model_delta", modelNoMocap.series("pos_delta_head_x"));
         plot.add("x_learn_delta", modelNoMocap.series("delta_mocap_x"));
         plot.add("x_walk_delta", modelNoSensor.series("delta_mocap_x"));
-        plot.add("x_order_delta", modelNoSensor.series("walk_step"));
+        plot.add("x_order_delta", modelNoSensor.series("goal_delta_head_x"));
         plot.plot("time", "all").render();
         plot.clear();
 
         plot.add("y_mocap_delta", modelWithMocap.series("delta_mocap_y"));
-        plot.add("y_model_delta", modelNoMocap.series("delta_head_y"));
+        plot.add("y_model_delta", modelNoMocap.series("pos_delta_head_y"));
         plot.add("y_learn_delta", modelNoMocap.series("delta_mocap_y"));
         plot.add("y_walk_delta", modelNoSensor.series("delta_mocap_y"));
-        plot.add("y_order_delta", modelNoSensor.series("walk_lateral"));
+        plot.add("y_order_delta", modelNoSensor.series("goal_delta_head_y"));
         plot.plot("time", "all").render();
         plot.clear();
 
         plot.add("theta_mocap_delta", modelWithMocap.series("delta_mocap_theta"));
-        plot.add("theta_model_delta", modelNoMocap.series("delta_head_theta"));
+        plot.add("theta_model_delta", modelNoMocap.series("pos_delta_head_theta"));
         plot.add("theta_learn_delta", modelNoMocap.series("delta_mocap_theta"));
         plot.add("theta_walk_delta", modelNoSensor.series("delta_mocap_theta"));
-        plot.add("theta_order_delta", modelNoSensor.series("walk_turn"));
+        plot.add("theta_order_delta", modelNoSensor.series("goal_delta_head_theta"));
         plot.plot("time", "all").render();
         plot.clear();
 
@@ -525,15 +521,15 @@ static void makePlotConvergence()
 
             //Computing statistics
             std::cout << "Generated time=" << time << " log=" << i << std::endl;
-            modelX.push_back(func(modelNoMocap, "delta_mocap_x", "delta_head_x"));
-            modelY.push_back(func(modelNoMocap, "delta_mocap_y", "delta_head_y"));
-            modelTheta.push_back(func(modelNoMocap, "delta_mocap_theta", "delta_head_theta"));
+            modelX.push_back(func(modelNoMocap, "delta_mocap_x", "pos_delta_head_x"));
+            modelY.push_back(func(modelNoMocap, "delta_mocap_y", "pos_delta_head_y"));
+            modelTheta.push_back(func(modelNoMocap, "delta_mocap_theta", "pos_delta_head_theta"));
             modelLearnX.push_back(func(modelNoMocap, "delta_mocap_x", "delta_mocap_x"));
             modelLearnY.push_back(func(modelNoMocap, "delta_mocap_y", "delta_mocap_y"));
             modelLearnTheta.push_back(func(modelNoMocap, "delta_mocap_theta", "delta_mocap_theta"));
-            walkX.push_back(func(modelNoSensor, "delta_mocap_x", "walk_step"));
-            walkY.push_back(func(modelNoSensor, "delta_mocap_y", "walk_lateral"));
-            walkTheta.push_back(func(modelNoSensor, "delta_mocap_theta", "walk_turn"));
+            walkX.push_back(func(modelNoSensor, "delta_mocap_x", "goal_delta_head_x"));
+            walkY.push_back(func(modelNoSensor, "delta_mocap_y", "goal_delta_head_y"));
+            walkTheta.push_back(func(modelNoSensor, "delta_mocap_theta", "goal_delta_head_theta"));
             walkLearnX.push_back(func(modelNoSensor, "delta_mocap_x", "delta_mocap_x"));
             walkLearnY.push_back(func(modelNoSensor, "delta_mocap_y", "delta_mocap_y"));
             walkLearnTheta.push_back(func(modelNoSensor, "delta_mocap_theta", "delta_mocap_theta"));
@@ -1029,14 +1025,6 @@ static void makePlotCompare()
             .plot("time", "walk_dist", Leph::Plot::ErrorsLines, "walk_dist_error")
             .plot("time", "order_dist", Leph::Plot::ErrorsLines, "order_dist_error")
             .render();
-        /*
-        plotData
-            .plot("time", "model_angle", Leph::Plot::ErrorsLines, "model_angle_error")
-            .plot("time", "learn_angle", Leph::Plot::ErrorsLines, "learn_angle_error")
-            .plot("time", "walk_angle", Leph::Plot::ErrorsLines, "walk_angle_error")
-            .plot("time", "order_angle", Leph::Plot::ErrorsLines, "order_angle_error")
-            .render();
-        */
         plotData.clear();
     };
     func(dataLogsGrassOpen, true); 

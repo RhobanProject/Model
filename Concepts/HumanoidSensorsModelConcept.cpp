@@ -1,37 +1,37 @@
-#include "Concepts/HumanoidModelConcept.hpp"
+#include "Concepts/HumanoidSensorsModelConcept.hpp"
 
 namespace Leph {
 
-HumanoidModelConcept::HumanoidModelConcept(RobotType type) :
+HumanoidSensorsModelConcept::HumanoidSensorsModelConcept(RobotType type) :
     _model(type)
 {
 }
 
-std::string HumanoidModelConcept::name() const
+std::string HumanoidSensorsModelConcept::name() const
 {
-    return "HumanoidModelConcept";
+    return "HumanoidSensorsModelConcept";
 }
-size_t HumanoidModelConcept::inputSize() const
+size_t HumanoidSensorsModelConcept::inputSize() const
 {
-    return 20;
+    return 30;
 }
-size_t HumanoidModelConcept::outputSize() const
+size_t HumanoidSensorsModelConcept::outputSize() const
 {
     return 6;
 }
         
-size_t HumanoidModelConcept::parameterSize() const
+size_t HumanoidSensorsModelConcept::parameterSize() const
 {
     return 0;
 }
-Leph::MetaParameter HumanoidModelConcept::defaultParameter
+Leph::MetaParameter HumanoidSensorsModelConcept::defaultParameter
     (size_t index) const
 {
     (void)index;
     return MetaParameter();
 }
         
-bool HumanoidModelConcept::doCompute(double time)
+bool HumanoidSensorsModelConcept::doCompute(double time)
 {
     //Check if all input values are available
     for (size_t i=0;i<inputSize();i++) {
@@ -71,8 +71,24 @@ bool HumanoidModelConcept::doCompute(double time)
     _model.get().setDOF("right_elbow", Concept::getInput(17)->get(time));
     _model.get().setDOF("head_yaw", Concept::getInput(18)->get(time));
     _model.get().setDOF("head_pitch", Concept::getInput(19)->get(time));
+    //Set feet pressure
+    _model.setPressure(
+        Concept::getInput(23)->get(time),
+        Concept::getInput(24)->get(time),
+        Concept::getInput(25)->get(time),
+        Concept::getInput(26)->get(time),
+        Concept::getInput(27)->get(time),
+        Concept::getInput(28)->get(time),
+        Concept::getInput(29)->get(time));
     //Update support foot and compute odometry
     _model.updateBase();
+    //Update trunk orientation using IMU
+    _model.setOrientation(
+        Concept::getInput(20)->get(time),
+        Concept::getInput(21)->get(time));
+    //Override computed body orientation using gyro integration
+    _model.setYaw(_model.getSupportFoot(), 
+        Concept::getInput(22)->getAngular(time));
 
     //Write output is_support_foot_left
     double is_support_foot_left = (_model.getSupportFoot() 

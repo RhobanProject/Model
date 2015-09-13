@@ -63,6 +63,7 @@ set(SOURCES_FILES
     CartWalk/CartWalkProxy.cpp  
     CartWalk/CartWalkGradient.cpp  
     Concepts/HumanoidModelConcept.cpp
+    Concepts/HumanoidSensorsModelConcept.cpp
     Concepts/FootStepDifferentiatorConcept.cpp
     Concepts/FootStepIntegratorConcept.cpp
     Concepts/FallDetectorConcept.cpp
@@ -140,6 +141,7 @@ set(TESTS_FILES
 set(APPS_FILES
     appSplineGenerationCircle
     appTestLearningFromLogs
+    appExperimentOdometry
 )
 
 #LephCode linked libraries
