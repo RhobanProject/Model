@@ -77,6 +77,7 @@ set(SOURCES_FILES
     Utils/Differentiation.cpp
     Utils/NewtonBinomial.cpp
     Utils/LWPRUtils.cpp
+    Utils/STLibrary.cpp
     Ncurses/InterfaceCLI.cpp
     Model/GrobanToePressureModel.cpp
     Model/Model.cpp

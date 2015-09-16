@@ -6,6 +6,7 @@
 #include "Model/HumanoidModelWithToe.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
+#include "Utils/STLibrary.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 
@@ -65,6 +66,7 @@ int main()
   inv.targetPosition("trunk").z() -= 0.15;
 
   while (viewer.update()) {
+    inv.targetOrientation("trunk") = Leph::rotX(0 * M_PI / 180);
 
     //Update targets
     inv.targetPosition("trunk").y() = baseY+amplitude*sin(t / period);

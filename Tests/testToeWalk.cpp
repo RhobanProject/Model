@@ -276,8 +276,8 @@ int main()
     inv.addDOF("left_ankle_pitch");
     inv.addDOF("left_ankle_roll");
     // Declare bounds
-    inv.setLowerBound("left_knee", DEG2RAD(0.5));
-    inv.setLowerBound("right_knee", DEG2RAD(0.5));
+    inv.setLowerBound("left_knee", 5 * M_PI / 180);
+    inv.setLowerBound("right_knee", 5 * M_PI / 180);
 
     // Declare target Position
     inv.addTargetPosition("LeftFoot", "left_toe_tip");
