@@ -676,8 +676,8 @@ static void makePlotOdometry()
                 0, //timeTesting
                 true); //isQuiet
             //Compute odometry cartesian errors
-            double timeMin = tmpModelNoSensor.series("integrated_mocap_x").timeMin();
-            double timeMax = tmpModelNoSensor.series("integrated_mocap_x").timeMax();
+            double timeMin = tmpModelNoMocap.series("integrated_mocap_x").timeMin();
+            double timeMax = tmpModelNoMocap.series("integrated_mocap_x").timeMax();
             size_t index = 0;
             while (timeMin + index*1.0 + 1.0 < timeMax) {
                 double time = timeMin + index*1.0 + 1.0;
@@ -847,26 +847,26 @@ static void makePlotCompare()
     //Learn logs filename container
     std::vector<std::string> fileLogsGrassOpen = {
         //Grass open loop
+        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-18-36-45.log",
         "../../These/Data/model_2015-09-07-18-56-56.log",
         "../../These/Data/model_2015-09-07-19-08-06.log",
-        "../../These/Data/model_2015-09-07-19-22-53.log",
         "../../These/Data/model_2015-09-07-19-31-25.log",
     };
     std::vector<std::string> fileLogsGrassClose = {
         //Grass close loop
+        "../../These/Data/model_2015-09-08-13-14-43.log",
+        "../../These/Data/model_2015-09-08-12-57-14.log",
         "../../These/Data/model_2015-09-08-12-34-30.log",
         "../../These/Data/model_2015-09-08-12-43-20.log",
-        "../../These/Data/model_2015-09-08-12-57-14.log",
         "../../These/Data/model_2015-09-08-13-00-55.log",
         "../../These/Data/model_2015-09-08-13-08-03.log",
-        "../../These/Data/model_2015-09-08-13-14-43.log",
     };
     std::vector<std::string> fileLogsCarpetOpen = {
         //Carpet open loop
+        "../../These/Data/model_2015-09-07-23-13-14.log",
         "../../These/Data/model_2015-09-07-22-50-54.log",
         "../../These/Data/model_2015-09-07-23-02-59.log",
-        "../../These/Data/model_2015-09-07-23-13-14.log",
         "../../These/Data/model_2015-09-07-23-29-48.log",
         "../../These/Data/model_2015-09-07-23-44-20.log",
     };
@@ -896,11 +896,12 @@ static void makePlotCompare()
     std::vector<Leph::MatrixLabel> dataLogsCarpetClose;
     loadDataFiles(fileLogsCarpetClose, dataLogsCarpetClose, dataTimeMinCarpetClose, dataTimeMaxCarpetClose);
 
-    //
+    //Factorisation lamda
+    //Compute and plot odometry errors statistics
     auto func = [](const std::vector<Leph::MatrixLabel>& dataLogs, bool invMocap)
     {
         //Optimize model
-        computeAndFindMetaParameters(dataLogs[0], invMocap, 100, 1);
+        computeAndFindMetaParameters(dataLogs[0], invMocap, 100, 1, true);
         Leph::Plot plotData;
         //Odometry statistics
         std::vector<std::vector<Gaussian>> statsDistModel;
@@ -936,8 +937,8 @@ static void makePlotCompare()
                     0, //timeTesting
                     true); //isQuiet
                 //Compute odometry cartesian errors
-                double timeMin = tmpModelNoSensor.series("integrated_mocap_x").timeMin();
-                double timeMax = tmpModelNoSensor.series("integrated_mocap_x").timeMax();
+                double timeMin = tmpModelNoMocap.series("integrated_mocap_x").timeMin();
+                double timeMax = tmpModelNoMocap.series("integrated_mocap_x").timeMax();
                 size_t index = 0;
                 while (timeMin + index*1.0 + 1.0 < timeMax) {
                     double time = timeMin + index*1.0 + 1.0;
