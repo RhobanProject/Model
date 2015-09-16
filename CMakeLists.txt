@@ -79,8 +79,10 @@ set(SOURCES_FILES
     Utils/LWPRUtils.cpp
     Utils/STLibrary.cpp
     Ncurses/InterfaceCLI.cpp
+    Model/ComponentLibrary.cpp
     Model/GrobanToePressureModel.cpp
     Model/Model.cpp
+    Model/ModelBuilder.cpp
     Model/HumanoidModel.cpp
     Model/HumanoidModelWithToe.cpp
     Model/HumanoidFloatingModel.cpp
