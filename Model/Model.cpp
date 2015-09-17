@@ -145,7 +145,7 @@ size_t Model::getFrameIndex(const std::string& name) const
     return _frameNameToIndex.at(name);
   }
   catch (const std::out_of_range & exc) {
-    throw std::out_of_range(std::string(exc.what()) + ": unknown frame index '" + name + "'");
+    throw std::out_of_range(std::string(exc.what()) + ": unknown frame name '" + name + "'");
   }
 }
         
