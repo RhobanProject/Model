@@ -20,16 +20,18 @@ namespace Leph {
     bodies["virtual"].mCenterOfMass = Eigen::Vector3d::Zero();
     bodies["virtual"].mInertia = Eigen::Matrix3d::Identity();
     bodies["virtual"].mIsVirtual = true;
-    bodies["EX106+"].mMass = 0.154;
-    bodies["EX106+"].mCenterOfMass = Eigen::Vector3d::Zero();
+    //Default orientation of the motors is given at files in:
+    // http://en.robotis.com/BlueAD/board.php?bbs_id=downloads&mode=view&bbs_no=26324&page=1&key=&keyword=&sort=&scate=DRAWING 
+    bodies["EX106+"].mMass = 0.158;
+    bodies["EX106+"].mCenterOfMass = Eigen::Vector3d(0.0001428, -0.01962, 0.002546);
     bodies["EX106+"].mInertia = Eigen::Matrix3d::Identity();
     bodies["EX106+"].mIsVirtual = false;
-    bodies["RX64"].mMass = 0.125;
-    bodies["RX64"].mCenterOfMass = Eigen::Vector3d::Zero();
+    bodies["RX64"].mMass = 0.1295;
+    bodies["RX64"].mCenterOfMass = Eigen::Vector3d(0.0001583, -0.01702, 0.001678);
     bodies["RX64"].mInertia = Eigen::Matrix3d::Identity();
     bodies["RX64"].mIsVirtual = false;
-    bodies["RX28"].mMass = 0.072;
-    bodies["RX28"].mCenterOfMass = Eigen::Vector3d::Zero();
+    bodies["RX28"].mMass = 0.075;
+    bodies["RX28"].mCenterOfMass = Eigen::Vector3d(0.0002407, -0.01290, 0.0005949);
     bodies["RX28"].mInertia = Eigen::Matrix3d::Identity();
     bodies["RX28"].mIsVirtual = false;
     bodies["ArchPlate"].mMass = 0.350;//TODO measure
