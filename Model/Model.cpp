@@ -141,7 +141,12 @@ const std::string& Model::getFrameName(size_t index) const
         
 size_t Model::getFrameIndex(const std::string& name) const
 {
+  try{
     return _frameNameToIndex.at(name);
+  }
+  catch (const std::out_of_range & exc) {
+    throw std::out_of_range(std::string(exc.what()) + ": unknown frame index '" + name + "'");
+  }
 }
         
 Eigen::Vector3d Model::position(
