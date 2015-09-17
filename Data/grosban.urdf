@@ -243,7 +243,7 @@
     name="left_knee"
     type="continuous">
     <origin
-      xyz="-0.014956 -1.6126E-05 -0.24965"
+      xyz="-0.014956 -1.6126E-05 -0.17965"
       rpy="0 0 0" />
     <parent
       link="left_hip_pitch_link" />
@@ -591,7 +591,7 @@
     name="right_knee"
     type="continuous">
     <origin
-      xyz="-0.014956 -1.6126E-05 -0.24965"
+      xyz="-0.014956 -1.6126E-05 -0.17965"
       rpy="0 0 0" />
     <parent
       link="right_hip_pitch_link" />
