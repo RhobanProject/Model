@@ -21,7 +21,8 @@ void plotPhase(
     const std::string& labelX, 
     const std::string& nameX, 
     const std::string& labelY, 
-    const std::string& nameY);
+    const std::string& nameY,
+    double maxTime = -1.0);
 
 /**
  * Add to given Plot the given 

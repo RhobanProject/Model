@@ -13,7 +13,8 @@ void plotPhase(
     const std::string& labelX, 
     const std::string& nameX, 
     const std::string& labelY, 
-    const std::string& nameY)
+    const std::string& nameY,
+    double maxTime)
 {
     if (model.series(nameX).size() == 0) {
         return;
@@ -29,6 +30,9 @@ void plotPhase(
     }
     if (model.series(nameY).timeMax() < max) {
         max = model.series(nameY).timeMax();
+    }
+    if (maxTime > 0.0 && maxTime < max) {
+        max = maxTime;
     }
 
     size_t indexMin = model.series(nameX).getClosestIndex(min);
