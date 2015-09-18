@@ -136,12 +136,12 @@ int main(int argc, char** argv)
 
         // Display trajectories
         Eigen::Vector3d projectedCoM = model.centerOfMass("origin");
-        projectedCoM.z() = -0.667;
+        projectedCoM.z() = 0;
         viewer.addTrackedPoint(projectedCoM,
                                Leph::ModelViewer::Yellow);
-        viewer.addTrackedPoint(model.position("left_arch_tip", "origin"), 
+        viewer.addTrackedPoint(model.position("left_arch_center", "origin"), 
                                Leph::ModelViewer::Red);
-        viewer.addTrackedPoint(model.position("right_arch_tip", "origin"), 
+        viewer.addTrackedPoint(model.position("right_arch_center", "origin"), 
                                Leph::ModelViewer::Green);
         
         //Display models

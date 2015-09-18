@@ -4,6 +4,15 @@
 
 namespace Leph {
 
+  // Apply the root squared on each element
+  static Eigen::Vector3d rsCWise(const Eigen::Vector3d & v)
+  {
+    return Eigen::Vector3d(std::sqrt(v.x()),
+                           std::sqrt(v.y()),
+                           std::sqrt(v.z()));
+  }
+
+
 /**
  * Optimized computation of point jacobian
  * The function is copied from RBDL::CalcPointJacobian
@@ -17,7 +26,8 @@ static void CustomCalcPointJacobian(
     const RBDLMath::Vector3d& point_position,
     RBDLMath::MatrixNd& fjac,
     size_t index, 
-    const std::map<size_t, size_t>& globalIndexToSubset)
+    const std::map<size_t, size_t>& globalIndexToSubset,
+    const Eigen::Vector3d & weight)
 {
     RBDLMath::SpatialTransform point_trans = 
         RBDLMath::SpatialTransform(RBDLMath::Matrix3d::Identity(), 
@@ -42,7 +52,7 @@ static void CustomCalcPointJacobian(
             } else {
                 fjac.block(index, subsetIndex, 3, 1) = point_trans.apply(
                     model.X_base[j].inverse().apply(model.S[j])
-                    ).block(3,0,3,1);
+                  ).block(3,0,3,1).cwiseProduct(rsCWise(weight));
             }
         } 
         j = model.lambda[j];
@@ -91,7 +101,7 @@ void InverseKinematics::setLowerBound(const std::string& name,
     size_t indexGlobal = _model->_dofNameToIndex.at(name);
     if (_globalIndexToSubset.count(indexGlobal) == 0) {
         throw std::logic_error(
-            "InverseKinematics invalid DOF name");
+            "InverseKinematics invalid DOF name: '" + name + "'");
     }
     size_t indexSubset = _globalIndexToSubset.at(indexGlobal);
 
@@ -104,7 +114,7 @@ void InverseKinematics::setUpperBound(const std::string& name,
     size_t indexGlobal = _model->_dofNameToIndex.at(name);
     if (_globalIndexToSubset.count(indexGlobal) == 0) {
         throw std::logic_error(
-            "InverseKinematics invalid DOF name");
+            "InverseKinematics invalid DOF name: '" + name + "'");
     }
     size_t indexSubset = _globalIndexToSubset.at(indexGlobal);
 
@@ -116,7 +126,7 @@ void InverseKinematics::clearLowerBound(const std::string& name)
     size_t indexGlobal = _model->_dofNameToIndex.at(name);
     if (_globalIndexToSubset.count(indexGlobal) == 0) {
         throw std::logic_error(
-            "InverseKinematics invalid DOF name");
+            "InverseKinematics invalid DOF name: '" + name + "'");
     }
     size_t indexSubset = _globalIndexToSubset.at(indexGlobal);
 
@@ -127,7 +137,7 @@ void InverseKinematics::clearUpperBound(const std::string& name)
     size_t indexGlobal = _model->_dofNameToIndex.at(name);
     if (_globalIndexToSubset.count(indexGlobal) == 0) {
         throw std::logic_error(
-            "InverseKinematics invalid DOF name");
+            "InverseKinematics invalid DOF name: '" + name + "'");
     }
     size_t indexSubset = _globalIndexToSubset.at(indexGlobal);
 
@@ -154,10 +164,11 @@ void InverseKinematics::addTargetPosition(
         srcFrameId,
         point,
         Eigen::Vector3d::Zero(),
-        0.0};
+        0.0,
+        Eigen::Vector3d::Constant(1.0)};
 
     //Default value
-    _targetPositions.at(targetName).target = _model->position(
+    targetPositionRef(targetName).target = _model->position(
         srcFrameIndex, _model->getFrameIndex("origin"), point);
 }
         
@@ -181,10 +192,11 @@ void InverseKinematics::addTargetOrientation(
         Eigen::Matrix3d::Zero(),
         false,
         Eigen::Vector3d::Zero(),
-        0.0};
+        0.0,
+        1.0};
 
     //Default value
-    _targetOrientations.at(targetName).target = _model->orientation(
+    targetOrientationRef(targetName).target = _model->orientation(
         srcFrameIndex, _model->getFrameIndex("origin"));
 }
         
@@ -210,17 +222,18 @@ void InverseKinematics::addTargetScalar(
         Eigen::Vector3d::Zero(),
         axis,
         0.0,
-        0.0};
+        0.0,
+        1.0};
 
     //Default value
     if (axis == AxisX) {
-        _targetScalars.at(targetName).target = _model->position(
+        targetScalarRef(targetName).target = _model->position(
             srcFrameIndex, _model->getFrameIndex("origin"), point).x();
     } else if (axis == AxisY) {
-        _targetScalars.at(targetName).target = _model->position(
+        targetScalarRef(targetName).target = _model->position(
             srcFrameIndex, _model->getFrameIndex("origin"), point).y();
     } else if (axis == AxisZ) {
-        _targetScalars.at(targetName).target = _model->position(
+        targetScalarRef(targetName).target = _model->position(
             srcFrameIndex, _model->getFrameIndex("origin"), point).z();
     }
 }
@@ -234,17 +247,17 @@ void InverseKinematics::addTargetCOM()
 Eigen::Vector3d& InverseKinematics::targetPosition(
     const std::string& targetName)
 {
-    return _targetPositions.at(targetName).target;
+    return targetPositionRef(targetName).target;
 }
 Eigen::Matrix3d& InverseKinematics::targetOrientation(
     const std::string& targetName)
 {
-    return _targetOrientations.at(targetName).target;
+    return targetOrientationRef(targetName).target;
 }
 double& InverseKinematics::targetScalar(
     const std::string& targetName)
 {
-    return _targetScalars.at(targetName).target;
+    return targetScalarRef(targetName).target;
 }
 Eigen::Vector3d& InverseKinematics::targetCOM()
 {
@@ -259,17 +272,17 @@ Eigen::Vector3d& InverseKinematics::targetCOM()
 double InverseKinematics::errorPosition(
     const std::string& targetName) const
 {
-    return _targetPositions.at(targetName).error;
+    return targetPositionRef(targetName).error;
 }
 double InverseKinematics::errorOrientation(
     const std::string& targetName) const
 {
-    return _targetOrientations.at(targetName).error;
+    return targetOrientationRef(targetName).error;
 }
 double InverseKinematics::errorScalar(
     const std::string& targetName) const
 {
-    return _targetScalars.at(targetName).error;
+    return targetScalarRef(targetName).error;
 }
 double InverseKinematics::errorCOM() const
 {
@@ -279,6 +292,32 @@ double InverseKinematics::errorCOM() const
     }
 
     return _errorCOM;
+}
+
+Eigen::Vector3d& InverseKinematics::weightPosition(
+    const std::string& targetName)
+{
+    return targetPositionRef(targetName).weight;
+}
+double& InverseKinematics::weightOrientation(
+    const std::string& targetName)
+{
+    return targetOrientationRef(targetName).weight;
+}
+
+double& InverseKinematics::weightScalar(
+    const std::string& targetName)
+{
+    return targetScalarRef(targetName).weight;
+}
+Eigen::Vector3d& InverseKinematics::weightCOM()
+{
+    if (!_isTargetCOM) {
+        throw std::logic_error(
+            "InverseKinematics COM target not enabled");
+    }
+
+    return _weightCOM;
 }
         
 double InverseKinematics::errorSum() const
@@ -353,23 +392,36 @@ void InverseKinematics::run(double tolerance,
     exportDOF();
 
     //Compute target error
-    _errorSum = lm.fvec().stableNorm();
+    double squaredErrorSum = 0;
     size_t index = 0;
+    // RootSquared is applied once more
     for (auto& target : _targetPositions) {
-        target.second.error = lm.fvec().segment(index, 3).stableNorm();
+        Eigen::Vector3d errors = lm.fvec().segment(index, 3);
+        Eigen::Vector3d rsWeight = rsCWise(target.second.weight);
+        target.second.error = errors.cwiseProduct(rsWeight).stableNorm();
         index += 3;
+        squaredErrorSum += target.second.error * target.second.error;
     }
     for (auto& target : _targetOrientations) {
         target.second.error = lm.fvec().segment(index, 6).stableNorm();
+        target.second.error *= std::sqrt(target.second.weight);
         index += 6;
+        squaredErrorSum += target.second.error * target.second.error;
     }
     for (auto& target : _targetScalars) {
         target.second.error = lm.fvec().segment(index, 1).stableNorm();
+        target.second.error *= std::sqrt(target.second.weight);
         index += 1;
+        squaredErrorSum += target.second.error * target.second.error;
     }
     if (_isTargetCOM) {
-        _errorCOM = lm.fvec().segment(index, 3).stableNorm();
+        Eigen::Vector3d errors = lm.fvec().segment(index, 3);
+        Eigen::Vector3d rsWeight = rsCWise(_weightCOM);
+        _errorCOM = errors.cwiseProduct(rsWeight).stableNorm();
+        index += 3;
+        squaredErrorSum += _errorCOM * _errorCOM;
     }
+    _errorSum = std::sqrt(squaredErrorSum);
 }
         
 size_t InverseKinematics::sizeDOF() const
@@ -410,7 +462,7 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, 
             target.second.bodyId, target.second.point, false);
         //Compute error
-        fvec.segment(index, 3) = pt - target.second.target;
+        fvec.segment(index, 3) = (pt - target.second.target).cwiseProduct(rsCWise(target.second.weight));
         index += 3;
     }
     //Orientation targets
@@ -438,9 +490,9 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
         Eigen::Vector3d targetPtY = target.second.target 
             * (realPt + Eigen::Vector3d(0.0, 1.0, 0.0));
         //Compute error
-        fvec.segment(index, 3) = realPtX - targetPtX;
+        fvec.segment(index, 3) = (realPtX - targetPtX) * std::sqrt(target.second.weight);
         index += 3;
-        fvec.segment(index, 3) = realPtY - targetPtY;
+        fvec.segment(index, 3) = (realPtY - targetPtY) * std::sqrt(target.second.weight);
         index += 3;
     }
     //Scalar targets
@@ -450,12 +502,13 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, 
             target.second.bodyId, target.second.point, false);
         //Compute error
+        double rsWeight = std::sqrt(target.second.weight);
         if (target.second.axis == AxisX) {
-            fvec(index) = pt.x() - target.second.target;
+          fvec(index) = (pt.x() - target.second.target) * rsWeight;
         } else if (target.second.axis == AxisY) {
-            fvec(index) = pt.y() - target.second.target;
+          fvec(index) = (pt.y() - target.second.target) * rsWeight;
         } else if (target.second.axis == AxisZ) {
-            fvec(index) = pt.z() - target.second.target;
+          fvec(index) = (pt.z() - target.second.target) * rsWeight;
         }
         index += 1;
     }
@@ -468,7 +521,7 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, _allDofs, 
             tmpMass, com, NULL, NULL, false);
         //Compute error
-        fvec.segment(index, 3) = com - _targetCOM;
+        fvec.segment(index, 3) = (com - _targetCOM).cwiseProduct(rsCWise(weightCOM()));
         index += 3;
     }
     //Dummy errors values for eigen assert
@@ -492,7 +545,7 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         //Compute constrained point jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
-            target.second.point, fjac, index, _globalIndexToSubset);
+            target.second.point, fjac, index, _globalIndexToSubset, target.second.weight);
         index += 3;
     }
     //Orientation targets
@@ -500,12 +553,14 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         //Compute constrained point X jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
-            Eigen::Vector3d(1.0, 0.0, 0.0), fjac, index, _globalIndexToSubset);
+            Eigen::Vector3d(1.0, 0.0, 0.0), fjac, index, _globalIndexToSubset,
+            Eigen::Vector3d::Constant(target.second.weight));
         index += 3;
         //Compute constrained point Y jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
-            Eigen::Vector3d(0.0, 1.0, 0.0), fjac, index, _globalIndexToSubset);
+            Eigen::Vector3d(0.0, 1.0, 0.0), fjac, index, _globalIndexToSubset,
+            Eigen::Vector3d::Constant(target.second.weight));
         index += 3;
     }
     //Scalar targets
@@ -514,7 +569,8 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         Eigen::MatrixXd tmpG = Eigen::MatrixXd::Zero(3, inputs());
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
-            target.second.point, tmpG, 0, _globalIndexToSubset);
+            target.second.point, tmpG, 0, _globalIndexToSubset,
+            Eigen::Vector3d::Constant(target.second.weight));
         //Assign jacobian for used subset DOF
         if (target.second.axis == AxisX) {
             fjac.block(index, 0, 1, inputs()) = tmpG.block(0, 0, 1, inputs());
@@ -528,10 +584,10 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     //COM target
     if (_isTargetCOM) {
         //Compute COM jacobian
-        comJacobian(fjac, index);
+        comJacobian(fjac, index, weightCOM());
         index += 3;
     }
-    
+
     return 0;
 }
         
@@ -585,7 +641,8 @@ void InverseKinematics::updateAllDOF(const Eigen::VectorXd& dofs)
     }
 }
         
-void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index)
+void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
+                                    const Eigen::Vector3d & weight)
 {
     //Init com and mass
     double sumMass = 0.0;
@@ -599,13 +656,16 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index)
             tmpG.setZero();
             CustomCalcPointJacobian(
                 _model->_model, _allDofs, i, 
-                center, tmpG, 0, _globalIndexToSubset);
+                center, tmpG, 0, _globalIndexToSubset, weight);
             sumMass += mass;
-            fjac.block(index, 0, 3, inputs()) += tmpG;
+            fjac.block(index, 0, 3, inputs()) += tmpG * mass;
         }
     }
     //Normalize the sum
     fjac.block(index, 0, 3, inputs()) *= (1.0/sumMass);
+    std::cout << "Weight: " << weight << std::endl;
+    std::cout << "Total mass: " << sumMass << std::endl;
+    std::cout << fjac << std::endl;
 }
         
 void InverseKinematics::importDOF()
@@ -620,6 +680,74 @@ void InverseKinematics::exportDOF()
         _model->_dofs(_subsetIndexToGlobal.at(i)) = _dofs(i);
     }
 }
+
+  const struct InverseKinematics::TargetPosition&
+  InverseKinematics::targetPositionRef(const std::string & targetName) const
+  {
+    try {
+      return _targetPositions.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetPosition: '"
+                              + targetName + "'");
+    }
+  }
+  const struct InverseKinematics::TargetOrientation&
+  InverseKinematics::targetOrientationRef(const std::string & targetName) const
+  {
+    try {
+      return _targetOrientations.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetOrientation: '"
+                              + targetName + "'");
+    }
+  }
+  const struct InverseKinematics::TargetScalar&
+  InverseKinematics::targetScalarRef(const std::string & targetName) const
+  {
+    try {
+      return _targetScalars.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetScalar: '"
+                              + targetName + "'");
+    }
+  }
+  struct InverseKinematics::TargetPosition&
+  InverseKinematics::targetPositionRef(const std::string & targetName)
+  {
+    try {
+      return _targetPositions.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetPosition: '"
+                              + targetName + "'");
+    }
+  }
+  struct InverseKinematics::TargetOrientation&
+  InverseKinematics::targetOrientationRef(const std::string & targetName)
+  {
+    try {
+      return _targetOrientations.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetOrientation: '"
+                              + targetName + "'");
+    }
+  }
+  struct InverseKinematics::TargetScalar&
+  InverseKinematics::targetScalarRef(const std::string & targetName)
+  {
+    try {
+      return _targetScalars.at(targetName);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("InverseKinematics: cannot find targetScalar: '"
+                              + targetName + "'");
+    }
+  }
+
 
 }
 

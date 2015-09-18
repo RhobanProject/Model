@@ -69,13 +69,13 @@ int main()
     inv.setLowerBound("right_knee", 0.5);
 
     // Declare target Position
-    inv.addTargetPosition("LeftFoot", "left_arch_tip");
-    inv.addTargetPosition("RightFoot", "right_arch_tip");
+    inv.addTargetPosition("LeftFoot", "left_arch_center");
+    inv.addTargetPosition("RightFoot", "right_arch_center");
     inv.addTargetPosition("trunk", "trunk");
     //Target orientation
-    inv.addTargetOrientation("LeftFoot", "left_arch_tip");
+    inv.addTargetOrientation("LeftFoot", "left_arch_center");
     inv.addTargetOrientation("trunk", "trunk");
-    inv.addTargetOrientation("RightFoot", "right_arch_tip");
+    inv.addTargetOrientation("RightFoot", "right_arch_center");
 
     //Set Positions
     inv.targetPosition("LeftFoot")  = Eigen::Vector3d(0,  feetSpacing/2,      0);

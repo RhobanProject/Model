@@ -193,6 +193,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     set(TESTS_FILES ${TESTS_FILES} 
         testModelViewer
         testInverseKinematics
+        testWeightedInverseKinematics
         testStaticWalk
         testRBDLRootUpdate
         testSigmabanFixedModel

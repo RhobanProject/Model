@@ -123,6 +123,14 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         Eigen::Vector3d& targetCOM();
 
         /**
+         * Access and update weight of the different targets
+         */
+        Eigen::Vector3d& weightPosition(const std::string& targetName);
+        double& weightOrientation(const std::string& targetName);
+        double& weightScalar(const std::string& targetName);
+        Eigen::Vector3d& weightCOM();
+
+        /**
          * Return last computed target error
          * for position vector, orientation,
          * scalar and center of mass
@@ -226,6 +234,7 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             Eigen::Vector3d point;
             Eigen::Vector3d target;
             double error;
+            Eigen::Vector3d weight;
         };
         struct TargetOrientation {
             std::string name;
@@ -234,6 +243,7 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             bool isPosTarget;
             Eigen::Vector3d posTarget;
             double error;
+            double weight;
         };
         struct TargetScalar {
             std::string name;
@@ -242,7 +252,20 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             TargetAxis axis;
             double target;
             double error;
+            double weight;
         };
+
+        /**
+         * Return a reference to the target structure from its name.
+         * Throw a std::out_of_range exception with an explicit message
+         * if targetName is unknown
+         */
+        const struct TargetPosition&    targetPositionRef   (const std::string & targetName) const;
+        const struct TargetOrientation& targetOrientationRef(const std::string & targetName) const;
+        const struct TargetScalar&      targetScalarRef     (const std::string & targetName) const;
+        struct TargetPosition&          targetPositionRef   (const std::string & targetName);
+        struct TargetOrientation&       targetOrientationRef(const std::string & targetName);
+        struct TargetScalar&            targetScalarRef     (const std::string & targetName);
 
         /**
          * Leph::Model interface to RBDL
@@ -290,6 +313,7 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         bool _isTargetCOM;
         double _errorCOM;
         Eigen::Vector3d _targetCOM;
+        Eigen::Vector3d _weightCOM;
 
         /**
          * Last error sum
@@ -306,7 +330,8 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          * Compute center of mass jacobian using
          * current DOF
          */
-        void comJacobian(RBDLMath::MatrixNd& fjac, size_t index);
+        void comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
+                         const Eigen::Vector3d & weight);
 
         /**
          * Import and export from and to RBDL model
