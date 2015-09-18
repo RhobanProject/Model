@@ -19,6 +19,7 @@ int main()
   RBDL::Model rbdlModel= Leph::generateGrobanWithToe(floatingBase);
   Leph::Model model(rbdlModel);
   std::cout << model.getDOF() << std::endl;
+  std::cout << "Total mass: " << model.sumMass() << std::endl;
     
   //Viewer loop
   Leph::ModelViewer viewer(1200, 900);

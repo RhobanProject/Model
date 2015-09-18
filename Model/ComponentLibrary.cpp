@@ -16,10 +16,10 @@ namespace Leph {
 
   void ComponentLibrary::createBodies()
   {
-    bodies["virtual"].mMass = 0.001;//RBDL automatically join bodies when using a fixed joint and join cannot be operatoed on two bodies with a 0 mass + Model virtual body name not implemented
+    bodies["virtual"].mMass = 0.0;
     bodies["virtual"].mCenterOfMass = Eigen::Vector3d::Zero();
     bodies["virtual"].mInertia = Eigen::Matrix3d::Identity();
-    bodies["virtual"].mIsVirtual = true;
+    bodies["virtual"].mIsVirtual = false;
     //Default orientation of the motors is given at files in:
     // http://en.robotis.com/BlueAD/board.php?bbs_id=downloads&mode=view&bbs_no=26324&page=1&key=&keyword=&sort=&scate=DRAWING 
     bodies["EX106+"].mMass = 0.158;

@@ -30,8 +30,8 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         RBDLMath::Matrix3d::Identity());
 
     for (size_t i=0;i<rbdlModel.mBodies.size();i++) {
-        //Virtual moby used for multi DOF are skipped
-        if (rbdlModel.mBodies[i].mMass < 0.0001) {
+        //Virtual body used for multi DOF are skipped
+        if (rbdlModel.mBodies[i].mIsVirtual) {
             continue;
         }
         //Draw RBDL bodies center of mass
@@ -42,7 +42,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         viewer.drawMass(pos, mat);
         Eigen::Vector3d center = model.position(bodyIndex, originIndex);
         //Draw RBDL joints if parent body is non virtual
-        if (rbdlModel.mBodies[rbdlModel.lambda[i]].mMass > 0.0001) {
+        if (!rbdlModel.mBodies[rbdlModel.lambda[i]].mIsVirtual) {
             RBDLMath::Vector3d jointAxis = rbdlModel.S[i].head(3);
             RBDLMath::Matrix3d transformAxis = RBDLMath::Matrix3d::Identity();
             if (
@@ -61,6 +61,8 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         viewer.drawLink(center, pos);
         //Draw link between body center of mass and its children origin
         for (size_t j=0;j<rbdlModel.mu[i].size();j++) {
+            size_t childBodyIndex = rbdlModel.mu[i][j];
+            if (rbdlModel.mBodies[childBodyIndex].mIsVirtual) continue;//Skip virtual children
             size_t childIndex = model.bodyIdToFrameIndex(rbdlModel.mu[i][j]);
             Eigen::Vector3d centerChild = model.position(childIndex, originIndex);
             viewer.drawLink(pos, centerChild);
