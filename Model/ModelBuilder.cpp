@@ -75,9 +75,11 @@ namespace Leph {
   {                    
     // DOF dimensions
     Eigen::Vector3d trunkToHip(0, 0.046375, 0);
-    Eigen::Vector3d hipToKnee(-0.014956, 0, -0.179652);
+    Eigen::Vector3d hipToKnee(-0.014956, 0.001, -0.179652);
     Eigen::Vector3d kneeToAnkle(0, 0, -0.25);
     Eigen::Vector3d ankleToToe(0.10132, 0.015, -0.025);
+    Eigen::Vector3d trunkToShoulder(-0.0007, 0.103875, 0.247);
+    Eigen::Vector3d trunkToHead(0.0072, 0, 0.28025);
     // Motors offsets (should include SpatialTransform due toe rotation around axis)
     Eigen::Vector3d hipYawMotorOffset(0, 0, 0.05);
     Eigen::Vector3d hipRollMotorOffset(-0.05, 0, 0);
@@ -87,7 +89,7 @@ namespace Leph {
     Eigen::Vector3d ankleRollMotorOffset(-0.05, 0, 0);
     // Foot Tips
     Eigen::Vector3d ankleToArchPlate(0.0216, 0.015, -0.0667);
-    Eigen::Vector3d toeToToePlate(0.021, 0, -0.0417);
+    Eigen::Vector3d toeToToePlate(0.021, -0.00025, -0.0417);
          
     RBDL::Model rbdlModel;
     RBDL::Joint jointRoot(RBDL::JointTypeFixed);
@@ -100,6 +102,12 @@ namespace Leph {
     const auto & jointRoll  = ComponentLibrary::roll ;
     const auto & jointYaw   = ComponentLibrary::yaw  ;
     const auto & jointPitch = ComponentLibrary::pitch;
+    // Head
+    addVirtualDOF(rbdlModel, "trunk", jointYaw, trunkToHead, "head_yaw");
+    addVirtualDOF(rbdlModel, "head_yaw", jointPitch, "head_pitch");
+    //TODO fit
+    //TODO torso
+    //TODO camera
     for (const std::string & legSide : {"left", "right"}) {
       auto coeff = sideCoeff.at(legSide);
       // DOF
@@ -114,6 +122,10 @@ namespace Leph {
       addVirtualDOF(rbdlModel, legSide + "_ankle_pitch", jointRoll, legSide + "_ankle_roll");
       addVirtualDOF(rbdlModel, legSide + "_ankle_roll", jointPitch,
                     coeff.cwiseProduct(ankleToToe), legSide + "_toe");
+      addVirtualDOF(rbdlModel, "trunk", jointPitch,
+                    coeff.cwiseProduct(trunkToShoulder), legSide + "_shoulder_pitch");
+      addVirtualDOF(rbdlModel, legSide + "_shoulder_pitch", jointRoll, legSide + "_shoulder_roll");
+      //TODO Elbow+Hand
       // Motors
       addFixedBody(rbdlModel,"trunk", "EX106+", coeff.cwiseProduct(trunkToHip + hipYawMotorOffset),
                    legSide + "_hip_yaw_motor");
@@ -159,6 +171,8 @@ namespace Leph {
                      pressureCoeffs[i].cwiseProduct(toeSize),
                      toeOss.str());
       }
+      // Hands
+      //TODO
     }
     return rbdlModel;
   }
