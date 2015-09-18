@@ -663,9 +663,6 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
     }
     //Normalize the sum
     fjac.block(index, 0, 3, inputs()) *= (1.0/sumMass);
-    std::cout << "Weight: " << weight << std::endl;
-    std::cout << "Total mass: " << sumMass << std::endl;
-    std::cout << fjac << std::endl;
 }
         
 void InverseKinematics::importDOF()
