@@ -42,10 +42,10 @@ namespace Leph {
     bodies["ToePlate"].mCenterOfMass = Eigen::Vector3d::Zero();
     bodies["ToePlate"].mInertia = Eigen::Matrix3d::Identity();
     bodies["ToePlate"].mIsVirtual = false;
-    bodies["pressure"].mMass = 0.002;///TODO measure
-    bodies["pressure"].mCenterOfMass = Eigen::Vector3d::Zero();
-    bodies["pressure"].mInertia = Eigen::Matrix3d::Identity();
-    bodies["pressure"].mIsVirtual = false;
+    bodies["gauge"].mMass = 0.002;///TODO measure
+    bodies["gauge"].mCenterOfMass = Eigen::Vector3d::Zero();
+    bodies["gauge"].mInertia = Eigen::Matrix3d::Identity();
+    bodies["gauge"].mIsVirtual = false;
   }
 
   const RBDL::Body ComponentLibrary::getBody(const std::string & name)

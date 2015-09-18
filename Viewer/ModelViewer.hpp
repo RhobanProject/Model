@@ -104,6 +104,10 @@ class ModelViewer
             const Eigen::Vector3d& center, 
             const Eigen::Matrix3d& orientation,
             double r = 0.3, double g = 0.6, double b = 0.6);
+        void drawBox(const Eigen::Vector3d& halfSize,
+            const Eigen::Vector3d& center, 
+            const Eigen::Matrix3d& orientation,
+            double r = 0.3, double g = 0.6, double b = 0.6);
 
         /**
          * Add a position for drawing trajectory

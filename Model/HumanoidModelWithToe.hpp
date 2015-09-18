@@ -24,6 +24,8 @@ namespace Leph {
     HumanoidModelWithToe(
       const std::string& filename,
       const std::string& frameRoot);
+
+    HumanoidModelWithToe(RBDL::Model & model);
         
     /**
      * Virtual destructor

@@ -204,6 +204,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
     )
     set(APPS_FILES ${APPS_FILES}
+        appViewerGrobanLogs
         appViewerModelSplines
         appViewerModelLogsOld
         appViewerModelLogs

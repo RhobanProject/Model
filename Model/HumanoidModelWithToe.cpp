@@ -7,6 +7,11 @@ namespace Leph {
   {
   }
 
+  HumanoidModelWithToe::HumanoidModelWithToe(RBDL::Model & model)
+  {
+    Model::initializeModel(model);
+  }
+
   HumanoidModelWithToe::HumanoidModelWithToe(
     const std::string& filename,
     const std::string& frameRoot) :

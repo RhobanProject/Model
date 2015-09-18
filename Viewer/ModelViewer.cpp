@@ -234,6 +234,14 @@ void ModelViewer::drawBox(double sizeX, double sizeY, double sizeZ,
         drawCube(r, g, b, true);
     glPopMatrix();
 }
+
+void ModelViewer::drawBox(const Eigen::Vector3d & halfSize,
+    const Eigen::Vector3d& center, 
+    const Eigen::Matrix3d& orientation,
+    double r, double g, double b)
+{
+  drawBox(halfSize.x(), halfSize.y(), halfSize.z(), center, orientation, r, g, b);
+}
         
 void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point, 
     Color color)
