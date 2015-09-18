@@ -34,11 +34,11 @@ namespace Leph {
     bodies["RX28"].mCenterOfMass = Eigen::Vector3d(0.0002407, -0.01290, 0.0005949);
     bodies["RX28"].mInertia = Eigen::Matrix3d::Identity();
     bodies["RX28"].mIsVirtual = false;
-    bodies["ArchPlate"].mMass = 0.350;//TODO measure
+    bodies["ArchPlate"].mMass = 0.250;//TODO measure
     bodies["ArchPlate"].mCenterOfMass = Eigen::Vector3d::Zero();
     bodies["ArchPlate"].mInertia = Eigen::Matrix3d::Identity();
     bodies["ArchPlate"].mIsVirtual = false;
-    bodies["ToePlate"].mMass = 0.150;///TODO measure
+    bodies["ToePlate"].mMass = 0.100;///TODO measure
     bodies["ToePlate"].mCenterOfMass = Eigen::Vector3d::Zero();
     bodies["ToePlate"].mInertia = Eigen::Matrix3d::Identity();
     bodies["ToePlate"].mIsVirtual = false;
@@ -51,6 +51,11 @@ namespace Leph {
   const RBDL::Body ComponentLibrary::getBody(const std::string & name)
   {
     if (bodies.size() == 0) { createBodies(); }
-    return bodies.at(name);
+    try{
+      return bodies.at(name);
+    }
+    catch (const std::out_of_range & exc) {
+      throw std::out_of_range("ComponentLibrary: unknown body '" + name + "'");
+    } 
   }
 }

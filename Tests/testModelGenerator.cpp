@@ -29,8 +29,8 @@ int main()
 
   while (viewer.update()) {
 
-    //model.setDOF("left_hip_yaw", amplitude * sin(1 * M_PI * t / period));
-    //model.setDOF("left_hip_roll", amplitude * sin(2 * M_PI * t / period));
+    //model.setDOF("head_yaw", amplitude * sin(1 * M_PI * t / period));
+    //model.setDOF("head_pitch", amplitude * sin(2 * M_PI * t / period));
     //model.setDOF("left_hip_pitch", amplitude * sin(4 * M_PI * t / period));
     Leph::ModelDraw(model, viewer);
     t += 1;
