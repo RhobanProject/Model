@@ -601,6 +601,7 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index)
                 _model->_model, _allDofs, i, 
                 center, tmpG, 0, _globalIndexToSubset);
             sumMass += mass;
+            tmpG *= mass;
             fjac.block(index, 0, 3, inputs()) += tmpG;
         }
     }
