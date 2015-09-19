@@ -81,7 +81,7 @@ void Model::setDOF(const VectorLabel& vect, bool setBase)
 }
 void Model::setDOF(const std::string& name, double value)
 {
-    _dofs(_dofNameToIndex.at(name)) = value;
+    _dofs(getDOFIndex(name)) = value;
 }
 void Model::setDOF(size_t index, double value)
 {
@@ -105,7 +105,12 @@ const std::string& Model::getDOFName(size_t index) const
 }
 size_t Model::getDOFIndex(const std::string& name) const
 {
+  try{
     return _dofNameToIndex.at(name);
+  }
+  catch (const std::out_of_range& exc) {
+    throw std::out_of_range("Model: unknown DOF '" + name + "'");
+  }
 }
 
 const Eigen::VectorXd& Model::getDOFVect() const

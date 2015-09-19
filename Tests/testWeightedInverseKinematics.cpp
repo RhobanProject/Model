@@ -18,40 +18,81 @@ int main()
     //Inverse Kinematics
     Leph::InverseKinematics inv(model);
     //Declare model degrees of freedom
-    inv.addDOF("trunk_x");
-    inv.addDOF("trunk_y");
-    inv.addDOF("trunk_z");
+//    inv.addDOF("trunk_x");
+    //inv.addDOF("trunk_y");
+    //inv.addDOF("trunk_z");
+    inv.addDOF("trunk_roll");
+    inv.addDOF("left_hip_roll");
+    inv.addDOF("right_hip_roll");
+    inv.addDOF("left_ankle_roll");
+    inv.addDOF("right_ankle_roll");
 
-    //Declare target position
-    inv.addTargetPosition("left_foot" , "left_arch_tip" );
-    //inv.addTargetPosition("right_toe" , "left_toe_tip" );
-    inv.addTargetCOM();
+//    //Declare target position
+//    inv.addTargetPosition("left_foot" , "left_arch_tip" );
+//    inv.addTargetCOM();
+//    //Set impossible targets
+//    inv.targetPosition("left_foot").x() = 3;
+//    inv.targetCOM().x() = -3;
+//    //Set different weight
+//    inv.weightPosition("left_foot") = Eigen::Vector3d(1, 0, 0);
+//    inv.weightCOM() = Eigen::Vector3d(4, 0, 0);
+
+    //Declare orientation and dof
+    std::vector<std::string> targetDOFs = {"left_hip_roll",
+                                           "right_hip_roll",
+                                           "left_ankle_roll",
+                                           "right_ankle_roll"};
+    for (const std::string& dofName : targetDOFs)
+    {
+      inv.addTargetDOF(dofName, dofName);
+    }
+    inv.addTargetOrientation("left_foot","left_arch_tip");
+    inv.addTargetOrientation("right_foot","right_arch_tip");
+    //Set incompatible orientaton and dof targets
+    for (const std::string& dofName : targetDOFs)
+    {
+      inv.targetDOF(dofName) = 0;
+    }
+    inv.targetDOF("left_ankle_roll") = 4 * M_PI / 180;
+    inv.targetOrientation("left_foot")  = Eigen::Matrix3d::Identity();
+    inv.targetOrientation("right_foot") = Eigen::Matrix3d::Identity();
+    //Set Weight of orientation and dof
+    inv.weightOrientation("left_foot")  = 1000;
+    inv.weightOrientation("right_foot") = 1000;
+
+    //give a hint
+    //for (const std::string& dofName : targetDOFs)
+    //{
+    //  model.setDOF(dofName, 1 * M_PI / 180);
+    //}
+    //model.setDOF("left_hip_roll", -1 * M_PI / 180);
+    //model.setDOF("left_ankle_roll", 3 * M_PI / 180);
+    //model.setDOF("trunk_roll", -2 * M_PI / 180);
 
     Leph::Chrono chrono;
     double t = 0.0;
     while (viewer.update()) {
         t += 0.01;
 
-        //Update impossible targets
-        inv.targetPosition("left_foot").x() = 3;
-        //inv.targetPosition("right_toe").x() = -3;
-        inv.targetCOM().x() = -3;
-
-        inv.weightPosition("left_foot") = Eigen::Vector3d::Constant(1);
-        //inv.weightPosition("right_toe") = Eigen::Vector3d::Constant(4);
-        inv.weightCOM() = Eigen::Vector3d::Constant(4);
-
         chrono.start("InverseKinematics");
         //Compute Inverse Kinematics
+        inv.randomDOFNoise();
         inv.run(0.0001, 100);
         chrono.stop("InverseKinematics");
         chrono.print();
-        std::cout << "Left foot pos  : " << model.position("left_arch_tip", "origin").x() << std::endl;
-        std::cout << "Left foot error: " << inv.errorPosition("left_foot") << std::endl;
-        //std::cout << "Right toe pos  : " << model.position("right_toe_tip", "origin").x() << std::endl;
-        //std::cout << "Right toe error: " << inv.errorPosition("right_toe") << std::endl;
-        std::cout << "COM pos        : " << model.centerOfMass("origin").x() << std::endl;
-        std::cout << "COM error      : " << inv.errorCOM() << std::endl;
+//        std::cout << "Left foot pos  : " << model.position("left_arch_tip", "origin").x() << std::endl;
+//        std::cout << "Left foot error: " << inv.errorPosition("left_foot") << std::endl;
+//        std::cout << "COM pos        : " << model.centerOfMass("origin").x() << std::endl;
+//        std::cout << "COM error      : " << inv.errorCOM() << std::endl;
+        std::cout << "left foot orientation error  : " << inv.errorOrientation("left_foot" ) << std::endl;
+        std::cout << "right foot orientation error : " << inv.errorOrientation("right_foot") << std::endl;
+        std::cout << "roll value: " << model.getDOF("trunk_roll") * 180 / M_PI << " deg" << std::endl;
+        for (const std::string & dofName : targetDOFs) {
+          std::cout << dofName << " value: " << model.getDOF(dofName) * 180 / M_PI << " deg" << std::endl;
+          std::cout << dofName << " error: " << inv.errorDOF(dofName) * 180 / M_PI << " deg" << std::endl;
+        }
+
+        std::cout << model.getDOF() << std::endl;
         
         //Display
         Leph::ModelDraw(model, viewer);
