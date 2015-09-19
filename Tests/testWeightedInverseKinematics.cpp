@@ -60,15 +60,6 @@ int main()
     inv.weightOrientation("left_foot")  = 1000;
     inv.weightOrientation("right_foot") = 1000;
 
-    //give a hint
-    //for (const std::string& dofName : targetDOFs)
-    //{
-    //  model.setDOF(dofName, 1 * M_PI / 180);
-    //}
-    //model.setDOF("left_hip_roll", -1 * M_PI / 180);
-    //model.setDOF("left_ankle_roll", 3 * M_PI / 180);
-    //model.setDOF("trunk_roll", -2 * M_PI / 180);
-
     Leph::Chrono chrono;
     double t = 0.0;
     while (viewer.update()) {
