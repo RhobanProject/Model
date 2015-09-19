@@ -383,6 +383,15 @@ size_t Model::frameIndexToBodyId(size_t index) const
     return _frameIndexToId.at(index);
 }
 
+std::vector<std::string> Model::getFrames() const
+{
+    std::vector<std::string> result;
+    for (const auto& entry : _frameNameToIndex){
+        result.push_back(entry.first);
+    }
+    return result;
+}
+
 std::string Model::filterJointName(const std::string& name) const
 {
     std::string filtered = name;

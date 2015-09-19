@@ -186,10 +186,10 @@ namespace Leph {
       // Foot
       addFixedBody(rbdlModel, legSide + "_ankle_roll", "ArchPlate",
                    coeff.cwiseProduct(ankleToArchPlate),
-                   legSide + "_arch_tip");
+                   legSide + "_arch_center");
       addFixedBody(rbdlModel, legSide + "_toe", "ToePlate",
                    coeff.cwiseProduct(toeToToePlate),
-                   legSide + "_toe_tip");
+                   legSide + "_toe_center");
 
     
       Eigen::Vector3d archSize(0.125,0.092,0);
@@ -202,10 +202,10 @@ namespace Leph {
         std::ostringstream archOss, toeOss;
         archOss << legSide << "_arch_gauge_" << i;
         toeOss << legSide << "_toe_gauge_" << i;
-        addFixedBody(rbdlModel, legSide + "_arch_tip", "gauge",
+        addFixedBody(rbdlModel, legSide + "_arch_center", "gauge",
                      gaugeCoeffs[i].cwiseProduct(archSize),
                      archOss.str());
-        addFixedBody(rbdlModel, legSide + "_toe_tip", "gauge",
+        addFixedBody(rbdlModel, legSide + "_toe_center", "gauge",
                      gaugeCoeffs[i].cwiseProduct(toeSize),
                      toeOss.str());
       }

@@ -1,13 +1,10 @@
 #include <iostream>
 #include "Types/MatrixLabel.hpp"
-#include "Model/HumanoidFixedPressureModel.hpp"
-#include "IKWalk/IKWalk.hpp"
+#include "Model/PressureModel.hpp"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
-#include "Plot/Plot.hpp"
 
-#include "Model/HumanoidModelWithToe.hpp"
 #include "Model/ModelBuilder.hpp"
 
 using namespace Leph;
@@ -60,7 +57,7 @@ int main(int argc, char** argv)
     
     //Initialize model instances
     RBDL::Model rbdlModel = generateGrobanWithToe(true);
-    Leph::HumanoidModelWithToe model(rbdlModel);
+    Leph::PressureModel model(rbdlModel);
 
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;
@@ -114,20 +111,19 @@ int main(int argc, char** argv)
         motorsDOF.assignOp(logs[indexLog], "pos", "");
         model.setDOF(motorsDOF, true);
 
-        const std::vector<std::string> plates = {"LeftBase", "RightBase", "LeftToe", "RightToe"};
-        const std::vector<std::string> frames = {"left_arch", "right_arch", "left_toe", "right_toe"};
+        const std::vector<std::string> plates = {"left_arch", "right_arch", "left_toe", "right_toe"};
         //TODO set pressure information and use them
-        for (unsigned int plateID = 0; plateID < plates.size(); plateID++) {
-          std::string plate = plates[plateID];
-          std::string frame = frames[plateID];
+        Leph::VectorLabel pressures = logs[indexLog].extract("pressure").rename("pressure", "");
+        std::cout << pressures << std::endl;
+        for (const std::string& plate : plates) {
           for (int gaugeID = 0; gaugeID < 4; gaugeID++) {
             std::ostringstream logName, frameName;
             logName << plate << ":val:" << gaugeID;
-            frameName << frame << "_gauge_" << gaugeID;
-            double val = logs[indexLog](logName.str());
+            frameName << plate << "_gauge_" << gaugeID;
+            double val = pressures(logName.str());
             Eigen::Vector3d gaugePos = model.position(frameName.str(), "origin");
             Eigen::Vector3d halfSize = Eigen::Vector3d(0.005, 0.005, val / 10000);
-              viewer.drawBox(halfSize,
+            viewer.drawBox(halfSize,
                            gaugePos + halfSize,
                            Eigen::Matrix3d::Identity(),
                            1.0, 0.0, 0.0);

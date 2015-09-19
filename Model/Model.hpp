@@ -212,6 +212,8 @@ class Model
         size_t bodyIdToFrameIndex(size_t index) const;
         size_t frameIndexToBodyId(size_t index) const;
 
+        std::vector<std::string> getFrames() const;
+
     protected:
         
         /**
