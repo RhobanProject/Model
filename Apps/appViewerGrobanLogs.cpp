@@ -115,9 +115,9 @@ int main(int argc, char** argv)
         Leph::VectorLabel pressures = logs[indexLog].extract("pressure").rename("pressure", "");
         pressures = pressures.renameLabels(":val:","_gauge_");
 
-        std::cout << pressures;
-
         model.updatePressure(pressures);
+
+        model.updateBase();
 
         for (const auto& pEntry : model.getPressureValues()) {
           double halfZ = pEntry.second / 10000;

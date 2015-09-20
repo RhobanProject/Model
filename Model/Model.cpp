@@ -59,6 +59,16 @@ size_t Model::sizeDOF() const
     return _model.dof_count;
 }
         
+const std::vector<std::string>& Model::getDOFNames() const
+{
+  return _dofIndexToName;
+}
+
+const std::vector<std::string>& Model::getActuatedDOFNames() const
+{
+  return _actuatedDOFNames;
+}
+
 const VectorLabel& Model::getDOF()
 {
     loadEigenToLabel();
@@ -440,6 +450,12 @@ void Model::initializeModel(RBDL::Model& model)
                 "Model virtual body name not implemented");
         }
         addDOF(filteredName);
+        // floating base is not actuated
+        //TODO find a better way to check avoid this problem
+        if (filteredName.find("base_") == std::string::npos
+            && filteredName.find("trunk_") == std::string::npos) {
+          _actuatedDOFNames.push_back(filteredName);
+        }
     }
 
     //Build name-index frame mapping

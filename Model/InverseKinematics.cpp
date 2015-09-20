@@ -29,7 +29,7 @@ static void CustomCalcPointJacobian(
     const std::map<size_t, size_t>& globalIndexToSubset,
     const Eigen::Vector3d & weight)
 {
-    RBDLMath::SpatialTransform point_trans = 
+    RBDLMath::SpatialTransform targetFromBase = 
         RBDLMath::SpatialTransform(RBDLMath::Matrix3d::Identity(), 
         RBDL::CalcBodyToBaseCoordinates(model, Q, body_id, point_position, false));
 	
@@ -50,9 +50,10 @@ static void CustomCalcPointJacobian(
                 throw std::logic_error(
                     "InverseKinematics RBDL CalcPointJacobian not implemented");
             } else {
-                fjac.block(index, subsetIndex, 3, 1) = point_trans.apply(
-                    model.X_base[j].inverse().apply(model.S[j])
-                  ).block(3,0,3,1).cwiseProduct(rsCWise(weight));
+              // Model.X_base[j] = Spatial Transformation from base to body j
+             RBDLMath::SpatialTransform baseFromBodyJ = model.X_base[j].inverse();
+             RBDLMath::SpatialVector moveInBase = baseFromBodyJ.apply(model.S[j]);
+             fjac.block(index, subsetIndex, 3, 1) = targetFromBase.apply(model.S[j]).block(3, 0, 3, 1);
             }
         } 
         j = model.lambda[j];
@@ -94,6 +95,16 @@ void InverseKinematics::addDOF(const std::string& name)
     _dofs.conservativeResize(indexSubset+1, Eigen::NoChange_t());
     _dofs(indexSubset) = _model->_dofs(indexGlobal);
 }
+
+  VectorLabel InverseKinematics::getNamedDOFSubset()
+  {
+    VectorLabel result;
+    for (size_t dofID = 0; dofID < inputs(); dofID++) {
+      std::string name = _model->getDOFName(_subsetIndexToGlobal[dofID]);
+      result.append(name, _dofs[dofID]);
+    }
+    return result;
+  }
 
 void InverseKinematics::setLowerBound(const std::string& name, 
     double value)
@@ -155,7 +166,7 @@ void InverseKinematics::addTargetPosition(
     }
 
     //Convert frame name to body RBDL id
-    size_t srcFrameIndex = _model->_frameNameToIndex.at(srcFrame);
+    size_t srcFrameIndex = _model->getFrameIndex(srcFrame);
     size_t srcFrameId = _model->_frameIndexToId.at(srcFrameIndex);
 
     //Add target to the container
@@ -429,15 +440,8 @@ void InverseKinematics::run(double tolerance,
         count++;
     } while(st == Eigen::LevenbergMarquardtSpace::Running);
 
-
-    std::cout << "Dofs at end:" << std::endl;
-    std::cout << _dofs << std::endl;
-    
     //Save all computed DOF in model
     exportDOF();
-
-    std::cout << "Vec pre error update" << std::endl;
-    std::cout << lm.fvec() << std::endl;
 
     //Compute target error
     double squaredErrorSum = 0;
@@ -593,9 +597,6 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
     }
     //Dummy errors values for eigen assert
     fvec.segment(index, values()-index).setZero();
-
-    std::cout << "fvec: " << std::endl;
-    std::cout << fvec << std::endl;
     
     return 0;
 }
@@ -669,9 +670,6 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         comJacobian(fjac, index, weightCOM());
         index += 3;
     }
-
-    std::cout << "Jacobian: " << std::endl;
-    std::cout << fjac << std::endl;
 
     return 0;
 }

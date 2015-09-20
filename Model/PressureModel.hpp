@@ -37,10 +37,11 @@ namespace Leph {
 
   protected:
     InverseKinematics * ik;
+    std::map<std::string, double> pressureValues;
+    // It is necessary to store last pressure pos
+    std::map<std::string, Eigen::Vector3d> lastPressurePos;
 
   private:
-    std::map<std::string, double> pressureValues;
-
     /**
      * Ensure that gaugeList corresponds to the model and that
      * the ik set with the appropriate DOF and targets
@@ -52,6 +53,17 @@ namespace Leph {
      */
     void initGaugeList();
     void initIK();
+
+    /**
+     * Set targets of IK and their weight according to received data
+     * also set the bounds for DOF
+     * It is necessary to update the model with read values before using it
+     */
+    void updateIK();
+    /**
+     * store current pressure position for next update
+     */
+    void updatePressurePos();
   };
 
 }

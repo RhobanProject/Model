@@ -58,6 +58,13 @@ class Model
         void setDOF(size_t index, double value);
 
         /**
+         * Return a list of the actuated motors of the robot
+         * (do not include floating base DOF)
+         */
+        const std::vector<std::string>& getDOFNames() const;
+        const std::vector<std::string>& getActuatedDOFNames() const;
+
+        /**
          * Direct getter and setter to Eigen
          * degree of freedom vector
          */
@@ -255,6 +262,12 @@ class Model
         std::map<size_t, std::string> _frameIndexToName;
         std::map<std::string, size_t> _frameNameToIndex;
         std::map<size_t, size_t> _frameIndexToId;
+
+        /**
+         * A list of all the degrees of freedom of the robot
+         * (base excepted)
+         */
+        std::vector<std::string> _actuatedDOFNames;
 
         /**
          * Filter body name to joint and frame name

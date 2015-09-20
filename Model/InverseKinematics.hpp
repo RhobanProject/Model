@@ -44,6 +44,12 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          */
         void addDOF(const std::string& name);
 
+
+        /**
+         * Return a VectorLabel associating the name of the DOF with their values
+         */
+        VectorLabel getNamedDOFSubset();
+
         /**
          * Set lower and upper bound limit value
          * or disable constraint for given degree of freedom

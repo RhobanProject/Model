@@ -35,16 +35,74 @@ namespace Leph {
   void PressureModel::initGaugeList()
   {
     pressureValues.clear();
+    lastPressurePos.clear();
     for (const std::string& frameName : getFrames()) {
       if (frameName.find("gauge") != std::string::npos) {
         pressureValues[frameName] = 0;
+        lastPressurePos[frameName] = position(frameName, "origin");
       }
     }
   }
 
   void PressureModel::initIK()
   {
-    //TODO
+    if (ik != NULL) {
+      delete(ik);
+    }
+    ik = new InverseKinematics(*this);
+    // Adding all DOF from the model
+    //TODO eventually reduce to the lower part since upper part has no influence on foot position
+    for (const std::string& dof : getDOFNames()) {
+      ik->addDOF(dof);
+    }
+    // Adding targets for every gauge frame
+    for (const auto& pEntry : pressureValues) {
+      ik->addTargetPosition(pEntry.first, pEntry.first);
+    }
+    // Adding target for every motor
+    for (const std::string & dof : getActuatedDOFNames()) {
+      ik->addTargetDOF(dof, dof);
+    }
+  }
+
+  void PressureModel::updateIK()
+  {
+    if (ik == NULL) {
+      initIK();
+    }
+    // Weights
+    double gaugeSlipWeight = 5;
+    double gaugeZWeight = 20;
+    double dofWeight = 10;
+    // Tols
+    double dofMaxError = 5 * M_PI / 180;
+    // Threshold
+    double gaugeThreshold = 200;
+    Eigen::Vector3d gaugeWeight(gaugeSlipWeight, gaugeSlipWeight, gaugeZWeight);
+    // Setting up DOF targets, weights and bounds
+    for (const std::string & dof : getActuatedDOFNames()) {
+      double readVal = getDOF(dof);
+      ik->targetDOF(dof) = readVal;
+      ik->weightDOF(dof) = dofWeight;
+      ik->setLowerBound(dof, readVal - dofMaxError);
+      ik->setUpperBound(dof, readVal + dofMaxError);
+    }
+    // Setting up Gauge targets and weights
+    for (const auto& pEntry : pressureValues) {
+      const std::string& gaugeName = pEntry.first;
+      double gaugeVal = pEntry.second;
+      //Target is always the same position as last known target;
+      ik->targetPosition(gaugeName) = lastPressurePos.at(gaugeName);
+      ik->targetPosition(gaugeName).z() = 0;
+      //TODO do something else that binary choice here
+      if (gaugeVal > gaugeThreshold) {
+        ik->weightPosition(gaugeName) = gaugeWeight * gaugeVal;
+      }
+      // No cost if no pressure on gauge (ideally z < 0 should have a cost)
+      else {
+        ik->weightPosition(gaugeName) = Eigen::Vector3d::Zero();
+      }
+    }
   }
 
   const std::map<std::string, double>& PressureModel::getPressureValues() const
@@ -60,9 +118,19 @@ namespace Leph {
     }
   }
 
+  void PressureModel::updatePressurePos()
+  {
+    for (auto& pressureEntry : lastPressurePos) {
+      pressureEntry.second = position(pressureEntry.first, "origin");
+    }
+  }
+
   void PressureModel::updateBase()
   {
-    //TODO
+    updateIK();
+    //ik->randomDOFNoise();
+    ik->run(0.000001, 10000);
+    updatePressurePos();
   }
 
 }
