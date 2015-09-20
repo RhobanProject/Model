@@ -479,6 +479,34 @@ class VectorLabel
         }
 
         /**
+         * Return a VectorLabel where every occurence of src in labels has been
+         * replaced by dst
+         */
+        inline VectorLabel renameLabels(const std::string& src, 
+                                        const std::string& dst) const
+        {
+            VectorLabel tmp;
+            for (size_t i=0;i<_indexToLabel->size();i++) {
+              size_t srcStart;
+              std::string newLabel = _indexToLabel->at(i);
+              while ((srcStart = newLabel.find(src)) != std::string::npos) {
+                newLabel = newLabel.erase(srcStart, src.size());
+                newLabel = newLabel.insert(srcStart, dst);
+              }
+              if (!tmp.exist(newLabel)) {
+                tmp.appendAux(newLabel, _eigenVector(i));
+              }
+              else {
+                throw std::runtime_error("VectorLabel: renaming '" + src
+                                         + "' to '" + dst + ": two labels '"
+                                         + newLabel + "' in destination");
+              }
+            }
+
+            return tmp;
+        }
+
+        /**
          * Apply the operation "func" on all labels of given VectorLabel
          * filtered by filterSrc section and write the result on either
          * same label in this or filteredDst section and same name

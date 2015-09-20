@@ -3,24 +3,36 @@
 
 namespace Leph {
 
-  PressureModel::PressureModel(): Model()
+  PressureModel::PressureModel(): Model(), ik(NULL)
   {
+    init();
   }
 
-  PressureModel::PressureModel(RBDL::Model & model) : Model(model)
+  PressureModel::PressureModel(RBDL::Model & model) : Model(model), ik(NULL)
   {
+    init();
   }
 
-  PressureModel::PressureModel(const std::string & filename) : Model(filename)
+  PressureModel::PressureModel(const std::string & filename) : Model(filename), ik(NULL)
   {
+    init();
   }
         
         
   PressureModel::~PressureModel()
   {
+    if (ik != NULL) {
+      delete(ik);
+    }
   }
 
-  void PressureModel::updateGaugeList()
+  void PressureModel::init()
+  {
+    initGaugeList();
+    initIK();
+  }
+
+  void PressureModel::initGaugeList()
   {
     pressureValues.clear();
     for (const std::string& frameName : getFrames()) {
@@ -28,6 +40,11 @@ namespace Leph {
         pressureValues[frameName] = 0;
       }
     }
+  }
+
+  void PressureModel::initIK()
+  {
+    //TODO
   }
 
   const std::map<std::string, double>& PressureModel::getPressureValues() const

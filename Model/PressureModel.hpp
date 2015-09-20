@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Model/Model.hpp"
+#include "Model/InverseKinematics.hpp"
 
 namespace Leph {
 
@@ -34,10 +35,23 @@ namespace Leph {
 
     const std::map<std::string, double>& getPressureValues() const;
 
+  protected:
+    InverseKinematics * ik;
+
   private:
     std::map<std::string, double> pressureValues;
 
-    void updateGaugeList();
+    /**
+     * Ensure that gaugeList corresponds to the model and that
+     * the ik set with the appropriate DOF and targets
+     * Should be called if rbdlModel is updated
+     */
+    void init();
+    /**
+     * initGaugeList should be called prior to initIK
+     */
+    void initGaugeList();
+    void initIK();
   };
 
 }

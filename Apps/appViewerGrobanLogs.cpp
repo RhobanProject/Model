@@ -111,23 +111,22 @@ int main(int argc, char** argv)
         motorsDOF.assignOp(logs[indexLog], "pos", "");
         model.setDOF(motorsDOF, true);
 
-        const std::vector<std::string> plates = {"left_arch", "right_arch", "left_toe", "right_toe"};
         //TODO set pressure information and use them
         Leph::VectorLabel pressures = logs[indexLog].extract("pressure").rename("pressure", "");
-        std::cout << pressures << std::endl;
-        for (const std::string& plate : plates) {
-          for (int gaugeID = 0; gaugeID < 4; gaugeID++) {
-            std::ostringstream logName, frameName;
-            logName << plate << ":val:" << gaugeID;
-            frameName << plate << "_gauge_" << gaugeID;
-            double val = pressures(logName.str());
-            Eigen::Vector3d gaugePos = model.position(frameName.str(), "origin");
-            Eigen::Vector3d halfSize = Eigen::Vector3d(0.005, 0.005, val / 10000);
-            viewer.drawBox(halfSize,
-                           gaugePos + halfSize,
-                           Eigen::Matrix3d::Identity(),
-                           1.0, 0.0, 0.0);
-          }
+        pressures = pressures.renameLabels(":val:","_gauge_");
+
+        std::cout << pressures;
+
+        model.updatePressure(pressures);
+
+        for (const auto& pEntry : model.getPressureValues()) {
+          double halfZ = pEntry.second / 10000;
+          Eigen::Vector3d gaugePos = model.position(pEntry.first, "origin");
+          Eigen::Vector3d halfSize = Eigen::Vector3d(0.005, 0.005, halfZ);
+          viewer.drawBox(halfSize,
+                         gaugePos + halfSize,
+                         Eigen::Matrix3d::Identity(),
+                         1.0, 0.0, 0.0);
         }
 
         // Display trajectories
