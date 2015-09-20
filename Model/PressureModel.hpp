@@ -33,13 +33,20 @@ namespace Leph {
     // Update the base according to pressure informations
     void updateBase();
 
-    const std::map<std::string, double>& getPressureValues() const;
+    const std::map<std::string, double>& getPressureValues() const; 
+
+    double getTotalWeight() const;
+    Eigen::Vector3d getCOP(const std::string& frameName);
 
   protected:
     InverseKinematics * ik;
     std::map<std::string, double> pressureValues;
     // It is necessary to store last pressure pos
     std::map<std::string, Eigen::Vector3d> lastPressurePos;
+    //Position of the center of pressure in the base frame [m]
+    Eigen::Vector3d cop;
+    //Total weight at last update [g]
+    double weight;
 
   private:
     /**
@@ -64,6 +71,11 @@ namespace Leph {
      * store current pressure position for next update
      */
     void updatePressurePos();
+    /**
+     * compute and store the CoP corresponding to the informations given by the
+     * sensors and by the 
+     */
+    void updateCOP();
   };
 
 }

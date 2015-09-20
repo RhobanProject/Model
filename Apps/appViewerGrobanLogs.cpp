@@ -129,6 +129,14 @@ int main(int argc, char** argv)
                          1.0, 0.0, 0.0);
         }
 
+        Eigen::Vector3d projectedCOP = model.getCOP("origin");
+        projectedCOP.z() = 0;
+
+        viewer.drawBox(Eigen::Vector3d(0.005, 0.005,0.5) ,
+                       projectedCOP,
+                       Eigen::Matrix3d::Identity(),
+                       0.0, 0.0, 1.0);
+
         // Display trajectories
         Eigen::Vector3d projectedCoM = model.centerOfMass("origin");
         projectedCoM.z() = 0;
@@ -138,6 +146,8 @@ int main(int argc, char** argv)
                                Leph::ModelViewer::Red);
         viewer.addTrackedPoint(model.position("right_arch_center", "origin"), 
                                Leph::ModelViewer::Green);
+        viewer.addTrackedPoint(projectedCOP, 
+                               Leph::ModelViewer::Blue);
         
         //Display models
         Leph::ModelDraw(model, viewer);

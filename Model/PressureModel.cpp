@@ -110,6 +110,17 @@ namespace Leph {
     return pressureValues;
   }
 
+  double PressureModel::getTotalWeight() const
+  {
+    return weight;
+  }
+
+  Eigen::Vector3d PressureModel::getCOP(const std::string& frameName)
+  {
+    return position("origin", frameName, cop);
+  }
+
+
 
   void PressureModel::updatePressure(const Leph::VectorLabel& pressureData)
   {
@@ -131,6 +142,25 @@ namespace Leph {
     //ik->randomDOFNoise();
     ik->run(0.000001, 10000);
     updatePressurePos();
+    updateCOP();
+  }
+
+  void PressureModel::updateCOP()
+  {
+    double totalWeight = 0;
+    Eigen::Vector3d totalCOP = Eigen::Vector3d::Zero();
+    for (const auto& pEntry : pressureValues) {
+      totalCOP += pEntry.second * lastPressurePos.at(pEntry.first);
+      totalWeight += pEntry.second;      
+    }
+    weight = totalWeight;
+    if (weight != 0) {
+      cop = totalCOP / weight;
+    }
+    else {
+      cop = Eigen::Vector3d::Zero();
+    }
+    std::cout << "New COP :" << cop << std::endl;
   }
 
 }

@@ -25,8 +25,8 @@ int main()
   Leph::ModelViewer viewer(1200, 900);
 
   double t = 0;
-  double period = 200;
-  double amplitude = 30 * M_PI / 180;
+  //double period = 200;
+  //double amplitude = 30 * M_PI / 180;
 
   while (viewer.update()) {
 
