@@ -140,7 +140,7 @@ namespace Leph {
   {
     updateIK();
     //ik->randomDOFNoise();
-    ik->run(0.000001, 10000);
+    ik->run(0.0001, 100);
     updatePressurePos();
     updateCOP();
   }
@@ -160,7 +160,6 @@ namespace Leph {
     else {
       cop = Eigen::Vector3d::Zero();
     }
-    std::cout << "New COP :" << cop << std::endl;
   }
 
 }

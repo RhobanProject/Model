@@ -6,6 +6,7 @@
 #include "Utils/Scheduling.hpp"
 
 #include "Model/ModelBuilder.hpp"
+#include "Utils/Chrono.hpp"
 
 using namespace Leph;
 
@@ -73,6 +74,7 @@ int main(int argc, char** argv)
     size_t indexLog = 0;
     bool isPaused = false;
     int viewMode = 0;
+    Leph::Chrono chrono;
     while (viewer.update()) {
         //Find current log index (associated with time)
         indexLog = 0;
@@ -117,7 +119,10 @@ int main(int argc, char** argv)
 
         model.updatePressure(pressures);
 
+        chrono.start("UpdateBase");
         model.updateBase();
+        chrono.stop("UpdateBase");
+        chrono.print();
 
         for (const auto& pEntry : model.getPressureValues()) {
           double halfZ = pEntry.second / 10000;
@@ -131,11 +136,6 @@ int main(int argc, char** argv)
 
         Eigen::Vector3d projectedCOP = model.getCOP("origin");
         projectedCOP.z() = 0;
-
-        viewer.drawBox(Eigen::Vector3d(0.005, 0.005,0.5) ,
-                       projectedCOP,
-                       Eigen::Matrix3d::Identity(),
-                       0.0, 0.0, 1.0);
 
         // Display trajectories
         Eigen::Vector3d projectedCoM = model.centerOfMass("origin");
