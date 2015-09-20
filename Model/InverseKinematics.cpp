@@ -53,7 +53,7 @@ static void CustomCalcPointJacobian(
               // Model.X_base[j] = Spatial Transformation from base to body j
              RBDLMath::SpatialTransform baseFromBodyJ = model.X_base[j].inverse();
              RBDLMath::SpatialVector moveInBase = baseFromBodyJ.apply(model.S[j]);
-             fjac.block(index, subsetIndex, 3, 1) = targetFromBase.apply(model.S[j]).block(3, 0, 3, 1);
+             fjac.block(index, subsetIndex, 3, 1) = targetFromBase.apply(moveInBase).block(3, 0, 3, 1);
             }
         } 
         j = model.lambda[j];

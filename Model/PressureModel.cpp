@@ -71,7 +71,7 @@ namespace Leph {
       initIK();
     }
     // Weights
-    double gaugeSlipWeight = 5;
+    double gaugeSlipWeight = 1;
     double gaugeZWeight = 20;
     double dofWeight = 10;
     // Tols
@@ -96,7 +96,7 @@ namespace Leph {
       ik->targetPosition(gaugeName).z() = 0;
       //TODO do something else that binary choice here
       if (gaugeVal > gaugeThreshold) {
-        ik->weightPosition(gaugeName) = gaugeWeight * gaugeVal;
+        ik->weightPosition(gaugeName) = gaugeWeight * gaugeVal / gaugeThreshold;
       }
       // No cost if no pressure on gauge (ideally z < 0 should have a cost)
       else {
