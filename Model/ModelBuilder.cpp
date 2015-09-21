@@ -82,6 +82,7 @@ namespace Leph {
     Eigen::Vector3d kneeToAnkle(0, 0, -0.25);
     Eigen::Vector3d ankleToToe(0.10132, 0.015, -0.025);
     Eigen::Vector3d trunkToShoulder(-0.0007, 0.103875, 0.247);
+    Eigen::Vector3d shoulderToElbow(0, 0, -0.15);//TODO check
     Eigen::Vector3d trunkToHead(0.0072, 0, 0.28025);
     // Motors offsets (should include SpatialTransform due toe rotation around axis)
     // All offsets are given for the left leg
@@ -144,6 +145,7 @@ namespace Leph {
       addVirtualDOF(rbdlModel, "trunk", jointPitch,
                     coeff.cwiseProduct(trunkToShoulder), legSide + "_shoulder_pitch");
       addVirtualDOF(rbdlModel, legSide + "_shoulder_pitch", jointRoll, legSide + "_shoulder_roll");
+      addVirtualDOF(rbdlModel, legSide + "_shoulder_roll", jointRoll, legSide + "_elbow");
       //TODO Elbow+Hand
       // Motors
       addFixedBody(rbdlModel,"trunk", "EX106+",

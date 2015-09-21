@@ -8,7 +8,7 @@ namespace Leph {
     init();
   }
 
-  PressureModel::PressureModel(RBDL::Model & model) : Model(model), ik(NULL)
+  PressureModel::PressureModel(const RBDL::Model & model) : Model(model), ik(NULL)
   {
     init();
   }

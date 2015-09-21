@@ -36,7 +36,7 @@ class Model
         /**
          * Initialize with RBDL model
          */
-        Model(RBDL::Model& model);
+        Model(const RBDL::Model& model);
 
         /**
          * Return the number of degrees of freedom

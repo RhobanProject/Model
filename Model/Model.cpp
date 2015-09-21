@@ -40,8 +40,8 @@ Model::Model(const std::string& filename) :
     initializeModel(model);
 }
         
-Model::Model(RBDL::Model& model) :
-    _model(),
+Model::Model(const RBDL::Model& model) :
+    _model(model),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -51,7 +51,7 @@ Model::Model(RBDL::Model& model) :
     _frameIndexToId()
 {
     //Parse and load RBDL model
-    initializeModel(model);
+    initializeModel(_model);
 }
         
 size_t Model::sizeDOF() const
