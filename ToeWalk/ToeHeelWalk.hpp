@@ -5,7 +5,7 @@
 namespace Leph {
 
   class ToeHeelWalk {
-  private:
+  public:
 
     /**
      * Description of the phases:
@@ -27,42 +27,40 @@ namespace Leph {
      *
      * For all phases, unless something else is specified:
      * - TrunkZ at (~,~,trunkZ)
+     * - COM at (0,0,~)
      * - A_toe = 0
      * - B_toe = 0
+     * - base at (0,0,0)
+     * - base Orientation: Identity
      *
      * Waiting: (based in origin)
+     * - no constraint on base
      * - Both arch_center are at (0, -footSpacing/2, 0) and (0, footSpacing/2, 0)
-     * - Toes are 0
-     * - COM at (0,0,~)
      * - Orientation of both arch_center and trunk are Identity
      *
      * PlacingHeelA: (based in B_heel)
      * - A_heel at (stepX, +-feetSpacing, 0)
      * - orientation of A_heel is rotY(-landingHeelAngle)
-     * - COM: at B_toe_center with z ignored
+     * - COM: at start(B_toe_center) with z ignored
      *
-     * LiftingHeelA: (based in A_toe) might also be called PlaceArchB
-     * - A_toe =  maxToeAngle * phaseRatio
-     * - B_heel at start(B_heel)
-     * - orientation of B_heel is rotY(-landingHeelAngle * (1 - phaseRatio(t)))
-     * - COM at (0, 0,~)
+     * PlacingArchA: (based in B_toe)
+     * - B_toe =  maxToeAngle * phaseRatio
+     * - A_heel at start(A_heel)
+     * - orientation of A_heel is rotY(-landingHeelAngle * (1 - phaseRatio(t)))
      *
      * SwitchWeightA: (based in A_arch_center) send weight to foot A
      * - B_toe =  maxToeAngle
      * - B_toe_center at start(B_toe_center)
      * - orientation of B_toe_center is Identity
-     * - COM at (0,0,0)
      *
      * LiftingArchA: (based in B_arch_center)
      * - A_toe_angle = maxToeAngle * (1 - phaseRatio)
      * - A_toe_center = start(A_toe_center) + (0,0,stepHeight)
      * - Orientation at A_toe_center = Identity
-     * - COM at (0,0,0)
      *
-     * FlyingFootA: (based in B_arch)
+     * FlyingFootA: (based in B_arch_center)
      * - A_arch_center at (stepX, +- footSpacing, stepHeight)
      * - orientation of A_heel is rotY(-landingHeelAngle * phaseRatio(t))
-     * - COM at (0,0,0)
      *
      * Summary of possible targets:
      * - COM x,y
@@ -78,21 +76,21 @@ namespace Leph {
      * - All legs (except toe)
      */
     enum Phase {
-      Waiting,
+      Waiting,//After Waiting phas, jump to switchWeight with side = right
       PlacingHeel,
-      LiftingHeel,
+      PlacingArch,
       SwitchWeight,
       LiftingArch,
       FlyingFoot,
     };
 
-    static std::vector<enum Phase> phases;
+  protected:
 
-
-    // Until the walk has been fed with a Model, it is not properly initialized
+    // Until the walk has been 'fed' with a Model, it is not properly initialized
     bool initialized;
     // When did last phase change occur?
     double phaseStart;
+    enum Phase phase, lastPhase;
     // Phase expected durations [s]
     double placingHeelTime;
     double liftingHeelTime;
@@ -105,10 +103,30 @@ namespace Leph {
 
     // Targets position at phase start
     std::map<std::string, Eigen::Vector3d> startPos;
-    // Wished positions at end of the phase
+    // Wished positions at end of the phase and weights of the targets
     std::map<std::string, Eigen::Vector3d> targetPos;
+    std::map<std::string, Eigen::Vector3d> targetWeights;
+
+    // Model used for simulation
+    Leph::Model simModel;
     
-    
+    std::string side;
+    std::string oppSide;
+
+    void setTarget(const std::string& frameName,
+                   const Eigen::Vector3d& position,
+                   const Eigen::Vector3d& weights = Eigen::Vector3d(1,1,1));
+
+    void swapSide();
+
+    // Return base corresponding to current phase
+    std::string getBase();
+
+    void setSimModelBase();
+    void updateStartingPos();
+    void updateTargetPos();
+    void getPhaseRato();
+    std::string getBasis();
 
   public:
     ToeHeelWalk();
@@ -116,8 +134,9 @@ namespace Leph {
     //TODO bind to rhio with prefix?
 
     void updateModel(Model & m);
-    void setTargets(InverseKinematics & ik);
-    //TODO think about how correction is applied
+    void setIK(InverseKinematics & ik);
+
+    void nextPhase(double time);
     
   };
 }
