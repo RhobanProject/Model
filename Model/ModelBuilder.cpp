@@ -82,7 +82,7 @@ namespace Leph {
     Eigen::Vector3d kneeToAnkle(0, 0, -0.25);
     Eigen::Vector3d ankleToToe(0.10132, 0.015, -0.025);
     Eigen::Vector3d trunkToShoulder(-0.0007, 0.103875, 0.247);
-    Eigen::Vector3d shoulderToElbow(0, 0, -0.15);//TODO check
+    Eigen::Vector3d shoulderToElbow(0.0036, -0.000836, -0.1405);
     Eigen::Vector3d trunkToHead(0.0072, 0, 0.28025);
     // Motors offsets (should include SpatialTransform due toe rotation around axis)
     // All offsets are given for the left leg
@@ -94,12 +94,17 @@ namespace Leph {
     Eigen::Vector3d ankleRollMotorOffset(-0.0511, 0, 0);
     Eigen::Vector3d shoulderPitchMotorOffset(0, -0.0575, 0);
     Eigen::Vector3d shoulderRollMotorOffset(0, 0, 0);
+    Eigen::Vector3d elbowMotorOffset(0, 0, 0);
     Eigen::Vector3d headYawMotorOffset(0, 0, -0.04625);
     Eigen::Vector3d headPitchMotorOffset(0, 0, 0);
-    // Foot Tips
+    // Foot and Hand tips
     Eigen::Vector3d ankleToArchPlate(0.0216, 0.015, -0.0667);
     Eigen::Vector3d toeToToePlate(0.021, -0.00025, -0.0417);
-         
+    Eigen::Vector3d elbowToHand(-0.006319, 0, -0.183088);
+
+    // Misc
+    double kneeMotorAngle = 18.69 * M_PI / 180;
+
     RBDL::Model rbdlModel;
     RBDL::Joint jointRoot(RBDL::JointTypeFixed);
     if ( floatingBase ) { jointRoot = ComponentLibrary::floatingBase;}
@@ -127,71 +132,75 @@ namespace Leph {
     //TODO fit
     //TODO torso
     //TODO camera
-    for (const std::string & legSide : {"left", "right"}) {
-      auto coeff = sideCoeff.at(legSide);
-      auto rot = sideRot.at(legSide);
+    for (const std::string & side : {"left", "right"}) {
+      auto coeff = sideCoeff.at(side);
+      auto rot = sideRot.at(side);
       // DOF
       addVirtualDOF(rbdlModel, "trunk", jointYaw,
-                    coeff.cwiseProduct(trunkToHip), legSide + "_hip_yaw");
-      addVirtualDOF(rbdlModel, legSide + "_hip_yaw", jointRoll, legSide + "_hip_roll");
-      addVirtualDOF(rbdlModel, legSide + "_hip_roll", jointPitch, legSide + "_hip_pitch");
-      addVirtualDOF(rbdlModel, legSide + "_hip_pitch", jointPitch,
-                    coeff.cwiseProduct(hipToKnee), legSide + "_knee");
-      addVirtualDOF(rbdlModel, legSide + "_knee", jointPitch,
-                    coeff.cwiseProduct(kneeToAnkle), legSide + "_ankle_pitch");
-      addVirtualDOF(rbdlModel, legSide + "_ankle_pitch", jointRoll, legSide + "_ankle_roll");
-      addVirtualDOF(rbdlModel, legSide + "_ankle_roll", jointPitch,
-                    coeff.cwiseProduct(ankleToToe), legSide + "_toe");
+                    coeff.cwiseProduct(trunkToHip), side + "_hip_yaw");
+      addVirtualDOF(rbdlModel, side + "_hip_yaw", jointRoll, side + "_hip_roll");
+      addVirtualDOF(rbdlModel, side + "_hip_roll", jointPitch, side + "_hip_pitch");
+      addVirtualDOF(rbdlModel, side + "_hip_pitch", jointPitch,
+                    coeff.cwiseProduct(hipToKnee), side + "_knee");
+      addVirtualDOF(rbdlModel, side + "_knee", jointPitch,
+                    coeff.cwiseProduct(kneeToAnkle), side + "_ankle_pitch");
+      addVirtualDOF(rbdlModel, side + "_ankle_pitch", jointRoll, side + "_ankle_roll");
+      addVirtualDOF(rbdlModel, side + "_ankle_roll", jointPitch,
+                    coeff.cwiseProduct(ankleToToe), side + "_toe");
       addVirtualDOF(rbdlModel, "trunk", jointPitch,
-                    coeff.cwiseProduct(trunkToShoulder), legSide + "_shoulder_pitch");
-      addVirtualDOF(rbdlModel, legSide + "_shoulder_pitch", jointRoll, legSide + "_shoulder_roll");
-      addVirtualDOF(rbdlModel, legSide + "_shoulder_roll", jointRoll, legSide + "_elbow");
-      //TODO Elbow+Hand
+                    coeff.cwiseProduct(trunkToShoulder), side + "_shoulder_pitch");
+      addVirtualDOF(rbdlModel, side + "_shoulder_pitch", jointRoll, side + "_shoulder_roll");
+      addVirtualDOF(rbdlModel, side + "_shoulder_roll", jointPitch,
+                    coeff.cwiseProduct(shoulderToElbow), side + "_elbow");
       // Motors
       addFixedBody(rbdlModel,"trunk", "EX106+",
                    SpatialTransform(rotX(M_PI) *rotZ(M_PI/2),
                                     coeff.cwiseProduct(trunkToHip + hipYawMotorOffset)),
-                   legSide + "_hip_yaw_motor");
-      addFixedBody(rbdlModel, legSide + "_hip_roll", "EX106+",
+                   side + "_hip_yaw_motor");
+      addFixedBody(rbdlModel, side + "_hip_roll", "EX106+",
                    SpatialTransform(rotX(-M_PI/2) * rotZ(-M_PI/2),
                                     coeff.cwiseProduct(hipRollMotorOffset)),
-                   legSide + "_hip_roll_motor");
-      addFixedBody(rbdlModel, legSide + "_hip_roll", "EX106+",
+                   side + "_hip_roll_motor");
+      addFixedBody(rbdlModel, side + "_hip_roll", "EX106+",
                    SpatialTransform(rot * rotY(M_PI) * rotX(- M_PI / 2),
                                     coeff.cwiseProduct(hipPitchMotorOffset)),
-                   legSide + "_hip_pitch_motor");
+                   side + "_hip_pitch_motor");
       //TODO update Angle
-      addFixedBody(rbdlModel, legSide + "_hip_pitch", "EX106+",
-                   SpatialTransform(rot * rotZ(-15 * M_PI / 180) * rotX(M_PI / 2),
+      addFixedBody(rbdlModel, side + "_hip_pitch", "EX106+",
+                   SpatialTransform(rot * rotZ(-kneeMotorAngle) * rotX(M_PI / 2),
                                     coeff.cwiseProduct(hipToKnee + kneeMotorOffset)),
-                   legSide + "_hip_knee_motor");
-      addFixedBody(rbdlModel, legSide + "_ankle_pitch", "EX106+",
+                   side + "_hip_knee_motor");
+      addFixedBody(rbdlModel, side + "_ankle_pitch", "EX106+",
                    SpatialTransform(rot * rotX(M_PI/2),
                                     coeff.cwiseProduct(anklePitchMotorOffset)),
-                   legSide + "_ankle_pitch_motor");
-      addFixedBody(rbdlModel, legSide + "_ankle_pitch", "EX106+",
+                   side + "_ankle_pitch_motor");
+      addFixedBody(rbdlModel, side + "_ankle_pitch", "EX106+",
                    SpatialTransform(rotX(M_PI/2) * rotZ(-M_PI/2),
                                     coeff.cwiseProduct(ankleRollMotorOffset)),
-                   legSide + "_ankle_roll_motor");
-      addFixedBody(rbdlModel, legSide + "_ankle_roll", "RX28",
+                   side + "_ankle_roll_motor");
+      addFixedBody(rbdlModel, side + "_ankle_roll", "RX28",
                    SpatialTransform(rot * rotY(M_PI/2) * rotZ(M_PI/2),
                                     coeff.cwiseProduct(ankleToToe)),
-                   legSide + "_toe_motor");
+                   side + "_toe_motor");
       addFixedBody(rbdlModel, "trunk", "RX64",
                    SpatialTransform(rot * rotY(M_PI) * rotX(- M_PI / 2),
                                     coeff.cwiseProduct(trunkToShoulder + shoulderPitchMotorOffset)),
-                   legSide + "_shoulder_pitch_motor");
-      addFixedBody(rbdlModel, legSide + "_shoulder_roll", "RX64",
+                   side + "_shoulder_pitch_motor");
+      addFixedBody(rbdlModel, side + "_shoulder_roll", "RX64",
                    SpatialTransform(rotX(-M_PI/2) * rotZ(-M_PI/2),
                                     coeff.cwiseProduct(shoulderRollMotorOffset)),
-                   legSide + "_shoulder_roll_motor");
+                   side + "_shoulder_roll_motor");
+      addFixedBody(rbdlModel, side + "_elbow", "RX64",
+                   SpatialTransform(rot * rotZ(M_PI)* rotX(M_PI / 2),
+                                    coeff.cwiseProduct(elbowMotorOffset)),
+                   side + "_shoulder_elbow_motor");
       // Foot
-      addFixedBody(rbdlModel, legSide + "_ankle_roll", "ArchPlate",
+      addFixedBody(rbdlModel, side + "_ankle_roll", "ArchPlate",
                    coeff.cwiseProduct(ankleToArchPlate),
-                   legSide + "_arch_center");
-      addFixedBody(rbdlModel, legSide + "_toe", "ToePlate",
+                   side + "_arch_center");
+      addFixedBody(rbdlModel, side + "_toe", "ToePlate",
                    coeff.cwiseProduct(toeToToePlate),
-                   legSide + "_toe_center");
+                   side + "_toe_center");
 
     
       Eigen::Vector3d archSize(0.125,0.092,0);
@@ -202,17 +211,19 @@ namespace Leph {
                                                   Eigen::Vector3d( 0.5,-0.5,0)};
       for (unsigned int i = 0; i < gaugeCoeffs.size(); i++) {
         std::ostringstream archOss, toeOss;
-        archOss << legSide << "_arch_gauge_" << i;
-        toeOss << legSide << "_toe_gauge_" << i;
-        addFixedBody(rbdlModel, legSide + "_arch_center", "gauge",
+        archOss << side << "_arch_gauge_" << i;
+        toeOss << side << "_toe_gauge_" << i;
+        addFixedBody(rbdlModel, side + "_arch_center", "gauge",
                      gaugeCoeffs[i].cwiseProduct(archSize),
                      archOss.str());
-        addFixedBody(rbdlModel, legSide + "_toe_center", "gauge",
+        addFixedBody(rbdlModel, side + "_toe_center", "gauge",
                      gaugeCoeffs[i].cwiseProduct(toeSize),
                      toeOss.str());
       }
       // Hands
-      //TODO
+      addFixedBody(rbdlModel, side + "_elbow", "virtual",
+                   coeff.cwiseProduct(elbowToHand),
+                   side + "_hand");
     }
     return rbdlModel;
   }
