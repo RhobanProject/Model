@@ -163,7 +163,8 @@ namespace Leph {
       break;
     case PlacingHeel:
       setTarget(side + "_heel", Vector3d(stepX, coeff * feetSpacing, 0));
-      setTarget("COM", simModel.position(oppSide + "_toe_center", "origin"));
+      setTarget("COM", simModel.position(oppSide + "_toe_center", "origin"),
+                Vector3d(1,1,0));
       break;
     case PlacingArch:
       setTarget(side + "_heel", startPos.at(side + "_heel"));
@@ -241,7 +242,8 @@ namespace Leph {
       startPos[side + "_heel"] = simModel.position(side + "_heel", "origin");
       break;
     case PlacingArch://Current phase: Switch weight based in target_center
-      startPos[oppSide + "_toe_center"] = simModel.position(side + "_toe_center", "origin");
+      startPos[oppSide + "_toe_center"] = simModel.position(oppSide + "_toe_center", "origin");
+      startPos["COM"] = simModel.centerOfMass("origin");
       break;
     }
   }
@@ -356,7 +358,7 @@ namespace Leph {
     m.setDOF("left_toe", 0);
     m.setDOF("right_toe", 0);
     switch(phase) {
-    case PlacingHeel:
+    case PlacingArch:
       m.setDOF(oppSide + "_toe", -maxToeAngle * pRatio);
       break;
     case SwitchWeight:
