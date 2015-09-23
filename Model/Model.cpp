@@ -136,7 +136,7 @@ void Model::setDOFVect(const Eigen::VectorXd& vect)
     _dofs = vect;
 }
         
-void Model::importDOF(Model& model)
+void Model::importDOF(const Model& model)
 {
     for (size_t i=0;i<(size_t)_dofs.size();i++) {
         _dofs(i) = model._dofs(

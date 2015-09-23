@@ -3,6 +3,7 @@
 #include "ModelBuilder.hpp"
 
 using Eigen::Vector3d;
+using Eigen::Matrix3d;
 
 namespace Leph {
   
@@ -17,8 +18,15 @@ namespace Leph {
       stepX(0),
       simModel(generateGrobanWithToe()),
       side("none"),
-      oppSide("none")
+      oppSide("none"),
+      maxToeAngle(30 * M_PI / 180),
+      landingHeelAngle(10 * M_PI / 180)
   {
+    // In waiting state, source are the same as target
+    updateTargetPos();
+    for (const auto& targetEntry : targetPos) {
+      startPos[targetEntry.first] = targetEntry.second;
+    }
   }
 
   void ToeHeelWalk::swapSide()
@@ -28,7 +36,7 @@ namespace Leph {
     oppSide = tmp;
   }
 
-  void ToeHeelWalk::nextPhase()
+  void ToeHeelWalk::nextPhase(const Model& m, double time)
   {
     // Set side and phase appopriately
     switch(phase) {
@@ -54,6 +62,7 @@ namespace Leph {
       break;
     }
     phaseStart = time;
+    simModel.importDOF(m);
     setSimModelBase();
     updateStartingPos();
   }
@@ -202,7 +211,7 @@ namespace Leph {
     }
   }
 
-  void ToeHeelWalk::getPhaseRatio()
+  void ToeHeelWalk::getPhaseRatio(double time)
   {
     double phaseT;
     switch(phase){
@@ -213,6 +222,95 @@ namespace Leph {
     case PlacingHeel:  phaseT = placingHeelTime ; break;
     case PlacingArch:  phaseT = placingArchTime ; break;
     }
+    double dt = time - phaseStart;
+    return std::min(1, dt / phaseT);
+  }
+
+  void ToeHeelWalk::initIK(Model & m, InverseKinematics & ik)
+  {
+    // ADDING DOF
+    std::vector<std::string> sides = {"left", "right"};
+    std::vector<std::string> dofs = {"hip_roll", "hip_yaw", "hip_pitch",
+                                     "knee",
+                                     "ankle_roll", "ankle_pitch"};
+    for (const auto& side : sides) {
+      for (const auto& dof : dofs) {
+        ik.addDOF(side + "_" + dof);
+      }
+    }
+    std::vector<std::string> baseDofs = {"trunk_x",
+                                         "trunk_y",
+                                         "trunk_z",
+                                         "trunk_roll",
+                                         "trunk_pitch",
+                                         "trunk_yaw"};
+    for (const auto& dof : baseDofs) {
+        ik.addDOF(dof);
+    }
+
+    double pRatio = getPhaseRatio();
+    // SETTING POSITION TARGETS
+    for (const auto& targetEntry : targetPos) {
+      const std::string& targetName = targetEntry.first;
+      const Vector3d& target = targetEntry.second;
+      const Vector3d& src = start.at(targetName);
+      ik.addTargetPosition(targetName, "origin");
+      Vector3d realTarget = pRatio * target + (1 - pRatio) * src;
+      ik.targetPosition(targetName) = realTarget;
+      ik.weightPosition(targetName) = targetWeights.at(targetName);
+    }
+    // SETTING ORIENTATION TARGETS
+    // base always heading oriented as origin
+    ik.addTargetOrientation("base", getBase());
+    ik.targetOrientation("base", Matrix3d::Identity());
+
+    // Other orientation constraint differs on the phase
+    switch(phase) {
+    case Waiting:
+      for (const auto& side: {"left", "right"}) {
+        ik.addTargetOrientation(side + "_arch_center", side + "_arch_center");
+        ik.targetOrientation(side + "_arch_center", Matrix3d::Identity());
+      }
+      break;
+    case SwitchWeight:
+      ik.addTargetOrientation(oppSide + "_toe_center", oppSide + "_toe_center");
+      ik.targetOrientation(oppSide + "_toe_center", Matrix3d::Identity());
+      break;
+    case LiftingArch:
+      ik.addTargetOrientation(side + "_toe_center", side + "_toe_center");
+      ik.targetOrientation(side + "_toe_center", Matrix3d::Identity());
+      break;
+    case FlyingFoot: 
+      ik.addTargetOrientation(side + "_heel", side + "_heel");
+      ik.targetOrientation(side + "_heel",
+                           rotY(landingHeelAngle * pRatio));
+      break;
+    case PlacingHeel:
+      ik.addTargetOrientation(side + "_heel", side + "_heel");
+      ik.targetOrientation(side + "_heel",
+                           rotY(landingHeelAngle));
+      break;
+    case PlacingArch:
+      ik.addTargetOrientation(side + "_heel", side + "_heel");
+      ik.targetOrientation(side + "_heel",
+                           rotY(landingHeelAngle * (1 - pRatio)));
+      break;
+    }
+    // SETTING TOES TARGET
+    m.setDOF("left_toe", 0);
+    m.setDOF("right_toe", 0);
+    switch(phase) {
+    case PlacingHeel:
+      m.setDOF(oppSide + "_toe", -maxToeAngle * pRatio);
+      break;
+    case SwitchWeight:
+      m.setDOF(oppSide + "_toe", -maxToeAngle);
+      break;
+    case LiftingArch:
+      m.setDOF(side + "_toe", -maxToeAngle * (1 - pRatio));
+      break;
+    }
+    // Everything has been done!
   }
 
 }

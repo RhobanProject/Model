@@ -75,7 +75,7 @@ class Model
          * Import given model DOF into this one
          * (no check on same model are done)
          */
-        void importDOF(Model& model);
+        void importDOF(const Model& model);
 
         /**
          * Reset all degrees of freedom to zero position

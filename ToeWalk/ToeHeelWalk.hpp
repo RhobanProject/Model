@@ -2,6 +2,8 @@
 
 #include "Model/InverseKinematics.hpp"
 
+//TODO inherit in Code to provide a RhIO interface
+
 namespace Leph {
 
   class ToeHeelWalk {
@@ -152,21 +154,22 @@ namespace Leph {
     void updateStartingPos();
     void updateTargetPos();
     void getPhaseRatio();
-    std::string getBasis();
 
+    /**
+     * Sometimes those distances are required
+     */
+    // distance depends on toeAngle of simModel
     double archCenter2ToeCenter(const std::string & side);
-    // no side required since it's symetrical
+    // no side required since the distance is fixed
     double archCenter2Heel();
 
   public:
     ToeHeelWalk();
 
-    //TODO bind to rhio with prefix?
+    // Also set the model m angles for toes. ik should be clean.
+    void initIK(Model & m, InverseKinematics & ik);
 
-    void updateModel(Model & m);
-    void setIK(InverseKinematics & ik);
-
-    void nextPhase(double time);
+    void nextPhase(const Model& m, double time);
     
   };
 }

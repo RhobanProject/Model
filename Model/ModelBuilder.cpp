@@ -205,6 +205,12 @@ namespace Leph {
     
       Eigen::Vector3d archSize(0.125,0.092,0);
       Eigen::Vector3d toeSize(0.032, 0.110,0);
+      // Virtual Heel
+      addFixedBody(rbdlModel, side + "_arch_center", "virtual",
+                   Eigen::Vector3d(-archSize.x()/2, 0, 0),
+                   side + "_heel");
+      
+
       std::vector<Eigen::Vector3d> gaugeCoeffs = {Eigen::Vector3d( 0.5, 0.5,0),
                                                   Eigen::Vector3d(-0.5, 0.5,0),
                                                   Eigen::Vector3d(-0.5,-0.5,0),
