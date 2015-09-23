@@ -4,7 +4,7 @@
 
 namespace Leph {
 
-  RBDL::Model generateGrobanWithToe(bool floatingBase);
+  Leph::Model generateGrobanWithToe(bool floatingBase);
 
   /**
    * Adding virtual Degrees of freedom, those degrees have a body with

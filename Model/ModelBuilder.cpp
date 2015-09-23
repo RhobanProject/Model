@@ -74,7 +74,7 @@ namespace Leph {
                  childFrame);
   }
 
-  RBDL::Model generateGrobanWithToe(bool floatingBase)
+  Leph::Model generateGrobanWithToe(bool floatingBase)
   {                    
     // DOF dimensions
     Eigen::Vector3d trunkToHip(0, 0.046375, 0);
@@ -119,6 +119,7 @@ namespace Leph {
     addFixedBody(rbdlModel,"trunk", "FitPC",
                  trunkToHead / 2 + Eigen::Vector3d(-0.05,0,0),
                  "FitPC");
+    //TODO camera
 
     // Symetry on XZ plane for directional transform
     std::map<std::string,Eigen::Vector3d> sideCoeff = {{"left" , Eigen::Vector3d(1, 1,1)},
@@ -138,9 +139,7 @@ namespace Leph {
     addFixedBody(rbdlModel,"head_pitch", "RX28",
                    SpatialTransform(rotX(M_PI/2), headPitchMotorOffset),
                    "_head_pitch_motor");
-    //TODO fit
-    //TODO torso
-    //TODO camera
+    // Symetrical parts
     for (const std::string & side : {"left", "right"}) {
       auto coeff = sideCoeff.at(side);
       auto rot = sideRot.at(side);
@@ -254,6 +253,35 @@ namespace Leph {
                    coeff.cwiseProduct(elbowToHand / 2),
                    side + "_arm2");
     }
-    return rbdlModel;
+    Leph::Model model(rbdlModel);
+    // Splitting between actuated and base
+    for (const auto& dof : model.getDOFNames()) {
+      if (dof.find("trunk") != std::string::npos) {
+        model.addDOFToCategory(dof, "base");
+      }
+      else {
+        model.addDOFToCategory(dof, "actuated");
+      }
+    }
+    // Upper and lower body + left and right
+    for (const std::string & side : {"left", "right"}) {
+      for (const std::string & suffix : {"hip_roll", "hip_pitch", "hip_yaw",
+            "knee", "ankle_roll", "ankle_pitch", "toe"}) {
+        std::string dof = side + "_" + suffix;
+        model.addDOFToCategory(dof, "lowerBody");
+        model.addDOFToCategory(dof, side);
+      }
+      for (const std::string & suffix : {"shoulder_roll", "shoulder_pitch", "elbow"}) {
+        std::string dof = side + "_" + suffix;
+        model.addDOFToCategory(dof, "upperBody");
+        model.addDOFToCategory(dof, side);
+      }
+    }
+    // Head
+    for (const std::string & dof : {"head_yaw", "head_pitch"}) {
+      model.addDOFToCategory(dof, "upperBody");
+      model.addDOFToCategory(dof, "central");
+    }
+    return model;
   }
 }

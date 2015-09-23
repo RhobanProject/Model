@@ -17,6 +17,11 @@ namespace Leph {
   {
     init();
   }
+
+  PressureModel::PressureModel(const Leph::Model & model) : Model(model), ik(NULL)
+  {
+    init();
+  }
         
         
   PressureModel::~PressureModel()

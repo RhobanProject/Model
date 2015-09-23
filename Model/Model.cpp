@@ -69,6 +69,42 @@ const std::vector<std::string>& Model::getActuatedDOFNames() const
   return _actuatedDOFNames;
 }
 
+const std::vector<std::string>&
+Model::getDOFCategory(const std::string& category) const
+{
+  try {
+    return _dofByCategory.at(category);
+  }
+  catch (const std::out_of_range& exc) {
+    throw std::out_of_range("Model: Unknown category: '" + category + "'");
+  }
+}
+
+std::vector<std::string>&
+Model::getDOFCategory(const std::string& category)
+{
+  try {
+    return _dofByCategory.at(category);
+  }
+  catch (const std::out_of_range& exc) {
+    throw std::out_of_range("Model: Unknown category: '" + category + "'");
+  }
+}
+
+void Model::addDOFToCategory(const std::string& dof,
+                             const std::string& category)
+{
+  _dofByCategory[category].push_back(dof);
+}
+void Model::addDOFToCategories(const std::string& dof,
+                               const std::vector<std::string>& categories)
+{
+  for (const auto& cat : categories) {
+    addDOFToCategory(dof, cat);
+  }
+}
+
+
 const VectorLabel& Model::getDOF()
 {
     loadEigenToLabel();

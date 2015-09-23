@@ -57,8 +57,8 @@ int main(int argc, char** argv)
     //    .render();
     
     //Initialize model instances
-    RBDL::Model rbdlModel = generateGrobanWithToe(true);
-    Leph::PressureModel model(rbdlModel);
+    //RBDL::Model rbdlModel = generateGrobanWithToe(true);
+    Leph::PressureModel model(generateGrobanWithToe(true));
 
     Leph::ModelViewer viewer(1200, 900);
     Leph::Scheduling scheduling;

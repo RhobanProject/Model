@@ -20,8 +20,7 @@ namespace RBDLMath = RigidBodyDynamics::Math;
 int main()
 {
   bool floatingBase = true;
-  RBDL::Model rbdlModel= Leph::generateGrobanWithToe(floatingBase);
-  Leph::Model model(rbdlModel);
+  Leph::Model model= Leph::generateGrobanWithToe(floatingBase);
   std::cout << model.getDOF() << std::endl;
   std::cout << "Total mass: " << model.sumMass() << std::endl;
 

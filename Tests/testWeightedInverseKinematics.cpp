@@ -1,15 +1,13 @@
 #include <iostream>
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
-#include "Model/HumanoidModelWithToe.hpp"
 #include "Model/ModelBuilder.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
 
 int main()
 {
-    Leph::RBDL::Model rbdlModel = Leph::generateGrobanWithToe(true);
-    Leph::HumanoidModelWithToe model(rbdlModel);
+    Leph::Model model = Leph::generateGrobanWithToe(true);
 
     std::cout << model.getDOF() << std::endl;
 
@@ -35,7 +33,7 @@ int main()
     inv.targetCOM().x() = -3;
     //Set different weight
     inv.weightPosition("left_foot") = Eigen::Vector3d(1, 0, 0);
-    inv.weightCOM() = Eigen::Vector3d(0, 0, 0);
+    inv.weightCOM() = Eigen::Vector3d(4, 0, 0);
 
     //Declare orientation and dof
     std::vector<std::string> targetDOFs = {"left_hip_roll",
@@ -67,7 +65,7 @@ int main()
 
         chrono.start("InverseKinematics");
         //Compute Inverse Kinematics
-        inv.randomDOFNoise();
+        //inv.randomDOFNoise();
         inv.run(0.0001, 100);
         chrono.stop("InverseKinematics");
         chrono.print();

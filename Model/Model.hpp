@@ -65,6 +65,20 @@ class Model
         const std::vector<std::string>& getActuatedDOFNames() const;
 
         /**
+         * Return all the dof of a given category with or without allowing modification
+         */
+        const std::vector<std::string>& getDOFCategory(const std::string& category) const;
+        std::vector<std::string>& getDOFCategory(const std::string& category);
+
+       /**
+        * Update the category mapping
+        */
+       void addDOFToCategory(const std::string& dof,
+                             const std::string& category);
+       void addDOFToCategories(const std::string& dof,
+                               const std::vector<std::string>& categories);
+
+        /**
          * Direct getter and setter to Eigen
          * degree of freedom vector
          */
@@ -268,6 +282,11 @@ class Model
          * (base excepted)
          */
         std::vector<std::string> _actuatedDOFNames;
+
+        /**
+         * Allow an easy access to dofs of a given category
+         */
+        std::map<std::string, std::vector<std::string>> _dofByCategory;
 
         /**
          * Filter body name to joint and frame name

@@ -20,6 +20,8 @@ namespace Leph {
 
     PressureModel(const RBDL::Model & model);
 
+    PressureModel(const Leph::Model & model);
+
     PressureModel(const std::string& filename);
 
     /**
