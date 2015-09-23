@@ -25,15 +25,6 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
     public:
 
         /**
-         * Enum for scalar target axis
-         */
-        enum TargetAxis {
-            AxisX,
-            AxisY,
-            AxisZ
-        };
-
-        /**
          * Initialization with robot Model instance
          */
         InverseKinematics(Model& model);
@@ -49,6 +40,16 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          * Return a VectorLabel associating the name of the DOF with their values
          */
         VectorLabel getNamedDOFSubset();
+
+        /**
+         * Return a VectorLabel associating the name of the DOF with their errors
+         */
+        VectorLabel getNamedErrors();
+
+        /**
+         * Return a VectorLabel associating the name of the DOF with their errors
+         */
+        VectorLabel getNamedWeights();
 
         /**
          * Set lower and upper bound limit value
@@ -96,20 +97,6 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             const std::string& srcFrame);
 
         /**
-         * Add a target vector position with given targetName.
-         * The given point in srcFrame is constrained
-         * to equals the target vector position only along
-         * given axis in world frame
-         * Target initial position is set to 
-         * current model state
-         */
-        void addTargetScalar(
-            const std::string& targetName,
-            const std::string& srcFrame,
-            TargetAxis axis,
-            const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
-
-        /**
           * Add a target value for a given DOF
           */
         void addTargetDOF(const std::string& targetName,
@@ -122,15 +109,13 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
 
         /**
          * Access and update target position vector, 
-         * orientation matrix, scalar axis value and dof
+         * orientation matrix and dof
          * of given targetName
          * Access to center of mass target
          */
         Eigen::Vector3d& targetPosition(
             const std::string& targetName);
         Eigen::Matrix3d& targetOrientation(
-            const std::string& targetName);
-        double& targetScalar(
             const std::string& targetName);
         double& targetDOF(const std::string& targetName);
         Eigen::Vector3d& targetCOM();
@@ -140,20 +125,17 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          */
         Eigen::Vector3d& weightPosition(const std::string& targetName);
         double& weightOrientation(const std::string& targetName);
-        double& weightScalar(const std::string& targetName);
         double& weightDOF(const std::string& targetName);
         Eigen::Vector3d& weightCOM();
 
         /**
          * Return last computed target error
          * for position vector, orientation,
-         * scalar and center of mass
+         * dof and center of mass
          */
         double errorPosition(
             const std::string& targetName) const;
         double errorOrientation(
-            const std::string& targetName) const;
-        double errorScalar(
             const std::string& targetName) const;
         double errorDOF(const std::string& targetName) const;
         double errorCOM() const;
@@ -240,7 +222,7 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
     private:
 
         /**
-         * Struct for position, orientation, scalar and DOF target
+         * Struct for position, orientation and DOF target
          */
         struct TargetPosition {
             std::string name;
@@ -259,15 +241,6 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
             double error;
             double weight;
         };
-        struct TargetScalar {
-            std::string name;
-            size_t bodyId;
-            Eigen::Vector3d point;
-            TargetAxis axis;
-            double target;
-            double error;
-            double weight;
-        };
         struct TargetDOF {
             std::string name;
             size_t subsetIndex;
@@ -283,11 +256,9 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          */
         const struct TargetPosition&    targetPositionRef   (const std::string & targetName) const;
         const struct TargetOrientation& targetOrientationRef(const std::string & targetName) const;
-        const struct TargetScalar&      targetScalarRef     (const std::string & targetName) const;
         const struct TargetDOF&         targetDOFRef        (const std::string & targetName) const;
         struct TargetPosition&          targetPositionRef   (const std::string & targetName);
         struct TargetOrientation&       targetOrientationRef(const std::string & targetName);
-        struct TargetScalar&            targetScalarRef     (const std::string & targetName);
         struct TargetDOF&               targetDOFRef        (const std::string & targetName);
 
         /**
@@ -323,12 +294,11 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         std::vector<bool> _isUpperBounds;
 
         /**
-         * Target position, orientation, scalar and DOF
+         * Target position, orientation and DOF
          * container indexed by their name
          */
         std::map<std::string, TargetPosition>    _targetPositions;
         std::map<std::string, TargetOrientation> _targetOrientations;
-        std::map<std::string, TargetScalar>      _targetScalars;
         std::map<std::string, TargetDOF>         _targetDOFs;
 
         /**

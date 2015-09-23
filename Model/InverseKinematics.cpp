@@ -72,7 +72,6 @@ InverseKinematics::InverseKinematics(Model& model) :
     _isUpperBounds(),
     _targetPositions(),
     _targetOrientations(),
-    _targetScalars(),
     _isTargetCOM(false),
     _errorCOM(0.0),
     _targetCOM(),
@@ -102,6 +101,46 @@ void InverseKinematics::addDOF(const std::string& name)
     for (size_t dofID = 0; dofID < inputs(); dofID++) {
       std::string name = _model->getDOFName(_subsetIndexToGlobal[dofID]);
       result.append(name, _dofs[dofID]);
+    }
+    return result;
+  }
+
+  VectorLabel InverseKinematics::getNamedErrors()
+  {
+    VectorLabel result; 
+    for (const auto& entry : _targetPositions) {
+      result.append("pos:" + entry.first, entry.second.error);
+    }
+    for (const auto& entry : _targetOrientations) {
+      result.append("dir:" + entry.first, entry.second.error);
+    }
+    for (const auto& entry : _targetDOFs) {
+      result.append("dof:" + entry.first, entry.second.error);
+    }
+    if (_isTargetCOM) {
+      result.append("com", _errorCOM);
+    }
+    return result;
+  }
+
+  VectorLabel InverseKinematics::getNamedWeights()
+  {
+    VectorLabel result; 
+    for (const auto& entry : _targetPositions) {
+      result.append("pos:" + entry.first + ":x", entry.second.weight.x());
+      result.append("pos:" + entry.first + ":y", entry.second.weight.y());
+      result.append("pos:" + entry.first + ":z", entry.second.weight.z());
+    }
+    for (const auto& entry : _targetOrientations) {
+      result.append("dir:" + entry.first, entry.second.error);
+    }
+    for (const auto& entry : _targetDOFs) {
+      result.append("dof:" + entry.first, entry.second.error);
+    }
+    if (_isTargetCOM) {
+      result.append("com:x", _weightCOM.x());
+      result.append("com:y", _weightCOM.y());
+      result.append("com:z", _weightCOM.z());
     }
     return result;
   }
@@ -211,44 +250,6 @@ void InverseKinematics::addTargetOrientation(
         srcFrameIndex, _model->getFrameIndex("origin"));
 }
         
-void InverseKinematics::addTargetScalar(
-    const std::string& targetName,
-    const std::string& srcFrame,
-    TargetAxis axis,
-    const Eigen::Vector3d& point)
-{
-    if (_targetScalars.count(targetName) != 0) {
-        throw std::logic_error(
-            "InverseKinematics target already used");
-    }
-    
-    //Convert frame name to body RBDL id
-    size_t srcFrameIndex = _model->_frameNameToIndex.at(srcFrame);
-    size_t srcFrameId = _model->_frameIndexToId.at(srcFrameIndex);
-    
-    //Add target to the container
-    _targetScalars[targetName] = {
-        targetName, 
-        srcFrameId,
-        Eigen::Vector3d::Zero(),
-        axis,
-        0.0,
-        0.0,
-        1.0};
-
-    //Default value
-    if (axis == AxisX) {
-        targetScalarRef(targetName).target = _model->position(
-            srcFrameIndex, _model->getFrameIndex("origin"), point).x();
-    } else if (axis == AxisY) {
-        targetScalarRef(targetName).target = _model->position(
-            srcFrameIndex, _model->getFrameIndex("origin"), point).y();
-    } else if (axis == AxisZ) {
-        targetScalarRef(targetName).target = _model->position(
-            srcFrameIndex, _model->getFrameIndex("origin"), point).z();
-    }
-}
-        
 void InverseKinematics::addTargetDOF(const std::string& targetName,
                                      const std::string& dofName)
 {
@@ -292,11 +293,7 @@ Eigen::Matrix3d& InverseKinematics::targetOrientation(
 {
     return targetOrientationRef(targetName).target;
 }
-double& InverseKinematics::targetScalar(
-    const std::string& targetName)
-{
-    return targetScalarRef(targetName).target;
-}
+
 double& InverseKinematics::targetDOF(
     const std::string& targetName)
 {
@@ -322,11 +319,6 @@ double InverseKinematics::errorOrientation(
 {
     return targetOrientationRef(targetName).error;
 }
-double InverseKinematics::errorScalar(
-    const std::string& targetName) const
-{
-    return targetScalarRef(targetName).error;
-}
 double InverseKinematics::errorDOF(
     const std::string& targetName) const
 {
@@ -351,11 +343,6 @@ double& InverseKinematics::weightOrientation(
     const std::string& targetName)
 {
     return targetOrientationRef(targetName).weight;
-}
-double& InverseKinematics::weightScalar(
-    const std::string& targetName)
-{
-    return targetScalarRef(targetName).weight;
 }
 double& InverseKinematics::weightDOF(
     const std::string& targetName)
@@ -461,12 +448,6 @@ void InverseKinematics::run(double tolerance,
         index += 6;
         squaredErrorSum += target.second.error * target.second.error;
     }
-    for (auto& target : _targetScalars) {
-        target.second.error = lm.fvec().segment(index, 1).stableNorm();
-        target.second.error *= std::sqrt(target.second.weight);
-        index += 1;
-        squaredErrorSum += target.second.error * target.second.error;
-    }
     for (auto& target : _targetDOFs) {
         target.second.error = lm.fvec().segment(index, 1).stableNorm();
         target.second.error *= std::sqrt(target.second.weight);
@@ -492,7 +473,6 @@ size_t InverseKinematics::sizeTarget() const
     return 
         3*_targetPositions.size() + 
         6*_targetOrientations.size() +
-        1*_targetScalars.size() + 
         1*_targetDOFs.size() + 
         3*(size_t)_isTargetCOM;
 }
@@ -556,23 +536,6 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
         index += 3;
         fvec.segment(index, 3) = (realPtY - targetPtY) * std::sqrt(target.second.weight);
         index += 3;
-    }
-    //Scalar targets
-    for (const auto& target : _targetScalars) {
-        //Convertion of constrainted point to target frame
-        Eigen::Vector3d pt = RBDL::CalcBodyToBaseCoordinates(
-            _model->_model, _allDofs, 
-            target.second.bodyId, target.second.point, false);
-        //Compute error
-        double rsWeight = std::sqrt(target.second.weight);
-        if (target.second.axis == AxisX) {
-          fvec(index) = (pt.x() - target.second.target) * rsWeight;
-        } else if (target.second.axis == AxisY) {
-          fvec(index) = (pt.y() - target.second.target) * rsWeight;
-        } else if (target.second.axis == AxisZ) {
-          fvec(index) = (pt.z() - target.second.target) * rsWeight;
-        }
-        index += 1;
     }
     //DOF targets
     for (const auto& target : _targetDOFs) {
@@ -638,24 +601,6 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
             Eigen::Vector3d::Constant(target.second.weight));
         fjac.block(index, 0, 3, inputs()) = tmpG.block(0, 0, 3, inputs()) / fakeDistance;
         index += 3;
-    }
-    //Scalar targets
-    for (const auto& target : _targetScalars) {
-        //Compute constrained point jacobian
-        Eigen::MatrixXd tmpG = Eigen::MatrixXd::Zero(3, inputs());
-        CustomCalcPointJacobian(
-            _model->_model, _allDofs, target.second.bodyId, 
-            target.second.point, tmpG, 0, _globalIndexToSubset,
-            Eigen::Vector3d::Constant(target.second.weight));
-        //Assign jacobian for used subset DOF
-        if (target.second.axis == AxisX) {
-            fjac.block(index, 0, 1, inputs()) = tmpG.block(0, 0, 1, inputs());
-        } else if (target.second.axis == AxisY) {
-            fjac.block(index, 0, 1, inputs()) = tmpG.block(1, 0, 1, inputs());
-        } else if (target.second.axis == AxisZ) {
-            fjac.block(index, 0, 1, inputs()) = tmpG.block(2, 0, 1, inputs());
-        }
-        index += 1;
     }
     //DOF targets
     for (const auto& target : _targetDOFs) {
@@ -783,17 +728,6 @@ void InverseKinematics::exportDOF()
                               + targetName + "'");
     }
   }
-  const struct InverseKinematics::TargetScalar&
-  InverseKinematics::targetScalarRef(const std::string & targetName) const
-  {
-    try {
-      return _targetScalars.at(targetName);
-    }
-    catch (const std::out_of_range & exc) {
-      throw std::out_of_range("InverseKinematics: cannot find targetScalar: '"
-                              + targetName + "'");
-    }
-  }
   const struct InverseKinematics::TargetDOF&
   InverseKinematics::targetDOFRef(const std::string & targetName) const
   {
@@ -824,17 +758,6 @@ void InverseKinematics::exportDOF()
     }
     catch (const std::out_of_range & exc) {
       throw std::out_of_range("InverseKinematics: cannot find targetOrientation: '"
-                              + targetName + "'");
-    }
-  }
-  struct InverseKinematics::TargetScalar&
-  InverseKinematics::targetScalarRef(const std::string & targetName)
-  {
-    try {
-      return _targetScalars.at(targetName);
-    }
-    catch (const std::out_of_range & exc) {
-      throw std::out_of_range("InverseKinematics: cannot find targetScalar: '"
                               + targetName + "'");
     }
   }

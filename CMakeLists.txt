@@ -105,6 +105,7 @@ set(SOURCES_FILES
     IKWalk/IKWalk.cpp
     Utils/IterativeLearningControl.cpp
     TimeSeries/SeriesUtils.cpp
+    ToeWalk/ToeHeelWalk.cpp
 )
 
 #Tests main files
@@ -143,6 +144,7 @@ set(TESTS_FILES
     testGrobanToe
     testGrobanToePressure
     testToeWalk
+    testToeHeelWalk
     testModelGenerator
 )
 

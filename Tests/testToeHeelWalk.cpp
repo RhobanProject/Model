@@ -7,8 +7,12 @@
 #include "Model/HumanoidModelWithToe.hpp"
 #include "Model/InverseKinematics.hpp"
 #include "Utils/Chrono.hpp"
+#include "Utils/Scheduling.hpp"
+
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
+
+#include "ToeWalk/ToeHeelWalk.hpp"
 
 namespace RBDL = RigidBodyDynamics;
 namespace RBDLMath = RigidBodyDynamics::Math;
@@ -20,6 +24,8 @@ int main()
   Leph::Model model(rbdlModel);
   std::cout << model.getDOF() << std::endl;
   std::cout << "Total mass: " << model.sumMass() << std::endl;
+
+  Leph::ToeHeelWalk walk;
     
   //Viewer loop
   Leph::ModelViewer viewer(1200, 900);
@@ -28,13 +34,37 @@ int main()
   //double period = 200;
   //double amplitude = 30 * M_PI / 180;
 
+  double speed = 0.5;
+
+  double freq = 50.0;
+  Leph::Scheduling scheduling;
+  scheduling.setFrequency(freq);
+  bool forbiddenNextPhase = false;//Emulating onKeyDown with keyPressed
   while (viewer.update()) {
 
-    //model.setDOF("head_yaw", amplitude * sin(1 * M_PI * t / period));
-    //model.setDOF("head_pitch", amplitude * sin(2 * M_PI * t / period));
-    //model.setDOF("left_hip_pitch", amplitude * sin(4 * M_PI * t / period));
+    Leph::InverseKinematics ik(model);
+
+    if (viewer.isKeyPressed(sf::Keyboard::N)) {
+      if (!forbiddenNextPhase) {
+        walk.nextPhase(model, t);
+        forbiddenNextPhase = true;
+      }
+    }
+    else {
+      forbiddenNextPhase = false;
+    }
+
+    walk.initIK(model, ik, t);
+
+    std::cout << "Current phase: " << walk.getPhaseName() << std::endl;
+    std::cout << "ERRORS" << std::endl;
+    std::cout << ik.getNamedErrors() << std::endl;
+
+    //ik.randomDOFNoise();
+    ik.run(0.00001, 100);
+
     Leph::ModelDraw(model, viewer);
-    t += 1;
+    t += 1.0 / freq * speed;
   }
     
   return 0;

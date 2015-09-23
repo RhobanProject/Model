@@ -63,7 +63,7 @@ namespace Leph {
      *
      * Waiting: (based in origin)
      * - no constraint on base
-     * - Both arch_center are at (0, -footSpacing/2, 0) and (0, footSpacing/2, 0)
+     * - Both arch_center are at (0, -feetSpacing/2, 0) and (0, feetSpacing/2, 0)
      * - Orientation of both arch_center and trunk are Identity
      *
      * PlacingHeelA: (based in B_heel)
@@ -72,7 +72,7 @@ namespace Leph {
      * - COM: at start(B_toe_center) with z ignored
      *
      * PlacingArchA: (based in B_toe)
-     * - B_toe =  maxToeAngle * phaseRatio
+     * - B_toe =  -maxToeAngle * phaseRatio
      * - A_heel at start(A_heel)
      * - orientation of A_heel is rotY(-landingHeelAngle * (1 - phaseRatio(t)))
      *
@@ -87,7 +87,7 @@ namespace Leph {
      * - Orientation at A_toe_center = Identity
      *
      * FlyingFootA: (based in B_arch_center)
-     * - A_heel at (stepX - archCenter2Heel, +- footSpacing, stepHeight)
+     * - A_heel at (stepX - archCenter2Heel, +- feetSpacing, stepHeight)
      * - orientation of A_heel is rotY(-landingHeelAngle * phaseRatio(t))
      *
      * Summary of possible targets:
@@ -109,8 +109,10 @@ namespace Leph {
       PlacingArch,
       SwitchWeight,
       LiftingArch,
-      FlyingFoot,
+      FlyingFoot
     };
+
+    static const std::string& getName(enum Phase p);
 
   protected:
 
@@ -119,12 +121,23 @@ namespace Leph {
     // When did last phase change occur?
     double phaseStart;
     enum Phase phase, lastPhase;
+
+    // WALK PARAMETERS
+    double trunkZ;//[m]
+    double feetSpacing;//[m]
+    double stepHeight;//[m]
+
+    // Toe and heel angles [rad]
+    double maxToeAngle;
+    double landingHeelAngle;
+
     // Phase expected durations [s]
     double placingHeelTime;
     double placingArchTime;
     double switchWeightTime;
     double liftingArchTime;
     double flyingFootTime;
+
 
     double stepX;
     //include stepY and stepTheta later
@@ -153,7 +166,9 @@ namespace Leph {
     void setSimModelBase();
     void updateStartingPos();
     void updateTargetPos();
-    void getPhaseRatio();
+
+    // Phase ratio in [0,1]
+    double getPhaseRatio(double time);
 
     /**
      * Sometimes those distances are required
@@ -167,9 +182,11 @@ namespace Leph {
     ToeHeelWalk();
 
     // Also set the model m angles for toes. ik should be clean.
-    void initIK(Model & m, InverseKinematics & ik);
+    void initIK(Model & m, InverseKinematics & ik, double time);
 
     void nextPhase(const Model& m, double time);
+
+    std::string getPhaseName() const;
     
   };
 }
