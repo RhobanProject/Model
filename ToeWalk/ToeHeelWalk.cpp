@@ -31,7 +31,7 @@ namespace Leph {
     : initialized(false), phaseStart(0),
       phase(Phase::Waiting), lastPhase(Phase::Waiting),
       trunkZ(0.45), feetSpacing(0.2), stepHeight(0.15),
-      maxToeAngle(30 * M_PI / 180),
+      maxToeAngle(60 * M_PI / 180),
       landingHeelAngle(20 * M_PI / 180),
       placingHeelTime(2.0),
       placingArchTime(2.0),
@@ -185,7 +185,7 @@ namespace Leph {
     case PlacingHeel:
       return oppSide + "_heel";
     case PlacingArch:
-      return oppSide + "_toe";
+      return oppSide + "_toe_center";
     }
     throw std::logic_error("Unknown phase in ToeHeelWalk");
   }
