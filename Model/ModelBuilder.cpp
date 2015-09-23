@@ -14,7 +14,7 @@ namespace Leph {
                      const std::string & childFrame)
   {
     model.AddBody(model.GetBodyId(srcFrame.c_str()), st,
-                  joint, ComponentLibrary::getBody("virtual"), childFrame);
+                  joint, ComponentLibrary::getBody("Virtual"), childFrame);
   }
 
 // Easier to use when there is no rotation
@@ -109,7 +109,16 @@ namespace Leph {
     RBDL::Joint jointRoot(RBDL::JointTypeFixed);
     if ( floatingBase ) { jointRoot = ComponentLibrary::floatingBase;}
     rbdlModel.AddBody(rbdlModel.GetBodyId("ROOT"), RBDLMath::SpatialTransform(), jointRoot,
-                      ComponentLibrary::getBody("virtual"), "trunk");
+                      ComponentLibrary::getBody("Virtual"), "trunk");
+    // torso TODO place accurately
+    addFixedBody(rbdlModel,"trunk", "Torso",
+                   trunkToHead / 2,
+                   "torso");
+
+    // FitPC TODO: place properly
+    addFixedBody(rbdlModel,"trunk", "FitPC",
+                 trunkToHead / 2 + Eigen::Vector3d(-0.05,0,0),
+                 "FitPC");
 
     // Symetry on XZ plane for directional transform
     std::map<std::string,Eigen::Vector3d> sideCoeff = {{"left" , Eigen::Vector3d(1, 1,1)},
@@ -165,7 +174,6 @@ namespace Leph {
                    SpatialTransform(rot * rotY(M_PI) * rotX(- M_PI / 2),
                                     coeff.cwiseProduct(hipPitchMotorOffset)),
                    side + "_hip_pitch_motor");
-      //TODO update Angle
       addFixedBody(rbdlModel, side + "_hip_pitch", "EX106+",
                    SpatialTransform(rot * rotZ(-kneeMotorAngle) * rotX(M_PI / 2),
                                     coeff.cwiseProduct(hipToKnee + kneeMotorOffset)),
@@ -206,7 +214,7 @@ namespace Leph {
       Eigen::Vector3d archSize(0.125,0.092,0);
       Eigen::Vector3d toeSize(0.032, 0.110,0);
       // Virtual Heel
-      addFixedBody(rbdlModel, side + "_arch_center", "virtual",
+      addFixedBody(rbdlModel, side + "_arch_center", "Virtual",
                    Eigen::Vector3d(-archSize.x()/2, 0, 0),
                    side + "_heel");
       
@@ -219,17 +227,32 @@ namespace Leph {
         std::ostringstream archOss, toeOss;
         archOss << side << "_arch_gauge_" << i;
         toeOss << side << "_toe_gauge_" << i;
-        addFixedBody(rbdlModel, side + "_arch_center", "gauge",
+        addFixedBody(rbdlModel, side + "_arch_center", "Gauge",
                      gaugeCoeffs[i].cwiseProduct(archSize),
                      archOss.str());
-        addFixedBody(rbdlModel, side + "_toe_center", "gauge",
+        addFixedBody(rbdlModel, side + "_toe_center", "Gauge",
                      gaugeCoeffs[i].cwiseProduct(toeSize),
                      toeOss.str());
       }
       // Hands
-      addFixedBody(rbdlModel, side + "_elbow", "virtual",
+      addFixedBody(rbdlModel, side + "_elbow", "Virtual",
                    coeff.cwiseProduct(elbowToHand),
                    side + "_hand");
+
+      // Structure parts
+      // TODO: do something more accurate than only dividing by 2 the distance
+      addFixedBody(rbdlModel, side + "_hip_pitch", "Femur",
+                   coeff.cwiseProduct(hipToKnee / 2),
+                   side + "_femur");
+      addFixedBody(rbdlModel, side + "_knee", "Tibia",
+                   coeff.cwiseProduct(kneeToAnkle / 2),
+                   side + "_tibia");
+      addFixedBody(rbdlModel, side + "_shoulder_roll", "Arm1",
+                   coeff.cwiseProduct(shoulderToElbow / 2),
+                   side + "_arm1");
+      addFixedBody(rbdlModel, side + "_elbow", "Arm2",
+                   coeff.cwiseProduct(elbowToHand / 2),
+                   side + "_arm2");
     }
     return rbdlModel;
   }
