@@ -8,6 +8,32 @@ namespace Leph {
   public:
 
     /**
+     * Transition principe:
+     * In order to smooth the transition between the phases, it is interesting
+     * to register the initial position of the foot, it also allows to reduce
+     * the production of lateral forces while the robot has multiple contacts
+     * on the ground. However, due to the control error of RX motors, we cannot
+     * base our starting position on the measured position, because this would
+     * mean a sudden change of orders on a 'flying body' and it would reduce
+     * suddenly the targeted feetSpacing. Therefore the choice is the following:
+     * - For start positions:
+     *   - For frames which are grounded at the beginning of the phase, use the
+     *     measured position
+     *   - For frames flying at the beginning of the phase, use the theoric
+     *     position
+     * - For target positions:
+     *   - If the target is grounded during the whole phase, do not change its
+     *     position respectively to the base during the whole process
+     *   - If the target is flying during a part of the phase, then use the
+     *     theoric position
+     * This policy will still let some sudden changes in order appears, but only
+     * during double support phases which are more stable.
+     * - trunkZ and  will always be subject to static error, therefore, the trunk
+     *   target is always set to its theoric position
+     * - The center of mass is subject to external control, therefore the target
+     *   shouldn't change suddenly and it always needs to be set from theoric
+     *   value.
+     *
      * Description of the phases:
      * - Except Waiting phases, all phases are symetrical, therefore when
      *   described, we use A for the current foot and B for the opposite
@@ -19,7 +45,7 @@ namespace Leph {
      * - The orientation of the base used is always Identity()
      * - When a constraint along an axis is not used, it is marqued by ~
      * - When the sign of a value depends on the foot it is written '+-value'
-     * - For eache phase, phaseRatio is specified as following
+     * - For each phase, phaseRatio is specified as following
      *   - given an elapsed time in phase 't' and a phase duration of 'phaseT':
      *     phaseRatio(t) = min(1, t / phaseT)
      * - For each phase, the target at 't' is specified as following
@@ -55,11 +81,11 @@ namespace Leph {
      *
      * LiftingArchA: (based in B_arch_center)
      * - A_toe_angle = maxToeAngle * (1 - phaseRatio)
-     * - A_toe_center = start(A_toe_center) + (0,0,stepHeight)
+     * - A_toe_center = (-stepX + archCenter2ToeCenter(B), +-feetSpacing, stepHeight)
      * - Orientation at A_toe_center = Identity
      *
      * FlyingFootA: (based in B_arch_center)
-     * - A_arch_center at (stepX, +- footSpacing, stepHeight)
+     * - A_heel at (stepX - archCenter2Heel, +- footSpacing, stepHeight)
      * - orientation of A_heel is rotY(-landingHeelAngle * phaseRatio(t))
      *
      * Summary of possible targets:
@@ -93,9 +119,9 @@ namespace Leph {
     enum Phase phase, lastPhase;
     // Phase expected durations [s]
     double placingHeelTime;
-    double liftingHeelTime;
+    double placingArchTime;
     double switchWeightTime;
-    double liftingFootTime;
+    double liftingArchTime;
     double flyingFootTime;
 
     double stepX;
@@ -125,8 +151,12 @@ namespace Leph {
     void setSimModelBase();
     void updateStartingPos();
     void updateTargetPos();
-    void getPhaseRato();
+    void getPhaseRatio();
     std::string getBasis();
+
+    double archCenter2ToeCenter(const std::string & side);
+    // no side required since it's symetrical
+    double archCenter2Heel();
 
   public:
     ToeHeelWalk();
