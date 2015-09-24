@@ -57,7 +57,10 @@ namespace Leph {
     ik = new InverseKinematics(*this);
     // Adding all DOF from the model
     //TODO eventually reduce to the lower part since upper part has no influence on foot position
-    for (const std::string& dof : getDOFNames()) {
+    for (const std::string& dof : getDOFCategory("base")) {
+      ik->addDOF(dof);
+    }
+    for (const std::string& dof : getDOFCategory("lowerBody")) {
       ik->addDOF(dof);
     }
     // Adding targets for every gauge frame
@@ -65,7 +68,7 @@ namespace Leph {
       ik->addTargetPosition(pEntry.first, pEntry.first);
     }
     // Adding target for every motor
-    for (const std::string & dof : getActuatedDOFNames()) {
+    for (const std::string & dof : getDOFCategory("lowerBody")){
       ik->addTargetDOF(dof, dof);
     }
   }
@@ -85,7 +88,7 @@ namespace Leph {
     double gaugeThreshold = 200;
     Eigen::Vector3d gaugeWeight(gaugeSlipWeight, gaugeSlipWeight, gaugeZWeight);
     // Setting up DOF targets, weights and bounds
-    for (const std::string & dof : getActuatedDOFNames()) {
+    for (const std::string & dof : getDOFCategory("lowerBody")){
       double readVal = getDOF(dof);
       ik->targetDOF(dof) = readVal;
       ik->weightDOF(dof) = dofWeight;
