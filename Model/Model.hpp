@@ -90,6 +90,11 @@ class Model
          * (no check on same model are done)
          */
         void importDOF(const Model& model);
+      
+        /**
+         * Same as before, but only the dof from the given category are imported
+         */
+        void importDOFCategory(const std::string& category,const Model& model);
 
         /**
          * Reset all degrees of freedom to zero position

@@ -133,7 +133,12 @@ namespace Leph {
   void PressureModel::updatePressure(const Leph::VectorLabel& pressureData)
   {
     for (auto& pressureEntry : pressureValues) {
-      pressureEntry.second = pressureData(pressureEntry.first);
+      try {
+        pressureEntry.second = pressureData(pressureEntry.first);
+      }
+      catch(const std::logic_error& exc) {
+        throw std::runtime_error("PressureModel::updatePressure: missing data, cannot find pressure: '" + pressureEntry.first + "'"); 
+      }
     }
   }
 

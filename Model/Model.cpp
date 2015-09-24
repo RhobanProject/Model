@@ -179,6 +179,13 @@ void Model::importDOF(const Model& model)
             model._dofNameToIndex.at(_dofIndexToName.at(i)));
     }
 }
+        
+void Model::importDOFCategory(const std::string& category,const Model& model)
+{
+  for (const std::string& dof : getDOFCategory(category)) {
+    setDOF(dof, model.getDOF(dof));
+  }
+}
 
 size_t Model::sizeFrame() const
 {

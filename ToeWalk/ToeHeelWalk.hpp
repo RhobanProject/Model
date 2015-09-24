@@ -81,7 +81,7 @@ namespace Leph {
      * - B_toe_center at start(B_toe_center)
      * - orientation of B_toe_center is Identity
      *
-     * LiftingArchA: (based in B_arch_center)
+     * LiftingToeA: (based in B_arch_center)
      * - A_toe_angle = maxToeAngle * (1 - phaseRatio)
      * - A_toe_center = (-stepX + archCenter2ToeCenter(B), +-feetSpacing, stepHeight)
      * - Orientation at A_toe_center = Identity
@@ -108,7 +108,7 @@ namespace Leph {
       PlacingHeel,
       PlacingArch,
       SwitchWeight,
-      LiftingArch,
+      LiftingToe,
       FlyingFoot
     };
 
@@ -187,6 +187,9 @@ namespace Leph {
     void nextPhase(const Model& m, double time);
 
     std::string getPhaseName() const;
-    
+
+    // Return a list of the gauges which are supposed to be in contact
+    std::vector<std::string> expectedPressures();
+
   };
 }

@@ -16,7 +16,7 @@ namespace Leph {
       { PlacingHeel, "PlacingHeel"},
       { PlacingArch, "PlacingArch"},
       { SwitchWeight, "SwitchWeight"},
-      { LiftingArch, "LiftingArch"},
+      { LiftingToe, "LiftingToe"},
       { FlyingFoot, "FlyingFoot"}
     };
     try{
@@ -70,12 +70,12 @@ namespace Leph {
       side = "right"; oppSide = "left";
       break;
     case SwitchWeight:
-      phase = Phase::LiftingArch;
+      phase = Phase::LiftingToe;
       std::cout << "side before swap: " << side << std::endl;
       swapSide();
       std::cout << "side after swap: " << side << std::endl;
       break;
-    case LiftingArch:
+    case LiftingToe:
       phase = Phase::FlyingFoot;
       break;
     case FlyingFoot:
@@ -150,7 +150,7 @@ namespace Leph {
     case SwitchWeight:
       setTarget(oppSide + "_toe_center", startPos.at(oppSide + "_toe_center"));
       break;
-    case LiftingArch:
+    case LiftingToe:
       setTarget(side + "_toe_center",
                 Vector3d(archCenter2ToeCenter(oppSide) - stepX,
                          coeff * feetSpacing,
@@ -178,7 +178,7 @@ namespace Leph {
       return "origin";
     case SwitchWeight:
       return side    + "_arch_center";
-    case LiftingArch:
+    case LiftingToe:
       return oppSide + "_arch_center";
     case FlyingFoot:
       return oppSide + "_arch_center";
@@ -227,7 +227,7 @@ namespace Leph {
       std::cout << "SW: Adding target '" << side + "_toe_center' to startPos" << std::endl;
       startPos[side + "_toe_center"] = simModel.position(side + "_toe_center", "origin");
       break;
-    case LiftingArch://Current phase: Flying foot, based in oppSide_arch_center
+    case LiftingToe://Current phase: Flying foot, based in oppSide_arch_center
       startPos[side + "_heel"] = Vector3d(-stepX - archCenter2Heel(),
                                           coeff * feetSpacing,
                                           stepHeight);
@@ -254,7 +254,7 @@ namespace Leph {
     switch(phase){
     case Waiting: return 1;
     case SwitchWeight: phaseT = switchWeightTime; break;
-    case LiftingArch:  phaseT = liftingArchTime ; break;
+    case LiftingToe:  phaseT = liftingArchTime ; break;
     case FlyingFoot:   phaseT = flyingFootTime  ; break;
     case PlacingHeel:  phaseT = placingHeelTime ; break;
     case PlacingArch:  phaseT = placingArchTime ; break;
@@ -337,7 +337,7 @@ namespace Leph {
       ik.addTargetOrientation(oppSide + "_toe_center", oppSide + "_toe_center");
       ik.targetOrientation(oppSide + "_toe_center") = Matrix3d::Identity();
       break;
-    case LiftingArch:
+    case LiftingToe:
       ik.addTargetOrientation(side + "_toe_center", side + "_toe_center");
       ik.targetOrientation(side + "_toe_center") = Matrix3d::Identity();
       break;
@@ -368,7 +368,7 @@ namespace Leph {
         m.setDOF(oppSide + "_toe", -maxToeAngle * pRatio);
       }
       break;
-    case LiftingArch:
+    case LiftingToe:
       m.setDOF(side + "_toe", -maxToeAngle * (1 - pRatio));
       break;
     default: break;//Keep toe as target
@@ -380,5 +380,68 @@ namespace Leph {
   {
     return getName(phase) + side;
   }
+
+  static void addHeelGauges(const std::string& side,
+                            std::vector<std::string>& vec)
+  {
+    vec.push_back(side + "_arch_gauge_1");
+    vec.push_back(side + "_arch_gauge_2");
+  }
+
+  static void addArchGauges(const std::string& side,
+                            std::vector<std::string>& vec)
+  {
+    vec.push_back(side + "_arch_gauge_0");
+    vec.push_back(side + "_arch_gauge_1");
+    vec.push_back(side + "_arch_gauge_2");
+    vec.push_back(side + "_arch_gauge_3");
+  }
+
+  static void addToeGauges(const std::string& side,
+                           std::vector<std::string>& vec)
+  {
+    vec.push_back(side + "_toe_gauge_0");
+    vec.push_back(side + "_toe_gauge_1");
+    vec.push_back(side + "_toe_gauge_2");
+    vec.push_back(side + "_toe_gauge_3");
+  }
+
+  static void addFootGauges(const std::string& side,
+                            std::vector<std::string>& vec)
+  {
+    addArchGauges(side, vec);
+    addToeGauges(side, vec);
+  }
+
+  
+
+  std::vector<std::string> ToeHeelWalk::expectedPressures()
+  {
+    std::vector<std::string> vec;
+    switch(phase) {
+    case Waiting:
+      addFootGauges("left", vec);
+      addFootGauges("right", vec);
+      break;
+    case PlacingHeel:
+      addFootGauges(oppSide, vec);
+      break;
+    case PlacingArch:
+      addToeGauges(oppSide, vec);
+      addHeelGauges(side, vec);
+      break;
+    case SwitchWeight:
+      addToeGauges(oppSide, vec);
+      addFootGauges(side, vec);
+      break;
+    case LiftingToe:
+      addFootGauges(oppSide, vec);
+      break;
+    case FlyingFoot:
+      addFootGauges(oppSide, vec);
+    }
+    return vec;
+  }
+
 
 }

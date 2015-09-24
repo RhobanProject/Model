@@ -45,6 +45,8 @@ namespace Leph {
     std::map<std::string, double> pressureValues;
     // It is necessary to store last pressure pos
     std::map<std::string, Eigen::Vector3d> lastPressurePos;
+
+
     //Position of the center of pressure in the base frame [m]
     Eigen::Vector3d cop;
     //Total weight at last update [g]
