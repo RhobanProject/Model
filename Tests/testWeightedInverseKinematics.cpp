@@ -63,6 +63,9 @@ int main()
     while (viewer.update()) {
         t += 0.01;
 
+        std::cout << "weights" << std::endl;
+        std::cout << inv.getNamedWeights() << std::endl;
+
         chrono.start("InverseKinematics");
         //Compute Inverse Kinematics
         //inv.randomDOFNoise();

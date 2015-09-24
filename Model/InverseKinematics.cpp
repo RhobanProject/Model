@@ -5,12 +5,13 @@
 namespace Leph {
 
   // Apply the root squared on each element
-  static Eigen::Vector3d rsCWise(const Eigen::Vector3d & v)
-  {
-    return Eigen::Vector3d(std::sqrt(v.x()),
-                           std::sqrt(v.y()),
-                           std::sqrt(v.z()));
-  }
+  // All positions target are now treated axis by axis, so function is unused
+  //static Eigen::Vector3d rsCWise(const Eigen::Vector3d & v)
+  //{
+  //  return Eigen::Vector3d(std::sqrt(v.x()),
+  //                         std::sqrt(v.y()),
+  //                         std::sqrt(v.z()));
+  //}
 
 
 /**
@@ -51,9 +52,16 @@ static void CustomCalcPointJacobian(
                     "InverseKinematics RBDL CalcPointJacobian not implemented");
             } else {
               // Model.X_base[j] = Spatial Transformation from base to body j
-             RBDLMath::SpatialTransform baseFromBodyJ = model.X_base[j].inverse();
-             RBDLMath::SpatialVector moveInBase = baseFromBodyJ.apply(model.S[j]);
-             fjac.block(index, subsetIndex, 3, 1) = targetFromBase.apply(moveInBase).block(3, 0, 3, 1);
+              RBDLMath::SpatialTransform baseFromBodyJ = model.X_base[j].inverse();
+              RBDLMath::SpatialVector moveInBase = baseFromBodyJ.apply(model.S[j]);
+              const auto& pointJac = targetFromBase.apply(moveInBase);
+              size_t nbLinesWritten = 0;
+              for (size_t axis = 0; axis < 3; axis++){
+                if (weight(axis) != 0) {
+                  fjac(index + nbLinesWritten, subsetIndex) = pointJac(3 + axis, 0);
+                  nbLinesWritten++;
+                }
+              }
             }
         } 
         j = model.lambda[j];
@@ -125,22 +133,29 @@ void InverseKinematics::addDOF(const std::string& name)
 
   VectorLabel InverseKinematics::getNamedWeights()
   {
+    static const std::vector<std::string> axisName = {"x", "y", "z"};
     VectorLabel result; 
     for (const auto& entry : _targetPositions) {
-      result.append("pos:" + entry.first + ":x", entry.second.weight.x());
-      result.append("pos:" + entry.first + ":y", entry.second.weight.y());
-      result.append("pos:" + entry.first + ":z", entry.second.weight.z());
+      for (size_t axis = 0; axis < 3; axis ++) {
+        if (entry.second.weight(axis) != 0) {
+          result.append("pos:" + entry.first + ":" + axisName[axis],
+                        entry.second.weight(axis));
+        }
+      }
     }
     for (const auto& entry : _targetOrientations) {
-      result.append("dir:" + entry.first, entry.second.error);
+      result.append("dir:" + entry.first, entry.second.weight);
     }
     for (const auto& entry : _targetDOFs) {
-      result.append("dof:" + entry.first, entry.second.error);
+      result.append("dof:" + entry.first, entry.second.weight);
     }
     if (_isTargetCOM) {
-      result.append("com:x", _weightCOM.x());
-      result.append("com:y", _weightCOM.y());
-      result.append("com:z", _weightCOM.z());
+      for (size_t axis = 0; axis < 3; axis ++) {
+        if (_weightCOM(axis) != 0) {
+          result.append("com:" + axisName[axis],
+                        _weightCOM(axis));
+        }
+      }
     }
     return result;
   }
@@ -435,11 +450,17 @@ void InverseKinematics::run(double tolerance,
     size_t index = 0;
     // RootSquared is applied once more
     for (auto& target : _targetPositions) {
-        Eigen::Vector3d errors = lm.fvec().segment(index, 3);
-        Eigen::Vector3d rsWeight = rsCWise(target.second.weight);
-        target.second.error = errors.cwiseProduct(rsWeight).stableNorm();
-        index += 3;
-        squaredErrorSum += target.second.error * target.second.error;
+      double targetSquaredError = 0;
+      for (size_t axis = 0; axis < 3; axis ++) {
+        double axisWeight = target.second.weight(axis);
+        if (axisWeight != 0) {
+          double error = lm.fvec()(index);
+          targetSquaredError += error * error * axisWeight;
+          index++;
+        }
+      }
+      target.second.error = std::sqrt(targetSquaredError);
+      squaredErrorSum += targetSquaredError;
     }
     for (auto& target : _targetOrientations) {
         auto errors = lm.fvec().segment(index, 6);
@@ -455,11 +476,17 @@ void InverseKinematics::run(double tolerance,
         squaredErrorSum += target.second.error * target.second.error;
     }
     if (_isTargetCOM) {
-        Eigen::Vector3d errors = lm.fvec().segment(index, 3);
-        Eigen::Vector3d rsWeight = rsCWise(_weightCOM);
-        _errorCOM = errors.cwiseProduct(rsWeight).stableNorm();
-        index += 3;
-        squaredErrorSum += _errorCOM * _errorCOM;
+      double comSquaredError = 0;
+      for (size_t axis = 0; axis < 3; axis ++) {
+        double axisWeight = _weightCOM(axis);
+        if (axisWeight != 0) {
+          double error = lm.fvec()(index);
+          comSquaredError += error * error * axisWeight;
+          index++;
+        }
+      }
+      _errorCOM = std::sqrt(comSquaredError);
+      squaredErrorSum += comSquaredError;
     }
     _errorSum = std::sqrt(squaredErrorSum);
 }
@@ -470,11 +497,24 @@ size_t InverseKinematics::sizeDOF() const
 }
 size_t InverseKinematics::sizeTarget() const
 {
-    return 
-        3*_targetPositions.size() + 
-        6*_targetOrientations.size() +
-        1*_targetDOFs.size() + 
-        3*(size_t)_isTargetCOM;
+  size_t nbTargets = 0;
+  for (auto& target : _targetPositions) {
+    for (size_t axis = 0; axis < 3; axis ++) {
+      if (target.second.weight(axis) != 0) {
+        nbTargets++;
+      }
+    }
+  }
+  nbTargets += 6 * _targetOrientations.size();
+  nbTargets += _targetDOFs.size();
+  if (_isTargetCOM) {
+    for (size_t axis = 0; axis < 3; axis ++) {
+      if (_weightCOM(axis) != 0) {
+        nbTargets++;
+      }
+    }
+  }
+  return nbTargets;
 }
         
 size_t InverseKinematics::inputs() const
@@ -502,8 +542,14 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, 
             target.second.bodyId, target.second.point, false);
         //Compute error
-        fvec.segment(index, 3) = (pt - target.second.target).cwiseProduct(rsCWise(target.second.weight));
-        index += 3;
+        Eigen::Vector3d error = pt - target.second.target;
+        for (size_t axis = 0; axis < 3; axis++) {
+          double axisWeight = target.second.weight(axis);
+          if (axisWeight != 0) {
+            fvec(index) = error(axis) * std::sqrt(axisWeight);
+            index++;
+          }
+        }
     }
     //Orientation targets
     for (const auto& target : _targetOrientations) {
@@ -555,8 +601,14 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, _allDofs, 
             tmpMass, com, NULL, NULL, false);
         //Compute error
-        fvec.segment(index, 3) = (com - _targetCOM).cwiseProduct(rsCWise(weightCOM()));
-        index += 3;
+        Eigen::Vector3d error = com - _targetCOM;
+        for (size_t axis = 0; axis < 3; axis++) {
+          double axisWeight = _weightCOM(axis);
+          if (axisWeight != 0) {
+            fvec(index) = error(axis) * std::sqrt(axisWeight);
+            index++;
+          }
+        }
     }
     //Dummy errors values for eigen assert
     fvec.segment(index, values()-index).setZero();
@@ -580,7 +632,11 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
             target.second.point, fjac, index, _globalIndexToSubset, target.second.weight);
-        index += 3;
+        for (size_t axis = 0; axis < 3; axis++) {
+          if (target.second.weight(axis != 0)) {
+            index++;
+          }
+        }
     }
     //Orientation targets
     for (const auto& target : _targetOrientations) {
@@ -613,7 +669,11 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     if (_isTargetCOM) {
         //Compute COM jacobian
         comJacobian(fjac, index, weightCOM());
-        index += 3;
+        for (size_t axis = 0; axis < 3; axis++) {
+          if (_weightCOM(axis != 0)) {
+            index++;
+          }
+        }
     }
 
     return 0;
@@ -674,7 +734,17 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
 {
     //Init com and mass
     double sumMass = 0.0;
-    RBDLMath::MatrixNd tmpG(3, inputs());
+    size_t nbAxisUsed = 0;
+    for (size_t axis = 0; axis < 3; axis++) {
+      if (weight(axis) != 0) {
+        nbAxisUsed++;
+      }
+    }
+    if (nbAxisUsed == 0) {
+      throw std::runtime_error("IK:comJacobian: trying to compute a jacobian with 0 axis used");
+    }
+
+    RBDLMath::MatrixNd tmpG(nbAxisUsed, inputs());
     //Weighted average of jacobian on each body center of mass
     for (size_t i=1;i<_model->_model.mBodies.size();i++) {
         double mass = _model->_model.mBodies[i].mMass;
@@ -686,11 +756,11 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
                 _model->_model, _allDofs, i, 
                 center, tmpG, 0, _globalIndexToSubset, weight);
             sumMass += mass;
-            fjac.block(index, 0, 3, inputs()) += tmpG * mass;
+            fjac.block(index, 0, nbAxisUsed, inputs()) += tmpG * mass;
         }
     }
     //Normalize the sum
-    fjac.block(index, 0, 3, inputs()) *= (1.0/sumMass);
+    fjac.block(index, 0, nbAxisUsed, inputs()) *= (1.0/sumMass);
 }
         
 void InverseKinematics::importDOF()
