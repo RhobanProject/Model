@@ -42,12 +42,17 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         VectorLabel getNamedDOFSubset();
 
         /**
-         * Return a VectorLabel associating the name of the DOF with their errors
+         * Return a VectorLabel associating the name of the targets with their targets
+         */
+        VectorLabel getNamedTargets();
+
+        /**
+         * Return a VectorLabel associating the name of the targets with their errors
          */
         VectorLabel getNamedErrors();
 
         /**
-         * Return a VectorLabel associating the name of the DOF with their errors
+         * Return a VectorLabel associating the name of the targets with their weights
          */
         VectorLabel getNamedWeights();
 

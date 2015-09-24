@@ -146,6 +146,7 @@ set(TESTS_FILES
     testToeWalk
     testToeHeelWalk
     testModelGenerator
+    testToeTest
 )
 
 #Applications main files

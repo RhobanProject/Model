@@ -113,6 +113,44 @@ void InverseKinematics::addDOF(const std::string& name)
     return result;
   }
 
+  VectorLabel InverseKinematics::getNamedTargets()
+  {
+    static const std::vector<std::string> axisName = {"x", "y", "z"};
+    VectorLabel result; 
+    for (const auto& entry : _targetPositions) {
+      for (size_t axis = 0; axis < 3; axis ++) {
+        if (entry.second.weight(axis) != 0) {
+          result.append("pos:" + entry.first + ":" + axisName[axis],
+                        entry.second.target(axis));
+        }
+      }
+    }
+    for (const auto& entry : _targetOrientations) {
+      if (entry.second.weight != 0) {
+        for (size_t axis1 = 0; axis1 < 2; axis1 ++) {
+          for (size_t axis2 = 0; axis2 < 3; axis2 ++) {
+            result.append("dir:" + entry.first + ":" + axisName[axis1] + axisName[axis2],
+                          entry.second.target(axis1,axis2));
+          }
+        }
+      }
+    }
+    for (const auto& entry : _targetDOFs) {
+      if (entry.second.weight != 0) {
+        result.append("dof:" + entry.first, entry.second.target);
+      }
+    }
+    if (_isTargetCOM) {
+      for (size_t axis = 0; axis < 3; axis ++) {
+        if (_weightCOM(axis) != 0) {
+          result.append("com:" + axisName[axis],
+                        _targetCOM(axis));
+        }
+      }
+    }
+    return result;
+  }
+
   VectorLabel InverseKinematics::getNamedErrors()
   {
     VectorLabel result; 
@@ -144,10 +182,14 @@ void InverseKinematics::addDOF(const std::string& name)
       }
     }
     for (const auto& entry : _targetOrientations) {
-      result.append("dir:" + entry.first, entry.second.weight);
+      if (entry.second.weight != 0) {
+        result.append("dir:" + entry.first, entry.second.weight);
+      }
     }
     for (const auto& entry : _targetDOFs) {
-      result.append("dof:" + entry.first, entry.second.weight);
+      if (entry.second.weight != 0) {
+        result.append("dof:" + entry.first, entry.second.weight);
+      }
     }
     if (_isTargetCOM) {
       for (size_t axis = 0; axis < 3; axis ++) {
@@ -505,8 +547,16 @@ size_t InverseKinematics::sizeTarget() const
       }
     }
   }
-  nbTargets += 6 * _targetOrientations.size();
-  nbTargets += _targetDOFs.size();
+  for (auto& target : _targetOrientations) {
+    if (target.second.weight != 0) {
+      nbTargets += 6 * _targetOrientations.size();
+    }
+  }
+  for (auto& target : _targetDOFs) {
+    if (target.second.weight != 0) {
+      nbTargets += _targetDOFs.size();
+    }
+  }
   if (_isTargetCOM) {
     for (size_t axis = 0; axis < 3; axis ++) {
       if (_weightCOM(axis) != 0) {
@@ -537,6 +587,14 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
     size_t index = 0;
     //Position targets
     for (const auto& target : _targetPositions) {
+        bool uselessTarget = true;
+        for (size_t axis = 0; axis < 3; axis++) {
+          if (target.second.weight(axis) != 0) {
+            uselessTarget = false;
+            break;
+          }
+        }
+        if (uselessTarget) { continue; }
         //Convertion of constrainted point to target frame
         Eigen::Vector3d pt = RBDL::CalcBodyToBaseCoordinates(
             _model->_model, _allDofs, 
@@ -553,6 +611,8 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
     }
     //Orientation targets
     for (const auto& target : _targetOrientations) {
+        // Avoid spending calculations time for targets with 0 weight
+        if (target.second.weight == 0) { continue; }
         //Real position of constrained body origin and two pseudo points
         Eigen::Vector3d realPt;
         // Disabled:
@@ -585,6 +645,8 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
     }
     //DOF targets
     for (const auto& target : _targetDOFs) {
+      // Avoid spending calculations time for targets with 0 weight
+      if (target.second.weight == 0) { continue; }
       size_t globalIndex = _subsetIndexToGlobal.at(target.second.subsetIndex);
       double val = _allDofs(globalIndex);
       //Compute error
@@ -628,6 +690,14 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     size_t index = 0;
     //Position targets
     for (const auto& target : _targetPositions) {
+        bool uselessTarget = true;
+        for (size_t axis = 0; axis < 3; axis++) {
+          if (target.second.weight(axis) != 0) {
+            uselessTarget = false;
+            break;
+          }
+        }
+        if (uselessTarget) { continue; }
         //Compute constrained point jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
@@ -640,6 +710,8 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     }
     //Orientation targets
     for (const auto& target : _targetOrientations) {
+        // Avoid spending calculations time for targets with 0 weight
+        if (target.second.weight == 0) { continue; }
         // A huge fakeDistance is used in order to reduce impact of 'translations' on the jacobian
         double fakeDistance = std::pow(10,20);
         Eigen::MatrixXd tmpG = Eigen::MatrixXd::Zero(3, inputs());;
@@ -660,6 +732,8 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     }
     //DOF targets
     for (const auto& target : _targetDOFs) {
+      // Avoid spending calculations time for targets with 0 weight
+      if (target.second.weight == 0) { continue; }
       Eigen::MatrixXd tmpG = Eigen::MatrixXd::Zero(1, inputs());
       tmpG(0, target.second.subsetIndex) = std::sqrt(target.second.weight);
       fjac.block(index, 0, 1, inputs()) = tmpG.block(0, 0, 1, inputs());
