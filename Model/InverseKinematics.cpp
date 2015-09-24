@@ -58,7 +58,7 @@ static void CustomCalcPointJacobian(
               size_t nbLinesWritten = 0;
               for (size_t axis = 0; axis < 3; axis++){
                 if (weight(axis) != 0) {
-                  fjac(index + nbLinesWritten, subsetIndex) = pointJac(3 + axis, 0);
+                  fjac(index + nbLinesWritten, subsetIndex) = pointJac(3 + axis, 0) * std::sqrt(weight(axis));
                   nbLinesWritten++;
                 }
               }
@@ -549,12 +549,12 @@ size_t InverseKinematics::sizeTarget() const
   }
   for (auto& target : _targetOrientations) {
     if (target.second.weight != 0) {
-      nbTargets += 6 * _targetOrientations.size();
+      nbTargets += 6;
     }
   }
   for (auto& target : _targetDOFs) {
     if (target.second.weight != 0) {
-      nbTargets += _targetDOFs.size();
+      nbTargets++;
     }
   }
   if (_isTargetCOM) {
@@ -674,6 +674,8 @@ int InverseKinematics::operator()(const Eigen::VectorXd& dofs,
     }
     //Dummy errors values for eigen assert
     fvec.segment(index, values()-index).setZero();
+
+    //std::cout << "fvec:" << std::endl << fvec << std::endl;
     
     return 0;
 }
@@ -703,7 +705,7 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
             _model->_model, _allDofs, target.second.bodyId, 
             target.second.point, fjac, index, _globalIndexToSubset, target.second.weight);
         for (size_t axis = 0; axis < 3; axis++) {
-          if (target.second.weight(axis != 0)) {
+          if (target.second.weight(axis) != 0) {
             index++;
           }
         }
@@ -749,6 +751,8 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
           }
         }
     }
+
+    //std::cout << "Jacobian:" << std::endl << fjac << std::endl;
 
     return 0;
 }
