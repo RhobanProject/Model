@@ -31,15 +31,15 @@ namespace Leph {
     : initialized(false), phaseStart(0),
       phase(Phase::Waiting), lastPhase(Phase::Waiting),
       stepX(0.1),
-      trunkZ(0.40), feetSpacing(0.18), stepHeight(0.15),
+      trunkZ(0.48), feetSpacing(0.18), stepHeight(0.15),
       extraShoulderRoll(25 * M_PI / 180),
       maxToeAngle(60),
       landingHeelAngle(20),
-      minKnee(15),
+      minKnee(0),
       maxHipYaw(15),
-      maxTrunkPitch(60),
-      maxTrunkRoll(60),
-      maxTrunkYaw(60),
+      maxTrunkPitch(20),
+      maxTrunkRoll(30),
+      maxTrunkYaw(20),
       placingHeelTime(2.0),
       placingArchTime(2.0),
       switchWeightTime(2.0),
@@ -352,7 +352,7 @@ namespace Leph {
     // Also forcing trunk to be well oriented, otherwise it can do anything stupid
     ik.addTargetOrientation("trunk", "trunk");
     ik.targetOrientation("trunk") = Matrix3d::Identity();
-    ik.weightOrientation("trunk") = 0.01;
+    ik.weightOrientation("trunk") = 0.005;
 
     // Other orientation constraint differs on the phase
     switch(phase) {
@@ -405,6 +405,18 @@ namespace Leph {
     // SETTING EXTRA SHOULDER
     m.setDOF("left_shoulder_roll" ,  extraShoulderRoll);
     m.setDOF("right_shoulder_roll", -extraShoulderRoll);
+
+    // Setting prefered position for angles
+    for (const std::string& side : {"left", "right"}) {
+      std::string dof = side + "_hip_yaw";
+      ik.addTargetDOF(dof, dof);
+      ik.targetDOF(dof) = 0;
+      ik.weightDOF(dof) = 0.03;
+      dof = side + "_knee";
+      ik.addTargetDOF(dof, dof);
+      ik.targetDOF(dof) = 45;
+      ik.weightDOF(dof) = 0.00003;
+    }
 
     // Everything has been done!
   }

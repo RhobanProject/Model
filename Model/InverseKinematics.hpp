@@ -42,6 +42,12 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         VectorLabel getNamedDOFSubset();
 
         /**
+         * Return a VectorLabel associating the name of the bounded dof with
+         * their margin to the closest bound
+         */
+        VectorLabel getNamedDOFMargins();
+
+        /**
          * Return a VectorLabel associating the name of the targets with their targets
          */
         VectorLabel getNamedTargets();

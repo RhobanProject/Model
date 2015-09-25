@@ -113,6 +113,29 @@ void InverseKinematics::addDOF(const std::string& name)
     return result;
   }
 
+  VectorLabel InverseKinematics::getNamedDOFMargins()
+  {
+    VectorLabel result;
+    for (size_t dofID = 0; dofID < inputs(); dofID++) {
+      double val = _dofs[dofID];
+      double margin = std::numeric_limits<double>::max();
+      if (getIsLowerBounds()[dofID]) {
+        double diff = val - getLowerBounds()[dofID];
+        margin = std::min(margin, diff);
+      }
+      if (getIsUpperBounds()[dofID]) {
+        double diff = getUpperBounds()[dofID] - val;
+        margin = std::min(margin, diff);
+      }
+      if (margin != std::numeric_limits<double>::max()) {
+        std::string name = _model->getDOFName(_subsetIndexToGlobal[dofID]);
+        result.append(name, margin);
+      }
+    }
+    return result;
+  }
+
+
   VectorLabel InverseKinematics::getNamedTargets()
   {
     static const std::vector<std::string> axisName = {"x", "y", "z"};

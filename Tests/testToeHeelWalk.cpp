@@ -77,7 +77,7 @@ int main()
 
     std::cout << "left_heel_pos: " << simModel.position("left_heel","origin").transpose() << std::endl;
 
-    ik.randomDOFNoise();
+    //ik.randomDOFNoise();
     ik.run(0.00001, 100);
     std::cout << "Current phase: " << walk.getPhaseName() << std::endl;
     std::cout << "ERRORS" << std::endl;
