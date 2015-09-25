@@ -123,24 +123,32 @@ namespace Leph {
     enum Phase phase, lastPhase;
 
     // WALK PARAMETERS
+    double stepX;
+    //include stepY and stepTheta later
+
+    // General posture
     double trunkZ;//[m]
     double feetSpacing;//[m]
     double stepHeight;//[m]
+    double extraShoulderRoll;//[deg]
 
-    // Toe and heel angles [rad]
+    // Toe and heel angles [deg]
     double maxToeAngle;
     double landingHeelAngle;
+
+    // Angle Bounds [deg]
+    double minKnee;
+    double maxHipYaw;
+    double maxTrunkPitch;
+    double maxTrunkRoll;
+    double maxTrunkYaw;
 
     // Phase expected durations [s]
     double placingHeelTime;
     double placingArchTime;
     double switchWeightTime;
-    double liftingArchTime;
+    double liftingToeTime;
     double flyingFootTime;
-
-
-    double stepX;
-    //include stepY and stepTheta later
 
     // Targets position at phase start
     std::map<std::string, Eigen::Vector3d> startPos;
@@ -167,9 +175,6 @@ namespace Leph {
     void updateStartingPos();
     void updateTargetPos();
 
-    // Phase ratio in [0,1]
-    double getPhaseRatio(double time);
-
     /**
      * Sometimes those distances are required
      */
@@ -177,6 +182,9 @@ namespace Leph {
     double archCenter2ToeCenter(const std::string & side);
     // no side required since the distance is fixed
     double archCenter2Heel();
+
+    double maxToeAngleRad() const;
+    double landingHeelAngleRad() const;
 
   public:
     ToeHeelWalk();
@@ -187,6 +195,10 @@ namespace Leph {
     void nextPhase(const Model& m, double time);
 
     std::string getPhaseName() const;
+
+    // Phase ratio in [0,1]
+    double getPhaseRatio(double time);
+
 
     // Return a list of the gauges which are supposed to be in contact
     std::vector<std::string> expectedPressures();

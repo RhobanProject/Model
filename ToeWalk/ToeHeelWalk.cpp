@@ -30,15 +30,21 @@ namespace Leph {
   ToeHeelWalk::ToeHeelWalk()
     : initialized(false), phaseStart(0),
       phase(Phase::Waiting), lastPhase(Phase::Waiting),
-      trunkZ(0.45), feetSpacing(0.2), stepHeight(0.15),
-      maxToeAngle(60 * M_PI / 180),
-      landingHeelAngle(20 * M_PI / 180),
+      stepX(0.1),
+      trunkZ(0.40), feetSpacing(0.18), stepHeight(0.15),
+      extraShoulderRoll(25 * M_PI / 180),
+      maxToeAngle(60),
+      landingHeelAngle(20),
+      minKnee(15),
+      maxHipYaw(15),
+      maxTrunkPitch(60),
+      maxTrunkRoll(60),
+      maxTrunkYaw(60),
       placingHeelTime(2.0),
       placingArchTime(2.0),
       switchWeightTime(2.0),
-      liftingArchTime(2.0),
+      liftingToeTime(2.0),
       flyingFootTime(2.0),
-      stepX(0.15),
       simModel(generateGrobanWithToe(true)),
       side("none"),
       oppSide("none")
@@ -203,6 +209,15 @@ namespace Leph {
     Vector3d heel  = simModel.position("left_heel", "origin");
     return (archCenter - heel).stableNorm();
   }
+  double ToeHeelWalk::maxToeAngleRad() const
+  {
+    return maxToeAngle * M_PI / 180;
+  }
+
+  double ToeHeelWalk::landingHeelAngleRad() const
+  {
+    return landingHeelAngle * M_PI / 180;
+  }
 
   void ToeHeelWalk::updateStartingPos()
   {
@@ -254,7 +269,7 @@ namespace Leph {
     switch(phase){
     case Waiting: return 1;
     case SwitchWeight: phaseT = switchWeightTime; break;
-    case LiftingToe:  phaseT = liftingArchTime ; break;
+    case LiftingToe:   phaseT = liftingToeTime  ; break;
     case FlyingFoot:   phaseT = flyingFootTime  ; break;
     case PlacingHeel:  phaseT = placingHeelTime ; break;
     case PlacingArch:  phaseT = placingArchTime ; break;
@@ -286,10 +301,24 @@ namespace Leph {
         ik.addDOF(dof);
     }
 
-    ik.setLowerBound("left_knee", 15 * M_PI / 180);
-    ik.setLowerBound("right_knee", 15 * M_PI / 180);
+    // Angle Bounds
+    ik.setLowerBound("left_knee", minKnee * M_PI / 180);
+    ik.setLowerBound("right_knee", minKnee  * M_PI / 180);
     ik.setUpperBound("left_knee", M_PI);
     ik.setUpperBound("right_knee",M_PI);
+    
+    ik.setLowerBound("left_hip_yaw" , -maxHipYaw * M_PI / 180);
+    ik.setLowerBound("right_hip_yaw", -maxHipYaw * M_PI / 180);
+    ik.setUpperBound("left_hip_yaw" ,  maxHipYaw * M_PI / 180);
+    ik.setUpperBound("right_hip_yaw",  maxHipYaw * M_PI / 180);
+
+    //trunk test
+    ik.setLowerBound("trunk_pitch", -maxTrunkPitch * M_PI / 180);
+    ik.setLowerBound("trunk_roll" , -maxTrunkRoll  * M_PI / 180);
+    ik.setLowerBound("trunk_yaw"  , -maxTrunkYaw   * M_PI / 180);
+    ik.setUpperBound("trunk_pitch",  maxTrunkPitch * M_PI / 180);
+    ik.setUpperBound("trunk_roll" ,  maxTrunkRoll  * M_PI / 180);
+    ik.setUpperBound("trunk_yaw"  ,  maxTrunkYaw   * M_PI / 180);
 
     double pRatio = getPhaseRatio(time);
     // SETTING POSITION TARGETS
@@ -304,7 +333,6 @@ namespace Leph {
       catch(const std::out_of_range& exc) {
         throw std::logic_error("ToeHeelWalk: no start pos for '" + targetName + "'");
       }
-      std::cout << "setting target '" << targetName << "' at:" << realTarget.transpose() << std::endl;
 
       if (targetName == "COM") {
         ik.addTargetCOM();
@@ -324,6 +352,7 @@ namespace Leph {
     // Also forcing trunk to be well oriented, otherwise it can do anything stupid
     ik.addTargetOrientation("trunk", "trunk");
     ik.targetOrientation("trunk") = Matrix3d::Identity();
+    ik.weightOrientation("trunk") = 0.01;
 
     // Other orientation constraint differs on the phase
     switch(phase) {
@@ -343,15 +372,15 @@ namespace Leph {
       break;
     case FlyingFoot: 
       ik.addTargetOrientation(side + "_heel", side + "_heel");
-      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngle * pRatio);
+      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngleRad() * pRatio);
       break;
     case PlacingHeel:
       ik.addTargetOrientation(side + "_heel", side + "_heel");
-      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngle);
+      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngleRad());
       break;
     case PlacingArch:
       ik.addTargetOrientation(side + "_heel", side + "_heel");
-      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngle * (1 - pRatio));
+      ik.targetOrientation(side + "_heel") = rotY(-landingHeelAngleRad() * (1 - pRatio));
       break;
     }
     // SETTING TOES TARGET
@@ -359,26 +388,30 @@ namespace Leph {
     m.setDOF("right_toe", 0);
     switch(phase) {
     case PlacingArch:
-      m.setDOF(oppSide + "_toe", -maxToeAngle * pRatio);
+      m.setDOF(oppSide + "_toe", -maxToeAngleRad() * pRatio);
       break;
     case SwitchWeight:
-      m.setDOF(oppSide + "_toe", -maxToeAngle);
+      m.setDOF(oppSide + "_toe", -maxToeAngleRad());
       // Special warm-up case
       if (lastPhase == Phase::Waiting) {
-        m.setDOF(oppSide + "_toe", -maxToeAngle * pRatio);
+        m.setDOF(oppSide + "_toe", -maxToeAngleRad() * pRatio);
       }
       break;
     case LiftingToe:
-      m.setDOF(side + "_toe", -maxToeAngle * (1 - pRatio));
+      m.setDOF(side + "_toe", -maxToeAngleRad() * (1 - pRatio));
       break;
     default: break;//Keep toe as target
     }
+    // SETTING EXTRA SHOULDER
+    m.setDOF("left_shoulder_roll" ,  extraShoulderRoll);
+    m.setDOF("right_shoulder_roll", -extraShoulderRoll);
+
     // Everything has been done!
   }
 
   std::string ToeHeelWalk::getPhaseName() const
   {
-    return getName(phase) + side;
+    return getName(phase) + ":" + side;
   }
 
   static void addHeelGauges(const std::string& side,
