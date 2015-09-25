@@ -42,6 +42,12 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         VectorLabel getNamedDOFSubset();
 
         /**
+         * Return a VectorLabel associating the name of the bounded DOF with
+         * their margin toward the closest bound
+         */
+        VectorLabel getNamedDOFMargins();
+
+        /**
          * Return a VectorLabel associating the name of the targets with their targets
          */
         VectorLabel getNamedTargets();
@@ -75,6 +81,14 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
         void setUpperBound(const std::string& name, double value);
         void clearLowerBound(const std::string& name);
         void clearUpperBound(const std::string& name);
+
+        /**
+         * Return a vector with for each i in dofSubset:
+         * - true: if bound is activated and val == bound
+         * - false: otherwise
+         */
+        std::vector<bool> onLowerBounds(const Eigen::VectorXd& dofs);
+        std::vector<bool> onUpperBounds(const Eigen::VectorXd& dofs);
 
         /**
          * Add a target vector position with given targetName.
@@ -330,7 +344,10 @@ class InverseKinematics : public Eigen::DenseFunctor<double>
          * current DOF
          */
         void comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
-                         const Eigen::Vector3d & weight);
+                         const Eigen::Vector3d& weight,
+                         const Eigen::VectorXd& fvec,
+                         const std::vector<bool>& onLB,
+                         const std::vector<bool>& onUB);
 
         /**
          * Import and export from and to RBDL model

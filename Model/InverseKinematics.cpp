@@ -19,6 +19,9 @@ namespace Leph {
  * The function is copied from RBDL::CalcPointJacobian
  * (Kinematics.cc) and optimized to skipped the computation
  * of unused degree of freedom
+ *
+ * also includes weights and trim of jacobian to avoid trying to explore in
+ * forbidden directions
  */
 static void CustomCalcPointJacobian(
     RBDL::Model& model,
@@ -28,7 +31,10 @@ static void CustomCalcPointJacobian(
     RBDLMath::MatrixNd& fjac,
     size_t index, 
     const std::map<size_t, size_t>& globalIndexToSubset,
-    const Eigen::Vector3d & weight)
+    const Eigen::Vector3d & weight,
+    const Eigen::VectorXd& fvec,
+    const std::vector<bool>& onLB,
+    const std::vector<bool>& onUB)
 {
     RBDLMath::SpatialTransform targetFromBase = 
         RBDLMath::SpatialTransform(RBDLMath::Matrix3d::Identity(), 
@@ -58,7 +64,18 @@ static void CustomCalcPointJacobian(
               size_t nbLinesWritten = 0;
               for (size_t axis = 0; axis < 3; axis++){
                 if (weight(axis) != 0) {
-                  fjac(index + nbLinesWritten, subsetIndex) = pointJac(3 + axis, 0) * std::sqrt(weight(axis));
+                  double jacVal = pointJac(3 + axis, 0);
+                  double error = fvec(index);
+                  // If jacobian needs to be trim ignore jacVal
+                  if ((onLB[subsetIndex] && jacVal * error > 0)
+                      || (onUB[subsetIndex] && jacVal * error < 0)) {
+                    std::cout << "Cutting the jacobian on (" << index + nbLinesWritten
+                              << "," << subsetIndex << ")" << std::endl;
+                    fjac(index + nbLinesWritten, subsetIndex) = 0;
+                  }
+                  else {
+                    fjac(index + nbLinesWritten, subsetIndex) = jacVal * std::sqrt(weight(axis));
+                  }
                   nbLinesWritten++;
                 }
               }
@@ -109,6 +126,28 @@ void InverseKinematics::addDOF(const std::string& name)
     for (size_t dofID = 0; dofID < inputs(); dofID++) {
       std::string name = _model->getDOFName(_subsetIndexToGlobal[dofID]);
       result.append(name, _dofs[dofID]);
+    }
+    return result;
+  }
+
+  VectorLabel InverseKinematics::getNamedDOFMargins()
+  {
+    VectorLabel result;
+    for (size_t dofID = 0; dofID < inputs(); dofID++) {
+      double val = _dofs[dofID];
+      double margin = std::numeric_limits<double>::max();
+      if (getIsLowerBounds()[dofID]) {
+        double diff = val - getLowerBounds()[dofID];
+        margin = std::min(margin, diff);
+      }
+      if (getIsUpperBounds()[dofID]) {
+        double diff = getUpperBounds()[dofID] - val;
+        margin = std::min(margin, diff);
+      }
+      if (margin != std::numeric_limits<double>::max()) {
+        std::string name = _model->getDOFName(_subsetIndexToGlobal[dofID]);
+        result.append(name, margin);
+      }
     }
     return result;
   }
@@ -249,6 +288,26 @@ void InverseKinematics::clearUpperBound(const std::string& name)
     size_t indexSubset = _globalIndexToSubset.at(indexGlobal);
 
     _isUpperBounds[indexSubset] = false;
+}
+
+std::vector<bool> InverseKinematics::onLowerBounds(const Eigen::VectorXd& dofs)
+{
+  std::vector<bool> vec;
+  for (size_t dofID = 0; dofID < inputs(); dofID++) {
+    vec.push_back(getIsLowerBounds()[dofID]
+                  && dofs(dofID) == getLowerBounds()[dofID]);
+  }
+  return vec;
+}
+
+std::vector<bool> InverseKinematics::onUpperBounds(const Eigen::VectorXd& dofs)
+{
+  std::vector<bool> vec;
+  for (size_t dofID = 0; dofID < inputs(); dofID++) {
+    vec.push_back(getIsUpperBounds()[dofID]
+                  && dofs(dofID) == getUpperBounds()[dofID]);
+  }
+  return vec;
 }
         
 void InverseKinematics::addTargetPosition(
@@ -685,10 +744,15 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
 {
     //Reset to zero
     fjac.setZero();
-    //Update internal DOF complete vector
-    updateAllDOF(dofs);
+    // Values are needed for Jacobian trimming on bounds
+    Eigen::VectorXd tmpFVec(sizeTarget());
+    (*this)(dofs, tmpFVec);//Also updates allDof
     //Update RBDL model
     RBDL::UpdateKinematicsCustom(_model->_model, &_allDofs, NULL, NULL);
+    // Check if bounds are reached
+    std::vector<bool> onLB = onLowerBounds(dofs);
+    std::vector<bool> onUB = onUpperBounds(dofs);
+    //UPDATE JACOBIAN
     size_t index = 0;
     //Position targets
     for (const auto& target : _targetPositions) {
@@ -703,7 +767,8 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         //Compute constrained point jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
-            target.second.point, fjac, index, _globalIndexToSubset, target.second.weight);
+            target.second.point, fjac, index, _globalIndexToSubset, target.second.weight,
+            tmpFVec, onLB, onUB);
         for (size_t axis = 0; axis < 3; axis++) {
           if (target.second.weight(axis) != 0) {
             index++;
@@ -721,14 +786,16 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
             Eigen::Vector3d(fakeDistance, 0.0, 0.0), tmpG, 0, _globalIndexToSubset,
-            Eigen::Vector3d::Constant(target.second.weight));
+            Eigen::Vector3d::Constant(target.second.weight),
+            tmpFVec, onLB, onUB);
         fjac.block(index, 0, 3, inputs()) = tmpG.block(0, 0, 3, inputs()) / fakeDistance;
         index += 3;
         //Compute constrained point Y jacobian
         CustomCalcPointJacobian(
             _model->_model, _allDofs, target.second.bodyId, 
             Eigen::Vector3d(0.0, fakeDistance, 0.0), tmpG, 0, _globalIndexToSubset,
-            Eigen::Vector3d::Constant(target.second.weight));
+            Eigen::Vector3d::Constant(target.second.weight),
+            tmpFVec, onLB, onUB);
         fjac.block(index, 0, 3, inputs()) = tmpG.block(0, 0, 3, inputs()) / fakeDistance;
         index += 3;
     }
@@ -736,15 +803,24 @@ int InverseKinematics::df(const Eigen::VectorXd& dofs,
     for (const auto& target : _targetDOFs) {
       // Avoid spending calculations time for targets with 0 weight
       if (target.second.weight == 0) { continue; }
+      size_t subsetIndex = target.second.subsetIndex;
+      // Do not update Jacobian if it would suggest to violate a bound
+      // But still... update index!
+      double error = tmpFVec(subsetIndex);
+      if ((onLB[subsetIndex] && error > 0)
+          || (onUB[subsetIndex] && error < 0)) {
+        index++;
+        continue;
+      }
       Eigen::MatrixXd tmpG = Eigen::MatrixXd::Zero(1, inputs());
-      tmpG(0, target.second.subsetIndex) = std::sqrt(target.second.weight);
+      tmpG(0, subsetIndex) = std::sqrt(target.second.weight);
       fjac.block(index, 0, 1, inputs()) = tmpG.block(0, 0, 1, inputs());
       index += 1;
     }
     //COM target
     if (_isTargetCOM) {
         //Compute COM jacobian
-        comJacobian(fjac, index, weightCOM());
+        comJacobian(fjac, index, weightCOM(), tmpFVec, onLB, onUB);
         for (size_t axis = 0; axis < 3; axis++) {
           if (_weightCOM(axis != 0)) {
             index++;
@@ -808,7 +884,10 @@ void InverseKinematics::updateAllDOF(const Eigen::VectorXd& dofs)
 }
         
 void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
-                                    const Eigen::Vector3d & weight)
+                                    const Eigen::Vector3d & weight,
+                                    const Eigen::VectorXd& fvec,
+                                    const std::vector<bool>& onLB,
+                                    const std::vector<bool>& onUB)
 {
     //Init com and mass
     double sumMass = 0.0;
@@ -832,7 +911,8 @@ void InverseKinematics::comJacobian(RBDLMath::MatrixNd& fjac, size_t index,
             tmpG.setZero();
             CustomCalcPointJacobian(
                 _model->_model, _allDofs, i, 
-                center, tmpG, 0, _globalIndexToSubset, weight);
+                center, tmpG, 0, _globalIndexToSubset, weight,
+                fvec, onLB, onUB);
             sumMass += mass;
             fjac.block(index, 0, nbAxisUsed, inputs()) += tmpG * mass;
         }
