@@ -28,7 +28,7 @@ namespace Leph {
   }
   
   ToeHeelWalk::ToeHeelWalk()
-    : initialized(false), phaseStart(0),
+    : phaseStart(0),
       phase(Phase::Waiting), lastPhase(Phase::Waiting),
       stepX(0.1),
       trunkZ(0.48), feetSpacing(0.18), stepHeight(0.15),
@@ -49,8 +49,19 @@ namespace Leph {
       side("none"),
       oppSide("none")
   {
+    init();
+  }
+
+  void ToeHeelWalk::init()
+  {
+    phase     = Phase::Waiting;
+    lastPhase = Phase::Waiting;
+    phaseStart = 0;
+    side = "none";
+    oppSide = "none";
     // In waiting state, source are the same as target
     updateTargetPos();
+    startPos.clear();
     for (const auto& targetEntry : targetPos) {
       startPos[targetEntry.first] = targetEntry.second;
     }

@@ -2,8 +2,6 @@
 
 #include "Model/InverseKinematics.hpp"
 
-//TODO inherit in Code to provide a RhIO interface
-
 namespace Leph {
 
   class ToeHeelWalk {
@@ -116,8 +114,6 @@ namespace Leph {
 
   protected:
 
-    // Until the walk has been 'fed' with a Model, it is not properly initialized
-    bool initialized;
     // When did last phase change occur?
     double phaseStart;
     enum Phase phase, lastPhase;
@@ -188,6 +184,9 @@ namespace Leph {
 
   public:
     ToeHeelWalk();
+
+    // Reset the walk in waiting phase
+    void init();
 
     // Also set the model m angles for toes. ik should be clean.
     void initIK(Model & m, InverseKinematics & ik, double time);
