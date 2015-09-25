@@ -22,6 +22,9 @@ namespace Leph {
 
     PressureModel(const Leph::Model & model);
 
+    // IK of the built model is not initialized, but set to NULL
+    PressureModel(const PressureModel & model);
+
     PressureModel(const std::string& filename);
 
     /**

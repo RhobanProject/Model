@@ -22,12 +22,20 @@ namespace Leph {
   {
     init();
   }
+
+  PressureModel::PressureModel(const Leph::PressureModel & other)
+    : Model(other), ik(NULL), pressureValues(other.pressureValues),
+      lastPressurePos(other.lastPressurePos), cop(other.cop), weight(other.weight)
+  {
+    init();
+  }
         
         
   PressureModel::~PressureModel()
   {
     if (ik != NULL) {
       delete(ik);
+      ik = NULL;
     }
   }
 
