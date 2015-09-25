@@ -42,6 +42,7 @@ int main()
   Leph::Scheduling scheduling;
   scheduling.setFrequency(freq);
   bool forbiddenNextPhase = false;//Emulating onKeyDown with keyPressed
+  bool autoMode = false;
   while (viewer.update()) {
 
     Leph::InverseKinematics ik(simModel);
@@ -55,19 +56,34 @@ int main()
     else {
       forbiddenNextPhase = false;
     }
+    // Auto
+    if (viewer.isKeyPressed(sf::Keyboard::A)) {
+      autoMode = true;
+    }
+    // Manual
+    if (viewer.isKeyPressed(sf::Keyboard::M)) {
+      autoMode = false;
+    }
+    if (autoMode && walk.getPhaseRatio(t) == 1) {
+      walk.nextPhase(simModel, t);
+    }
+    
 
     walk.initIK(simModel, ik, t);
 
     std::cout << "Current phase: " << walk.getPhaseName() << std::endl;
-    std::cout << "ERRORS" << std::endl;
-    std::cout << ik.getNamedErrors() << std::endl;
     std::cout << "WEIGHTS" << std::endl;
     std::cout << ik.getNamedWeights() << std::endl;
 
     std::cout << "left_heel_pos: " << simModel.position("left_heel","origin").transpose() << std::endl;
 
-    //ik.randomDOFNoise();
+    ik.randomDOFNoise();
     ik.run(0.00001, 100);
+    std::cout << "Current phase: " << walk.getPhaseName() << std::endl;
+    std::cout << "ERRORS" << std::endl;
+    std::cout << ik.getNamedErrors() << std::endl;
+    std::cout << "MARGINS" << std::endl;
+    std::cout << ik.getNamedDOFMargins() << std::endl;
 
     // Create artificial pressure
     Leph::VectorLabel fakePressures;
