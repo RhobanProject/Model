@@ -164,9 +164,6 @@ namespace Leph {
 
     void swapSide();
 
-    // Return base corresponding to current phase
-    std::string getBase();
-
     void setSimModelBase();
     void updateStartingPos();
     void updateTargetPos();
@@ -197,6 +194,9 @@ namespace Leph {
 
     // Phase ratio in [0,1]
     double getPhaseRatio(double time);
+
+    // Return base corresponding to current phase
+    std::string getBase();
 
 
     // Return a list of the gauges which are supposed to be in contact
