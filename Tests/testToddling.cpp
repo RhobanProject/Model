@@ -40,6 +40,10 @@ int main()
 
     Leph::ModelDraw(model, viewer);
 
+    std::cout << "Targets" << std::endl << ik.getNamedTargets() << std::endl;
+    std::cout << "DOFs"    << std::endl << ik.getNamedDOFSubset() << std::endl;
+    std::cout << "Errors"  << std::endl << ik.getNamedErrors() << std::endl;
+
     double dt = 1.0 / freq;
 
     toddling.update(dt);

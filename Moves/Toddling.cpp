@@ -28,7 +28,7 @@ namespace Leph {
 
     // Setting COM target
     ik.addTargetCOM();
-    ik.targetCOM() = Eigen::Vector3d(0, sin(phase) * comAmplitude, 0);
+    ik.targetCOM() = Eigen::Vector3d(0, sin(phase * 2 * M_PI) * comAmplitude, comZ);
 
     // Setting Foot target
     std::map<std::string, int> sideCoeff = { {"left", 1}, {"right",-1} };

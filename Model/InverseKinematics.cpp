@@ -83,6 +83,7 @@ InverseKinematics::InverseKinematics(Model& model) :
     _isTargetCOM(false),
     _errorCOM(0.0),
     _targetCOM(),
+    _weightCOM(Eigen::Vector3d(1,1,1)),
     _errorSum(0.0)
 {
 }
