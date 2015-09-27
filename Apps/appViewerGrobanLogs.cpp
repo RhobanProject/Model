@@ -8,6 +8,8 @@
 #include "Model/ModelBuilder.hpp"
 #include "Utils/Chrono.hpp"
 
+//#define VIEWER true
+
 using namespace Leph;
 
 int main(int argc, char** argv)
@@ -19,63 +21,48 @@ int main(int argc, char** argv)
     }
 
     std::string logsFile = argv[1];
-    std::cout << "Loading " << logsFile << std::endl;
+    std::cerr << "Loading " << logsFile << std::endl;
 
     //Loading data
     Leph::MatrixLabel logs;
     logs.load(logsFile);
 
     //Print data informations
-    std::cout << "Loaded " 
+    std::cerr << "Loaded " 
         << logs.size() << " points with " 
         << logs.dimension() << " entries" << std::endl;
     if (logs.size() == 0) {
         return 0;
     }
 
-    //Ploting curves
-    //std::cout << "Plotting references and motors" << std::endl;
-    //logs.plot()
-    //    .plot("time:timestamp", "goal:*")
-    //    .plot("time:timestamp", "pos:*")
-    //    .render();
-    //std::cout << "Plotting sensors" << std::endl;
-    //logs.plot()
-    //    .plot("time:timestamp", "sensor:*")
-    //    .render();
-    //std::cout << "Plotting pressure" << std::endl;
-    //logs.plot()
-    //    .plot("index", "pressure:*")
-    //    .render();
-    //std::cout << "Plotting timming" << std::endl;
-    //logs.plot()
-    //    .plot("index", "time:*")
-    //    .render();
-    //std::cout << "Plotting walk parameters" << std::endl;
-    //logs.plot()
-    //    .plot("index", "walk:*")
-    //    .render();
+    std::cout << "timestamp,comX,comY,copX,copY,diffY,filteredDiffY" << std::endl;
     
+    double filteredDiffY = 0;
+    double disc = 0.95;
+
     //Initialize model instances
-    //RBDL::Model rbdlModel = generateGrobanWithToe(true);
     Leph::PressureModel model(generateGrobanWithToe(true));
 
-    Leph::ModelViewer viewer(1200, 900);
-    Leph::Scheduling scheduling;
 
     //Initialize DOF vector
     Leph::VectorLabel outputsDOF = logs[0].extract("goal").rename("goal", "");
     Leph::VectorLabel motorsDOF  = logs[0].extract("pos").rename("pos", "");
             
     //Main loop
-    double freq = 50.0;
-    scheduling.setFrequency(freq);
     double t = logs[0]("time:timestamp");
+    double freq = 50.0;
     size_t indexLog = 0;
     bool isPaused = false;
-    int viewMode = 0;
     Leph::Chrono chrono;
+#if VIEWER
+    Leph::ModelViewer viewer(1200, 900);
+    Leph::Scheduling scheduling;
+    scheduling.setFrequency(freq);
+    int viewMode = 0;
     while (viewer.update()) {
+#else
+    while(true) {
+#endif
         //Find current log index (associated with time)
         indexLog = 0;
         while (
@@ -84,6 +71,7 @@ int main(int argc, char** argv)
         ) {
             indexLog++;
         }
+#if VIEWER
         //Interface control
         if (viewer.isKeyPressed(sf::Keyboard::I)) {
             t = logs[0]("time:timestamp");
@@ -108,6 +96,7 @@ int main(int argc, char** argv)
             } 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+#endif
         //Assign DOF
         outputsDOF.assignOp(logs[indexLog], "goal", "");
         motorsDOF.assignOp(logs[indexLog], "pos", "");
@@ -122,8 +111,10 @@ int main(int argc, char** argv)
         chrono.start("UpdateBase");
         model.updateBase();
         chrono.stop("UpdateBase");
-        chrono.print();
+        //chrono.print();
 
+#if VIEWER
+        // Print pressures
         for (const auto& pEntry : model.getPressureValues()) {
           double halfZ = pEntry.second / 10000;
           Eigen::Vector3d gaugePos = model.position(pEntry.first, "origin");
@@ -133,13 +124,25 @@ int main(int argc, char** argv)
                          Eigen::Matrix3d::Identity(),
                          1.0, 0.0, 0.0);
         }
+#endif
 
-        Eigen::Vector3d projectedCOP = model.getCOP("origin");
+        Eigen::Vector3d projectedCOP = model.getCOP("right_arch_center");
         projectedCOP.z() = 0;
 
         // Display trajectories
-        Eigen::Vector3d projectedCoM = model.centerOfMass("origin");
+        Eigen::Vector3d projectedCoM = model.centerOfMass("right_arch_center");
         projectedCoM.z() = 0;
+
+        double diffY = projectedCoM.y() - projectedCOP.y();
+        filteredDiffY = filteredDiffY * disc + diffY * (1 - disc);
+
+        std::cout << t << ','
+                  << projectedCoM.x() << "," << projectedCoM.y() << ","
+                  << projectedCOP.x() << "," << projectedCOP.y() << ","
+                  << diffY << "," << filteredDiffY
+                  << std::endl;
+
+#if VIEWER
         viewer.addTrackedPoint(projectedCoM,
                                Leph::ModelViewer::Yellow);
         viewer.addTrackedPoint(model.position("left_arch_center", "origin"), 
@@ -153,13 +156,15 @@ int main(int argc, char** argv)
         Leph::ModelDraw(model, viewer);
         //Waiting
         scheduling.wait();
-        //Phase cycling
-        std::cout << "t= " << t << " index=" 
-            << indexLog << "/" << logs.size()-1 << std::endl;
+#endif
+        ////Phase cycling
+        //std::cout << "t= " << t << " index=" 
+        //    << indexLog << "/" << logs.size()-1 << std::endl;
         if (!isPaused) {
             t += 1000.0/freq;
         }
-        if (t > logs[logs.size()-1]("time:timestamp") + 10000.0) {
+        if (t > logs[logs.size()-1]("time:timestamp")){
+          break;
             t = logs[0]("time:timestamp");
             indexLog = 0;
         }

@@ -106,6 +106,7 @@ set(SOURCES_FILES
     Utils/IterativeLearningControl.cpp
     TimeSeries/SeriesUtils.cpp
     ToeWalk/ToeHeelWalk.cpp
+    Moves/Toddling.cpp
 )
 
 #Tests main files
@@ -147,6 +148,7 @@ set(TESTS_FILES
     testToeHeelWalk
     testModelGenerator
     testToeTest
+    testToddling
 )
 
 #Applications main files
