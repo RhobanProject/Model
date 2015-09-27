@@ -29,8 +29,8 @@ static double g = 9.81;
 
 namespace Leph {
   Toddling::Toddling() : phase(0.0),
-                         comZ(0.3),
-                         comAmplitude(0.065),
+                         comZ(0.35),
+                         comAmplitude(0.06),
                          frequency(1.0),
                          feetSpacing(0.2)
   {
