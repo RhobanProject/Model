@@ -24,5 +24,7 @@ namespace Leph {
     void update(double elapsed);
 
     void initIK(Model & m, InverseKinematics & ik);
+
+    Eigen::Vector3d expectedCOP() const;
   };
 }

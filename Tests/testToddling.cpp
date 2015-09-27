@@ -25,6 +25,7 @@ int main()
 
   double t = 0;
 
+  double speed = 0.5;
   double freq = 50.0;
   Leph::Scheduling scheduling;
   scheduling.setFrequency(freq);
@@ -40,11 +41,22 @@ int main()
 
     Leph::ModelDraw(model, viewer);
 
+    Eigen::Vector3d com = model.centerOfMass("origin");
+    Eigen::Vector3d projectedCom(com.x(), com.y(), 0);
+    Eigen::Vector3d cop = toddling.expectedCOP();
+
+    viewer.addTrackedPoint(projectedCom,
+                           Leph::ModelViewer::Yellow);
+    viewer.addTrackedPoint(com, 
+                           Leph::ModelViewer::Red);
+    viewer.addTrackedPoint(cop, 
+                           Leph::ModelViewer::Blue);
+
     std::cout << "Targets" << std::endl << ik.getNamedTargets() << std::endl;
     std::cout << "DOFs"    << std::endl << ik.getNamedDOFSubset() << std::endl;
     std::cout << "Errors"  << std::endl << ik.getNamedErrors() << std::endl;
 
-    double dt = 1.0 / freq;
+    double dt = 1.0 / freq * speed;
 
     toddling.update(dt);
 
