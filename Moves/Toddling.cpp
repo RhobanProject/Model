@@ -30,6 +30,7 @@ static double g = 9.81;
 namespace Leph {
   Toddling::Toddling() : phase(0.0),
                          comZ(0.35),
+                         comX(0.0),
                          comAmplitude(0.06),
                          frequency(1.0),
                          feetSpacing(0.2)
@@ -39,7 +40,7 @@ namespace Leph {
   Eigen::Vector3d Toddling::wishedCOM() const
   {
     double posY = sin(phase * 2 * M_PI) * comAmplitude;
-    return Eigen::Vector3d(0, posY, comZ);
+    return Eigen::Vector3d(comX, posY, comZ);
   }
 
   Eigen::Vector3d Toddling::expectedCOP() const
@@ -47,7 +48,7 @@ namespace Leph {
     double accY = - sin(phase * 2 * M_PI) * std::pow(2 * M_PI * frequency, 2) * comAmplitude;
     double coeffAcc = comZ / g;
     double posY = sin(phase * 2 * M_PI) * comAmplitude;
-    return Eigen::Vector3d(0, posY - coeffAcc * accY, 0);
+    return Eigen::Vector3d(comX, posY - coeffAcc * accY, 0);
   }
 
   void Toddling::update(double elapsed)
@@ -72,7 +73,7 @@ namespace Leph {
 
     // Setting COM target
     ik.addTargetCOM();
-    ik.targetCOM() = Eigen::Vector3d(0, sin(phase * 2 * M_PI) * comAmplitude, comZ);
+    ik.targetCOM() = Eigen::Vector3d(comX, sin(phase * 2 * M_PI) * comAmplitude, comZ);
 
     // Setting Foot target
     std::map<std::string, int> sideCoeff = { {"left", 1}, {"right",-1} };
