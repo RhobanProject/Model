@@ -36,6 +36,12 @@ namespace Leph {
   {
   }
 
+  Eigen::Vector3d Toddling::wishedCOM() const
+  {
+    double posY = sin(phase * 2 * M_PI) * comAmplitude;
+    return Eigen::Vector3d(0, posY, comZ);
+  }
+
   Eigen::Vector3d Toddling::expectedCOP() const
   {
     double accY = - sin(phase * 2 * M_PI) * std::pow(2 * M_PI * frequency, 2) * comAmplitude;
