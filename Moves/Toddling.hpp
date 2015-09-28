@@ -16,6 +16,7 @@ namespace Leph {
     double frequency;//[Hz]
 
     double feetSpacing;//[m]
+    double extraShoulderRoll;//[deg]
 
   public:
 
