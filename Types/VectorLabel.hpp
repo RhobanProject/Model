@@ -357,13 +357,18 @@ class VectorLabel
          */
         inline void writeToCSV(std::ostream& os = std::cout) const
         {
-            os << "# ";
             for (size_t i=0;i<_indexToLabel->size();i++) {
-                os << "'" << _indexToLabel->at(i) << "' ";
+                os << _indexToLabel->at(i);
+                if (i != _indexToLabel->size() - 1) {
+                    os << ",";
+                }
             }
             os << std::endl;
             for (size_t i=0;i<_indexToLabel->size();i++) {
-                os << std::setprecision(10) << _eigenVector(i) << " ";
+                os << std::setprecision(10) << _eigenVector(i);
+                if (i != _indexToLabel->size() - 1) {
+                    os << ",";
+                }
             }
             os << std::endl;
         }
@@ -376,40 +381,47 @@ class VectorLabel
         {
             //Skip empty input
             if (str.length() == 0) return;
-            //Check labels line is commented
-            if (str[0] != '#') throw std::logic_error(
-                "VectorLabel invalid CSV format (first comment line): " + str);
+            size_t endLine = str.find_first_of('\n');
+            if (endLine == std::string::npos) {
+              throw std::runtime_error("VectorLabel::readFromCSV: no \\n found in arg");
+            }
+            std::string labelLine = str.substr(0, endLine);
+            std::string valuesLine = str.substr(endLine + 1, str.length() - endLine - 1);
             //Find first label
             size_t index = 0;
-            index = str.find_first_of(std::string("'"), index);
-            if (index == std::string::npos) throw std::logic_error(
-                "VectorLabel invalid CSV format (no label): " + str);
             //Init extracted labels and CSV index mapping
             std::map<size_t, std::string> mapping;
             size_t labelIndex = 0;
             //Extract all labels until newline
-            while (index != std::string::npos && str[index] != '\n') {
-                size_t endLabel = str.find_first_of(std::string("'\n"), index+1);
-                std::string label = str.substr(index+1, endLabel-index-1);
+            while (index < labelLine.length()) {
+                size_t endLabel = labelLine.find_first_of(',', index);
+                if (endLabel == std::string::npos) {
+                  endLabel = endLine;
+                }
+                std::string label = labelLine.substr(index, endLabel - index);
                 if (!exist(label)) {
                     append(label, 0.0);
-                } 
+                }
                 mapping[labelIndex] = label;
-                index = str.find_first_of(std::string("'\n"), endLabel+1);
+                index = endLabel + 1;
                 labelIndex++;
+                if (str[index - 1] == '\n') { break; }
             }
-            //Go through new line
-            index = str.find_first_not_of(std::string("' \n"), index);
             //Extract all values
+            index = 0;
             labelIndex = 0;
-            while (index != std::string::npos && str[index] != '\n') {
-                size_t endLabel = str.find_first_of(std::string(" \n"), index);
-                std::string value = str.substr(index, endLabel-index);
+            while (index < valuesLine.length()) {
+                size_t endLabel = valuesLine.find_first_of(',', index);
+                if (endLabel == std::string::npos) {
+                  endLabel = valuesLine.length();
+                }
+                std::string value = valuesLine.substr(index, endLabel- index);
                 if (mapping.count(labelIndex) == 0) throw std::logic_error(
                     "VectorLabel invalid CSV format (mismatch values labels): " + str);
                 operator()(mapping.at(labelIndex)) = std::atof(value.c_str());
-                index = str.find_first_not_of(std::string(" "), endLabel);
+                index = endLabel + 1;
                 labelIndex++;
+                if (str[index - 1] == '\n') { break; }
             }
             //Check labels and values match
             if (labelIndex != mapping.size()) throw std::logic_error(
