@@ -67,7 +67,7 @@ int main()
     vect2.writeToCSV(file);
 
     vect2("l1") = 666;
-    std::string csvStr = "#'t1' 't2' 'l3'\n0.1 0.2 42.0\n\n";
+    std::string csvStr = "t1,t2,l3\n0.1,0.2,42.0\n";
     vect2.readFromCSV(csvStr);
     vect2.writeToCSV(file);
     std::cout << vect2 << std::endl;

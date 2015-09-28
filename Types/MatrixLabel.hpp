@@ -82,15 +82,20 @@ class MatrixLabel
             }
 
             //Write first label line
-            logFile << "# ";
             for (size_t j=0;j<_container->front().size();j++) {
-                logFile << "'" << _container->front().getLabel(j) << "' ";
+                logFile << _container->front().getLabel(j);
+                if (j != _container->front().size() - 1) {
+                  logFile << ",";
+                }
             }
             logFile << std::endl;
             //Write data
             for (size_t i=_indexBegin;i<=_indexEnd;i++) {
                 for (size_t j=0;j<_container->front().size();j++) {
-                    logFile << std::setprecision(10) << _container->at(i)(j) << " ";
+                    logFile << std::setprecision(10) << _container->at(i)(j);
+                    if (j != _container->front().size() - 1) {
+                      logFile << ",";
+                    }
                 }
                 logFile << std::endl;
             }
@@ -145,23 +150,20 @@ class MatrixLabel
                     double val;
                     logFile >> val;
                     _container->back()(i) = val;
-                    while (logFile.peek() == ' ') {
-                        if (!logFile.good()) {
-                            throw std::runtime_error(
-                                "MatrixLabel invalid format (4)");
-                        }
-                        logFile.ignore();
+                    char expected = ',';
+                    if (i == dimension() - 1) {
+                      expected = '\n';
                     }
                     if (!logFile.good()) {
-                        throw std::runtime_error(
-                            "MatrixLabel invalid format (5)");
+                      throw std::runtime_error("MatrixLabel::load: file is not good");
                     }
+                    if (logFile.peek() != expected) {
+                      std::ostringstream oss;
+                      oss << "MatrixLabel::load: expecting '" << expected << "'";
+                      throw std::runtime_error(oss.str());
+                    }
+                    logFile.ignore();
                 }
-                if (logFile.peek() != '\n') {
-                    throw std::runtime_error(
-                        "MatrixLabel invalid format (6)");
-                }
-                logFile.ignore();
             }
             logFile.close();
         }
