@@ -11,6 +11,7 @@ namespace Leph {
 
     // COM movement
     double comZ;//[m]
+    double comX;//[m]
     double comAmplitude;//[m]
     double frequency;//[Hz]
 
