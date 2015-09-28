@@ -61,6 +61,9 @@ namespace Leph {
   void Toddling::initIK(Model& m, InverseKinematics& ik)
   {
     for (const auto& dof : m.getDOFCategory("lowerBody")) {
+      if (dof.find("toe") != std::string::npos) {
+        continue;
+      }
       ik.addDOF(dof);
     }
     for (const auto& dof : m.getDOFCategory("base")) {
