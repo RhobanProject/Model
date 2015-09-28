@@ -33,7 +33,8 @@ namespace Leph {
                          comX(0.0),
                          comAmplitude(0.06),
                          frequency(1.0),
-                         feetSpacing(0.2)
+                         feetSpacing(0.2),
+                         extraShoulderRoll(30)
   {
   }
 
@@ -69,6 +70,13 @@ namespace Leph {
     }
     for (const auto& dof : m.getDOFCategory("base")) {
       ik.addDOF(dof);
+    }
+
+    // Setting extra angles on model
+    std::map<std::string, int> coeffs = {{"left", 1},{"right", -1}};
+    for (const auto& entry : coeffs) {
+      std::string dof = entry.first + "_shoulder_roll";
+      m.setDOF(dof, entry.second * extraShoulderRoll * M_PI / 180.0);
     }
 
     // Setting COM target
