@@ -90,5 +90,13 @@ namespace Leph {
     ik.addTargetOrientation("trunk", "trunk");
     ik.targetOrientation("trunk") = Eigen::Matrix3d::Identity();
     ik.weightOrientation("trunk") = 0.001;
+
+    // Light constraint on knee
+    for (const std::string& side : {"left", "right"}) {
+      std::string dof = side + "_knee";
+      ik.addTargetDOF(dof,dof);
+      ik.targetDOF(dof) = 0.001;
+      ik.weightDOF(dof) = 0.001;
+    }
   }
 }
