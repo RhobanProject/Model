@@ -37,7 +37,7 @@ int main()
     Leph::InverseKinematics ik(model);
     toddling.initIK(model, ik);
 
-    ik.run(0.001, 100);
+    ik.run(0.00001, 100);
 
     Leph::ModelDraw(model, viewer);
 

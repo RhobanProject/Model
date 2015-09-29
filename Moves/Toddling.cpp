@@ -37,11 +37,11 @@ namespace Leph {
   Toddling::Toddling() : phase(0.0),
                          comZ(0.35),
                          comX(0.0),
-                         comAmplitude(0.06),
-                         frequency(1.0),
+                         comAmplitude(0.02),
+                         frequency(1.2),
                          feetSpacing(0.2),
                          extraShoulderRoll(30),
-                         wishedTrunkPitch(10)
+                         wishedTrunkPitch(5)
   {
   }
 
@@ -104,15 +104,16 @@ namespace Leph {
 
     // Light constraint on torso orientation
     ik.addTargetOrientation("trunk", "trunk");
-    ik.targetOrientation("trunk") = rotY(wishedTrunkPitch);
-    ik.weightOrientation("trunk") = 0.001;
+    ik.targetOrientation("trunk") = rotY(wishedTrunkPitch * M_PI /  180);
+    ik.weightOrientation("trunk") = 0.01;
 
-    // Light constraint on knee
+    // Light constraint and Bound on knee
     for (const std::string& side : {"left", "right"}) {
       std::string dof = side + "_knee";
       ik.addTargetDOF(dof,dof);
-      ik.targetDOF(dof) = 0.001;
+      ik.targetDOF(dof) = 15 * M_PI / 180;
       ik.weightDOF(dof) = 0.001;
+      ik.setLowerBound(dof, 0);
     }
   }
 }
