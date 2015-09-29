@@ -17,6 +17,7 @@ namespace Leph {
 
     double feetSpacing;//[m]
     double extraShoulderRoll;//[deg]
+    double wishedTrunkPitch;//[deg]
 
   public:
 

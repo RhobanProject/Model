@@ -8,7 +8,7 @@
 #include "Model/ModelBuilder.hpp"
 #include "Utils/Chrono.hpp"
 
-#define VIEWER true
+//#define VIEWER true
 
 using namespace Leph;
 
@@ -49,8 +49,6 @@ int main(int argc, char** argv)
     Eigen::Vector3d lastMeasuredCOM, lastMeasuredCOP;
             
     //Main loop
-    double t = logs[0]("time:timestamp");
-    double freq = 50.0;
     size_t indexLog = 0;
     bool isPaused = false;
     Leph::Chrono chrono;
@@ -129,15 +127,25 @@ int main(int argc, char** argv)
         filteredDiffY = filteredDiffY * disc + diffY * (1 - disc);
 
         if (indexLog > 0) {
-          VectorLabel data;
+          VectorLabel data = logs[indexLog];
+          data.subOp(logs[indexLog -1]);
 
-          data.append("srcPhase", logs[indexLog-1]("phase"));
-          data.append("srcCOPY", lastMeasuredCOP.y());
-          data.append("srcCOMY", lastMeasuredCOM.y());
-          data.append("targetY", logs[indexLog]("targetComY"));
-          data.append("nextPhase", logs[indexLog]("phase"));
-          data.append("nextCOPY", projectedCOP.y());
-          data.append("nextCOMY", projectedCoM.y());
+          VectorLabel posData = data.extract("pos");
+          double squaredDiff(0);
+          for (size_t i = 0; i < posData.size(); i++) {
+            double diff = posData(i);
+            squaredDiff += diff * diff;
+          }
+
+          data.append("diffPos", std::sqrt(squaredDiff));
+
+          //data.append("srcPhase", logs[indexLog-1]("phase"));
+          //data.append("srcCOPY", lastMeasuredCOP.y());
+          //data.append("srcCOMY", lastMeasuredCOM.y());
+          //data.append("targetY", logs[indexLog-1]("targetComY"));
+          //data.append("nextPhase", logs[indexLog]("phase"));
+          //data.append("nextCOPY", projectedCOP.y());
+          //data.append("nextCOMY", projectedCoM.y());
           mdpEntries.append(data);
         }
         lastMeasuredCOP = projectedCOP;

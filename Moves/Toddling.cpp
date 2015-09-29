@@ -1,5 +1,7 @@
 #include "Toddling.hpp"
 
+#include "Utils/STLibrary.hpp"
+
 /**
  * from: https://www.youtube.com/watch?v=qT9qzwCJjAk (28:05 and 38:40)
  * ZMP:
@@ -16,8 +18,12 @@
  * Therefore, we should directly avoid to have comAmplitude much bigger than
  * feetSpacing / (1 + c_z / g_z * (2 * pi * freq)^2)
  *
- * Remark: While c_z/ g_z is quite small, (2* pi * freq)^2 can grow quite
- *         quickly at 'high frequency'
+ * Remarks:
+ * - While c_z/ g_z is quite small, (2* pi * freq)^2 can grow quite
+ *   quickly at 'high frequency'
+ * - Practically the value used are far under the value obtained from the
+ *   equation
+ *
  *
  * Since ksi is the destination of the zmp, it would be convenient to have it
  * directed toward the base of the opposite foot when moving toward:
@@ -34,7 +40,8 @@ namespace Leph {
                          comAmplitude(0.06),
                          frequency(1.0),
                          feetSpacing(0.2),
-                         extraShoulderRoll(30)
+                         extraShoulderRoll(30),
+                         wishedTrunkPitch(10)
   {
   }
 
@@ -81,7 +88,7 @@ namespace Leph {
 
     // Setting COM target
     ik.addTargetCOM();
-    ik.targetCOM() = Eigen::Vector3d(comX, sin(phase * 2 * M_PI) * comAmplitude, comZ);
+    ik.targetCOM() = wishedCOM();
 
     // Setting Foot target
     std::map<std::string, int> sideCoeff = { {"left", 1}, {"right",-1} };
@@ -97,7 +104,7 @@ namespace Leph {
 
     // Light constraint on torso orientation
     ik.addTargetOrientation("trunk", "trunk");
-    ik.targetOrientation("trunk") = Eigen::Matrix3d::Identity();
+    ik.targetOrientation("trunk") = rotY(wishedTrunkPitch);
     ik.weightOrientation("trunk") = 0.001;
 
     // Light constraint on knee
