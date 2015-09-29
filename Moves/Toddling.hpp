@@ -15,13 +15,23 @@ namespace Leph {
     double comAmplitude;//[m]
     double frequency;//[Hz]
 
+    // Static properties
     double feetSpacing;//[m]
     double extraShoulderRoll;//[deg]
     double wishedTrunkPitch;//[deg]
 
+    // Step properties
+    double stepHeight;//[m]
+    double doubleSupportRatio;//in [0,1]
+
+    double getFootHeight(double footPhase) const;
+
   public:
 
     Toddling();
+
+    double getPhase(const std::string& side) const;
+    Eigen::Vector3d getFootTarget(const std::string& side) const;
 
     // Elapsed is in [s]
     void update(double elapsed);

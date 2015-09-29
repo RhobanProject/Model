@@ -41,7 +41,9 @@ namespace Leph {
                          frequency(1.2),
                          feetSpacing(0.2),
                          extraShoulderRoll(30),
-                         wishedTrunkPitch(5)
+                         wishedTrunkPitch(5),
+                         stepHeight(0.03),
+                         doubleSupportRatio(0.5)
   {
   }
 
@@ -57,6 +59,44 @@ namespace Leph {
     double coeffAcc = comZ / g;
     double posY = sin(phase * 2 * M_PI) * comAmplitude;
     return Eigen::Vector3d(comX, posY - coeffAcc * accY, 0);
+  }
+
+  double Toddling::getFootHeight(double footPhase) const
+  {
+    double liftDuration = (1.0 - doubleSupportRatio) / 2;
+    double startLift = 0.75 - liftDuration / 2;
+    double endLift = 0.75 + liftDuration / 2;
+    if (footPhase > startLift && footPhase < endLift) {
+      double internalPhase = (footPhase - startLift) / liftDuration;
+      return stepHeight * (1 - cos(internalPhase * 2 * M_PI));
+    }
+    return 0;
+  }
+
+  double Toddling::getPhase(const std::string& side) const
+  {
+    if (side == "left") {
+      return phase;
+    }
+    else if (side == "right") {
+      double rightPhase = phase + 0.5;
+      if (rightPhase > 1) { rightPhase -= 1; }
+      return rightPhase;
+    }
+    throw std::runtime_error("Toddling::getPhase(): unknown side '" + side + "'");
+  }
+
+  Eigen::Vector3d Toddling::getFootTarget(const std::string& side) const
+  {
+    static std::map<std::string, int> coeffs = {{"left",1},{"right",-1}};
+    try{
+      Eigen::Vector3d footPos(0, coeffs.at(side) * feetSpacing / 2, 0);
+      double footPhase = getPhase(side);
+      footPos.z() = getFootHeight(footPhase);
+      return footPos;
+    }
+    catch(const std::out_of_range& exc) {}
+    throw std::out_of_range("Toddling::getFootTarget(): unknown side: '" + side + "'");
   }
 
   void Toddling::update(double elapsed)
@@ -91,12 +131,11 @@ namespace Leph {
     ik.targetCOM() = wishedCOM();
 
     // Setting Foot target
-    std::map<std::string, int> sideCoeff = { {"left", 1}, {"right",-1} };
-    for (const auto& side : sideCoeff) {
-      std::string frameName = side.first + "_arch_center";
+    for (const std::string& side : {"left","right"}) {
+      std::string frameName = side + "_arch_center";
       // Position
       ik.addTargetPosition(frameName, frameName);
-      ik.targetPosition(frameName) = Eigen::Vector3d(0, side.second * feetSpacing / 2, 0);
+      ik.targetPosition(frameName) = getFootTarget(side);
       // Orientation
       ik.addTargetOrientation(frameName, frameName);
       ik.targetOrientation(frameName) = Eigen::Matrix3d::Identity();
