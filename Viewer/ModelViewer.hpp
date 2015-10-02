@@ -54,7 +54,7 @@ class ModelViewer
          * Poll event and update screen drawing
          * return false on exit asked
          */
-        bool update();
+        virtual bool update();
 
         /**
          *
@@ -121,7 +121,7 @@ class ModelViewer
          */
         void drawTrajectory();
 
-    private:
+    protected:
 
         /**
          * SFML Windows instance

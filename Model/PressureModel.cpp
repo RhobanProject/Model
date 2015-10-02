@@ -64,7 +64,6 @@ namespace Leph {
     }
     ik = new InverseKinematics(*this);
     // Adding all DOF from the model
-    //TODO eventually reduce to the lower part since upper part has no influence on foot position
     for (const std::string& dof : getDOFCategory("base")) {
       ik->addDOF(dof);
     }
@@ -75,7 +74,7 @@ namespace Leph {
     for (const auto& pEntry : pressureValues) {
       ik->addTargetPosition(pEntry.first, pEntry.first);
     }
-    // Adding target for every motor
+    // Adding target for every motor of the lower body
     for (const std::string & dof : getDOFCategory("lowerBody")){
       ik->addTargetDOF(dof, dof);
     }

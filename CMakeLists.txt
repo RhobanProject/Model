@@ -212,6 +212,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     )
     set(APPS_FILES ${APPS_FILES}
         appToddlingAnalyzer
+        appToddlingViewer
         appViewerGrobanLogs
         appViewerModelSplines
         appViewerModelLogsOld
