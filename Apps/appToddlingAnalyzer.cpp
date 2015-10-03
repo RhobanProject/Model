@@ -19,18 +19,20 @@ int main(int argc, char** argv)
     std::vector<std::string> requiredBasis = {"origin",
                                               "left_arch_center",
                                               "right_arch_center"};
-    std::vector<std::string> targets = {"COM","COP","right_arch_center",};
+    std::vector<std::string> targets = {"COM","COP",
+                                        "right_arch_center",
+                                        "left_arch_center"};
 
 
     MatrixLabel outputData;
     std::string logsFile = argv[1];
 
-    //Initialize model instances
-    Leph::PressureModel model(generateGrobanWithToe(true));
-
     for (int argNo = 2; argNo < argc; argNo++) {
       std::string logsFile = argv[argNo];
       std::cout << "Loading " << logsFile << std::endl;
+
+      //Initialize model instances (restart between two logs)
+      Leph::PressureModel model(generateGrobanWithToe(true));
 
       //Loading data
       Leph::MatrixLabel logs;
@@ -70,8 +72,17 @@ int main(int argc, char** argv)
 
 
         for (const std::string& basis : requiredBasis) {
-          newPositions[basis]["COM"] = model.centerOfMass(basis);
-          newPositions[basis]["COP"] = model.getCOP(basis);
+          for (const std::string& target : targets) {
+            if (target == "COM") {
+              newPositions[basis]["COM"] = model.centerOfMass(basis);
+            }
+            else if (target == "COP") {
+              newPositions[basis]["COP"] = model.getCOP(basis);
+            }
+            else {
+              newPositions[basis][target] = model.position(target, basis);
+            }
+          }
         }
 
         if (indexLog > 1) {

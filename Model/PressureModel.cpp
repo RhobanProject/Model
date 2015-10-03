@@ -74,6 +74,7 @@ namespace Leph {
     for (const auto& pEntry : pressureValues) {
       ik->addTargetPosition(pEntry.first, pEntry.first);
     }
+    ik->addTargetPosition("trunk", "trunk");
     // Adding target for every motor of the lower body
     for (const std::string & dof : getDOFCategory("lowerBody")){
       ik->addTargetDOF(dof, dof);
@@ -117,7 +118,19 @@ namespace Leph {
       else {
         ik->weightPosition(gaugeName) = Eigen::Vector3d::Zero();
       }
+      // If target was not grounded at last step, we not to ignore x and y
+      // constraint, otherwise the projection will produce a huge error and the
+      // grounded gauges of the same feet will be moved
+      if (abs(lastPressurePos.at(gaugeName).z()) > 0.001) {
+        ik->weightPosition(gaugeName).x() = 0;
+        ik->weightPosition(gaugeName).y() = 0;
+      }
+        
     }
+    // Setting a very low weight on trunk condition to ensure there is enough
+    // constraints on the system.
+    ik->targetPosition("trunk") = lastTrunkPos;
+    ik->weightPosition("trunk") = Eigen::Vector3d::Constant(0.01);
   }
 
   const std::map<std::string, double>& PressureModel::getPressureValues() const
@@ -163,6 +176,11 @@ namespace Leph {
     ik->run(0.0001, 100);
     updatePressurePos();
     updateCOP();
+    lastTrunkPos = position("trunk","origin");
+
+//    std::cout << "TARGETS:" << std::endl << ik->getNamedTargets();
+//    std::cout << "MARGINS:" << std::endl << ik->getNamedDOFMargins();
+//    std::cout << "ERRORS:" << std::endl << ik->getNamedErrors();
   }
 
   void PressureModel::updateCOP()

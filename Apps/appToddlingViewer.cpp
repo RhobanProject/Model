@@ -16,6 +16,7 @@ public:
   ToddlingViewer() : ModelViewer(1200,900) {}
 
   size_t indexLog = 0;
+  size_t sizeLog = 0;
 
   bool update() override
     {
@@ -29,6 +30,9 @@ public:
           switch (event.key.code) {
           case sf::Keyboard::Escape:
             return false;
+          case sf::Keyboard::I:
+            std::cout << "IndexLog: " << (indexLog + 1) << "/" << sizeLog << std::endl;;
+            break;
           case sf::Keyboard::N:
             indexLog++;
             break;
@@ -44,6 +48,7 @@ public:
           default:
             break;
           }
+          indexLog = std::min(sizeLog,std::max((size_t)0, indexLog));
         }
       }
       return ModelViewer::update();
@@ -55,13 +60,20 @@ public:
 int main(int argc, char** argv)
 {
   //Command line arguments
-  if (argc != 2) {
-    std::cerr << "Usage: ./app <logsFile>" << std::endl;
+  if (argc < 2 || argc > 3) {
+    std::cerr << "Usage: ./app <logsFile> <opt:startIndex>" << std::endl;
     return -1;
   }
 
   std::string logsFile = argv[1];
   std::cout << "Loading " << logsFile << std::endl;
+
+
+  size_t startIndex = 0;
+
+  if (argc > 2) {
+    startIndex = std::stoi(argv[2]);
+  }
 
   //Loading data
   Leph::MatrixLabel logs;
@@ -86,8 +98,10 @@ int main(int argc, char** argv)
   //Main loop
   size_t indexLog = 0;
   ToddlingViewer viewer;
+  viewer.sizeLog = logs.size();
+  viewer.indexLog = startIndex;
   while (indexLog < logs.size() && viewer.update()) {
-    // Import Log from viewer
+    // Import LogIndex from viewer
     indexLog = viewer.indexLog;
 
     //Assign DOF

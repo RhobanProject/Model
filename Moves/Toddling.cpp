@@ -11,8 +11,8 @@
  *
  * let a = t * freq be the phase of the movement, considered in [0,1]
  * Since walk is based on c_y = sin(2 * pi * a) * comAmplitude:
- * c'_y  =  cos(a) * amplitude * (2 * pi * freq)
- * c''_y = -sin(a) * amplitude * (2 * pi * freq)^2
+ * c'_y  =  cos(2 * pi * a) * amplitude * (2 * pi * freq)
+ * c''_y = -sin(2 * pi * a) * amplitude * (2 * pi * freq)^2
  * Then, the maximum of z_y is in a = pi/2 with:
  * z_y = comAmplitude + c_z / g_z * comAmplitude * (2 * pi * freq)^2 
  * Therefore, we should directly avoid to have comAmplitude much bigger than

@@ -48,6 +48,9 @@ namespace Leph {
     std::map<std::string, double> pressureValues;
     // It is necessary to store last pressure pos
     std::map<std::string, Eigen::Vector3d> lastPressurePos;
+    // Also storing trunk position in order to ensure there is enough
+    // constraint to avoid teleportation
+    Eigen::Vector3d lastTrunkPos;
 
 
     //Position of the center of pressure in the base frame [m]
