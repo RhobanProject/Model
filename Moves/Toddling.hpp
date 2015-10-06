@@ -30,6 +30,7 @@ namespace Leph {
 
     Toddling();
 
+    double getPhase() const;
     double getPhase(const std::string& side) const;
     Eigen::Vector3d getFootTarget(const std::string& side) const;
 

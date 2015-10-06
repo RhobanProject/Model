@@ -72,6 +72,10 @@ namespace Leph {
     }
     return 0;
   }
+  double Toddling::getPhase() const
+  {
+    return phase;
+  }
 
   double Toddling::getPhase(const std::string& side) const
   {
