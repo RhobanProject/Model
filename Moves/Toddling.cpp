@@ -68,7 +68,8 @@ namespace Leph {
     double endLift = 0.75 + liftDuration / 2;
     if (footPhase > startLift && footPhase < endLift) {
       double internalPhase = (footPhase - startLift) / liftDuration;
-      return stepHeight * (1 - cos(internalPhase * 2 * M_PI));
+      double stepRatio = (1 - cos(internalPhase * 2 * M_PI)) / 2.0;
+      return stepHeight * stepRatio;
     }
     return 0;
   }
