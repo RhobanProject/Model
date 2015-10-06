@@ -124,7 +124,11 @@ namespace Leph {
       ik.addDOF(dof);
     }
 
-    // Setting extra angles on model
+    // Setting 0 angles on upper body (if we don't, it slowly drifts away)
+    for (const auto& dof : m.getDOFCategory("upperBody")) {
+      m.setDOF(dof, 0);
+    }
+    // Setting extra angles on shoulderRoll
     std::map<std::string, int> coeffs = {{"left", 1},{"right", -1}};
     for (const auto& entry : coeffs) {
       std::string dof = entry.first + "_shoulder_roll";
