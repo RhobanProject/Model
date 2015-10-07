@@ -112,6 +112,14 @@ void ModelViewer::drawFrame(
     const Eigen::Vector3d& center, 
     const Eigen::Matrix3d& orientation)
 {
+  drawFrame(center, orientation, frameLength);
+}
+        
+void ModelViewer::drawFrame(
+    const Eigen::Vector3d& center, 
+    const Eigen::Matrix3d& orientation,
+    double frameLength)
+{
     glPushMatrix();
     glTranslated(center.x(), center.y(), center.z());
     applyRotation(orientation.transpose());

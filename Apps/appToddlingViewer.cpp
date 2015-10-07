@@ -7,6 +7,7 @@
 
 #include "Model/ModelBuilder.hpp"
 #include "Utils/Chrono.hpp"
+#include "Utils/STLibrary.hpp"
 
 using namespace Leph;
 
@@ -115,6 +116,9 @@ int main(int argc, char** argv)
 
     model.updateBase();
 
+    viewer.drawFrame(model.centerOfMass("origin"),
+                     model.getCOMBasisOrientation(), 0.2);
+
     // Print pressures
     for (const auto& pEntry : model.getPressureValues()) {
       double halfZ = pEntry.second / 10000;
@@ -127,15 +131,14 @@ int main(int argc, char** argv)
     }
 
     std::string basisUsed("origin");
-
     Eigen::Vector3d projectedCOP = model.getCOP(basisUsed);
     projectedCOP.z() = 0;
 
-    // Display trajectories
-    Eigen::Vector3d projectedCoM = model.centerOfMass(basisUsed);
-    projectedCoM.z() = 0;
+    Eigen::Vector3d projectedCOM = model.centerOfMass(basisUsed);
+    projectedCOM.z() = 0;
 
-    viewer.addTrackedPoint(projectedCoM,
+    // Display trajectories
+    viewer.addTrackedPoint(projectedCOM,
                            Leph::ModelViewer::Yellow);
     viewer.addTrackedPoint(model.position("left_arch_center", "origin"), 
                            Leph::ModelViewer::Red);

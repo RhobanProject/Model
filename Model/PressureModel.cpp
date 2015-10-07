@@ -1,6 +1,8 @@
 #include "Model/RBDLRootUpdate.h"
 #include "Model/PressureModel.hpp"
 
+#include "Utils/STLibrary.hpp"
+
 namespace Leph {
 
   PressureModel::PressureModel(): Model(), ik(NULL)
@@ -87,9 +89,9 @@ namespace Leph {
       initIK();
     }
     // Weights
-    double gaugeSlipWeight = 1;
+    double gaugeSlipWeight = 2;
     double gaugeZWeight = 20;
-    double dofWeight = 10;
+    double dofWeight = 2;
     // Tols
     double dofMaxError = 5 * M_PI / 180;
     // Threshold
@@ -130,7 +132,7 @@ namespace Leph {
     // Setting a very low weight on trunk condition to ensure there is enough
     // constraints on the system.
     ik->targetPosition("trunk") = lastTrunkPos;
-    ik->weightPosition("trunk") = Eigen::Vector3d::Constant(0.01);
+    ik->weightPosition("trunk") = Eigen::Vector3d::Constant(0.0001);
   }
 
   const std::map<std::string, double>& PressureModel::getPressureValues() const
@@ -176,6 +178,7 @@ namespace Leph {
     ik->run(0.0001, 100);
     updatePressurePos();
     updateCOP();
+    updateModelDir();
     lastTrunkPos = position("trunk","origin");
 
 //    std::cout << "TARGETS:" << std::endl << ik->getNamedTargets();
@@ -200,5 +203,38 @@ namespace Leph {
     }
   }
 
-}
+  void PressureModel::updateModelDir()
+  {
+    std::map<std::string, double> weights = {{"left",0},{"right",0}};
+    double totalX = 0;
+    double totalY = 0;
+    for (const std::string& side : {"left","right"}) {
+      for (const auto& p : pressureValues) {
+        const std::string& pName = p.first;
+        double pVal = p.second;
+        if (pName.find(side) != std::string::npos){
+          weights[side] += pVal;
+        }
+      }
+      // Getting foot direction and showing it
+      Eigen::Vector3d footDir = orientation("origin", side + "_arch_center").block(0,0,1,3);
+      totalX += weights[side] * footDir.x();
+      totalY += weights[side] * footDir.y();
+    }
+    modelDir = atan2(totalY, totalX);
+  }
 
+  Eigen::Vector3d PressureModel::getPosInCOMBasis(const std::string& f,
+                                                  const Eigen::Vector3d& p)
+  {
+    Eigen::Vector3d fPosInOrigin = position(f,"origin", p);
+    Eigen::Vector3d comPosInOrigin = centerOfMass("origin");
+    Eigen::Matrix3d rotation = getCOMBasisOrientation();
+    return rotation * (fPosInOrigin - comPosInOrigin);
+  }
+
+  Eigen::Matrix3d PressureModel::getCOMBasisOrientation()
+  {
+    return rotZ(-modelDir);
+  }
+}

@@ -43,6 +43,14 @@ namespace Leph {
     double getTotalWeight() const;
     Eigen::Vector3d getCOP(const std::string& frameName);
 
+
+    // Return the position of: (point p in frame f) according to COMBasis
+    // COMBasis is a homemade basis
+    Eigen::Vector3d getPosInCOMBasis(const std::string& f,
+                                     const Eigen::Vector3d& p = Eigen::Vector3d::Zero());
+
+    Eigen::Matrix3d getCOMBasisOrientation();
+
   protected:
     InverseKinematics * ik;
     std::map<std::string, double> pressureValues;
@@ -52,11 +60,16 @@ namespace Leph {
     // constraint to avoid teleportation
     Eigen::Vector3d lastTrunkPos;
 
-
     //Position of the center of pressure in the base frame [m]
     Eigen::Vector3d cop;
     //Total weight at last update [g]
     double weight;
+
+    // DIRTY!
+    // Used to determine the robots orientation (Should not appear here)
+    double modelDir;
+
+    void updateModelDir();
 
   private:
     /**

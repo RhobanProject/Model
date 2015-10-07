@@ -69,6 +69,10 @@ class ModelViewer
         void drawFrame(
             const Eigen::Vector3d& center, 
             const Eigen::Matrix3d& orientation);
+        void drawFrame(
+            const Eigen::Vector3d& center, 
+            const Eigen::Matrix3d& orientation,
+            double frameLength);
 
         /**
          * Draw mass
