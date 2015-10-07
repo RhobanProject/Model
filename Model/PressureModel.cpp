@@ -133,6 +133,14 @@ namespace Leph {
     // constraints on the system.
     ik->targetPosition("trunk") = lastTrunkPos;
     ik->weightPosition("trunk") = Eigen::Vector3d::Constant(0.0001);
+
+    //TODO: handle IMU
+    // Temporarily bounding values on trunk_pitch and trunk_roll
+    double maxVal = 15.0 * M_PI / 180.0;
+    for (const std::string& dof: {"trunk_pitch", "trunk_roll"}) {
+      ik->setLowerBound(dof, -maxVal);
+      ik->setUpperBound(dof,  maxVal);
+    }
   }
 
   const std::map<std::string, double>& PressureModel::getPressureValues() const

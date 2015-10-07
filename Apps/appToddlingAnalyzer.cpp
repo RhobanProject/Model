@@ -17,6 +17,7 @@ int main(int argc, char** argv)
 
     // The basis for which data should be plotted
     std::vector<std::string> requiredBasis = {"origin",
+                                              "COM",
                                               "left_arch_center",
                                               "right_arch_center"};
     std::vector<std::string> targets = {"COM","COP",
@@ -73,14 +74,26 @@ int main(int argc, char** argv)
 
         for (const std::string& basis : requiredBasis) {
           for (const std::string& target : targets) {
+            if (target == basis) continue;
             if (target == "COM") {
               newPositions[basis]["COM"] = model.centerOfMass(basis);
             }
             else if (target == "COP") {
-              newPositions[basis]["COP"] = model.getCOP(basis);
+              if (basis == "COM") {
+                Eigen::Vector3d copInOrigin = model.getCOP("origin");
+                newPositions[basis]["COP"] = model.getPosInCOMBasis("origin", copInOrigin);
+              }
+              else {
+                newPositions[basis]["COP"] = model.getCOP(basis);
+              }
             }
             else {
-              newPositions[basis][target] = model.position(target, basis);
+              if (basis == "COM") {
+                newPositions[basis][target] = model.getPosInCOMBasis(target);
+              }
+              else {
+                newPositions[basis][target] = model.position(target, basis);
+              }
             }
           }
         }
@@ -89,9 +102,11 @@ int main(int argc, char** argv)
           VectorLabel data;
           data.append("srcPhase", logs[indexLog-1]("phase"));
           data.append("nextPhase", logs[indexLog]("phase"));
+          data.append("targetX", logs[indexLog-1]("targetComX"));
           data.append("targetY", logs[indexLog-1]("targetComY"));
           for (const std::string& basis : requiredBasis) {
             for (const std::string& target : targets) {
+              if (target == basis) continue;
               std::string colSuffix = ":" + basis + ":" + target;
               Eigen::Vector3d newPos = newPositions[basis][target];
               Eigen::Vector3d oldPos = oldPositions[basis][target];
