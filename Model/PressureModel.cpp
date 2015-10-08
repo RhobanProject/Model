@@ -235,10 +235,15 @@ namespace Leph {
   Eigen::Vector3d PressureModel::getPosInCOMBasis(const std::string& f,
                                                   const Eigen::Vector3d& p)
   {
-    Eigen::Vector3d fPosInOrigin = position(f,"origin", p);
+    Eigen::Vector3d pInOrigin = position(f, "origin", p);
     Eigen::Vector3d comPosInOrigin = centerOfMass("origin");
     Eigen::Matrix3d rotation = getCOMBasisOrientation();
-    return rotation * (fPosInOrigin - comPosInOrigin);
+    return rotation * (pInOrigin - comPosInOrigin);
+  }
+
+  Eigen::Vector3d PressureModel::getCOPInCOMBasis()
+  {
+    return getPosInCOMBasis("origin", cop);
   }
 
   Eigen::Matrix3d PressureModel::getCOMBasisOrientation()

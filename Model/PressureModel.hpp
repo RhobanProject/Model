@@ -48,6 +48,7 @@ namespace Leph {
     // COMBasis is a homemade basis
     Eigen::Vector3d getPosInCOMBasis(const std::string& f,
                                      const Eigen::Vector3d& p = Eigen::Vector3d::Zero());
+    Eigen::Vector3d getCOPInCOMBasis();
 
     Eigen::Matrix3d getCOMBasisOrientation();
 
