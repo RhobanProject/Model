@@ -7,11 +7,16 @@
 
 using namespace Leph;
 
+/**
+ * New version of the toddling analyzer, multiple output files, prefixed by analyzed_,
+ * Each line contains only the information for a given time
+ */
+
 int main(int argc, char** argv)
 {
     //Command line arguments
-    if (argc < 3) {
-        std::cerr << "Usage: ./app <dstFile> <logFile1> <logFile2> ..." << std::endl;
+    if (argc < 2) {
+        std::cerr << "Usage: ./app <logFile1> <logFile2> ..." << std::endl;
         return -1;
     }
 
@@ -25,10 +30,7 @@ int main(int argc, char** argv)
                                         "left_arch_center"};
 
 
-    MatrixLabel outputData;
-    std::string logsFile = argv[1];
-
-    for (int argNo = 2; argNo < argc; argNo++) {
+    for (int argNo = 1; argNo < argc; argNo++) {
       std::string logsFile = argv[argNo];
       std::cout << "Loading " << logsFile << std::endl;
 
@@ -38,6 +40,8 @@ int main(int argc, char** argv)
       //Loading data
       Leph::MatrixLabel logs;
       logs.load(logsFile);
+
+      MatrixLabel outputData;
 
       //Print data informations
       std::cout << "Loaded " 
@@ -53,8 +57,7 @@ int main(int argc, char** argv)
 
 
       // Store positions: by basis and then by target
-      std::map<std::string, std::map<std::string, Eigen::Vector3d>> oldPositions;
-      std::map<std::string, std::map<std::string, Eigen::Vector3d>> newPositions;
+      std::map<std::string, std::map<std::string, Eigen::Vector3d>> positions;
 
       //Analyzing Log
       for (size_t indexLog = 0; indexLog < logs.size(); indexLog++) {
@@ -76,60 +79,61 @@ int main(int argc, char** argv)
           for (const std::string& target : targets) {
             if (target == basis) continue;
             if (target == "COM") {
-              newPositions[basis]["COM"] = model.centerOfMass(basis);
+              positions[basis]["COM"] = model.centerOfMass(basis);
             }
             else if (target == "COP") {
               if (basis == "COM") {
                 Eigen::Vector3d copInOrigin = model.getCOP("origin");
-                newPositions[basis]["COP"] = model.getPosInCOMBasis("origin", copInOrigin);
+                positions[basis]["COP"] = model.getPosInCOMBasis("origin", copInOrigin);
               }
               else {
-                newPositions[basis]["COP"] = model.getCOP(basis);
+                positions[basis]["COP"] = model.getCOP(basis);
               }
             }
             else {
               if (basis == "COM") {
-                newPositions[basis][target] = model.getPosInCOMBasis(target);
+                positions[basis][target] = model.getPosInCOMBasis(target);
               }
               else {
-                newPositions[basis][target] = model.position(target, basis);
+                positions[basis][target] = model.position(target, basis);
               }
             }
           }
         }
 
-        if (indexLog > 1) {
-          VectorLabel data;
-          data.append("srcPhase", logs[indexLog-1]("phase"));
-          data.append("nextPhase", logs[indexLog]("phase"));
-          data.append("targetX", logs[indexLog-1]("targetComX"));
-          data.append("targetY", logs[indexLog-1]("targetComY"));
-          for (const std::string& basis : requiredBasis) {
-            for (const std::string& target : targets) {
-              if (target == basis) continue;
-              std::string colSuffix = ":" + basis + ":" + target;
-              Eigen::Vector3d newPos = newPositions[basis][target];
-              Eigen::Vector3d oldPos = oldPositions[basis][target];
-              data.append("src"  + colSuffix + ":x", oldPos.x());
-              data.append("src"  + colSuffix + ":y", oldPos.y());
-              data.append("src"  + colSuffix + ":z", oldPos.z());
-              data.append("next" + colSuffix + ":x", newPos.x());
-              data.append("next" + colSuffix + ":y", newPos.y());
-              data.append("next" + colSuffix + ":z", newPos.z());
-            }
-          }
-          outputData.append(data);
-        }
+        VectorLabel data;
+        data.append("phase", logs[indexLog]("phase"));
+        data.append("targetX", logs[indexLog]("targetComX"));
+        data.append("targetY", logs[indexLog]("targetComY"));
         for (const std::string& basis : requiredBasis) {
           for (const std::string& target : targets) {
-              oldPositions[basis][target] = newPositions[basis][target];
+            if (target == basis) continue;
+            std::string colPrefix = basis + ":" + target;
+            Eigen::Vector3d pos = positions[basis][target];
+            data.append(colPrefix + ":x", pos.x());
+            data.append(colPrefix + ":y", pos.y());
+            data.append(colPrefix + ":z", pos.z());
           }
         }
+        outputData.append(data);
       }
-    }
 
-    std::string dstFile = argv[1];
-    outputData.save(dstFile);
+      // Computing dst name
+      size_t index = logsFile.find_last_of("/\\");
+      std::string path, file;
+      if (index == std::string::npos) {
+        path = "";
+        file = logsFile;
+      }
+      else {
+        path = logsFile.substr(0, index + 1);
+        file = logsFile.substr(index + 1);
+      }
+      std::string outputFile = path + "analyzed_" + file;
+      outputData.save(outputFile);
+
+      std::cout << "Analyze data written in: '" << outputFile << "'" << std::endl;
+    }
 
     return 0;
 }

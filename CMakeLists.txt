@@ -211,6 +211,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
     )
     set(APPS_FILES ${APPS_FILES}
+        toddlingAnalyzer
         appToddlingAnalyzer
         appToddlingViewer
         appViewerGrobanLogs
