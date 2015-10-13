@@ -144,6 +144,15 @@ class Model
             const std::string& dstFrame);
 
         /**
+         * Compute and return the Jacobian matrix
+         * at given point of given frame.
+         * The jacobian matrix of 3*DOF size is returned.
+         */
+        Eigen::MatrixXd jacobian(
+            const std::string& srcFrame,
+            const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
+
+        /**
          * Return the position of center of mass with
          * respect to given frame
          * Current degrees of freedom angular values are used

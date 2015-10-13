@@ -216,6 +216,25 @@ double Model::orientationYaw(
     return atan2(rotation(1, 0), rotation(0, 0));
 }
         
+Eigen::MatrixXd Model::jacobian(
+    const std::string& srcFrame,
+    const Eigen::Vector3d& point)
+{
+    //Convert to body id
+    size_t srcFrameIndex = getFrameIndex(srcFrame);
+    srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
+    
+    //Init matrix
+    RBDLMath::MatrixNd G(3, _model.qdot_size);
+    G.setZero();
+
+    //Compute jacobian on given point
+    CalcPointJacobian(_model, _dofs, 
+        srcFrameIndex, point, G, true);
+    
+    return G;
+}
+        
 Eigen::Vector3d Model::centerOfMass(size_t frameIndex)
 {
     double mass;
