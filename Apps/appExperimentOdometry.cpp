@@ -238,6 +238,10 @@ std::vector<std::pair<size_t, size_t>> processCutSequences(
             state = false;
         }
     }
+    if (state == true) {
+        endIndex = logs.size()-1;
+        result.push_back({beginIndex, endIndex});
+    }
 
     return result;
 }
