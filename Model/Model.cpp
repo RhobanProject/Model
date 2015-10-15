@@ -216,7 +216,7 @@ double Model::orientationYaw(
     return atan2(rotation(1, 0), rotation(0, 0));
 }
         
-Eigen::MatrixXd Model::jacobian(
+Eigen::MatrixXd Model::pointJacobian(
     const std::string& srcFrame,
     const Eigen::Vector3d& point)
 {
@@ -225,14 +225,42 @@ Eigen::MatrixXd Model::jacobian(
     srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
     
     //Init matrix
-    RBDLMath::MatrixNd G(3, _model.qdot_size);
+    RBDLMath::MatrixNd G(6, _model.qdot_size);
     G.setZero();
 
     //Compute jacobian on given point
-    CalcPointJacobian(_model, _dofs, 
+    CalcPointJacobian6D(_model, _dofs,
         srcFrameIndex, point, G, true);
-    
+        
     return G;
+}
+
+Eigen::VectorXd Model::pointVelocity(
+    const std::string& srcFrame, 
+    const Eigen::VectorXd& velocity,
+    const Eigen::Vector3d& point)
+{
+    //Convert to body id
+    size_t srcFrameIndex = getFrameIndex(srcFrame);
+    srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
+    
+    //Compute velocity
+    return CalcPointVelocity6D(_model, _dofs, 
+        velocity, srcFrameIndex, point, true);
+}
+Eigen::VectorXd Model::pointAcceleration(
+    const std::string& srcFrame, 
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration,
+    const Eigen::Vector3d& point)
+{
+    //Convert to body id
+    size_t srcFrameIndex = getFrameIndex(srcFrame);
+    srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
+    
+    //Compute acceleration
+    return CalcPointAcceleration6D(_model, _dofs, 
+        velocity, acceleration, srcFrameIndex, point, true);
 }
         
 Eigen::Vector3d Model::centerOfMass(size_t frameIndex)

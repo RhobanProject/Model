@@ -146,10 +146,29 @@ class Model
         /**
          * Compute and return the Jacobian matrix
          * at given point of given frame.
-         * The jacobian matrix of 3*DOF size is returned.
+         * The jacobian matrix of 6xDOF size is returned
+         * (roll, pitch, yaw, x, y, z in world frame).
          */
-        Eigen::MatrixXd jacobian(
+        Eigen::MatrixXd pointJacobian(
             const std::string& srcFrame,
+            const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
+
+        /**
+         * Compute and return the cartesian velocity and accemeration
+         * at given point of given frame.
+         * The velocity and acceleration vector is 6x1 sized
+         * (roll, pitch, yaw, x, y, z in world frame).
+         * Current degrees of freedom velocity and acceleration
+         * is given.
+         */
+        Eigen::VectorXd pointVelocity(
+            const std::string& srcFrame, 
+            const Eigen::VectorXd& velocity,
+            const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
+        Eigen::VectorXd pointAcceleration(
+            const std::string& srcFrame, 
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& acceleration,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
 
         /**
