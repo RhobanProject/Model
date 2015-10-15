@@ -286,6 +286,11 @@ double Model::sumMass()
     return mass;
 }
         
+void Model::setGravity(const Eigen::Vector3d& vect)
+{
+    _model.gravity = vect;
+}
+        
 Eigen::VectorXd Model::inverseDynamics(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& acceleration)

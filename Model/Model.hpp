@@ -185,6 +185,11 @@ class Model
         double sumMass();
 
         /**
+         * Override default gravity vector
+         */
+        void setGravity(const Eigen::Vector3d& vect);
+
+        /**
          * Compute classical Inverse Dynamics on tree model 
          * and return computed torques for 
          * each degrees of freedom using current position. 
