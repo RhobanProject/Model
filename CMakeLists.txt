@@ -200,6 +200,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appViewerModelLogs
         appViewerModelZMP
         appStaticTrajectoryOptimizationTorques
+        appTestLegTorques
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
