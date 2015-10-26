@@ -78,6 +78,7 @@ set(SOURCES_FILES
     Utils/Differentiation.cpp
     Utils/NewtonBinomial.cpp
     Utils/LWPRUtils.cpp
+    Utils/RandomWalk.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -135,6 +136,7 @@ set(TESTS_FILES
     testLWPR
     testLWPRAdvanced
     testIterativeLearningControl
+    testRandomWalk
 )
 
 #Applications main files
