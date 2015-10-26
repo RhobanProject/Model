@@ -9,7 +9,7 @@ RandomWalk::RandomWalk(size_t dim) :
     _statePos(Eigen::VectorXd::Zero(dim)),
     _stateVelNormalized(Eigen::VectorXd::Zero(dim)),
     _stateVel(Eigen::VectorXd::Zero(dim)),
-    _generator()
+    _generator(std::random_device{}())
 {
 }
 RandomWalk::RandomWalk(const Eigen::VectorXd& initState) :
