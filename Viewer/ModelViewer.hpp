@@ -35,7 +35,7 @@ class ModelViewer
         double frameLength = 0.02;
         double frameThickness = 3.0;
         double groundThickness = 1.0;
-        size_t maxTrajectory = 2000;
+        size_t maxTrajectory = 500;
         
         /**
          * Camera control config

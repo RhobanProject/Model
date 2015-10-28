@@ -407,9 +407,9 @@ void ModelViewer::drawColorTrajectory(
     Eigen::Vector3d oldPt = traj.front();
     size_t length = 1;
     for (const Eigen::Vector3d& pt : traj) {
-        double rr = r - (double)length*0.02;
-        double gg = g - (double)length*0.02;
-        double bb = b - (double)length*0.02;
+        double rr = r - (double)length/maxTrajectory;
+        double gg = g - (double)length/maxTrajectory;
+        double bb = b - (double)length/maxTrajectory;
         if (rr <= 0.0) rr = 0.0;
         if (gg <= 0.0) gg = 0.0;
         if (bb <= 0.0) bb = 0.0;
