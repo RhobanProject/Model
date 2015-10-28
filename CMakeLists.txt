@@ -10,6 +10,7 @@ project(Thesis)
 option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
 option(BUILD_LEPH_CODE_APPS "Build Leph Code Apps" OFF)
 option(BUILD_LEPH_CODE_VIEWER "Build Leph Code Viewer (SFML)" OFF)
+option(BUILD_LEPH_CODE_RHIO "Build Leph Code with RhIO" OFF)
 
 #Includes directories lists
 set(LEPHCODE_INCLUDE_DIRECTORIES "")
@@ -47,6 +48,22 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibGP)
 
 #Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
+
+#Include ZeroMQ (network library)
+set(ZMQ_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/ZeroMQ" CACHE STRING "ZMQ lib directory")
+
+#Include RhIO (Rhoban Input Output Library) if needed
+set(RHIO_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RhIO" CACHE STRING "RhIO lib directory")
+if (BUILD_LEPH_CODE_RHIO)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/include)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/contrib)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Common)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Server)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Client)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${ZMQ_DIRECTORY}/include)
+    link_directories(${RHIO_DIRECTORY}/build)
+    link_directories(${ZMQ_DIRECTORY}/lib)
+endif (BUILD_LEPH_CODE_RHIO)
 
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -212,6 +229,17 @@ if (BUILD_LEPH_CODE_VIEWER)
         GLU
     )
 endif (BUILD_LEPH_CODE_VIEWER)
+
+#Build App RhIO Viewer 
+if (BUILD_LEPH_CODE_RHIO)
+    set(APPS_FILES ${APPS_FILES}
+        appRhIOViewerModel
+    )
+    set(CODE_LIBRARIES ${CODE_LIBRARIES} 
+        RhIOClient
+        zmq
+    )
+endif (BUILD_LEPH_CODE_RHIO)
 
 #Include need directories
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
