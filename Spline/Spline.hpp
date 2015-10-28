@@ -18,6 +18,16 @@ class Spline
     public:
 
         /**
+         * Internal spline part structure
+         * with a polynom valid on an interval
+         */
+        struct Spline_t {
+            Polynom polynom;
+            double min;
+            double max;
+        };
+
+        /**
          * Return spline interpolation
          * at given t. Compute spline value,
          * its first and second derivative
@@ -49,17 +59,17 @@ class Spline
         void exportData(std::ostream& os) const;
         void importData(std::istream& is);
 
-    protected:
+        /**
+         * Return the number of internal polynom
+         */
+        size_t size() const;
 
         /**
-         * Internal spline part structure
-         * with a polynom valid on an interval
+         * Access to given by its index
          */
-        struct Spline_t {
-            Polynom polynom;
-            double min;
-            double max;
-        };
+        const Spline_t& part(size_t index) const;
+
+    protected:
 
         /**
          * Spline part container

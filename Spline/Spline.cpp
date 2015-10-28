@@ -99,6 +99,16 @@ void Spline::importData(std::istream& is)
             "Spline import format invalid");
     }
 }
+        
+size_t Spline::size() const
+{
+    return _splines.size();
+}
+        
+const Spline::Spline_t& Spline::part(size_t index) const
+{
+    return _splines.at(index);
+}
 
 double Spline::interpolation(double x, 
     double(Polynom::*func)(double) const) const
