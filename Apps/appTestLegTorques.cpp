@@ -9,7 +9,14 @@
 
 int main()
 {
-    Leph::Plot plot;
+    //Parameters
+    double period = 2.0;
+    double sizeMvt = 0.02;
+    double polynomLength = 0.5;
+
+    //Plot instances
+    Leph::Plot plotPosition;
+    Leph::Plot plotTorques;
 
     //Load raw model
     Leph::Model model("../Data/leg.urdf");
@@ -18,19 +25,20 @@ int main()
     Leph::SmoothSpline splineX;
     Leph::SmoothSpline splineY;
     Leph::SmoothSpline splineZ;
-    splineX.addPoint(0.0, -0.02);
-    splineX.addPoint(0.5, 0.02);
-    splineX.addPoint(1.0, -0.02);
-    splineY.addPoint(-0.25, 0.02);
-    splineY.addPoint(0.25, -0.02);
-    splineY.addPoint(0.75, 0.02);
-    splineY.addPoint(1.25, -0.02);
+    splineX.addPoint(0.0, -sizeMvt);
+    splineX.addPoint(0.5, sizeMvt);
+    splineX.addPoint(1.0, -sizeMvt);
+    splineY.addPoint(-0.25, sizeMvt);
+    splineY.addPoint(0.25, -sizeMvt);
+    splineY.addPoint(0.75, sizeMvt);
+    splineY.addPoint(1.25, -sizeMvt);
     splineZ.addPoint(0.0, -0.20);
     splineZ.addPoint(0.5, -0.15);
     splineZ.addPoint(1.0, -0.20);
 
     //Spline container initialization
     std::vector<Leph::FittedSpline> torqueSplines(6);
+    std::vector<Leph::FittedSpline> positionSplines(6);
     
     //Inverse Kinematics
     Leph::InverseKinematics inv(model);
@@ -51,9 +59,12 @@ int main()
     inv.addTargetOrientation("foot", "left_foot_tip");
         
     Leph::ModelViewer viewer(1200, 900);
-    for (double t=0.0;t<2.0;t+=0.01) {
-        //Run viewer
-        viewer.update();
+    double t = 0.0;
+    while (viewer.update()) {
+        //Update target
+        inv.targetPosition("foot").x() = splineX.posMod(t/period);
+        inv.targetPosition("foot").y() = splineY.posMod(t/period);
+        inv.targetPosition("foot").z() = splineZ.posMod(t/period);
         //Compute Inverse Kinematics
         inv.run(0.0001, 100);
         int count = 0;
@@ -63,10 +74,6 @@ int main()
             inv.run(0.0001, 100);
             count++;
         }
-        //Update target
-        inv.targetPosition("foot").x() = splineX.posMod(t);
-        inv.targetPosition("foot").y() = splineY.posMod(t);
-        inv.targetPosition("foot").z() = splineZ.posMod(t);
         //Display model
         Eigen::Vector3d pt = model.position("left_foot_tip", "origin");
         viewer.addTrackedPoint(pt);    
@@ -77,15 +84,15 @@ int main()
         vel(0) = 0.0;
         vel(1) = 0.0;
         vel(2) = 0.0;
-        vel(3) = splineX.velMod(t);
-        vel(4) = splineY.velMod(t);
-        vel(5) = splineZ.velMod(t);
+        vel(3) = splineX.velMod(t/period);
+        vel(4) = splineY.velMod(t/period);
+        vel(5) = splineZ.velMod(t/period);
         acc(0) = 0.0;
         acc(1) = 0.0;
         acc(2) = 0.0;
-        acc(3) = splineX.accMod(t);
-        acc(4) = splineY.accMod(t);
-        acc(5) = splineZ.accMod(t);
+        acc(3) = splineX.accMod(t/period);
+        acc(4) = splineY.accMod(t/period);
+        acc(5) = splineZ.accMod(t/period);
         //Compute foot jacobian matrix
         Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip");
         //Compute joint velocities
@@ -104,6 +111,10 @@ int main()
         model.setGravity(Eigen::Vector3d(0.0, 0.0, -9.81));
         Eigen::VectorXd torques2 = model.inverseDynamics(dq, ddq);
         Eigen::VectorXd torques = torques1 - torques2;
+        Eigen::VectorXd pos = model.getDOFVect();
+        //Time update
+        t += 0.01;
+        if (t > period) continue;
         //Assign to splines
         torqueSplines[0].addPoint(t, torques(0));
         torqueSplines[1].addPoint(t, torques(1));
@@ -111,46 +122,65 @@ int main()
         torqueSplines[3].addPoint(t, torques(3));
         torqueSplines[4].addPoint(t, torques(4));
         torqueSplines[5].addPoint(t, torques(5));
+        positionSplines[0].addPoint(t, pos(0));
+        positionSplines[1].addPoint(t, pos(1));
+        positionSplines[2].addPoint(t, pos(2));
+        positionSplines[3].addPoint(t, pos(3));
+        positionSplines[4].addPoint(t, pos(4));
+        positionSplines[5].addPoint(t, pos(5));
         //Plot
-        plot.add(Leph::VectorLabel(
+        plotTorques.add(Leph::VectorLabel(
             "t", t,
-            /*
-            "q0", model.getDOF("left_hip_yaw"),
-            "q1", model.getDOF("left_hip_roll"),
-            "q2", model.getDOF("left_hip_pitch"),
-            "q3", model.getDOF("left_knee"),
-            "q4", model.getDOF("left_ankle_pitch"),
-            "q5", model.getDOF("left_ankle_roll")
-            */
-            "q0", torques(0),
-            "q1", torques(1),
-            "q2", torques(2),
-            "q3", torques(3),
-            "q4", torques(4),
-            "q5", torques(5)
+            "t0", torques(0),
+            "t1", torques(1),
+            "t2", torques(2),
+            "t3", torques(3),
+            "t4", torques(4),
+            "t5", torques(5)
+        ));
+        plotPosition.add(Leph::VectorLabel(
+            "t", t,
+            "q0", pos(0),
+            "q1", pos(1),
+            "q2", pos(2),
+            "q3", pos(3),
+            "q4", pos(4),
+            "q5", pos(5)
         ));
     }
-    plot.plot("t", "all").render();
 
     //Splines fitting
     for (size_t i=0;i<torqueSplines.size();i++) {
-        //torqueSplines[i].fittingPieces(0.002, false);
-        torqueSplines[i].fittingGlobal(4, 10);
+        torqueSplines[i].fittingGlobal(4, (int)(polynomLength*100.0));
+        positionSplines[i].fittingGlobal(4, (int)(polynomLength*100.0));
+
+        torqueSplines[i].exportData(std::cout);
+        positionSplines[i].exportData(std::cout);
     }
 
-    //plot.clear();
-    for (double t=0;t<2.0;t+=0.01) {
-        plot.add(Leph::VectorLabel(
+    //Ploting position and torque trajectories
+    for (double t=0;t<period;t+=0.02) {
+        plotTorques.add(Leph::VectorLabel(
             "t", t, 
-            "q0_", torqueSplines[0].pos(t),
-            "q1_", torqueSplines[1].pos(t),
-            "q2_", torqueSplines[2].pos(t),
-            "q3_", torqueSplines[3].pos(t),
-            "q4_", torqueSplines[4].pos(t),
-            "q5_", torqueSplines[5].pos(t)
+            "t0 fitted", torqueSplines[0].pos(t),
+            "t1 fitted", torqueSplines[1].pos(t),
+            "t2 fitted", torqueSplines[2].pos(t),
+            "t3 fitted", torqueSplines[3].pos(t),
+            "t4 fitted", torqueSplines[4].pos(t),
+            "t5 fitted", torqueSplines[5].pos(t)
+        ));
+        plotPosition.add(Leph::VectorLabel(
+            "t", t, 
+            "q0 fitted", positionSplines[0].pos(t),
+            "q1 fitted", positionSplines[1].pos(t),
+            "q2 fitted", positionSplines[2].pos(t),
+            "q3 fitted", positionSplines[3].pos(t),
+            "q4 fitted", positionSplines[4].pos(t),
+            "q5 fitted", positionSplines[5].pos(t)
         ));
     }
-    plot.plot("t", "all").render();
+    plotPosition.plot("t", "all").render();
+    plotTorques.plot("t", "all").render();
 
     return 0;
 }
