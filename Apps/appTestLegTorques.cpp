@@ -10,9 +10,10 @@
 int main()
 {
     //Parameters
-    double period = 2.0;
-    double sizeMvt = 0.02;
+    double period = 3.0;
+    double sizeMvt = 0.04;
     double polynomLength = 0.5;
+    double xOffset = 0.10;
 
     //Plot instances
     Leph::Plot plotPosition;
@@ -25,9 +26,9 @@ int main()
     Leph::SmoothSpline splineX;
     Leph::SmoothSpline splineY;
     Leph::SmoothSpline splineZ;
-    splineX.addPoint(0.0, -sizeMvt);
-    splineX.addPoint(0.5, sizeMvt);
-    splineX.addPoint(1.0, -sizeMvt);
+    splineX.addPoint(0.0, -sizeMvt + xOffset);
+    splineX.addPoint(0.5, sizeMvt + xOffset);
+    splineX.addPoint(1.0, -sizeMvt + xOffset);
     splineY.addPoint(-0.25, sizeMvt);
     splineY.addPoint(0.25, -sizeMvt);
     splineY.addPoint(0.75, sizeMvt);
@@ -153,9 +154,29 @@ int main()
     for (size_t i=0;i<torqueSplines.size();i++) {
         torqueSplines[i].fittingGlobal(4, (int)(polynomLength*100.0));
         positionSplines[i].fittingGlobal(4, (int)(polynomLength*100.0));
-
-        torqueSplines[i].exportData(std::cout);
-        positionSplines[i].exportData(std::cout);
+    }
+    //Dumping splines
+    std::cout << "=== Torque Trajectories" << std::endl;
+    for (size_t i=0;i<torqueSplines.size();i++) {
+        std::cout << "motor_" << i << std::endl;
+        for (size_t j=0;j<torqueSplines[i].size();j++) {
+            std::cout << torqueSplines[i].part(j).max-torqueSplines[i].part(j).min << std::endl;
+            for (size_t k=0;k<torqueSplines[i].part(j).polynom.degree();k++) {
+                std::cout << torqueSplines[i].part(j).polynom(k) << ", ";
+            }
+            std::cout << std::endl;
+        }
+    }
+    std::cout << "=== Position Trajectories" << std::endl;
+    for (size_t i=0;i<positionSplines.size();i++) {
+        std::cout << "motor_" << i << std::endl;
+        for (size_t j=0;j<positionSplines[i].size();j++) {
+            std::cout << positionSplines[i].part(j).max-positionSplines[i].part(j).min << std::endl;
+            for (size_t k=0;k<positionSplines[i].part(j).polynom.degree();k++) {
+                std::cout << positionSplines[i].part(j).polynom(k) << ", ";
+            }
+            std::cout << std::endl;
+        }
     }
 
     //Ploting position and torque trajectories
