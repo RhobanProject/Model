@@ -29,9 +29,43 @@ set(SOURCES_FILES
     #src/surrogatestrategy.cc
 )
 
+
+set(HEADERS
+	src/acovarianceupdate.h
+	src/cmastrategy.h
+	src/esostrategy.h
+	src/pli.h
+	src/bipopcmastrategy.h
+	src/contour.h
+	src/genopheno.h
+	src/pwq_bound_strategy.h
+	src/candidate.h
+	src/covarianceupdate.h
+	src/ipopcmastrategy.h
+	src/scaling.h
+	src/cmaes.h
+	src/eigenmvn.h
+	src/llogging.h
+	src/surrcmaes.h
+	src/cmaparameters.h
+	src/eo_matrix.h
+	src/noboundstrategy.h
+	src/surrogatestrategy.h
+	src/cmasolutions.h
+	src/errstats.h
+	src/opti_err.h
+	src/vdcmaupdate.h
+	src/cmastopcriteria.h
+	src/esoptimizer.h
+	src/parameters.h
+	libcmaes_config.h
+)
+
 #Special flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 #Build Code as static library
 add_library(cmaes STATIC ${SOURCES_FILES})
 
+install(TARGETS cmaes DESTINATION lib)
+install(FILES ${HEADERS} DESTINATION include/cmaes/)
