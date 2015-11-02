@@ -72,7 +72,7 @@ AM_CONDITIONAL(HAVE_GFLAGS, test x"$ac_cv_have_libgflags" = x"1")
 # Check if there is google-glog library installed.
 AC_ARG_ENABLE(gglog,
 AC_HELP_STRING([--enable-gglog],[Enable google glog (default is NO)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) gglog=true ;;
 	no) gglog=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-gglog) ;;
@@ -106,7 +106,7 @@ AM_CONDITIONAL(HAVE_GTEST, test x"$gtest_header_avail" = xyes)
 # Whether to compile with BBOB
 AC_ARG_ENABLE(bbob,
 AC_HELP_STRING([--enable-bbob],[Enable support for BBOB'2013 benchmark (default is NO)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) bbob=true ;;
 	no) bbob=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-bbob) ;;
@@ -116,7 +116,7 @@ AM_CONDITIONAL(HAVE_BBOB, test x$bbob = xtrue)
 # Whether to compile with python wrapper support
 AC_ARG_ENABLE(python,
 AC_HELP_STRING([--enable-python],[Enable support for python wrapper (default is NO)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) python=true ;;
 	no) python=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-python) ;;
@@ -146,7 +146,7 @@ fi
 # Whether to only compile the library, without exe (e.g. tests and examples).
 AC_ARG_ENABLE(onlylib,
 AC_HELP_STRING([--enable-onlylib],[Compile the library alone without tests and examples (default is NO)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) onlylib=true ;;
 	no) onlylib=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-onlylib) ;;
@@ -156,7 +156,7 @@ AM_CONDITIONAL(HAVE_ONLYLIB, test x$onlylib = xtrue)
 # Whether to compile support for surrogates
 AC_ARG_ENABLE(surrog,
 AC_HELP_STRING([--enable-surrog],[Compile the library with support for surrogates (default is YES)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) surrog=true ;;
 	no) surrog=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-surrog) ;;
@@ -169,7 +169,7 @@ fi
 # Whether debug mode
 AC_ARG_ENABLE(debug,
 AC_HELP_STRING([--enable-debug],[Enable debug mode (default is NO)]),
-[case "${enableval}" in 
+[case "${enableval}" in
 	yes) debug=true ;;
 	no) debug=false ;;
 	*) AC_MSG_ERROR(bad_value ${enableval} for --enable-debug) ;;
@@ -180,4 +180,3 @@ fi
 #AM_CONDITIONAL(HAVE_DEBUG, test x$debug = xtrue)
 
 AC_OUTPUT(Makefile src/Makefile tests/Makefile examples/Makefile python/Makefile)
-
