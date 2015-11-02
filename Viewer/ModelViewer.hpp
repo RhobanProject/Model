@@ -53,11 +53,13 @@ class ModelViewer
         /**
          * Poll event and update screen drawing
          * return false on exit asked
+         * If freeFly is false, center the camera
+         * on zero and use rotation view
          */
-        bool update();
+        bool update(bool freeFly = false);
 
         /**
-         *
+         * Return true if given SFML key is pressed
          */
         bool isKeyPressed(sf::Keyboard::Key);
 
@@ -149,7 +151,7 @@ class ModelViewer
         /**
          * Update the opengl camera
          */
-        void updateCamera();
+        void updateCamera(bool useViewVector);
 
         /**
          * Convert given rotation matrix to
