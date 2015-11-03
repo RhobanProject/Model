@@ -55,11 +55,21 @@ bool ModelViewer::update(bool freeFly)
         }
     }
     //Handle mouse relative motion
-    sf::Vector2i mousePosition = sf::Mouse::getPosition();
+    sf::Vector2i mousePosition = sf::Mouse::getPosition(_window);
     double mouseDeltaPosX = mousePosition.x - _lastMousePosX;
     double mouseDeltaPosY = mousePosition.y - _lastMousePosY;
     _lastMousePosX = mousePosition.x;
     _lastMousePosY = mousePosition.y;
+    //Check if the mouse cursor is in the screen
+    bool isMouseInScreen = true;
+    if (
+        mousePosition.x < 0 || 
+        mousePosition.y < 0 || 
+        mousePosition.x >= _window.getSize().x || 
+        mousePosition.y > _window.getSize().y
+    ) {
+        isMouseInScreen = false;
+    }
     //Camera view control
     if (freeFly) {
         Eigen::Vector3d camLat = _camView.cross(
@@ -101,13 +111,15 @@ bool ModelViewer::update(bool freeFly)
         if (radius < 0.0001) radius = 0.0001;
         double angle1 = std::atan2(_camPos.y(), _camPos.x());
         double angle2 = std::acos(_camPos.z()/radius);
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-            angle1 += -0.5*camViewVel*mouseDeltaPosX;
-            angle2 += -0.5*camViewVel*mouseDeltaPosY;
+        if (isMouseInScreen) {
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+                angle1 += -0.5*camViewVel*mouseDeltaPosX;
+                angle2 += -0.5*camViewVel*mouseDeltaPosY;
+            }
+            radius += -wheelDelta*camPosVel*20.0;
         }
         if (angle2 < 0.01) angle2 = 0.01;
         if (angle2 > M_PI-0.01) angle2 = M_PI-0.01;
-        radius += -wheelDelta*camPosVel*20.0;
         if (radius <= 0.0) radius += wheelDelta*camPosVel*20.0;
         _camPos.z() = radius*cos(angle2);
         _camPos.x() = radius*cos(angle1)*sin(angle2);
