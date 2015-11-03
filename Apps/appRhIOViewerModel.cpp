@@ -169,12 +169,17 @@ int main(int argc, char** argv)
         Eigen::Vector3d copRight = model.centerOfPressureRight("origin");
         Eigen::Vector3d copMiddle = model.centerOfPressure("origin");
         //Display foot pressure force
-        viewer.drawBox(0.005, 0.005, 0.1*model.pressureLeftRatio(),
-            copLeft + Eigen::Vector3d(0, 0, 0.1*model.pressureLeftRatio()), 
+        double weightLeft = model.pressureWeight()
+            *model.pressureLeftRatio();
+        double weightRight = model.pressureWeight()
+            *model.pressureRightRatio();
+        double boxLength = 0.02;
+        viewer.drawBox(0.005, 0.005, boxLength*weightLeft,
+            copLeft + Eigen::Vector3d(0, 0, boxLength*weightLeft), 
             Eigen::Matrix3d::Identity(),
             1.0, 0.0, 0.0);
-        viewer.drawBox(0.005, 0.005, 0.1*model.pressureRightRatio(),
-            copRight + Eigen::Vector3d(0, 0, 0.1*model.pressureRightRatio()), 
+        viewer.drawBox(0.005, 0.005, boxLength*weightRight,
+            copRight + Eigen::Vector3d(0, 0, boxLength*weightRight), 
             Eigen::Matrix3d::Identity(),
             0.0, 1.0, 0.0);
         //Display centers of pressures trajectory
