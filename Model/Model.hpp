@@ -32,6 +32,14 @@ class Model
          * Initialization with URDF file
          */
         Model(const std::string& filename);
+        
+        /**
+         * Initialization with URDF file
+         * and with given inertia data overriding
+         * file data
+         */
+        Model(const std::string& filename, 
+            const Eigen::MatrixXd& inertiaData);
 
         /**
          * Initialize with RBDL model
@@ -245,6 +253,13 @@ class Model
         size_t bodyIdToFrameIndex(size_t index) const;
         size_t frameIndexToBodyId(size_t index) const;
 
+        /**
+         * Return access to inertia data matrix.
+         * One line for each body. 
+         * Mass, COM vector (3d), inertia matrix (6d)
+         */
+        const Eigen::MatrixXd& getInertiaData() const;
+
     protected:
         
         /**
@@ -286,6 +301,13 @@ class Model
         std::map<size_t, std::string> _frameIndexToName;
         std::map<std::string, size_t> _frameNameToIndex;
         std::map<size_t, size_t> _frameIndexToId;
+
+        /**
+         * Container of inertia data.
+         * One line for each body. 
+         * Mass, COM vector (3d), inertia matrix (6d)
+         */
+        Eigen::MatrixXd _inertiaData;
 
         /**
          * Filter body name to joint and frame name

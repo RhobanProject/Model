@@ -13,7 +13,8 @@ Model::Model() :
     _vectorDOF(),
     _frameIndexToName(),
     _frameNameToIndex(),
-    _frameIndexToId()
+    _frameIndexToId(),
+    _inertiaData()
 {
 }
         
@@ -25,12 +26,39 @@ Model::Model(const std::string& filename) :
     _vectorDOF(),
     _frameIndexToName(),
     _frameNameToIndex(),
-    _frameIndexToId()
+    _frameIndexToId(),
+    _inertiaData()
 {
-    //URDF loading
+    //URDF loading and retrieve inertia data
+    Eigen::MatrixXd inertiaData;
     RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
-        filename.c_str(), &model, false)
+        filename.c_str(), &model, false, &_inertiaData, false)
+    ) {
+        throw std::runtime_error(
+            "Model unable to load URDF file: " + filename);
+    }
+
+    //Parse and load RBDL model
+    initializeModel(model);
+}
+        
+Model::Model(const std::string& filename, 
+    const Eigen::MatrixXd& inertiaData) :
+    _model(),
+    _dofIndexToName(),
+    _dofNameToIndex(),
+    _dofs(),
+    _vectorDOF(),
+    _frameIndexToName(),
+    _frameNameToIndex(),
+    _frameIndexToId(),
+    _inertiaData(inertiaData)
+{
+    //URDF loading with override inertia data
+    RBDL::Model model;
+    if (!RBDL::Addons::URDFReadFromFile(
+        filename.c_str(), &model, false, &_inertiaData, true)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
@@ -48,7 +76,8 @@ Model::Model(RBDL::Model& model) :
     _vectorDOF(),
     _frameIndexToName(),
     _frameNameToIndex(),
-    _frameIndexToId()
+    _frameIndexToId(),
+    _inertiaData()
 {
     //Parse and load RBDL model
     initializeModel(model);
@@ -423,6 +452,11 @@ size_t Model::bodyIdToFrameIndex(size_t index) const
 size_t Model::frameIndexToBodyId(size_t index) const
 {
     return _frameIndexToId.at(index);
+}
+        
+const Eigen::MatrixXd& Model::getInertiaData() const
+{
+    return _inertiaData;
 }
 
 std::string Model::filterJointName(const std::string& name) const
