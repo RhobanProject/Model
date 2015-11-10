@@ -85,6 +85,14 @@ double HumanoidFixedPressureModel::pressureWeight() const
 {
     return _weight;
 }
+double HumanoidFixedPressureModel::pressureLeftWeight() const
+{
+    return _weight*_leftRatio;
+}
+double HumanoidFixedPressureModel::pressureRightWeight() const
+{
+    return _weight*_rightRatio;
+}
 double HumanoidFixedPressureModel::pressureLeftRatio() const
 {
     return _leftRatio;

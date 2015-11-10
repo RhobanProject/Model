@@ -43,11 +43,13 @@ class HumanoidFixedPressureModel : public HumanoidFixedModel
         void updateBase() override;
 
         /**
-         * Return total weight in kilograms,
+         * Return total, left and right weight in kilograms,
          * left and right foot weight ratio between
          * 0 and 1.
          */
         double pressureWeight() const;
+        double pressureLeftWeight() const;
+        double pressureRightWeight() const;
         double pressureLeftRatio() const;
         double pressureRightRatio() const;
 
