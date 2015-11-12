@@ -22,9 +22,13 @@ namespace Leph {
 
     // Step properties
     double stepHeight;//[m]
+    double stepX;
+    double stepY;
+    double stepTheta;
     double doubleSupportRatio;//in [0,1]
 
     double getFootHeight(double footPhase) const;
+    double getStepX(double footPhase) const;
 
   public:
 

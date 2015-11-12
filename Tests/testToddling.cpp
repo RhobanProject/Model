@@ -25,7 +25,7 @@ int main()
 
   double t = 0;
 
-  double speed = 0.5;
+  double speed = 0.1;
   double freq = 50.0;
   Leph::Scheduling scheduling;
   scheduling.setFrequency(freq);
@@ -52,9 +52,9 @@ int main()
     viewer.addTrackedPoint(cop, 
                            Leph::ModelViewer::Blue);
 
-    std::cout << "Targets" << std::endl << ik.getNamedTargets() << std::endl;
-    std::cout << "DOFs"    << std::endl << ik.getNamedDOFSubset() << std::endl;
-    std::cout << "Errors"  << std::endl << ik.getNamedErrors() << std::endl;
+    //std::cout << "Targets" << std::endl << ik.getNamedTargets() << std::endl;
+    //std::cout << "DOFs"    << std::endl << ik.getNamedDOFSubset() << std::endl;
+    //std::cout << "Errors"  << std::endl << ik.getNamedErrors() << std::endl;
 
     double dt = 1.0 / freq * speed;
 

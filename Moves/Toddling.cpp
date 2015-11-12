@@ -43,6 +43,9 @@ namespace Leph {
                          extraShoulderRoll(30),
                          wishedTrunkPitch(5),
                          stepHeight(0.03),
+                         stepX(0.05),
+                         stepY(0),
+                         stepTheta(0),
                          doubleSupportRatio(0.5)
   {
   }
@@ -73,6 +76,32 @@ namespace Leph {
     }
     return 0;
   }
+
+  double Toddling::getStepX(double footPhase) const
+  {
+    double liftDuration = (1.0 - doubleSupportRatio) / 2;
+    double startLift = 0.75 - liftDuration / 2;
+    double endLift = 0.75 + liftDuration / 2;
+    double groundSpeed = stepX / (1 - liftDuration);//Ground speed while the foot is in contact
+    double dt = footPhase;
+    if (footPhase > startLift && footPhase < endLift) {
+      // Flying phase
+      double internalPhase = (footPhase - startLift) / liftDuration;
+      dt -= startLift;
+      double alpha = M_PI * (internalPhase - 0.5);//[-pi/2,pi/2]
+      double uncorrected = - stepX / 2 - groundSpeed * dt;
+      double correction = (sin(alpha) + 1) / 2 * (stepX + groundSpeed * liftDuration);
+      return uncorrected + correction;
+    }
+    else if (footPhase > endLift) {
+      dt -= endLift;
+    }
+    else {
+      dt += 1 - endLift;
+    }
+    return stepX / 2 - dt * groundSpeed;
+  }
+
   double Toddling::getPhase() const
   {
     return phase;
@@ -97,6 +126,7 @@ namespace Leph {
     try{
       Eigen::Vector3d footPos(0, coeffs.at(side) * feetSpacing / 2, 0);
       double footPhase = getPhase(side);
+      footPos.x() = getStepX(footPhase);
       footPos.z() = getFootHeight(footPhase);
       return footPos;
     }
