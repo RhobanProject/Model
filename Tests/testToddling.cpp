@@ -17,8 +17,8 @@ int main()
 {
   bool floatingBase = true;
   Leph::Model model= Leph::generateGrobanWithToe(floatingBase);
-  std::cout << model.getDOF() << std::endl;
-  std::cout << "Total mass: " << model.sumMass() << std::endl;
+  //std::cout << model.getDOF() << std::endl;
+  //std::cout << "Total mass: " << model.sumMass() << std::endl;
     
   //Viewer loop
   Leph::ModelViewer viewer(1200, 900);

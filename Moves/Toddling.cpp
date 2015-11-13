@@ -43,9 +43,9 @@ namespace Leph {
                          extraShoulderRoll(30),
                          wishedTrunkPitch(5),
                          stepHeight(0.03),
-                         stepX(0.05),
-                         stepY(0),
-                         stepTheta(0),
+                         stepX(0.0),
+                         stepY(0.0),
+                         stepTheta(25),
                          doubleSupportRatio(0.5)
   {
   }
@@ -102,6 +102,33 @@ namespace Leph {
     return stepX / 2 - dt * groundSpeed;
   }
 
+  // Return the offset from the start position, start position is not the same for both feet
+  double Toddling::getStepY(double footPhase) const
+  {
+    double liftDuration = (1.0 - doubleSupportRatio) / 2;
+    double startLift = 0.75 - liftDuration / 2;
+    double endLift = 0.75 + liftDuration / 2;
+    double groundSpeed = stepY / (1 - liftDuration);//Ground speed while the foot is in contact
+    double dt = footPhase;
+    if (footPhase > startLift && footPhase < endLift) {
+      // Flying phase
+      double internalPhase = (footPhase - startLift) / liftDuration;
+      dt -= startLift;
+      double alpha = M_PI * (internalPhase - 0.5);//[-pi/2,pi/2]
+      double uncorrected = - stepY / 2 - groundSpeed * dt;
+      double correction = (sin(alpha) + 1) / 2 * (stepY + groundSpeed * liftDuration);
+      return uncorrected + correction;
+    }
+    else if (footPhase > endLift) {
+      dt -= endLift;
+    }
+    else {
+      dt += 1 - endLift;
+    }
+    return stepY / 2 - dt * groundSpeed;
+  }
+
+
   double Toddling::getPhase() const
   {
     return phase;
@@ -124,14 +151,51 @@ namespace Leph {
   {
     static std::map<std::string, int> coeffs = {{"left",1},{"right",-1}};
     try{
-      Eigen::Vector3d footPos(0, coeffs.at(side) * feetSpacing / 2, 0);
+      double staticY = coeffs.at(side) * (feetSpacing + stepY) / 2;
+      Eigen::Vector3d footPos(0, staticY, 0);
       double footPhase = getPhase(side);
-      footPos.x() = getStepX(footPhase);
-      footPos.z() = getFootHeight(footPhase);
+      footPos.x() += getStepX(footPhase);
+      footPos.y() += getStepY(footPhase);
+      footPos.z() += getFootHeight(footPhase);
       return footPos;
     }
     catch(const std::out_of_range& exc) {}
     throw std::out_of_range("Toddling::getFootTarget(): unknown side: '" + side + "'");
+  }
+
+  Eigen::Matrix3d Toddling::getFootOrientation(const std::string& side) const
+  {
+    // Time milestones
+    double liftDuration = (1.0 - doubleSupportRatio) / 2;
+    double footPhase = getPhase(side);
+    double startOpLift = 0.25 - liftDuration / 2;
+    double endOpLift   = 0.25 + liftDuration / 2;
+    double startMyLift = 0.75 - liftDuration / 2;
+    double endMyLift   = 0.75 + liftDuration / 2;
+    // Variables
+    Eigen::Matrix3d wishedOrientation = Eigen::Matrix3d::Identity();
+    double theta = 0;//deg
+    // Case 1: foot support alone
+    if (footPhase >= startMyLift && footPhase < endMyLift) {
+      double internalPhase = (footPhase - startMyLift) / liftDuration;
+      theta = stepTheta/2 * cos(internalPhase * M_PI);
+    }
+    // Case 2: foot flying
+    else if (footPhase >= startOpLift && footPhase < endOpLift) {
+      double internalPhase = (footPhase - startOpLift) / liftDuration;
+      theta = -stepTheta/2 * cos(internalPhase * M_PI);
+    }
+    // Case 3: double support 1 (post footSupport alone)
+    else if (footPhase >= endOpLift && footPhase < startMyLift) {
+      theta = stepTheta/2;
+    }
+    // Case 4: double support 2
+    else {
+      theta = -stepTheta/2;
+    }
+    std::cout << footPhase << " " << theta << std::endl;
+    wishedOrientation = rotZ(theta * M_PI / 180) * wishedOrientation;
+    return wishedOrientation;
   }
 
   void Toddling::update(double elapsed)
@@ -177,7 +241,7 @@ namespace Leph {
       ik.targetPosition(frameName) = getFootTarget(side);
       // Orientation
       ik.addTargetOrientation(frameName, frameName);
-      ik.targetOrientation(frameName) = Eigen::Matrix3d::Identity();
+      ik.targetOrientation(frameName) = getFootOrientation(side);
     }
 
     // Light constraint on torso orientation

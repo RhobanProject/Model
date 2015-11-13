@@ -22,13 +22,15 @@ namespace Leph {
 
     // Step properties
     double stepHeight;//[m]
-    double stepX;
-    double stepY;
-    double stepTheta;
+    double stepX;//[m]
+    double stepY;//[m]
+    double stepTheta;//[deg]
     double doubleSupportRatio;//in [0,1]
 
     double getFootHeight(double footPhase) const;
     double getStepX(double footPhase) const;
+    double getStepY(double footPhase) const;
+    Eigen::Matrix3d getFootOrientation(const std::string& side) const;
 
   public:
 
