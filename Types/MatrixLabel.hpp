@@ -219,7 +219,8 @@ class MatrixLabel
         {
             size_t realIndex = index + _indexBegin;
             if (realIndex < _indexBegin || realIndex > _indexEnd) {
-                throw std::logic_error("MatrixLabel invalid index access");
+                throw std::logic_error("MatrixLabel invalid index access: " 
+                    + std::to_string(index));
             }
 
             return _container->at(realIndex);
@@ -228,7 +229,8 @@ class MatrixLabel
         {
             size_t realIndex = index + _indexBegin;
             if (realIndex < _indexBegin || realIndex > _indexEnd) {
-                throw std::logic_error("MatrixLabel invalid index access");
+                throw std::logic_error("MatrixLabel invalid index access: " 
+                    + std::to_string(index));
             }
 
             return _container->at(realIndex);

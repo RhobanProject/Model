@@ -1,0 +1,363 @@
+<robot
+  name="URDF">
+  <link
+    name="trunk_link">
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/trunk_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.294117647058824 0.294117647058824 0.294117647058824 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/trunk_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="left_hip_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.00450575833558915 -2.34438066016099E-06 -0.0303191864817343"
+        rpy="0 0 0" />
+      <mass
+        value="0.0221154306709298" />
+      <inertia
+        ixx="4.39267600793309E-06"
+        ixy="-5.21554212028579E-09"
+        ixz="4.013124607556E-08"
+        iyy="1.42379699066783E-05"
+        iyz="-1.57581288966128E-11"
+        izz="1.31984212294399E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_yaw_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_yaw"
+    type="continuous">
+    <origin
+      xyz="0.0 0.0 0.0"
+      rpy="0.0 0.0 0.0" />
+    <parent
+      link="trunk_link" />
+    <child
+      link="left_hip_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="left_hip_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133669444 3.24745426863726E-05 -0.0154198792870861"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943899458" />
+      <inertia
+        ixx="0.000119172372193149"
+        ixy="1.33911779901627E-07"
+        ixz="1.08741202264295E-05"
+        iyy="0.000263025298054683"
+        iyz="-6.91457667690666E-07"
+        izz="0.00022289651904019" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_roll"
+    type="continuous">
+    <origin
+      xyz="-0.0004 0 -0.0505"
+      rpy="7.3057E-05 -6.6174E-24 -0.00054721" />
+    <parent
+      link="left_hip_yaw_link" />
+    <child
+      link="left_hip_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="left_hip_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0119836818094348 -4.30614813185688E-05 -0.0855707224243745"
+        rpy="0 0 0" />
+      <mass
+        value="0.202137214835629" />
+      <inertia
+        ixx="0.000136336728498792"
+        ixy="7.17652002595342E-07"
+        ixz="1.96145711437226E-05"
+        iyy="0.000146767195733494"
+        iyz="7.10378195361103E-08"
+        izz="9.4778667767201E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_hip_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_hip_roll_link" />
+    <child
+      link="left_hip_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_knee_link">
+    <inertial>
+      <origin
+        xyz="5.55111512312578E-17 5.96744875736022E-16 -0.05252375440872"
+        rpy="0 0 0" />
+      <mass
+        value="0.042918412240062" />
+      <inertia
+        ixx="8.26506713603174E-05"
+        ixy="-2.87775273500472E-20"
+        ixz="1.36920406085989E-19"
+        iyy="5.98794313177617E-05"
+        iyz="-2.69241656466184E-19"
+        izz="2.87809261264632E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_knee_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_knee_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_knee"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.09375"
+      rpy="0 0 0" />
+    <parent
+      link="left_hip_pitch_link" />
+    <child
+      link="left_knee_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_ankle_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.0164770133662443 -3.24745431379593E-05 0.0154198792861389"
+        rpy="0 0 0" />
+      <mass
+        value="0.291968943886111" />
+      <inertia
+        ixx="0.000119172372185717"
+        ixy="-1.33911777994784E-07"
+        ixz="-1.08741202223999E-05"
+        iyy="0.000263025298045364"
+        iyz="-6.91457670579697E-07"
+        izz="0.000222896519035544" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_pitch_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_pitch"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.105"
+      rpy="0 0 0" />
+    <parent
+      link="left_knee_link" />
+    <child
+      link="left_ankle_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="left_ankle_roll_link">
+    <inertial>
+      <origin
+        xyz="0.0028909 0.0018044 -0.027881"
+        rpy="0 0 0" />
+      <mass
+        value="0.076822" />
+      <inertia
+        ixx="2.8788E-05"
+        ixy="-1.1019E-07"
+        ixz="4.4166E-07"
+        iyy="8.7896E-05"
+        iyz="-4.3148E-07"
+        izz="0.00010753" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.89804 0.91765 0.92941 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF/meshes/left_foot_roll_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle_roll"
+    type="continuous">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_ankle_pitch_link" />
+    <child
+      link="left_ankle_roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="left_foot_tip_link">
+  </link>
+  <joint
+    name="left_foot_tip_fixed"
+    type="fixed">
+    <origin
+      xyz="0.0804 0.037 -0.040493"
+      rpy="0 0 0" />
+    <parent
+      link="left_ankle_roll_link" />
+    <child
+      link="left_foot_tip_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
