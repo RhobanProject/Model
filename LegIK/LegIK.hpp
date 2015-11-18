@@ -60,7 +60,8 @@ class IK {
   double L[3];
  public:
   IK(double L0, double L1, double L2);
-  bool compute(Vector3D C, Frame3D orientation, Position & result);
+  bool compute(Vector3D C, Frame3D orientation, Position & result, 
+    bool inverseKnee = false);
 };
 
 /*****************************************************************************/

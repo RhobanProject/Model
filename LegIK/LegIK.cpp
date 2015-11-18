@@ -162,7 +162,8 @@ IK::IK(double L0, double L1, double L2) {
   L[0] = L0; L[1] = L1; L[2] = L2;
 }
 
-bool IK::compute(Vector3D C, Frame3D orientation, Position & result) {
+bool IK::compute(Vector3D C, Frame3D orientation, Position & result,
+  bool inverseKnee) {
   if (is_zero(L[0]) || is_zero(L[1]))
     return false;
 
@@ -210,7 +211,8 @@ bool IK::compute(Vector3D C, Frame3D orientation, Position & result) {
   double q = (L[0]*L[0] + L[1]*L[1] - B_len*B_len) / (2 * L[0] * L[1]);
   if (q < (-1.0 - ik_global_epsilon) || q > (1.0 + ik_global_epsilon)) return false;
   bound(-1.0, 1.0, q);
-  result.theta[3] = M_PI - acos(q);
+  if (inverseKnee) result.theta[3] = acos(q) - M_PI;
+  else result.theta[3] = M_PI - acos(q);
   IKDEBUG(printf("  step 6 ok.\n"));
 
   /* step 7 : calcul de \omega */
@@ -233,7 +235,8 @@ bool IK::compute(Vector3D C, Frame3D orientation, Position & result) {
   IKDEBUG(printf("  step 9 ok.\n"));
 
   /* step 10 : calcul de theta_2 */
-  result.theta[2] = alpha + A_omega_B;
+  if (inverseKnee) result.theta[2] = alpha - A_omega_B;
+  else result.theta[2] = alpha + A_omega_B;
   IKDEBUG(printf("  step 10 ok.\n"));
   
   /* step 11 : calcul de theta_4 */
