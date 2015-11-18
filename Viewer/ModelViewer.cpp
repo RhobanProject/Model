@@ -65,8 +65,8 @@ bool ModelViewer::update(bool freeFly)
     if (
         mousePosition.x < 0 || 
         mousePosition.y < 0 || 
-        mousePosition.x >= _window.getSize().x || 
-        mousePosition.y > _window.getSize().y
+        mousePosition.x >= (int)_window.getSize().x || 
+        mousePosition.y > (int)_window.getSize().y
     ) {
         isMouseInScreen = false;
     }
