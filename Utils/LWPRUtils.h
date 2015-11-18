@@ -42,6 +42,14 @@ Eigen::VectorXd LWPROptimizeParameters(size_t inputDim,
 void LWPRPrint(const LWPR_Object& model);
 
 /**
+ * Return the number of trustworthy receptive field
+ * min and max of RF regressions
+ */
+size_t LWPRRFTrustworthy(const LWPR_Object& model);
+size_t LWPRMinRFReg(const LWPR_Object& model);
+size_t LWPRMaxRFReg(const LWPR_Object& model);
+
+/**
  * Print on std::cout given LWPR
  * meta parameters
  */

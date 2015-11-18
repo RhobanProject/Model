@@ -233,6 +233,50 @@ void LWPRPrint(const LWPR_Object& model)
     }
 }
 
+size_t LWPRRFTrustworthy(const LWPR_Object& model)
+{
+    size_t countRFTrustworthy = 0;
+    for (size_t i=0;i<(size_t)model.numRFS();i++) {
+        const LWPR_ReceptiveFieldObject& rf = model.getRF(i);
+        if (rf.trustworthy()) {
+            countRFTrustworthy++;
+        }
+    }
+    return countRFTrustworthy;
+}
+size_t LWPRMinRFReg(const LWPR_Object& model)
+{
+    size_t minRFReg = (size_t)-1;
+    for (size_t i=0;i<(size_t)model.numRFS();i++) {
+        const LWPR_ReceptiveFieldObject& rf = model.getRF(i);
+        if (!rf.trustworthy()) {
+            continue;
+        }
+        if (minRFReg == (size_t)-1 || 
+            minRFReg > (size_t)rf.nReg()
+        ) {
+            minRFReg = rf.nReg();
+        }
+    }
+    return minRFReg;
+}
+size_t LWPRMaxRFReg(const LWPR_Object& model)
+{
+    size_t maxRFReg = (size_t)-1;
+    for (size_t i=0;i<(size_t)model.numRFS();i++) {
+        const LWPR_ReceptiveFieldObject& rf = model.getRF(i);
+        if (!rf.trustworthy()) {
+            continue;
+        }
+        if (maxRFReg == (size_t)-1 || 
+            maxRFReg < (size_t)rf.nReg()
+        ) {
+            maxRFReg = rf.nReg();
+        }
+    }
+    return maxRFReg;
+}
+
 void LWPRPrintParameters(size_t inputDim, 
     const Eigen::VectorXd& params)
 {

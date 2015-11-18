@@ -96,6 +96,8 @@ set(SOURCES_FILES
     Utils/NewtonBinomial.cpp
     Utils/LWPRUtils.cpp
     Utils/RandomWalk.cpp
+    Utils/IterativeLearningControl.cpp
+    Utils/LWPRInputsOptimization.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -116,7 +118,6 @@ set(SOURCES_FILES
     Spline/PolyFit.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
-    Utils/IterativeLearningControl.cpp
     TimeSeries/SeriesUtils.cpp
 )
 
@@ -154,6 +155,7 @@ set(TESTS_FILES
     testLWPRAdvanced
     testIterativeLearningControl
     testRandomWalk
+    testLWPRInputsOptimization
 )
 
 #Applications main files
@@ -161,6 +163,7 @@ set(APPS_FILES
     appSplineGenerationCircle
     appTestLearningFromLogs
     appExperimentOdometry
+    appExperimentKick
 )
 
 #LephCode linked libraries
