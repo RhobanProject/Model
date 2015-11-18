@@ -69,6 +69,13 @@ class Spline
          */
         const Spline_t& part(size_t index) const;
 
+        /**
+         * Add a part with given polynom 
+         * and min/max time range
+         */
+        void addPart(const Polynom& poly, 
+            double min, double max);
+
     protected:
 
         /**

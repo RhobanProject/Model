@@ -109,6 +109,12 @@ const Spline::Spline_t& Spline::part(size_t index) const
 {
     return _splines.at(index);
 }
+        
+void Spline::addPart(const Polynom& poly, 
+    double min, double max)
+{
+    _splines.push_back({poly, min, max});
+}
 
 double Spline::interpolation(double x, 
     double(Polynom::*func)(double) const) const
