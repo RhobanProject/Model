@@ -136,7 +136,7 @@
     name="left_hip_pitch_link">
     <inertial>
       <origin
-        xyz="-0.0119836818094348 -4.30614813185688E-05 -0.0855707224243745"
+        xyz="0.0 -4.30614813185688E-05 -0.11"
         rpy="0 0 0" />
       <mass
         value="0.202137214835629" />
@@ -229,7 +229,7 @@
     name="left_knee"
     type="continuous">
     <origin
-      xyz="0 0 -0.09375"
+      xyz="0 0 -0.1249"
       rpy="0 0 0" />
     <parent
       link="left_hip_pitch_link" />

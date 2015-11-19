@@ -63,10 +63,10 @@ static std::vector<Leph::Spline> loadSplines(std::istream& file)
 static bool inverseKinematics(Leph::Model& model, 
     const Eigen::Vector3d& targetPos, const Eigen::Vector3d& targetAngle)
 {
-    double legHipToKnee = 0.09375;
+  double legHipToKnee = 0.1249;//0.09375;
     double legKneeToAnkle = 0.105;
     double legAnkleToGround = 0.0319955;
-    Eigen::Vector3d footToPen(0.08, 0.037, -0.0085);
+    Eigen::Vector3d footToPen(0.089, 0.007, -0.0045);//(0.075, 0.037, -0.0085);
 
     Eigen::Quaternion<double> quat;
     Eigen::AngleAxisd yawRot(targetAngle(0), Eigen::Vector3d::UnitZ());
@@ -234,6 +234,7 @@ int main(int argc, char** argv)
             double ratio = (distTarget-minDist)/(maxDist-minDist);
             pitch = (1.0-ratio)*angleAtMin + ratio*angleAtMax;
         }
+	//pitch = M_PI/2.0;
         double yaw = -atan2(y, x);
         
         bool isSucess = inverseKinematics(model, 
@@ -322,11 +323,19 @@ int main(int argc, char** argv)
         }
         t += 0.01;
     }
-    
+
+    double averageLength = 0.0;
+    // Finding the average of the durations (needed for fittingGlobal)
+    for (size_t i = 0; i < splinesCart[0].size(); i++) {
+      double length = splinesCart[0].part(i).max - splinesCart[0].part(i).min;
+      averageLength += length;
+    }
+    averageLength /= splinesCart[0].size();
+      
     //Splines fitting
     for (size_t i=0;i<splinesTorque.size();i++) {
-        splinesTorque[i].fittingGlobal(4, 50);
-        splinesPos[i].fittingGlobal(4, 50);
+      splinesTorque[i].fittingGlobal(4, (unsigned int)100*averageLength);
+      splinesPos[i].fittingGlobal(4, (unsigned int)100*averageLength);
     }
     
     if (mode == "gui") {
@@ -361,7 +370,7 @@ int main(int argc, char** argv)
         std::cout << "motor_" << i+1 << std::endl;
         for (size_t j=0;j<splinesTorque[i].size();j++) {
             std::cout << splinesTorque[i].part(j).max-splinesTorque[i].part(j).min << std::endl;
-            for (size_t k=0;k<splinesTorque[i].part(j).polynom.degree()+1;k++) {
+	    for (size_t k=0;k<splinesTorque[i].part(j).polynom.degree()+1;k++) {
                 std::cout << splinesTorque[i].part(j).polynom(k);
                 if (k != splinesTorque[i].part(j).polynom.degree()) {
                     std::cout << ", ";
