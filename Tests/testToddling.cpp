@@ -32,7 +32,12 @@ int main()
 
   Leph::Toddling toddling;
 
+  // CSV Header
+  std::cout << "t,leftAnkle,leftHip,leftLength,rightAnkle,rightHip,rightLength" << std::endl;
+
   while (viewer.update()) {
+
+    if (t > 20) { break;}
 
     Leph::InverseKinematics ik(model);
     toddling.initIK(model, ik);
@@ -55,6 +60,20 @@ int main()
     //std::cout << "Targets" << std::endl << ik.getNamedTargets() << std::endl;
     //std::cout << "DOFs"    << std::endl << ik.getNamedDOFSubset() << std::endl;
     //std::cout << "Errors"  << std::endl << ik.getNamedErrors() << std::endl;
+
+    double leftLength = model.position("left_ankle_roll",
+                                       "left_hip_roll").norm();
+    double rightLength = model.position("right_ankle_roll",
+                                        "right_hip_roll").norm();
+
+    std::cout << t << ","
+              << model.getDOF("left_ankle_roll")  * 180 / M_PI << ","
+              << model.getDOF("left_hip_roll")    * 180 / M_PI << ","
+              << leftLength                                    << ","
+              << model.getDOF("right_ankle_roll") * 180 / M_PI << ","
+              << model.getDOF("right_hip_roll")   * 180 / M_PI << ","
+              << rightLength                                   << std::endl;
+
 
     double dt = 1.0 / freq * speed;
 

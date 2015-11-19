@@ -45,7 +45,7 @@ namespace Leph {
                          stepHeight(0.03),
                          stepX(0.0),
                          stepY(0.0),
-                         stepTheta(25),
+                         stepTheta(0),
                          doubleSupportRatio(0.5)
   {
   }
@@ -193,7 +193,6 @@ namespace Leph {
     else {
       theta = -stepTheta/2;
     }
-    std::cout << footPhase << " " << theta << std::endl;
     wishedOrientation = rotZ(theta * M_PI / 180) * wishedOrientation;
     return wishedOrientation;
   }
