@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "Spline/FittedSpline.hpp"
 #include "Spline/PolyFit.hpp"
+#include "Spline/CubicSpline.hpp"
 #include "LinearRegression/SimpleLinearRegression.hpp"
 #include "Utils/NewtonBinomial.hpp"
 
@@ -189,6 +190,44 @@ void FittedSpline::fittingGlobal(
         Spline::_splines.push_back({
             polynom, boundMin, boundMax});
     }
+}
+        
+void FittedSpline::fittingCubic(unsigned int sequenceLength)
+{
+    prepareData();
+    
+    //Fit cubic splines
+    CubicSpline cubic;
+
+    //Add first point
+    double dYFirst = _points[1].second - _points[0].second;
+    double dTFirst = _points[1].first - _points[0].first;
+    double velFirst = dYFirst/dTFirst;
+    cubic.addPoint(_points[0].first, _points[0].second, velFirst);
+
+    //Add point every sequenceLength
+    for (size_t i=1;i<_points.size()-sequenceLength/2;i++) {
+        if (i%sequenceLength == 0) {
+            double dY = _points[i+1].second - _points[i-1].second;
+            double dT = _points[i+1].first - _points[i-1].first;
+            if (dT <= 0.0) {
+                throw std::logic_error(
+                    "FittedSpline differentiation error");
+            }
+            double vel = dY/dT;
+            cubic.addPoint(_points[i].first, _points[i].second, vel);
+        }
+    }
+    
+    //Add last point
+    size_t size = _points.size();
+    double dYEnd = _points[size-1].second - _points[size-2].second;
+    double dTEnd = _points[size-1].first - _points[size-2].first;
+    double velEnd = dYEnd/dTEnd;
+    cubic.addPoint(_points[size-1].first, _points[size-1].second, velEnd);
+
+    //Copy spline data
+    Spline::operator=(cubic);
 }
         
 void FittedSpline::prepareData()
