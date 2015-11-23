@@ -174,12 +174,41 @@ void testCapturedDataWindow()
     plot.plot("t", "all").render();
 }
 
+void testFittingCubic()
+{
+    Leph::FittedSpline spline;
+    Leph::Plot plot;
+
+    //Generates noiseless data
+    for (double t=0;t<1.0;t+=0.01) {
+        double f = function(t);
+        spline.addPoint(t, f);
+        plot.add(Leph::VectorLabel(
+            "t", t, 
+            "target", f
+        ));
+    }
+    
+    //Do fitting
+    spline.fittingCubic(8);
+
+    //Display fitted splines
+    for (double t=0;t<1.0;t+=0.005) {
+        plot.add(Leph::VectorLabel(
+            "t", t, 
+            "fitted", spline.pos(t)
+        ));
+    }
+    plot.plot("t", "all").render();
+}
+
 int main() 
 {
     testGeneratedData();
     testGeneratedDataNoise();
     testCapturedData();
     testCapturedDataWindow();
+    testFittingCubic();
    
     return 0;
 }
