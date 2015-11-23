@@ -163,7 +163,7 @@ IK::IK(double L0, double L1, double L2) {
 }
 
 bool IK::compute(Vector3D C, Frame3D orientation, Position & result,
-  bool inverseKnee) {
+  bool inverseKnee, bool forceForward) {
   if (is_zero(L[0]) || is_zero(L[1]))
     return false;
 
@@ -190,8 +190,12 @@ bool IK::compute(Vector3D C, Frame3D orientation, Position & result,
 
   /* phi est orienté vers l'avant ou sur la gauche */
   double phi_e1 = scalar_prod(phi, e1);
-  if (!(phi_e1 > 0 || (is_zero(phi_e1) && scalar_prod(phi, e2) >= 0)))
+  if (
+    forceForward && 
+    !(phi_e1 > 0 || (is_zero(phi_e1) && scalar_prod(phi, e2) >= 0))
+  ) {
     phi = -1.0 * phi;
+  }
   IKDEBUG(printf("  step 2 ok.\n"));
 
   /* step 3 : calcul de \theta_0 */

@@ -56,12 +56,21 @@ class Position {
 
 /*****************************************************************************/
 
+/**
+ * If inverseKnee is true, the knee convention sign
+ * in inverted and the knee is bending in the other
+ * side.
+ * If forceForward is false, we do not assume that 
+ * the leg is pointing forward. Usefull for 6DOF
+ * arm when target point is imposing the orientation
+ * of the plane P.
+ */
 class IK {
   double L[3];
  public:
   IK(double L0, double L1, double L2);
   bool compute(Vector3D C, Frame3D orientation, Position & result, 
-    bool inverseKnee = false);
+    bool inverseKnee = false, bool forceForward = true);
 };
 
 /*****************************************************************************/
