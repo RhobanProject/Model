@@ -334,8 +334,8 @@ int main(int argc, char** argv)
       
     //Splines fitting
     for (size_t i=0;i<splinesTorque.size();i++) {
-      splinesTorque[i].fittingGlobal(4, (unsigned int)100*averageLength);
-      splinesPos[i].fittingGlobal(4, (unsigned int)100*averageLength);
+      splinesTorque[i].fittingCubic((unsigned int)100*averageLength);
+      splinesPos[i].fittingCubic((unsigned int)100*averageLength);
     }
     
     if (mode == "gui") {
@@ -372,10 +372,10 @@ int main(int argc, char** argv)
             std::cout << splinesTorque[i].part(j).max-splinesTorque[i].part(j).min << std::endl;
 	    for (size_t k=0;k<splinesTorque[i].part(j).polynom.degree()+1;k++) {
                 std::cout << splinesTorque[i].part(j).polynom(k);
-                if (k != splinesTorque[i].part(j).polynom.degree()) {
-                    std::cout << ", ";
-                }
+		std::cout << ", ";
+		
             }
+	    std::cout << "0.0";
             std::cout << std::endl;
         }
     }
@@ -386,10 +386,10 @@ int main(int argc, char** argv)
             std::cout << splinesPos[i].part(j).max-splinesPos[i].part(j).min << std::endl;
             for (size_t k=0;k<splinesPos[i].part(j).polynom.degree()+1;k++) {
                 std::cout << splinesPos[i].part(j).polynom(k);
-                if (k != splinesPos[i].part(j).polynom.degree()) {
-                    std::cout << ", ";
-                }
+		std::cout << ", ";
+		
             }
+	    std::cout << "0.0";
             std::cout << std::endl;
         }
     }
