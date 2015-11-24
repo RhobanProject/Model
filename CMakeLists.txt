@@ -208,7 +208,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testInverseKinematics
         testStaticWalk
         testRBDLRootUpdate
-        testSigmabanFixedModel
+        testHumanoidFixedModel
         testNullSpace
         testLegIK
         testModelTorques
