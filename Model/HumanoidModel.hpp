@@ -1,6 +1,7 @@
 #ifndef LEPH_HUMANOIDMODEL_HPP
 #define LEPH_HUMANOIDMODEL_HPP
 
+#include "Utils/Euler.h"
 #include "Model/Model.hpp"
 #include "LegIK/LegIK.hpp"
 
@@ -14,23 +15,6 @@ namespace Leph {
 enum RobotType {
     SigmabanModel,
     GrosbanModel,
-};
-
-/**
- * All combinations
- * of Euler angles types
- * in same order as rotation application
- *
- * EulerYawPitchRoll is built as
- * Roll * Pitch * Yaw.
- */
-enum EulerType {
-    EulerYawPitchRoll,
-    EulerYawRollPitch,
-    EulerRollPitchYaw,
-    EulerRollYawPitch,
-    EulerPitchRollYaw,
-    EulerPitchYawRoll,
 };
 
 /**
@@ -167,13 +151,6 @@ class HumanoidModel : public Model
         Eigen::Vector3d _trunkToHipRight;
         Eigen::Vector3d _trunkToFootTipLeft;
         Eigen::Vector3d _trunkToFootTipRight;
-
-        /**
-         * Convert given euler angle of given
-         * convention type to rotation matrix
-         */
-        Eigen::Matrix3d eulersToMatrix(
-            const Eigen::Vector3d angles, EulerType eulerType) const;
 
         /**
          * Compute and return the IK position reference
