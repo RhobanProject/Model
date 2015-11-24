@@ -44,6 +44,22 @@ int main()
         //Display model
         Leph::ModelDraw(model.get(), viewer);
     }
+    
+    //Test trunkModelIK
+    t = 0.0;
+    while (viewer.update()) {
+        bool isSuccess = model.trunkModelIK(
+            Leph::HumanoidFixedModel::LeftSupportFoot,
+            Eigen::Vector3d(0.0, 0.0, 0.2 + 0.05*sin(t)),
+            Eigen::Vector3d(0.6, 0.4*sin(t), 0.0),
+            Eigen::Vector3d(-0.02, -0.1, 0.05));
+        if (!isSuccess) {
+            std::cout << "IK ERROR" << std::endl;
+        }
+        //Display model
+        Leph::ModelDraw(model.get(), viewer);
+        t += 0.01;
+    }
 
     return 0;
 }

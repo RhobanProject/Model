@@ -92,6 +92,27 @@ class HumanoidFixedModel
             const VectorLabel& velocity,
             const VectorLabel& acceleration);
 
+        /**
+         * Set the model state by running 
+         * Inverse Kinematics on both legs.
+         * The state is given by the support foot,
+         * the flying foot position, the position 
+         * and orientation of the trunk with
+         * respect to support foot and using given
+         * Euler convention.
+         * Support fot is set flat on the ground.
+         * Flying foot orientation is set the same as
+         * support foot in world frame.
+         * False is returned if the inverse 
+         * kinematics fails.
+         */
+        bool trunkModelIK(
+            SupportFoot support,
+            const Eigen::Vector3d& trunkPos, 
+            const Eigen::Vector3d& trunkAngles,
+            const Eigen::Vector3d& flyingFootPos,
+            EulerType eulerType = EulerYawPitchRoll);
+
     private:
         
         /**
