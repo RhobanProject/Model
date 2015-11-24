@@ -321,6 +321,10 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
             target += _trunkToFootTipRight;
             target -= _trunkToHipRight; 
         }
+    } else if (frame == "LegIK") {
+        target = footPos;
+        //Raw LegIK frame
+        //No transformation
     } else {
         target = Model::position(
             frame, "trunk", footPos);
@@ -350,8 +354,11 @@ LegIK::Frame3D HumanoidModel::buildTargetOrientation(
     if (frame == "foot_tip_init") {
         //Special frame where foot tip in zero position
         //No conversion
+    } else if (frame == "LegIK") {
+        //Raw LegIK frame
+        //No conversion
     } else {
-        rotMatrixFrame *= Model::orientation(frame, "trunk");
+        rotMatrixTarget *= Model::orientation(frame, "trunk");
     }
 
     //Building LegIK input target

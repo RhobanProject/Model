@@ -86,6 +86,8 @@ class HumanoidModel : public Model
          * "foot tip init" is a special frame name representing a frame 
          * bound to trunk frame with initial (zero angles) 
          * foot tip translation.
+         * "LegIK" is the raw reference frame of LegIK 
+         * implementation.
          * True is returned if angles are updated and inverse
          * kinematics is sucessful, else false is returned.
          */
