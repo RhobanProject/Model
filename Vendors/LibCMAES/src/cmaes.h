@@ -31,6 +31,24 @@ namespace cma = libcmaes;
 
 namespace libcmaes
 {
+    //Fitness function typedef using Eigen Vector
+    typedef std::function<double (const Eigen::VectorXd&)> FitFuncEigen;
+    //Proxy CMAES converting Eigen::VectorXd to double array
+    template <class TGenoPheno=GenoPheno<NoBoundStrategy>>
+        CMASolutions cmaes(FitFuncEigen &funcEigen,
+        CMAParameters<TGenoPheno> &parameters)
+    {
+        FitFunc func = [funcEigen](const double* data, const int &n)
+        { 
+            Eigen::VectorXd vect(n);
+            for (size_t i=0;i<(size_t)n;i++) {
+                vect(i) = data[i];
+            }
+            return funcEigen(vect); 
+        };
+        return cmaes(func, parameters);
+    }
+
   template <class TGenoPheno=GenoPheno<NoBoundStrategy>>
   CMASolutions cmaes(FitFunc &func,
 		     CMAParameters<TGenoPheno> &parameters,
