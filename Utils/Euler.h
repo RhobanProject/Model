@@ -33,6 +33,19 @@ enum EulerType {
  */
 
 /**
+ * Return false if given Euler angles range are no valid
+ */
+inline bool CheckEulerBounds(const Eigen::Vector3d& angles)
+{
+    return 
+        (angles(0) >= -M_PI && angles(0) <= M_PI) &&
+        ((angles(1) > -M_PI/2.0 && angles(1) < M_PI/2.0) || 
+            (angles(0) == 0 && angles(2) == 0 && 
+            (angles(1) == -M_PI/2.0 || angles(1) == M_PI/2.0))) &&
+        (angles(2) >= 0.0 && angles(2) <= M_PI);
+}
+
+/**
  * Convert given Euler angles of given
  * convention type to rotation matrix
  */

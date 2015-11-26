@@ -4,6 +4,10 @@
 
 void test(const Eigen::Vector3d& angles)
 {
+    if (!Leph::CheckEulerBounds(angles)) {
+        std::cout << "ERROR Range" << std::endl;
+        std::cout << "init:  " << angles.transpose() << std::endl;
+    }
     {
         Eigen::Matrix3d mat = Leph::EulerToMatrix(angles, Leph::EulerYawPitchRoll);
         Eigen::Vector3d result = Leph::MatrixToEuler(mat, Leph::EulerYawPitchRoll);
@@ -84,6 +88,17 @@ int main()
     
     test(Eigen::Vector3d(0.1, 0.2, 0.0));
     test(Eigen::Vector3d(0.1, 0.2, M_PI));
+
+    if (
+        Leph::CheckEulerBounds(Eigen::Vector3d(-M_PI-0.1, 0.0, 0.0)) ||
+        !Leph::CheckEulerBounds(Eigen::Vector3d(0.0, M_PI/2.0, 0.0)) ||
+        Leph::CheckEulerBounds(Eigen::Vector3d(0.1, M_PI/2.0, 0.0)) ||
+        !Leph::CheckEulerBounds(Eigen::Vector3d(0.1, M_PI/2.0-0.1, 0.1)) ||
+        Leph::CheckEulerBounds(Eigen::Vector3d(0.1, 0.1, -0.1)) ||
+        Leph::CheckEulerBounds(Eigen::Vector3d(0.1, 0.1, M_PI+0.1))
+    ) {
+        std::cout << "ERROR Check" << std::endl;
+    }
 
     return 0;
 }
