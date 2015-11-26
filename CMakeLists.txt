@@ -156,6 +156,7 @@ set(TESTS_FILES
     testIterativeLearningControl
     testRandomWalk
     testLWPRInputsOptimization
+    testEuler
 )
 
 #Applications main files
