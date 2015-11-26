@@ -1,7 +1,9 @@
 #ifndef LEPH_EULER_H
 #define LEPH_EULER_H
 
+#include <stdexcept>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 namespace Leph {
 
@@ -21,6 +23,14 @@ enum EulerType {
     EulerPitchRollYaw,
     EulerPitchYawRoll,
 };
+
+/**
+ * Valid Euler angles (0, 1, 2) range
+ * are (bound included):
+ * 0: -M_PI : M_PI
+ * 1: -M_PI/2.0 : M_PI/2.0
+ * 2: 0.0 : M_PI
+ */
 
 /**
  * Convert given Euler angles of given
@@ -73,8 +83,52 @@ inline Eigen::Matrix3d EulerToMatrix(
             quat = rollRot * yawRot * pitchRot;
         }
         break;
+        default: {
+            throw std::logic_error("Euler invalid type");
+        }
     }
     return quat.matrix();
+}
+
+/**
+ * Convert the given rotation matriw into
+ * Euler angles of given convention
+ */
+inline Eigen::Vector3d MatrixToEuler(
+    const Eigen::Matrix3d& mat, EulerType eulerType)
+{
+    Eigen::Vector3d tmp(0.0, 0.0, 0.0);
+    switch (eulerType) {
+        case EulerYawPitchRoll: {
+            tmp = mat.eulerAngles(0, 1, 2);
+        }
+        break;
+        case EulerYawRollPitch: {
+            tmp = mat.eulerAngles(1, 0, 2);
+        }
+        break;
+        case EulerRollPitchYaw: {
+            tmp = mat.eulerAngles(2, 1, 0);
+        }
+        break;
+        case EulerRollYawPitch: {
+            tmp = mat.eulerAngles(1, 2, 0);
+        }
+        break;
+        case EulerPitchRollYaw: {
+            tmp = mat.eulerAngles(2, 0, 1);
+        }
+        break;
+        case EulerPitchYawRoll: {
+            tmp = mat.eulerAngles(0, 2, 1);
+        }
+        break;
+    }
+    Eigen::Vector3d angles;
+    angles(0) = tmp(2); 
+    angles(1) = tmp(1);
+    angles(2) = tmp(0);
+    return angles;
 }
 
 }
