@@ -64,7 +64,7 @@ static bool inverseKinematics(Leph::Model& model,
     const Eigen::Vector3d& targetPos, const Eigen::Vector3d& targetAngle)
 {
   double legHipToKnee = 0.1249;//0.09375;
-    double legKneeToAnkle = 0.105;
+    double legKneeToAnkle = 0105;
     double legAnkleToGround = 0.0319955;
     Eigen::Vector3d footToPen(0.089, 0.007, -0.0045);//(0.075, 0.037, -0.0085);
 
@@ -167,13 +167,14 @@ int main(int argc, char** argv)
     //Parsing input arguments
     std::string mode;
     if (argc != 2) {
-        std::cout << "Usage: ./app [quiet|gui|force]" << std::endl;
+        std::cout << "Usage: ./app [quiet|gui|force|gravity]" << std::endl;
         return 1;
     }
     mode = std::string(argv[1]);
 
-    //Compute cartesian force and quit
+
     if (mode == "force") {
+      //Compute cartesian force and quit
         std::pair<Eigen::VectorXd,Eigen::VectorXd> posTorques = loadPosTorques(std::cin);
         Eigen::VectorXd positions = posTorques.first;
         Eigen::VectorXd torques = posTorques.second;
@@ -190,6 +191,63 @@ int main(int argc, char** argv)
         //Compute joint velocities
         Eigen::VectorXd f = jac.fullPivLu().solve(torques);
         std::cout << f << std::endl;
+        return 0;
+    } else if (mode == "gravity") {
+      // Returns the torques to apply in order to mantain, at least localy, the position and velocity of each joint given in input
+        std::pair<Eigen::VectorXd,Eigen::VectorXd> posSpeeds = loadPosTorques(std::cin);
+        Eigen::VectorXd positions = posSpeeds.first;
+        Eigen::VectorXd speeds = posSpeeds.second;
+	
+        //Set DOF positions
+        model.setDOF("left_hip_yaw", positions(0));
+        model.setDOF("left_hip_roll", positions(1));
+        model.setDOF("left_hip_pitch", positions(2));
+        model.setDOF("left_knee", positions(3));
+        model.setDOF("left_ankle_pitch", positions(4));
+        model.setDOF("left_ankle_roll", positions(5));
+
+	//Foot velocity and acceleration vector
+        double vx = 0.0;
+        double vy = 0.0;
+        double vz = 0.0;
+        double ax = 0.0;
+        double ay = 0.0;
+        double az = 0.0;
+        Eigen::VectorXd pos = model.getDOFVect();
+        Eigen::VectorXd vel(6, 1);
+        Eigen::VectorXd acc(6, 1);
+        //Roll-Pitch-Yaw convention
+        //TODO velocity of orientation pitch and yaw are not considered
+        vel(0) = 0.0;
+        vel(1) = 0.0;
+        vel(2) = 0.0;
+        vel(3) = vx;
+        vel(4) = vy;
+        vel(5) = vz;
+        acc(0) = 0.0;
+        acc(1) = 0.0;
+        acc(2) = 0.0;
+        acc(3) = ax;
+        acc(4) = ay;
+        acc(5) = az;
+        //Compute foot jacobian matrix
+        Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip");
+        //Compute joint velocities
+        Eigen::VectorXd dq = jac.fullPivLu().solve(vel);
+        //Compute joint acceleration
+        //acc = J(q)*ddq + dJ(q, dq)*dq
+        //=> ddq = J(q)^-1*(acc - dJ*dq)
+        //dJ*dq can be computed using pointAcceleration and setting 
+        //ddq to zero (thanks Martin Felis !).
+        Eigen::VectorXd J_dot_q_dot = model.pointAcceleration("left_foot_tip", dq, 
+            Eigen::VectorXd::Zero(model.sizeDOF()));
+        Eigen::VectorXd ddq = jac.fullPivLu().solve(acc - J_dot_q_dot);
+        //Compute joint torques
+        model.setGravity(Eigen::Vector3d(0.0, 0.0, -9.81));
+        Eigen::VectorXd torques = model.inverseDynamics(dq, ddq);
+        //Assign to splines
+	std::cout << torques << std::endl;
+	
         return 0;
     }
 
