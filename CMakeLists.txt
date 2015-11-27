@@ -157,6 +157,7 @@ set(TESTS_FILES
     testRandomWalk
     testLWPRInputsOptimization
     testEuler
+    testAxisAngle
 )
 
 #Applications main files
