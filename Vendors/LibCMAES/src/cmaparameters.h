@@ -79,6 +79,15 @@ namespace libcmaes
 		    const int &lambda=-1,
 		    const uint64_t &seed=0,
 		    const TGenoPheno &gp=TGenoPheno());
+
+      /**
+       * Eigen Vector Proxy for last constructor
+       */
+      CMAParameters(const Eigen::VectorXd &x0Eigen,
+		    const double &sigma,
+		    const int &lambda=-1,
+		    const uint64_t &seed=0,
+		    const TGenoPheno &gp=TGenoPheno());
       
       /**
        * \brief Constructor.

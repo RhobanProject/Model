@@ -1,4 +1,5 @@
 #include "Model/HumanoidFixedModel.hpp"
+#include "Utils/Euler.h"
 
 namespace Leph {
 
@@ -231,6 +232,52 @@ Eigen::Vector3d HumanoidFixedModel::computeZMP(
     double Pz = 0.0;
 
     return Eigen::Vector3d(Px, Py, Pz);
+}
+
+bool HumanoidFixedModel::trunkModelIK(
+    SupportFoot support,
+    const Eigen::Vector3d& trunkPos, 
+    const Eigen::Vector3d& trunkAngles,
+    const Eigen::Vector3d& flyingFootPos,
+    EulerType eulerType)
+{
+    //Set the new support foot flat on the ground
+    setSupportFoot(support);
+    get().setDOF("base_pitch", 0.0);
+    get().setDOF("base_roll", 0.0);
+    //Compute the rotation matrix from support
+    //foot to trunk
+    Eigen::Matrix3d rotation = EulerToMatrix(
+        trunkAngles, eulerType).transpose();
+    
+    //Compute left and right leg inverse kinematics
+    //for both support foot.
+    bool isSuccessLeft = true;
+    bool isSuccessRight = true;
+    if (support == LeftSupportFoot) {
+        isSuccessLeft = get().legIkLeft(
+            "trunk",
+            rotation*(-trunkPos), 
+            trunkAngles,
+            eulerType);
+        isSuccessRight = get().legIkRight(
+            "left_foot_tip",
+            flyingFootPos, 
+            Eigen::Vector3d::Zero());
+    }
+    if (support == RightSupportFoot) {
+        isSuccessRight = get().legIkRight(
+            "trunk",
+            rotation*(-trunkPos), 
+            trunkAngles,
+            eulerType);
+        isSuccessLeft = get().legIkLeft(
+            "right_foot_tip",
+            flyingFootPos, 
+            Eigen::Vector3d::Zero());
+    }
+
+    return isSuccessLeft && isSuccessRight;
 }
 
 }
