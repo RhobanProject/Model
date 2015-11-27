@@ -220,8 +220,8 @@ int main(int argc, char** argv)
         double z = splinesCart[2].pos(t);
         
         double minDist = 0.13;
-        double maxDist = 0.27;
-        double angleAtMin = M_PI/2.0;
+        double maxDist = 0.25;
+        double angleAtMin = M_PI/2.0 + 0.7;
         double angleAtMax = M_PI/2.0 - 0.7;
         
         double distTarget = sqrt(x*x + y*y);
@@ -234,9 +234,11 @@ int main(int argc, char** argv)
             double ratio = (distTarget-minDist)/(maxDist-minDist);
             pitch = (1.0-ratio)*angleAtMin + ratio*angleAtMax;
         }
-	//pitch = M_PI/2.0;
+	
         double yaw = -atan2(y, x);
-        
+        //pitch = M_PI/2.0;
+	//yaw = M_PI/2.0;
+	
         bool isSucess = inverseKinematics(model, 
             Eigen::Vector3d(x, y, z), Eigen::Vector3d(yaw,  pitch, 0.0));
         if (!isSucess) {
