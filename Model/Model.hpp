@@ -153,28 +153,40 @@ class Model
 
         /**
          * Compute and return the Jacobian matrix
-         * at given point of given frame.
+         * at given point of given frame with in given
+         * dst frame.
          * The jacobian matrix of 6xDOF size is returned
-         * (roll, pitch, yaw, x, y, z in world frame).
+         * in Spatial Vector (rotation angle axis, translation)
+         * (axisX, axisY, axisZ, Tx, Ty, Tz in dst frame).
+         * !!! 
+         * !!! dstFrame must be fixed with respect to world frame
+         * !!!
          */
         Eigen::MatrixXd pointJacobian(
-            const std::string& srcFrame,
+            const std::string& pointFrame,
+            const std::string& dstFrame,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
 
         /**
-         * Compute and return the cartesian velocity and accemeration
-         * at given point of given frame.
-         * The velocity and acceleration vector is 6x1 sized
-         * (roll, pitch, yaw, x, y, z in world frame).
+         * Compute and return the cartesian velocity and acceleration
+         * at given point of given frame with in dst frame.
+         * The velocity and acceleration Spatial Vector 
+         * (rotation axis angle, translation) is 6x1 sized
+         * (axisX, axisY, axisZ, Tx, Ty, Tz in dst frame).
          * Current degrees of freedom velocity and acceleration
          * is given.
+         * !!! 
+         * !!! dstFrame must be fixed with respect to world frame
+         * !!!
          */
         Eigen::VectorXd pointVelocity(
-            const std::string& srcFrame, 
+            const std::string& pointFrame, 
+            const std::string& dstFrame,
             const Eigen::VectorXd& velocity,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());
         Eigen::VectorXd pointAcceleration(
-            const std::string& srcFrame, 
+            const std::string& pointFrame, 
+            const std::string& dstFrame,
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& acceleration,
             const Eigen::Vector3d& point = Eigen::Vector3d::Zero());

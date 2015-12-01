@@ -247,6 +247,7 @@ double Model::orientationYaw(
         
 Eigen::MatrixXd Model::pointJacobian(
     const std::string& srcFrame,
+    const std::string& dstFrame,
     const Eigen::Vector3d& point)
 {
     //Convert to body id
@@ -257,39 +258,72 @@ Eigen::MatrixXd Model::pointJacobian(
     RBDLMath::MatrixNd G(6, _model.qdot_size);
     G.setZero();
 
-    //Compute jacobian on given point
+    //Compute jacobian on given point in 
+    //world origin frame
     CalcPointJacobian6D(_model, _dofs,
         srcFrameIndex, point, G, true);
+
+    //Convertion to dst frame
+    Eigen::Matrix3d mat = orientation("origin", dstFrame);
+    mat.transposeInPlace();
+    for (size_t i=0;i<(size_t)G.cols();i++) {
+        Eigen::Vector3d rot = G.block(0, i, 3, 1);
+        Eigen::Vector3d trans = G.block(3, i, 3, 1);
+        G.block(0, i, 3, 1) = mat * rot;
+        G.block(3, i, 3, 1) = mat * trans;
+    }
         
     return G;
 }
 
 Eigen::VectorXd Model::pointVelocity(
-    const std::string& srcFrame, 
+    const std::string& pointFrame, 
+    const std::string& dstFrame, 
     const Eigen::VectorXd& velocity,
     const Eigen::Vector3d& point)
 {
     //Convert to body id
-    size_t srcFrameIndex = getFrameIndex(srcFrame);
-    srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
+    size_t pointFrameIndex = getFrameIndex(pointFrame);
+    pointFrameIndex = _frameIndexToId.at(pointFrameIndex);
     
     //Compute velocity
-    return CalcPointVelocity6D(_model, _dofs, 
-        velocity, srcFrameIndex, point, true);
+    Eigen::VectorXd vel = CalcPointVelocity6D(_model, _dofs, 
+        velocity, pointFrameIndex, point, true);
+
+    //Convertion to dst frame
+    Eigen::Matrix3d mat = orientation("origin", dstFrame);
+    mat.transposeInPlace();
+    Eigen::Vector3d rot = vel.segment(0, 3);
+    Eigen::Vector3d trans = vel.segment(3, 3);
+    vel.segment(0, 3) = mat * rot;
+    vel.segment(3, 3) = mat * trans;
+
+    return vel;
 }
 Eigen::VectorXd Model::pointAcceleration(
-    const std::string& srcFrame, 
+    const std::string& pointFrame, 
+    const std::string& dstFrame, 
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& acceleration,
     const Eigen::Vector3d& point)
 {
     //Convert to body id
-    size_t srcFrameIndex = getFrameIndex(srcFrame);
-    srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
+    size_t pointFrameIndex = getFrameIndex(pointFrame);
+    pointFrameIndex = _frameIndexToId.at(pointFrameIndex);
     
     //Compute acceleration
-    return CalcPointAcceleration6D(_model, _dofs, 
-        velocity, acceleration, srcFrameIndex, point, true);
+    Eigen::VectorXd acc =  CalcPointAcceleration6D(_model, _dofs, 
+        velocity, acceleration, pointFrameIndex, point, true);
+    
+    //Convertion to dst frame
+    Eigen::Matrix3d mat = orientation("origin", dstFrame);
+    mat.transposeInPlace();
+    Eigen::Vector3d rot = acc.segment(0, 3);
+    Eigen::Vector3d trans = acc.segment(3, 3);
+    acc.segment(0, 3) = mat * rot;
+    acc.segment(3, 3) = mat * trans;
+
+    return acc;
 }
         
 Eigen::Vector3d Model::centerOfMass(size_t frameIndex)
