@@ -3,6 +3,7 @@
 #include "Viewer/ModelDraw.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Utils/Euler.h"
 
 int main()
 {
@@ -54,7 +55,9 @@ int main()
         model.get().setDOF("left_ankle_roll", 0.5*sin(t/3.0));
 
         //Run inverse kinematics on right legs
-        if (!model.get().legIkRight(frame, targetPos, targetAngles)) {
+        if (!model.get().legIkRight(frame, targetPos, 
+            Leph::EulerToMatrix(targetAngles, Leph::EulerYawPitchRoll))
+        ) {
             std::cout << "InverseKinematics fail" << std::endl;
         }
         
@@ -91,7 +94,9 @@ int main()
         }
         
         //Run inverse kinematics on left legs
-        if (!model.get().legIkLeft(frame, targetPos, targetAngles)) {
+        if (!model.get().legIkLeft(frame, targetPos, 
+            Leph::EulerToMatrix(targetAngles, Leph::EulerYawPitchRoll))
+        ) {
             std::cout << "InverseKinematics fail" << std::endl;
         }
         

@@ -1,6 +1,7 @@
 #include "IKWalk/IKWalk.hpp"
 #include "Spline/CubicSpline.hpp"
 #include "Spline/SmoothSpline.hpp"
+#include "Utils/Euler.h"
 
 namespace Leph {
 
@@ -199,9 +200,9 @@ bool IKWalk::walk(HumanoidModel& model,
     //Run inverse invert kinematics on both legs
     //using Pitch-Roll-Yaw convention
     bool successLeft = model.legIkLeft("foot_tip_init", 
-        posLeft, angleLeft, EulerPitchRollYaw);
+        posLeft, EulerToMatrix(angleLeft, EulerPitchRollYaw));
     bool successRight = model.legIkRight("foot_tip_init", 
-        posRight, angleRight, EulerPitchRollYaw);
+        posRight, EulerToMatrix(angleRight, EulerPitchRollYaw));
 
     //Check inverse kinematics success
     if (!successLeft || !successRight) {

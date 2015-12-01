@@ -1,4 +1,5 @@
 #include "Model/HumanoidFloatingModel.hpp"
+#include "Utils/Euler.h"
 
 namespace Leph {
 
@@ -107,7 +108,7 @@ void HumanoidFloatingModel::putSupportFootFlat()
         Model::orientation(supportFootName(), "trunk");
     //Convertion of this rotation matrix into yaw, pitch, roll
     //intrinsic euler angles
-    Eigen::Vector3d angles = rotation.eulerAngles(0, 1, 2);
+    Eigen::Vector3d angles = MatrixToEuler(rotation, EulerRollPitchYaw);
     //Updating floating joint roll, pitch, yaw 
     //and apply yaw state rotation
     Model::setDOF("base_roll", angles(0));

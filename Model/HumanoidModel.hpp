@@ -1,7 +1,6 @@
 #ifndef LEPH_HUMANOIDMODEL_HPP
 #define LEPH_HUMANOIDMODEL_HPP
 
-#include "Utils/Euler.h"
 #include "Model/Model.hpp"
 #include "LegIK/LegIK.hpp"
 
@@ -64,9 +63,8 @@ class HumanoidModel : public Model
         /**
          * Run analytical inverse kinematics LegIK and update
          * Left ot Right legs angles to place the Left or Right
-         * foot tip at given position and euler angles orientation
-         * (default is Yaw-Pitch-Roll) with respect to given frame name.
-         * Used Eulers angle convention is given by eulerType.
+         * foot tip at given position and rotation matrix for orientation
+         * with respect to given frame name.
          * "foot tip init" is a special frame name representing a frame 
          * bound to trunk frame with initial (zero angles) 
          * foot tip translation.
@@ -77,12 +75,10 @@ class HumanoidModel : public Model
          */
         bool legIkLeft(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Vector3d& angles = Eigen::Vector3d::Zero(),
-            EulerType eulerType = EulerYawPitchRoll);
+            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity());
         bool legIkRight(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Vector3d& angles = Eigen::Vector3d::Zero(),
-            EulerType eulerType = EulerYawPitchRoll);
+            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity());
 
         /**
          * Return the initial vertical distance
@@ -163,8 +159,7 @@ class HumanoidModel : public Model
             bool isLeftLeg);
         LegIK::Frame3D buildTargetOrientation(
             const std::string& frame,
-            const Eigen::Vector3d& angles, 
-            EulerType eulerType);
+            const Eigen::Matrix3d& rotation);
 
         /**
          * Assign model leg DOF to given IK results

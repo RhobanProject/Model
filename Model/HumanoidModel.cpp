@@ -104,8 +104,7 @@ void HumanoidModel::boundingBox(size_t frameIndex,
 
 bool HumanoidModel::legIkLeft(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Vector3d& angles,
-    EulerType eulerType)
+    const Eigen::Matrix3d& rotation)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -117,7 +116,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     //Convert orientation from given frame
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
-        frame, angles, eulerType);
+        frame, rotation);
     
     //Run inverse kinematics
     LegIK::Position result;
@@ -134,8 +133,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
 }
 bool HumanoidModel::legIkRight(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Vector3d& angles,
-    EulerType eulerType)
+    const Eigen::Matrix3d& rotation)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -147,7 +145,7 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     //Convert orientation from given frame
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
-        frame, angles, eulerType);
+        frame, rotation);
     
     //Run inverse kinematics
     LegIK::Position result;
@@ -294,12 +292,9 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
 }
 LegIK::Frame3D HumanoidModel::buildTargetOrientation(
     const std::string& frame,
-    const Eigen::Vector3d& angles, 
-    EulerType eulerType)
+    const Eigen::Matrix3d& rotation)
 {
-    Eigen::Matrix3d rotMatrixFrame = EulerToMatrix(
-        angles, eulerType);
-    Eigen::Matrix3d rotMatrixTarget = rotMatrixFrame;
+    Eigen::Matrix3d rotMatrixTarget = rotation;
     if (frame == "foot_tip_init") {
         //Special frame where foot tip in zero position
         //No conversion
