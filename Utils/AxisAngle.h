@@ -22,7 +22,7 @@ inline Eigen::Matrix3d AxisToMatrix(const Eigen::Vector3d& axis)
 {
     double theta = axis.norm();
     if (fabs(theta) > M_PI/2.0) {
-        throw std::logic_error("AxisAngle unbound angle (in -M_PI/2:M_PI)");
+        throw std::logic_error("AxisAngle unbounded angle (in -M_PI/2:M_PI/2)");
     }
     if (theta <= 0.0) {
         return Eigen::Matrix3d::Identity();
@@ -55,6 +55,50 @@ inline Eigen::Vector3d MatrixToAxis(const Eigen::Matrix3d& mat)
     } else {
         return Eigen::Vector3d(0.0, 0.0, 0.0);
     }
+}
+
+/**
+ * Conversion from rotation axis 
+ * differential to actual angular velocity
+ * in world frame
+ * Reference:
+ * Representing attitude: Euler angles, unit quaternions, and rotation vectors
+ * Diebel 2006 
+ * Page 21 (eq. 259)
+ * Axis: world to moving frame rotation axis (rotation vector)
+ * AxisDiff: time differential of axis (rotation vector rate)
+ * Returns rotation velocity of moving frame 
+ * in world frame (angular velocity)
+ */
+inline Eigen::Vector3d AxisDiffToAxisVel(
+    const Eigen::Vector3d& axis, const Eigen::Vector3d& axisDiff)
+{
+    double v = axis.norm();
+    double v1 = axis(0);
+    double v2 = axis(1);
+    double v3 = axis(2);
+    double cv2 = cos(v/2.0);
+    double sv2 = sin(v/2.0);
+    double a = cv2*v - 2.0*sv2;
+
+    //Eq. 237
+    Eigen::MatrixXd W(3, 4);
+    W <<
+        -v1*sv2, v*cv2,   -v3*sv2, v2*sv2,
+        -v2*sv2, v3*sv2,  v*cv2,   -v1*sv2,
+        -v3*sv2, -v2*sv2, v1*sv2,  v*cv2;
+    W *= 1.0/v;
+    //Eq. 214
+    Eigen::MatrixXd G(4, 3);
+    G <<
+        -v1*v*v*sv2,           -v2*v*v*sv2,           -v3*v*v*sv2,
+        2.0*v*v*sv2 + v1*v1*a, v1*v2*a,               v1*v3*a,
+        v1*v2*a,               2.0*v*v*sv2 + v2*v2*a, v2*v3*a,
+        v1*v3*a,               v2*v3*a,               2.0*v*v*sv2 + v3*v3*a;
+    G *= 1.0/(2.0*v*v*v);
+
+    //Eq. 259
+    return 2.0*W*G*axisDiff;
 }
 
 }
