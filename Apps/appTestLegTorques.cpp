@@ -185,7 +185,7 @@ int main(int argc, char** argv)
         model.setDOF("left_ankle_pitch", positions(4));
         model.setDOF("left_ankle_roll", positions(5));
         //Compute foot jacobian matrix
-        Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip");
+        Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip", "origin");
         jac.transposeInPlace();
         //Compute joint velocities
         Eigen::VectorXd f = jac.fullPivLu().solve(torques);
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
         acc(4) = ay;
         acc(5) = az;
         //Compute foot jacobian matrix
-        Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip");
+        Eigen::MatrixXd jac = model.pointJacobian("left_foot_tip", "origin");
         //Compute joint velocities
         Eigen::VectorXd dq = jac.fullPivLu().solve(vel);
         //Compute joint acceleration
@@ -276,8 +276,8 @@ int main(int argc, char** argv)
         //=> ddq = J(q)^-1*(acc - dJ*dq)
         //dJ*dq can be computed using pointAcceleration and setting 
         //ddq to zero (thanks Martin Felis !).
-        Eigen::VectorXd J_dot_q_dot = model.pointAcceleration("left_foot_tip", dq, 
-            Eigen::VectorXd::Zero(model.sizeDOF()));
+        Eigen::VectorXd J_dot_q_dot = model.pointAcceleration("left_foot_tip", 
+            "origin", dq, Eigen::VectorXd::Zero(model.sizeDOF()));
         Eigen::VectorXd ddq = jac.fullPivLu().solve(acc - J_dot_q_dot);
         //Compute joint torques
         model.setGravity(Eigen::Vector3d(0.0, 0.0, -9.81));
