@@ -217,6 +217,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testIKWalk
         testZeroMomentPoint
         testHumanoidPressureModel
+        testTrunkFootIK
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines

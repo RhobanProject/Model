@@ -1,5 +1,4 @@
 #include "Model/HumanoidFixedModel.hpp"
-#include "Utils/Euler.h"
 
 namespace Leph {
 
@@ -188,6 +187,317 @@ Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     return get().position("origin", frame, zmp);
 }
 
+bool HumanoidFixedModel::trunkFootIK(
+    SupportFoot support,
+    const Eigen::Vector3d& trunkPos, 
+    const Eigen::Matrix3d& trunkRotation,
+    const Eigen::Vector3d& flyingFootPos)
+{
+    //Set the new support foot flat on the ground
+    setSupportFoot(support);
+    get().setDOF("base_pitch", 0.0);
+    get().setDOF("base_roll", 0.0);
+    //Compute the rotation matrix from support
+    //foot to trunk transposed
+    Eigen::Matrix3d rotationT = trunkRotation.transpose();
+    
+    //Compute left and right leg inverse kinematics
+    //for both support foot.
+    bool isSuccessLeft = true;
+    bool isSuccessRight = true;
+    if (support == LeftSupportFoot) {
+        isSuccessLeft = get().legIkLeft(
+            "trunk",
+            rotationT*(-trunkPos), 
+            trunkRotation);
+        isSuccessRight = get().legIkRight(
+            "left_foot_tip",
+            flyingFootPos,
+            Eigen::Matrix3d::Identity());
+    }
+    if (support == RightSupportFoot) {
+        isSuccessRight = get().legIkRight(
+            "trunk",
+            rotationT*(-trunkPos), 
+            trunkRotation);
+        isSuccessLeft = get().legIkLeft(
+            "right_foot_tip",
+            flyingFootPos,
+            Eigen::Matrix3d::Identity());
+    }
+
+    return isSuccessLeft && isSuccessRight;
+}
+
+Eigen::VectorXd HumanoidFixedModel::trunkFootIKVel(
+    const Eigen::Vector3d& trunkPosVel, 
+    const Eigen::Vector3d& trunkAxisAnglesVel,
+    const Eigen::Vector3d& flyingFootPosVel)
+{
+    //Support foot selection
+    std::string supportName;
+    std::string flyingName;
+    std::string supportPrefix;
+    std::string flyingPrefix;
+    if (getSupportFoot() == LeftSupportFoot) {
+        supportName = "left_foot_tip";
+        flyingName = "right_foot_tip";
+        supportPrefix = "left_";
+        flyingPrefix = "right_";
+    } else if (getSupportFoot() == RightSupportFoot) {
+        supportName = "right_foot_tip";
+        flyingName = "left_foot_tip";
+        supportPrefix = "right_";
+        flyingPrefix = "left_";
+    }
+
+    //Compute trunk and flying foot 
+    //jacobian in support foot frame
+    Eigen::MatrixXd jacTrunk = get()
+        .pointJacobian("trunk", supportName);
+    Eigen::MatrixXd jacFoot = get()
+        .pointJacobian(flyingName, supportName);
+
+    //Retrieve DOF internal index
+    size_t indexSupportAnkleRoll = get()
+        .getDOFIndex(supportPrefix + "ankle_roll");
+    size_t indexSupportAnklePitch = get()
+        .getDOFIndex(supportPrefix + "ankle_pitch");
+    size_t indexSupportKnee = get()
+        .getDOFIndex(supportPrefix + "knee");
+    size_t indexSupportHipPitch = get()
+        .getDOFIndex(supportPrefix + "hip_pitch");
+    size_t indexSupportHipRoll = get()
+        .getDOFIndex(supportPrefix + "hip_roll");
+    size_t indexSupportHipYaw = get()
+        .getDOFIndex(supportPrefix + "hip_yaw");
+    size_t indexFlyingAnkleRoll = get()
+        .getDOFIndex(flyingPrefix + "ankle_roll");
+    size_t indexFlyingAnklePitch = get()
+        .getDOFIndex(flyingPrefix + "ankle_pitch");
+    size_t indexFlyingKnee = get()
+        .getDOFIndex(flyingPrefix + "knee");
+    size_t indexFlyingHipPitch = get()
+        .getDOFIndex(flyingPrefix + "hip_pitch");
+    size_t indexFlyingHipRoll = get()
+        .getDOFIndex(flyingPrefix + "hip_roll");
+    size_t indexFlyingHipYaw = get()
+        .getDOFIndex(flyingPrefix + "hip_yaw");
+
+    //Restrict both jacobian to support 
+    //and flying foot degrees of freedom
+    Eigen::MatrixXd subJacTrunk(6, 6);
+    subJacTrunk.col(0) = jacTrunk.col(indexSupportAnkleRoll);
+    subJacTrunk.col(1) = jacTrunk.col(indexSupportAnklePitch);
+    subJacTrunk.col(2) = jacTrunk.col(indexSupportKnee);
+    subJacTrunk.col(3) = jacTrunk.col(indexSupportHipPitch);
+    subJacTrunk.col(4) = jacTrunk.col(indexSupportHipRoll);
+    subJacTrunk.col(5) = jacTrunk.col(indexSupportHipYaw);
+    Eigen::MatrixXd subJacFoot(6, 6);
+    subJacFoot.col(0) = jacFoot.col(indexFlyingHipYaw);
+    subJacFoot.col(1) = jacFoot.col(indexFlyingHipRoll);
+    subJacFoot.col(2) = jacFoot.col(indexFlyingHipPitch);
+    subJacFoot.col(3) = jacFoot.col(indexFlyingKnee);
+    subJacFoot.col(4) = jacFoot.col(indexFlyingAnklePitch);
+    subJacFoot.col(5) = jacFoot.col(indexFlyingAnkleRoll);
+
+    //Build spatial vector of 
+    //the trunk velocity in support foot frame
+    Eigen::VectorXd trunkVel(6);
+    trunkVel.segment(0, 3) = trunkAxisAnglesVel;
+    trunkVel.segment(3, 3) = trunkPosVel;
+
+    //Build spatial vector of the relative velocity of
+    //flying foot with respect the the trunk in support foot frame 
+    Eigen::VectorXd footVel(6);
+    footVel.segment(0, 3) = -trunkAxisAnglesVel;
+    //Compute relative linear translation velocity
+    //of the trunk in support frame.
+    //T (trunk), F (foot), O (support)
+    //vel(F/T) = vel(F/O) - vel(T/O) - w(O/T) cross TF
+    Eigen::Vector3d relPos = 
+        get().position(flyingName, supportName)
+        - get().position("trunk", supportName);
+    footVel.segment(3, 3) = 
+        flyingFootPosVel 
+        - trunkPosVel 
+        - trunkAxisAnglesVel.cross(relPos);
+
+    //Compute support leg joint velocities
+    Eigen::VectorXd dqSupport = subJacTrunk.fullPivLu().solve(trunkVel);
+    //Compute flying leg joint velocities
+    Eigen::VectorXd dqFlying = subJacFoot.fullPivLu().solve(footVel);
+
+    //Assign and return computed velocities
+    Eigen::VectorXd dofVel = Eigen::VectorXd::Zero(get().sizeDOF());
+    dofVel(indexSupportAnkleRoll) = dqSupport(0);
+    dofVel(indexSupportAnklePitch) = dqSupport(1);
+    dofVel(indexSupportKnee) = dqSupport(2);
+    dofVel(indexSupportHipPitch) = dqSupport(3);
+    dofVel(indexSupportHipRoll) = dqSupport(4);
+    dofVel(indexSupportHipYaw) = dqSupport(5);
+    dofVel(indexFlyingHipYaw) = dqFlying(0);
+    dofVel(indexFlyingHipRoll) = dqFlying(1);
+    dofVel(indexFlyingHipPitch) = dqFlying(2);
+    dofVel(indexFlyingKnee) = dqFlying(3);
+    dofVel(indexFlyingAnklePitch) = dqFlying(4);
+    dofVel(indexFlyingAnkleRoll) = dqFlying(5);
+    return dofVel;
+}
+        
+Eigen::VectorXd HumanoidFixedModel::trunkFootIKAcc(
+    const Eigen::VectorXd& dq,
+    const Eigen::Vector3d& trunkPosVel, 
+    const Eigen::Vector3d& trunkAxisAnglesVel,
+    const Eigen::Vector3d& flyingFootPosVel,
+    const Eigen::Vector3d& trunkPosAcc, 
+    const Eigen::Vector3d& trunkAxisAnglesAcc,
+    const Eigen::Vector3d& flyingFootPosAcc)
+{
+    //Support foot selection
+    std::string supportName;
+    std::string flyingName;
+    std::string supportPrefix;
+    std::string flyingPrefix;
+    if (getSupportFoot() == LeftSupportFoot) {
+        supportName = "left_foot_tip";
+        flyingName = "right_foot_tip";
+        supportPrefix = "left_";
+        flyingPrefix = "right_";
+    } else if (getSupportFoot() == RightSupportFoot) {
+        supportName = "right_foot_tip";
+        flyingName = "left_foot_tip";
+        supportPrefix = "right_";
+        flyingPrefix = "left_";
+    }
+
+    //Compute trunk and flying foot 
+    //jacobian in support foot frame
+    Eigen::MatrixXd jacTrunk = get()
+        .pointJacobian("trunk", supportName);
+    Eigen::MatrixXd jacFoot = get()
+        .pointJacobian(flyingName, supportName);
+
+    //Retrieve DOF internal index
+    size_t indexSupportAnkleRoll = get()
+        .getDOFIndex(supportPrefix + "ankle_roll");
+    size_t indexSupportAnklePitch = get()
+        .getDOFIndex(supportPrefix + "ankle_pitch");
+    size_t indexSupportKnee = get()
+        .getDOFIndex(supportPrefix + "knee");
+    size_t indexSupportHipPitch = get()
+        .getDOFIndex(supportPrefix + "hip_pitch");
+    size_t indexSupportHipRoll = get()
+        .getDOFIndex(supportPrefix + "hip_roll");
+    size_t indexSupportHipYaw = get()
+        .getDOFIndex(supportPrefix + "hip_yaw");
+    size_t indexFlyingAnkleRoll = get()
+        .getDOFIndex(flyingPrefix + "ankle_roll");
+    size_t indexFlyingAnklePitch = get()
+        .getDOFIndex(flyingPrefix + "ankle_pitch");
+    size_t indexFlyingKnee = get()
+        .getDOFIndex(flyingPrefix + "knee");
+    size_t indexFlyingHipPitch = get()
+        .getDOFIndex(flyingPrefix + "hip_pitch");
+    size_t indexFlyingHipRoll = get()
+        .getDOFIndex(flyingPrefix + "hip_roll");
+    size_t indexFlyingHipYaw = get()
+        .getDOFIndex(flyingPrefix + "hip_yaw");
+
+    //Restrict both jacobian to support 
+    //and flying foot degrees of freedom
+    Eigen::MatrixXd subJacTrunk(6, 6);
+    subJacTrunk.col(0) = jacTrunk.col(indexSupportAnkleRoll);
+    subJacTrunk.col(1) = jacTrunk.col(indexSupportAnklePitch);
+    subJacTrunk.col(2) = jacTrunk.col(indexSupportKnee);
+    subJacTrunk.col(3) = jacTrunk.col(indexSupportHipPitch);
+    subJacTrunk.col(4) = jacTrunk.col(indexSupportHipRoll);
+    subJacTrunk.col(5) = jacTrunk.col(indexSupportHipYaw);
+    Eigen::MatrixXd subJacFoot(6, 6);
+    subJacFoot.col(0) = jacFoot.col(indexFlyingHipYaw);
+    subJacFoot.col(1) = jacFoot.col(indexFlyingHipRoll);
+    subJacFoot.col(2) = jacFoot.col(indexFlyingHipPitch);
+    subJacFoot.col(3) = jacFoot.col(indexFlyingKnee);
+    subJacFoot.col(4) = jacFoot.col(indexFlyingAnklePitch);
+    subJacFoot.col(5) = jacFoot.col(indexFlyingAnkleRoll);
+    
+    //Build spatial vector of the trunk 
+    //acceleration in support foot frame
+    Eigen::VectorXd trunkAcc(6);
+    trunkAcc.segment(0, 3) = trunkAxisAnglesAcc;
+    trunkAcc.segment(3, 3) = trunkPosAcc;
+
+    //Build spatial vector of the relative acceleration of
+    //flying foot with respect the the trunk in support foot frame 
+    Eigen::VectorXd footAcc(6);
+    footAcc.segment(0, 3) = -trunkAxisAnglesAcc;
+    //Compute relative linear translation acceleration
+    //of the trunk in support frame. 
+    //T (trunk), F (foot), O (support)
+    //acc(F/T) = acc(F/O) - acc(T/O) - dw/dt(T/O) cross TF 
+    //-w(T/O) cross w(T/O) cross TF - 2*w(T/O) cross vel(F/T)
+    Eigen::Vector3d relPos = 
+        get().position(flyingName, supportName)
+        - get().position("trunk", supportName);
+    Eigen::Vector3d relVel =
+        flyingFootPosVel - trunkPosVel 
+        - trunkAxisAnglesVel.cross(relPos);
+    footAcc.segment(3, 3) = 
+        flyingFootPosAcc
+        - trunkPosAcc
+        - trunkAxisAnglesAcc.cross(relPos)
+        - trunkAxisAnglesVel.cross(trunkAxisAnglesVel.cross(relPos))
+        - 2.0*trunkAxisAnglesVel.cross(relVel);
+
+    //Build partial joint velocity vectors
+    Eigen::VectorXd dqSupport = Eigen::VectorXd::Zero(get().sizeDOF());
+    Eigen::VectorXd dqFlying = Eigen::VectorXd::Zero(get().sizeDOF());
+    dqSupport(indexSupportAnkleRoll) = dq(indexSupportAnkleRoll);
+    dqSupport(indexSupportAnklePitch) = dq(indexSupportAnklePitch);
+    dqSupport(indexSupportKnee) = dq(indexSupportKnee);
+    dqSupport(indexSupportHipPitch) = dq(indexSupportHipPitch);
+    dqSupport(indexSupportHipRoll) = dq(indexSupportHipRoll);
+    dqSupport(indexSupportHipYaw) = dq(indexSupportHipYaw);
+    dqFlying(indexFlyingAnkleRoll) = dq(indexFlyingAnkleRoll);
+    dqFlying(indexFlyingAnklePitch) = dq(indexFlyingAnklePitch);
+    dqFlying(indexFlyingKnee) = dq(indexFlyingKnee);
+    dqFlying(indexFlyingHipPitch) = dq(indexFlyingHipPitch);
+    dqFlying(indexFlyingHipRoll) = dq(indexFlyingHipRoll);
+    dqFlying(indexFlyingHipYaw) = dq(indexFlyingHipYaw);
+
+    //Compute joint acceleration
+    //acc = J(q)*ddq + dJ(q, dq)*dq
+    //=> ddq = J(q)^-1*(acc - dJ*dq)
+    //dJ*dq can be computed using pointAcceleration and setting 
+    //ddq to zero (thanks Martin Felis !).
+    //Compute support leg joint accelerations
+    Eigen::VectorXd J_dot_q_dot_Trunk = get().pointAcceleration("trunk", 
+        supportName, dqSupport, Eigen::VectorXd::Zero(get().sizeDOF()));
+    Eigen::VectorXd ddqSupport = subJacTrunk.fullPivLu()
+        .solve(trunkAcc - J_dot_q_dot_Trunk);
+    //Compute flying leg joint accelerations
+    Eigen::VectorXd J_dot_q_dot_Foot = get().pointAcceleration(flyingName, 
+        supportName, dqFlying, Eigen::VectorXd::Zero(get().sizeDOF()));
+    Eigen::VectorXd ddqFlying = subJacFoot.fullPivLu()
+        .solve(footAcc - J_dot_q_dot_Foot);
+
+    //Assign and return computed accelerations
+    Eigen::VectorXd dofAcc = Eigen::VectorXd::Zero(get().sizeDOF());
+    dofAcc(indexSupportAnkleRoll) = ddqSupport(0);
+    dofAcc(indexSupportAnklePitch) = ddqSupport(1);
+    dofAcc(indexSupportKnee) = ddqSupport(2);
+    dofAcc(indexSupportHipPitch) = ddqSupport(3);
+    dofAcc(indexSupportHipRoll) = ddqSupport(4);
+    dofAcc(indexSupportHipYaw) = ddqSupport(5);
+    dofAcc(indexFlyingHipYaw) = ddqFlying(0);
+    dofAcc(indexFlyingHipRoll) = ddqFlying(1);
+    dofAcc(indexFlyingHipPitch) = ddqFlying(2);
+    dofAcc(indexFlyingKnee) = ddqFlying(3);
+    dofAcc(indexFlyingAnklePitch) = ddqFlying(4);
+    dofAcc(indexFlyingAnkleRoll) = ddqFlying(5);
+    return dofAcc;
+}
+
 void HumanoidFixedModel::convertFootMoment(
     double torquePitch, double torqueRoll,
     double& Mx, double& My)
@@ -232,52 +542,6 @@ Eigen::Vector3d HumanoidFixedModel::computeZMP(
     double Pz = 0.0;
 
     return Eigen::Vector3d(Px, Py, Pz);
-}
-
-bool HumanoidFixedModel::trunkModelIK(
-    SupportFoot support,
-    const Eigen::Vector3d& trunkPos, 
-    const Eigen::Vector3d& trunkAngles,
-    const Eigen::Vector3d& flyingFootPos,
-    EulerType eulerType)
-{
-    //Set the new support foot flat on the ground
-    setSupportFoot(support);
-    get().setDOF("base_pitch", 0.0);
-    get().setDOF("base_roll", 0.0);
-    //Compute the rotation matrix from support
-    //foot to trunk
-    Eigen::Matrix3d rotation = EulerToMatrix(
-        trunkAngles, eulerType).transpose();
-    
-    //Compute left and right leg inverse kinematics
-    //for both support foot.
-    bool isSuccessLeft = true;
-    bool isSuccessRight = true;
-    if (support == LeftSupportFoot) {
-        isSuccessLeft = get().legIkLeft(
-            "trunk",
-            rotation*(-trunkPos), 
-            trunkAngles,
-            eulerType);
-        isSuccessRight = get().legIkRight(
-            "left_foot_tip",
-            flyingFootPos, 
-            Eigen::Vector3d::Zero());
-    }
-    if (support == RightSupportFoot) {
-        isSuccessRight = get().legIkRight(
-            "trunk",
-            rotation*(-trunkPos), 
-            trunkAngles,
-            eulerType);
-        isSuccessLeft = get().legIkLeft(
-            "right_foot_tip",
-            flyingFootPos, 
-            Eigen::Vector3d::Zero());
-    }
-
-    return isSuccessLeft && isSuccessRight;
 }
 
 }

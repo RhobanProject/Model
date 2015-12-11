@@ -59,18 +59,18 @@ inline Eigen::Vector3d MatrixToAxis(const Eigen::Matrix3d& mat)
 
 /**
  * Conversion from rotation axis 
- * differential to actual angular velocity
- * in world frame
+ * (forst or second) differential to actual 
+ * angular velocity or acceleration in world frame
  * Reference:
  * Representing attitude: Euler angles, unit quaternions, and rotation vectors
  * Diebel 2006 
  * Page 21 (eq. 259)
  * Axis: world to moving frame rotation axis (rotation vector)
  * AxisDiff: time differential of axis (rotation vector rate)
- * Returns rotation velocity of moving frame 
- * in world frame (angular velocity)
+ * Returns rotation velocity or acceleration of moving frame 
+ * in world frame (angular velocity/acceleration)
  */
-inline Eigen::Vector3d AxisDiffToAxisVel(
+inline Eigen::Vector3d AxisDiffToAngularDiff(
     const Eigen::Vector3d& axis, const Eigen::Vector3d& axisDiff)
 {
     double v = axis.norm();

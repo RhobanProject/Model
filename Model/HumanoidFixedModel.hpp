@@ -98,20 +98,63 @@ class HumanoidFixedModel
          * The state is given by the support foot,
          * the flying foot position, the position 
          * and orientation of the trunk with
-         * respect to support foot and using given
-         * Euler convention.
-         * Support fot is set flat on the ground.
+         * respect to support foot.
+         * Support foot is set flat on the ground.
          * Flying foot orientation is set the same as
          * support foot in world frame.
          * False is returned if the inverse 
          * kinematics fails.
          */
-        bool trunkModelIK(
+        bool trunkFootIK(
             SupportFoot support,
             const Eigen::Vector3d& trunkPos, 
-            const Eigen::Vector3d& trunkAngles,
-            const Eigen::Vector3d& flyingFootPos,
-            EulerType eulerType = EulerYawPitchRoll);
+            const Eigen::Matrix3d& trunkRotation,
+            const Eigen::Vector3d& flyingFootPos);
+
+        /**
+         * Compute and return all degrees of
+         * freedom velocities from given
+         * trunk translation, orientation velocities
+         * and flying foot translation velocity 
+         * in support foot frame.
+         * Translation velocity is the velocity vector.
+         * Orientation velocity is the instantaneous 
+         * angular velocity vector (in support foot frame)
+         * !!! 
+         * !!! Angular velocity vector is not the
+         * !!! differentiation of axis angle representation
+         * !!! (see AxisAngle::AxisDiffToAxisVel())
+         * !!!
+         */
+        Eigen::VectorXd trunkFootIKVel(
+            const Eigen::Vector3d& trunkPosVel, 
+            const Eigen::Vector3d& trunkAxisAnglesVel,
+            const Eigen::Vector3d& flyingFootPosVel);
+
+        /**
+         * Compute and return all degrees of freedom
+         * accelerations from given trunk translation,
+         * orientation and flying foot velocities and accelerations
+         * in support foot frame. All degrees of freedom
+         * velocities are also given.
+         * Translation velocity/acceleration 
+         * is the velocity/acceleration vector.
+         * Orientation velocity/acceleration is the instantaneous 
+         * angular velocity/acceleration vector (in support foot frame)
+         * !!! 
+         * !!! Angular velocity/acceleration vector is not the
+         * !!! differentiation of axis angle representation
+         * !!! (see AxisAngle::AxisDiffToAxisVel())
+         * !!!
+         */
+        Eigen::VectorXd trunkFootIKAcc(
+            const Eigen::VectorXd& dq,
+            const Eigen::Vector3d& trunkPosVel, 
+            const Eigen::Vector3d& trunkAxisAnglesVel,
+            const Eigen::Vector3d& flyingFootPosVel,
+            const Eigen::Vector3d& trunkPosAcc, 
+            const Eigen::Vector3d& trunkAxisAnglesAcc,
+            const Eigen::Vector3d& flyingFootPosAcc);
 
     private:
         
