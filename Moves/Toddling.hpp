@@ -5,7 +5,7 @@
 
 namespace Leph {
   class Toddling {
-  protected:
+  public:
     // Current phase in [0,1]
     double phase;
 

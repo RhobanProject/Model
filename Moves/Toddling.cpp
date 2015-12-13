@@ -45,7 +45,7 @@ namespace Leph {
                          stepHeight(0.03),
                          stepX(0.0),
                          stepY(0.0),
-                         stepTheta(0),
+                         stepTheta(20),
                          doubleSupportRatio(0.5)
   {
   }
@@ -203,6 +203,9 @@ namespace Leph {
     if (phase > 1) {
       phase -= (int)phase;
     }
+    if (phase < 0) {
+      phase -= floor(phase);
+    }
   }
 
   void Toddling::initIK(Model& m, InverseKinematics& ik)
@@ -234,7 +237,8 @@ namespace Leph {
 
     // Setting Foot target
     for (const std::string& side : {"left","right"}) {
-      std::string frameName = side + "_arch_center";
+      //TODO temporary change
+      std::string frameName = side + "_ankle_roll";//"_arch_center";
       // Position
       ik.addTargetPosition(frameName, frameName);
       ik.targetPosition(frameName) = getFootTarget(side);
