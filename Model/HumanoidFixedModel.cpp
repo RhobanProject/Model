@@ -300,6 +300,14 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKVel(
     subJacFoot.col(3) = jacFoot.col(indexFlyingKnee);
     subJacFoot.col(4) = jacFoot.col(indexFlyingAnklePitch);
     subJacFoot.col(5) = jacFoot.col(indexFlyingAnkleRoll);
+    //Check for near singular jacobian
+    if (
+        fabs(subJacTrunk.fullPivLu().determinant()) < 1e-10 ||
+        fabs(subJacFoot.fullPivLu().determinant()) < 1e-10
+    ) {
+        //Return null velocity (no other good choice ?)
+        return Eigen::VectorXd::Zero(get().sizeDOF());
+    }
 
     //Build spatial vector of 
     //the trunk velocity in support foot frame
@@ -420,6 +428,14 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKAcc(
     subJacFoot.col(3) = jacFoot.col(indexFlyingKnee);
     subJacFoot.col(4) = jacFoot.col(indexFlyingAnklePitch);
     subJacFoot.col(5) = jacFoot.col(indexFlyingAnkleRoll);
+    //Check for near singular jacobian
+    if (
+        fabs(subJacTrunk.fullPivLu().determinant()) < 1e-10 ||
+        fabs(subJacFoot.fullPivLu().determinant()) < 1e-10
+    ) {
+        //Return null acceleration (no other good choice ?)
+        return Eigen::VectorXd::Zero(get().sizeDOF());
+    }
     
     //Build spatial vector of the trunk 
     //acceleration in support foot frame

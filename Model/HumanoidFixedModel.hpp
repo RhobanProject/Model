@@ -125,6 +125,8 @@ class HumanoidFixedModel
          * !!! differentiation of axis angle representation
          * !!! (see AxisAngle::AxisDiffToAxisVel())
          * !!!
+         * Return null velocity in case of 
+         * near singular jacobian
          */
         Eigen::VectorXd trunkFootIKVel(
             const Eigen::Vector3d& trunkPosVel, 
@@ -146,6 +148,8 @@ class HumanoidFixedModel
          * !!! differentiation of axis angle representation
          * !!! (see AxisAngle::AxisDiffToAxisVel())
          * !!!
+         * Return null acceleration in case of 
+         * near singular jacobian
          */
         Eigen::VectorXd trunkFootIKAcc(
             const Eigen::VectorXd& dq,

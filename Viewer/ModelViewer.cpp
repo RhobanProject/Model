@@ -435,7 +435,7 @@ void ModelViewer::drawColorTrajectory(
     }
 
     //Draw first point as big point
-    glPointSize(frameThickness*1.0);
+    glPointSize(frameThickness*3.0);
     glBegin(GL_POINTS);
         glColor3f(r, g, b);
         glVertex3f(
