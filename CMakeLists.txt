@@ -224,7 +224,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appViewerModelLogsOld
         appViewerModelLogs
         appViewerModelZMP
-        appStaticTrajectoryOptimizationTorques
+        appDynamicTrajectoryOptimizationTorques
         appTestLegTorques
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
