@@ -13,7 +13,7 @@
 /**
  * Global lenght of trajectory
  */
-double TrajectoryLength = 4.0;
+double TrajectoryLength = 3.0;
 
 /**
  * Return fitness cost if state 
@@ -110,7 +110,7 @@ static Eigen::Vector3d targetFlyingFootPos()
  */
 static Eigen::Vector3d initTrunkPos()
 {
-    return Eigen::Vector3d(0.0, -0.05, 0.2);
+    return Eigen::Vector3d(0.0, -0.05, 0.20);
 }
 static Eigen::Vector3d initTrunkAxisAngles()
 {
@@ -750,7 +750,10 @@ static void optimizeDynamicTrajectory()
     //Display initial trajectory
     Eigen::VectorXd initParams = initParameters();
     //showTrajectory(initParams);
-    saveTrajectory(initParams, "/tmp/trajInit.splines");
+    saveTrajectory(initParams, 
+        "/tmp/trajInit_" 
+        + std::to_string(TrajectoryLength) 
+        + ".splines");
 
     //Try to find minimum torques configuration with
     //CMA-ES optimization
@@ -760,22 +763,28 @@ static void optimizeDynamicTrajectory()
         return scoreTrajectory(params);
     };
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, -1.0, 20);
+    libcmaes::CMAParameters<> cmaparams(initParams, -1.0, 10);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(1);
-    cmaparams.set_max_iter(600);
+    cmaparams.set_restarts(4);
+    cmaparams.set_max_iter(400);
     //Run optimization
     libcmaes::CMASolutions cmasols = 
         libcmaes::cmaes<>(fitness, cmaparams);
     Eigen::VectorXd params = 
         cmasols.get_best_seen_candidate().get_x_dvec();
+    double score = 
+        cmasols.get_best_seen_candidate().get_fvalue();
 
     //Print final score and display founded trajectory
     //showTrajectory(params);
-    saveTrajectory(params, "/tmp/trajBest.splines");
+    saveTrajectory(params, 
+        "/tmp/trajBest_"
+        + std::to_string(TrajectoryLength) + "_" 
+        + std::to_string(score)
+        + ".splines");
 }
 
 int main(int argc, char** argv)
