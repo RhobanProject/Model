@@ -126,25 +126,25 @@ int main(int argc, char** argv)
         walkParams.assignOp(logs[indexLog], "walk");
         Leph::IKWalk::Parameters params = 
             Leph::IKWalk::convertVectorLabel(walkParams);
+        double phase = 0.0;
+        if (logs[indexLog].exist("time:phase")) {
+            logs[indexLog]("time:phase");
+        }
         bool success = Leph::IKWalk::walk(
-            modelWalk.get(), params, logs[indexLog]("time:phase"), 0.02);
+            modelWalk.get(), params, phase, 0.02);
         if (!success) {
             std::cout << "IKWalk error" << std::endl;
             return -1;
         }
         //Assiging pressure
-        //XXX TODO Using old sigmaban pressure convention
-        //=> To be updated
         modelMotors.setPressure(
             logs[indexLog]("pressure:weight"),
-            logs[indexLog]("pressure:left_weight")/1000.0
-                /logs[indexLog]("pressure:weight"),
-            logs[indexLog]("pressure:right_weight")/1000.0
-                /logs[indexLog]("pressure:weight"),
-            logs[indexLog]("pressure:left_x")/100.0,
-            logs[indexLog]("pressure:left_y")/100.0,
-            logs[indexLog]("pressure:right_x")/100.0,
-            logs[indexLog]("pressure:right_y")/100.0);
+            logs[indexLog]("pressure:left_ratio"),
+            logs[indexLog]("pressure:right_ratio"),
+            logs[indexLog]("pressure:left_x"),
+            logs[indexLog]("pressure:left_y"),
+            logs[indexLog]("pressure:right_x"),
+            logs[indexLog]("pressure:right_y"));
         //Contraint the model on the ground, integrate movement
         modelOutputs.updateBase();
         modelMotors.updateBase();
@@ -154,8 +154,10 @@ int main(int argc, char** argv)
             logs[indexLog]("sensor:pitch"), 
             logs[indexLog]("sensor:roll"));
         modelMotors.setYaw(modelMotors.getSupportFoot(), 
-            logs[indexLog]("sensor:gyro_yaw")*3.14/180.0
-            -logs[0]("sensor:gyro_yaw")*3.14/180.0); //TODO DEG2RAD ??? Inside model log
+            logs[indexLog]("sensor:gyro_yaw")-logs[0]("sensor:gyro_yaw"));
+        std::cout 
+            << modelMotors.get().position("trunk", "origin").x() << " "
+            << modelMotors.get().position("trunk", "origin").y() << std::endl;
         
         //Display captured center of mass ground projection
         if (viewMode == 1) {
@@ -210,8 +212,10 @@ int main(int argc, char** argv)
         //Waiting
         scheduling.wait();
         //Phase cycling
+        /*
         std::cout << "t= " << t << " index=" 
             << indexLog << "/" << logs.size()-1 << std::endl;
+        */
         if (!isPaused) {
             t += 1000.0/freq;
         }
