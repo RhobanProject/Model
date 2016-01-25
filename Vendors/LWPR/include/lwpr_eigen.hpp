@@ -621,6 +621,13 @@ class LWPR_Object {
       }
       memcpy(model.norm_in,norm.data(),sizeof(double)*model.nIn);
    }
+   void normIn(double norm) {
+      Eigen::VectorXd vectNorm(model.nIn);
+      for (size_t i=0;i<(size_t)model.nIn;i++) {
+          vectNorm(i) = norm;
+      }
+      memcpy(model.norm_in,vectNorm.data(),sizeof(double)*model.nIn);
+   }
 
    /** \brief Returns the input normalisation factors */
    Eigen::VectorXd normIn() const {
