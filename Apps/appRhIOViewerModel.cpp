@@ -43,6 +43,7 @@ int main(int argc, char** argv)
     //Initialize model instances
     Leph::HumanoidFixedPressureModel model(type);
     Leph::ModelViewer viewer(1200, 900);
+    viewer.maxTrajectory = 50;
     Leph::Scheduling scheduling;
     scheduling.setFrequency(50.0);
     
