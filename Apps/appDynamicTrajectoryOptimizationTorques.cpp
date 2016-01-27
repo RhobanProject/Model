@@ -16,6 +16,11 @@
 static constexpr bool verbose = false;
 
 /**
+ * Path to file save directory
+ */
+static std::string PathFile = "/mp/";
+
+/**
  * Global lenght of trajectory
  */
 double TrajectoryLength = 3.0;
@@ -1035,7 +1040,7 @@ static void optimizeDynamicTrajectory()
     double initScore = scoreTrajectory(initParams);
     saveTrajectory(
         initParams, 
-        "/tmp/trajInit_" 
+        PathFile + "trajInit_" 
         + std::to_string(TrajectoryLength) + "_" 
         + std::to_string(KickSpeed) + "_" 
         + std::to_string(KickPosX) + "_" 
@@ -1068,7 +1073,7 @@ static void optimizeDynamicTrajectory()
     //Print final score and display founded trajectory
     showTrajectory(params);
     saveTrajectory(params, 
-        "/tmp/trajBest_"
+        PathFile + "trajBest_"
         + std::to_string(TrajectoryLength) + "_" 
         + std::to_string(KickSpeed) + "_" 
         + std::to_string(KickPosX) + "_" 
