@@ -16,6 +16,39 @@
 double TrajectoryLength = 3.0;
 
 /**
+ * Global kick power and foot
+ * position at contact point
+ */
+double KickSpeed = 0.8;
+double KickPosX = 0.02;
+double KickPosY = -0.1;
+double KickPosZ = 0.07;
+
+/**
+ * Trajectory implementation
+ */
+static Eigen::VectorXd initParametersLegLift();
+static Leph::SplineContainer<Leph::CubicSpline> generateTrajectoryLegLift(const Eigen::VectorXd& params);
+static Eigen::VectorXd initParametersKick();
+static Leph::SplineContainer<Leph::CubicSpline> generateTrajectoryKick(const Eigen::VectorXd& params);
+
+/**
+ * Optimization configuration
+ */
+//unsigned int IterationsMax = 400;
+//unsigned int RestartsMax = 4;
+unsigned int IterationsMax = 400;
+unsigned int RestartsMax = 3;
+
+/**
+ * Trajectory function pointer to implementation
+ */
+//static Eigen::VectorXd (*initParameters)() = initParametersLegLift;
+//static Leph::SplineContainer<Leph::CubicSpline> (*generateTrajectory)(const Eigen::VectorXd& params) = generateTrajectoryLegLift;
+static Eigen::VectorXd (*initParameters)() = initParametersKick;
+static Leph::SplineContainer<Leph::CubicSpline> (*generateTrajectory)(const Eigen::VectorXd& params) = generateTrajectoryKick;
+
+/**
  * Return fitness cost if state 
  * bounds are not valid
  */
@@ -42,8 +75,8 @@ static double boundState(
 }
 
 /**
- * Return fitness cost for not valid
- * DOF range
+ * Return fitness cost for 
+ * not valid DOF range
  */
 static double boundDOF(const Leph::Model& model)
 {
@@ -205,8 +238,9 @@ static void computeOptimalPose()
 
 /**
  * Return initial trajectory parameters
+ * (transition from double to single support)
  */
-static Eigen::VectorXd initParameters()
+static Eigen::VectorXd initParametersLegLift()
 {
     Eigen::VectorXd params(43);
     //Double support ratio
@@ -276,8 +310,9 @@ static Eigen::VectorXd initParameters()
 /**
  * Build and return foot position, trunk position and orientation
  * state splines trajectory with given parameters Vector
+ * (transition from double to single support)
  */
-static Leph::SplineContainer<Leph::CubicSpline> generateTrajectory(const Eigen::VectorXd& params)
+static Leph::SplineContainer<Leph::CubicSpline> generateTrajectoryLegLift(const Eigen::VectorXd& params)
 {
     //Extract parameters
     double endTrajectoryTime = TrajectoryLength;
@@ -353,6 +388,198 @@ static Leph::SplineContainer<Leph::CubicSpline> generateTrajectory(const Eigen::
     container.get("foot_pos_z").addPoint(swapSupportTime, footPosAtSwap.z(), 0.0);
     
     //Double support phase middle
+    container.get("trunk_pos_x").addPoint(middle2Time, trunkPosAtMiddle2.x(), trunkPosVelAtMiddle2.x());
+    container.get("trunk_pos_y").addPoint(middle2Time, trunkPosAtMiddle2.y(), trunkPosVelAtMiddle2.y());
+    container.get("trunk_pos_z").addPoint(middle2Time, trunkPosAtMiddle2.z(), trunkPosVelAtMiddle2.z());
+    container.get("trunk_axis_x").addPoint(middle2Time, trunkAngleAtMiddle2.x(), trunkAngleVelAtMiddle2.x());
+    container.get("trunk_axis_y").addPoint(middle2Time, trunkAngleAtMiddle2.y(), trunkAngleVelAtMiddle2.y());
+    container.get("trunk_axis_z").addPoint(middle2Time, trunkAngleAtMiddle2.z(), trunkAngleVelAtMiddle2.z());
+    container.get("foot_pos_x").addPoint(middle2Time, footPosAtMiddle2.x(), footPosVelAtMiddle2.x());
+    container.get("foot_pos_y").addPoint(middle2Time, footPosAtMiddle2.y(), footPosVelAtMiddle2.y());
+    container.get("foot_pos_z").addPoint(middle2Time, footPosAtMiddle2.z(), footPosVelAtMiddle2.z());
+    
+    //Ending single support pose
+    container.get("trunk_pos_x").addPoint(endTrajectoryTime, targetTrunkPos().x(), 0.0);
+    container.get("trunk_pos_y").addPoint(endTrajectoryTime, targetTrunkPos().y(), 0.0);
+    container.get("trunk_pos_z").addPoint(endTrajectoryTime, targetTrunkPos().z(), 0.0);
+    container.get("trunk_axis_x").addPoint(endTrajectoryTime, targetTrunkAxisAngles().x(), 0.0);
+    container.get("trunk_axis_y").addPoint(endTrajectoryTime, targetTrunkAxisAngles().y(), 0.0);
+    container.get("trunk_axis_z").addPoint(endTrajectoryTime, targetTrunkAxisAngles().z(), 0.0);
+    container.get("foot_pos_x").addPoint(endTrajectoryTime, targetFlyingFootPos().x(), 0.0);
+    container.get("foot_pos_y").addPoint(endTrajectoryTime, targetFlyingFootPos().y(), 0.0);
+    container.get("foot_pos_z").addPoint(endTrajectoryTime, targetFlyingFootPos().z(), 0.0);
+
+    return container;
+}
+
+/**
+ * Return initial trajectory parameters
+ * (kick motion between static position)
+ */
+static Eigen::VectorXd initParametersKick()
+{
+    Eigen::VectorXd params(50);
+    //Contact time ratio
+    params(0) = 0.5;
+    //Contact trunk pos
+    params(1) = targetTrunkPos().x();
+    params(2) = targetTrunkPos().y();
+    params(3) = targetTrunkPos().z() - 0.02;
+    //Contact trunk vel
+    params(4) = 0.0;
+    params(5) = 0.0;
+    params(6) = 0.0;
+    //Contact trunk axis
+    params(7) = targetTrunkAxisAngles().x();
+    params(8) = targetTrunkAxisAngles().y();
+    params(9) = targetTrunkAxisAngles().z();
+    //Contact trunk vel
+    params(10) = 0.0;
+    params(11) = 0.0;
+    params(12) = 0.0;
+    
+    //Middle 1 trunk pos
+    params(13) = targetTrunkPos().x();
+    params(14) = targetTrunkPos().y();
+    params(15) = targetTrunkPos().z() - 0.02;
+    //Middle 1 trunk vel
+    params(16) = 0.0;
+    params(17) = 0.0;
+    params(18) = 0.0;
+    //Middle 1 trunk axis
+    params(19) = targetTrunkAxisAngles().x();
+    params(20) = targetTrunkAxisAngles().y();
+    params(21) = targetTrunkAxisAngles().z();
+    //Middle 1 trunk vel
+    params(22) = 0.0;
+    params(23) = 0.0;
+    params(24) = 0.0;
+    //Middle 1 foot pos
+    params(25) = targetFlyingFootPos().x();
+    params(26) = targetFlyingFootPos().y();
+    params(27) = targetFlyingFootPos().z();
+    //Middle 1 foot vel
+    params(28) = 0.0;
+    params(29) = 0.0;
+    params(30) = 0.0;
+    
+    //Middle 2 trunk pos
+    params(31) = targetTrunkPos().x();
+    params(32) = targetTrunkPos().y();
+    params(33) = targetTrunkPos().z() - 0.02;
+    //Middle 2 trunk vel
+    params(34) = 0.0;
+    params(35) = 0.0;
+    params(36) = 0.0;
+    //Middle 2 trunk axis
+    params(37) = targetTrunkAxisAngles().x();
+    params(38) = targetTrunkAxisAngles().y();
+    params(39) = targetTrunkAxisAngles().z();
+    //Middle 2 trunk vel
+    params(40) = 0.0;
+    params(41) = 0.0;
+    params(42) = 0.0;
+    //Middle 2 foot pos
+    params(43) = targetFlyingFootPos().x();
+    params(44) = targetFlyingFootPos().y();
+    params(45) = targetFlyingFootPos().z();
+    //Middle 2 foot vel
+    params(46) = 0.0;
+    params(47) = 0.0;
+    params(48) = 0.0;
+    
+    //Foot z vel at contact
+    params(49) = 0.0;
+
+    return params;
+}
+
+/**
+ * Build and return foot position, trunk position and orientation
+ * state splines trajectory with given parameters Vector
+ * (kick motion between static position)
+ */
+static Leph::SplineContainer<Leph::CubicSpline> generateTrajectoryKick(const Eigen::VectorXd& params)
+{
+    //Extract parameters
+    double endTrajectoryTime = TrajectoryLength;
+    double ratioContactTime = params(0);
+
+    double contactTime = ratioContactTime*endTrajectoryTime;
+    Eigen::Vector3d trunkPosAtContact = params.segment<3>(1);
+    Eigen::Vector3d trunkPosVelAtContact = params.segment<3>(4);
+    Eigen::Vector3d trunkAngleAtContact = params.segment<3>(7);
+    Eigen::Vector3d trunkAngleVelAtContact = params.segment<3>(10);
+    Eigen::Vector3d footPosAtContact(KickPosX, KickPosY, KickPosZ);
+    Eigen::Vector3d footPosVelAtContact(KickSpeed, 0.0, params(49));
+    
+    double middle1Time = 0.5*ratioContactTime*endTrajectoryTime;
+    Eigen::Vector3d trunkPosAtMiddle1 = params.segment<3>(13);
+    Eigen::Vector3d trunkPosVelAtMiddle1 = params.segment<3>(16);
+    Eigen::Vector3d trunkAngleAtMiddle1 = params.segment<3>(19);
+    Eigen::Vector3d trunkAngleVelAtMiddle1 = params.segment<3>(22);
+    Eigen::Vector3d footPosAtMiddle1 = params.segment<3>(25);
+    Eigen::Vector3d footPosVelAtMiddle1 = params.segment<3>(28);
+    
+    double middle2Time = (0.5*ratioContactTime + 0.5)*endTrajectoryTime;
+    Eigen::Vector3d trunkPosAtMiddle2 = params.segment<3>(31);
+    Eigen::Vector3d trunkPosVelAtMiddle2 = params.segment<3>(34);
+    Eigen::Vector3d trunkAngleAtMiddle2 = params.segment<3>(37);
+    Eigen::Vector3d trunkAngleVelAtMiddle2 = params.segment<3>(40);
+    Eigen::Vector3d footPosAtMiddle2 = params.segment<3>(43);
+    Eigen::Vector3d footPosVelAtMiddle2 = params.segment<3>(46);
+
+    //Initialize state splines
+    Leph::SplineContainer<Leph::CubicSpline> container;
+    container.add("trunk_pos_x");
+    container.add("trunk_pos_y");
+    container.add("trunk_pos_z");
+    container.add("trunk_axis_x");
+    container.add("trunk_axis_y");
+    container.add("trunk_axis_z");
+    container.add("foot_pos_x");
+    container.add("foot_pos_y");
+    container.add("foot_pos_z");
+    container.add("is_double_support");
+
+    //Support phase (single support for kick)
+    container.get("is_double_support").addPoint(0.0, 0.0, 0.0);
+    container.get("is_double_support").addPoint(endTrajectoryTime, 0.0, 0.0);
+
+    //Starting double support pose
+    container.get("trunk_pos_x").addPoint(0.0, targetTrunkPos().x(), 0.0);
+    container.get("trunk_pos_y").addPoint(0.0, targetTrunkPos().y(), 0.0);
+    container.get("trunk_pos_z").addPoint(0.0, targetTrunkPos().z(), 0.0);
+    container.get("trunk_axis_x").addPoint(0.0, targetTrunkAxisAngles().x(), 0.0);
+    container.get("trunk_axis_y").addPoint(0.0, targetTrunkAxisAngles().y(), 0.0);
+    container.get("trunk_axis_z").addPoint(0.0, targetTrunkAxisAngles().z(), 0.0);
+    container.get("foot_pos_x").addPoint(0.0, targetFlyingFootPos().x(), 0.0);
+    container.get("foot_pos_y").addPoint(0.0, targetFlyingFootPos().y(), 0.0);
+    container.get("foot_pos_z").addPoint(0.0, targetFlyingFootPos().z(), 0.0);
+
+    //Pre Kick middle
+    container.get("trunk_pos_x").addPoint(middle1Time, trunkPosAtMiddle1.x(), trunkPosVelAtMiddle1.x());
+    container.get("trunk_pos_y").addPoint(middle1Time, trunkPosAtMiddle1.y(), trunkPosVelAtMiddle1.y());
+    container.get("trunk_pos_z").addPoint(middle1Time, trunkPosAtMiddle1.z(), trunkPosVelAtMiddle1.z());
+    container.get("trunk_axis_x").addPoint(middle1Time, trunkAngleAtMiddle1.x(), trunkAngleVelAtMiddle1.x());
+    container.get("trunk_axis_y").addPoint(middle1Time, trunkAngleAtMiddle1.y(), trunkAngleVelAtMiddle1.y());
+    container.get("trunk_axis_z").addPoint(middle1Time, trunkAngleAtMiddle1.z(), trunkAngleVelAtMiddle1.z());
+    container.get("foot_pos_x").addPoint(middle1Time, footPosAtMiddle1.x(), footPosVelAtMiddle1.x());
+    container.get("foot_pos_y").addPoint(middle1Time, footPosAtMiddle1.y(), footPosVelAtMiddle1.y());
+    container.get("foot_pos_z").addPoint(middle1Time, footPosAtMiddle1.z(), footPosVelAtMiddle1.z());
+    
+    //Kick contact
+    container.get("trunk_pos_x").addPoint(contactTime, trunkPosAtContact.x(), trunkPosVelAtContact.x());
+    container.get("trunk_pos_y").addPoint(contactTime, trunkPosAtContact.y(), trunkPosVelAtContact.y());
+    container.get("trunk_pos_z").addPoint(contactTime, trunkPosAtContact.z(), trunkPosVelAtContact.z());
+    container.get("trunk_axis_x").addPoint(contactTime, trunkAngleAtContact.x(), trunkAngleVelAtContact.x());
+    container.get("trunk_axis_y").addPoint(contactTime, trunkAngleAtContact.y(), trunkAngleVelAtContact.y());
+    container.get("trunk_axis_z").addPoint(contactTime, trunkAngleAtContact.z(), trunkAngleVelAtContact.z());
+    container.get("foot_pos_x").addPoint(contactTime, footPosAtContact.x(), footPosVelAtContact.x());
+    container.get("foot_pos_y").addPoint(contactTime, footPosAtContact.y(), footPosVelAtContact.y());
+    container.get("foot_pos_z").addPoint(contactTime, footPosAtContact.z(), footPosVelAtContact.z());
+    
+    //Post Kick middle
     container.get("trunk_pos_x").addPoint(middle2Time, trunkPosAtMiddle2.x(), trunkPosVelAtMiddle2.x());
     container.get("trunk_pos_y").addPoint(middle2Time, trunkPosAtMiddle2.y(), trunkPosVelAtMiddle2.y());
     container.get("trunk_pos_z").addPoint(middle2Time, trunkPosAtMiddle2.z(), trunkPosVelAtMiddle2.z());
@@ -583,11 +810,14 @@ static void displayTrajectory(Leph::ModelViewer& viewer,
                 container.get("foot_pos_y").acc(t), 
                 container.get("foot_pos_z").acc(t));
         //Assign model
-        model.trunkFootIK(
+        bool isSuccess = model.trunkFootIK(
             Leph::HumanoidFixedModel::LeftSupportFoot,
             trunkPos,
             Leph::AxisToMatrix(trunkAxisAngles),
             footPos);
+        if (!isSuccess) {
+            std::cout << "IK ERROR t=" << t << std::endl;
+        }
         //Compute joints velocities and accelerations
         //Axis differentiation is converted in proper angular
         //velocity and acceleration
@@ -749,11 +979,10 @@ static void optimizeDynamicTrajectory()
 {
     //Display initial trajectory
     Eigen::VectorXd initParams = initParameters();
-    //showTrajectory(initParams);
-    saveTrajectory(initParams, 
-        "/tmp/trajInit_" 
-        + std::to_string(TrajectoryLength) 
-        + ".splines");
+    showTrajectory(initParams);
+    saveTrajectory(
+        initParams, 
+        "/tmp/trajInit_" + std::to_string(TrajectoryLength) + ".splines");
 
     //Try to find minimum torques configuration with
     //CMA-ES optimization
@@ -768,8 +997,8 @@ static void optimizeDynamicTrajectory()
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(4);
-    cmaparams.set_max_iter(400);
+    cmaparams.set_restarts(RestartsMax);
+    cmaparams.set_max_iter(IterationsMax);
     //Run optimization
     libcmaes::CMASolutions cmasols = 
         libcmaes::cmaes<>(fitness, cmaparams);
@@ -779,7 +1008,7 @@ static void optimizeDynamicTrajectory()
         cmasols.get_best_seen_candidate().get_fvalue();
 
     //Print final score and display founded trajectory
-    //showTrajectory(params);
+    showTrajectory(params);
     saveTrajectory(params, 
         "/tmp/trajBest_"
         + std::to_string(TrajectoryLength) + "_" 
