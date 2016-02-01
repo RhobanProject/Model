@@ -91,6 +91,7 @@ inline Eigen::Vector3d AxisDiffToAngularDiff(
         -v1*sv2, v*cv2,   -v3*sv2, v2*sv2,
         -v2*sv2, v3*sv2,  v*cv2,   -v1*sv2,
         -v3*sv2, -v2*sv2, v1*sv2,  v*cv2;
+    W *= 1.0/v;
     //Eq. 214
     Eigen::MatrixXd G(4, 3);
     G <<
