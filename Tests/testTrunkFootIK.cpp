@@ -6,6 +6,9 @@
 #include "Plot/Plot.hpp"
 #include "Utils/AxisAngle.h"
 
+/**
+ * Check given Eigen::Vector equality
+ */
 static void test(const std::string& msg, 
     const Eigen::Vector3d& v1, const Eigen::Vector3d& v2)
 {
@@ -48,6 +51,9 @@ int main()
     Leph::CubicSpline targetFootPosX;
     Leph::CubicSpline targetFootPosY;
     Leph::CubicSpline targetFootPosZ;
+    Leph::CubicSpline targetFootAxisX;
+    Leph::CubicSpline targetFootAxisY;
+    Leph::CubicSpline targetFootAxisZ;
     targetTrunkPosX.addPoint(0.0, -0.05, 0.0);
     targetTrunkPosX.addPoint(3.0, 0.0, 0.0);
     targetTrunkPosX.addPoint(6.0, 0.05, 0.0);
@@ -75,6 +81,14 @@ int main()
     targetFootPosZ.addPoint(0.0, 0.0, 0.0);
     targetFootPosZ.addPoint(3.0, 0.05, 0.0);
     targetFootPosZ.addPoint(6.0, -0.02, 0.0);
+    targetFootAxisX.addPoint(0.0, 0.0, 0.0);
+    targetFootAxisX.addPoint(6.0, 0.0, 0.0);
+    targetFootAxisY.addPoint(0.0, 0.5, 0.0);
+    targetFootAxisY.addPoint(3.0, -0.6, 0.0);
+    targetFootAxisY.addPoint(6.0, 0.4, 0.0);
+    targetFootAxisZ.addPoint(0.0, 0.0, 0.0);
+    targetFootAxisZ.addPoint(6.0, 0.0, 0.0);
+
 
     Leph::Plot plot;
     double t = 0.0;
@@ -85,6 +99,7 @@ int main()
         Eigen::Vector3d trunkPos;
         Eigen::Vector3d trunkAxis;
         Eigen::Vector3d footPos;
+        Eigen::Vector3d footAxis;
         trunkPos(0) = targetTrunkPosX.pos(t);
         trunkPos(1) = targetTrunkPosY.pos(t);
         trunkPos(2) = targetTrunkPosZ.pos(t);
@@ -94,10 +109,14 @@ int main()
         footPos(0) = targetFootPosX.pos(t);
         footPos(1) = targetFootPosY.pos(t);
         footPos(2) = targetFootPosZ.pos(t);
+        footAxis(0) = targetFootAxisX.pos(t);
+        footAxis(1) = targetFootAxisY.pos(t);
+        footAxis(2) = targetFootAxisZ.pos(t);
         //Compute target velocities
         Eigen::Vector3d trunkVel;
         Eigen::Vector3d trunkAxisVel;
         Eigen::Vector3d footVel;
+        Eigen::Vector3d footAxisVel;
         trunkVel(0) = targetTrunkPosX.vel(t);
         trunkVel(1) = targetTrunkPosY.vel(t);
         trunkVel(2) = targetTrunkPosZ.vel(t);
@@ -107,10 +126,14 @@ int main()
         footVel(0) = targetFootPosX.vel(t);
         footVel(1) = targetFootPosY.vel(t);
         footVel(2) = targetFootPosZ.vel(t);
+        footAxisVel(0) = targetFootAxisX.vel(t);
+        footAxisVel(1) = targetFootAxisY.vel(t);
+        footAxisVel(2) = targetFootAxisZ.vel(t);
         //Compute target accelerations
         Eigen::Vector3d trunkAcc;
         Eigen::Vector3d trunkAxisAcc;
         Eigen::Vector3d footAcc;
+        Eigen::Vector3d footAxisAcc;
         trunkAcc(0) = targetTrunkPosX.acc(t);
         trunkAcc(1) = targetTrunkPosY.acc(t);
         trunkAcc(2) = targetTrunkPosZ.acc(t);
@@ -120,10 +143,16 @@ int main()
         footAcc(0) = targetFootPosX.acc(t);
         footAcc(1) = targetFootPosY.acc(t);
         footAcc(2) = targetFootPosZ.acc(t);
+        footAxisAcc(0) = targetFootAxisX.acc(t);
+        footAxisAcc(1) = targetFootAxisY.acc(t);
+        footAxisAcc(2) = targetFootAxisZ.acc(t);
         //Set IK positions
         bool isSuccess = model.trunkFootIK(
             Leph::HumanoidFixedModel::LeftSupportFoot,
-            trunkPos, Leph::AxisToMatrix(trunkAxis), footPos);
+            trunkPos, 
+            Leph::AxisToMatrix(trunkAxis), 
+            footPos, 
+            Leph::AxisToMatrix(footAxis));
         //Check IK success
         if (!isSuccess) {
             std::cout << "IK ERROR" << std::endl;
@@ -133,9 +162,13 @@ int main()
         test("trunkPos", trunkPos, model.get().position("trunk", "left_foot_tip"));
         test("trunkAxis", trunkAxis, Leph::MatrixToAxis(model.get().orientation("trunk", "left_foot_tip").transpose()));
         test("footPos", footPos, model.get().position("right_foot_tip", "left_foot_tip"));
+        test("footAxis", footAxis, Leph::MatrixToAxis(model.get().orientation("right_foot_tip", "left_foot_tip").transpose()));
         //Compute joints velocities
         Eigen::VectorXd dq = model.trunkFootIKVel(
-            trunkVel, Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisVel), footVel);
+            trunkVel, 
+            Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisVel), 
+            footVel,
+            Leph::AxisDiffToAngularDiff(footAxis, footAxisVel));
         //Test joints velocities
         Eigen::VectorXd q = model.get().getDOFVect();
         if (t == 0.0) oldQ = q;
@@ -143,8 +176,10 @@ int main()
         test("jointVel t=" + std::to_string(t), dq, qDiff, 0.02);
         //Compute joints accelerations
         Eigen::VectorXd ddq = model.trunkFootIKAcc(dq,
-            trunkVel, Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisVel), footVel,
-            trunkAcc, Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisAcc), footAcc);
+            trunkVel, Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisVel), 
+            footVel, Leph::AxisDiffToAngularDiff(footAxis, footAxisVel),
+            trunkAcc, Leph::AxisDiffToAngularDiff(trunkAxis, trunkAxisAcc), 
+            footAcc, Leph::AxisDiffToAngularDiff(footAxis, footAxisAcc));
         //Test joints accelerations (not near acceleration discontinuities)
         if (t == 0.0) oldQDiff = qDiff;
         Eigen::VectorXd qDiffDiff = (qDiff-oldQDiff)/0.01;

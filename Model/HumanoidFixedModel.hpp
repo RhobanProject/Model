@@ -95,13 +95,12 @@ class HumanoidFixedModel
         /**
          * Set the model state by running 
          * Inverse Kinematics on both legs.
-         * The state is given by the support foot,
-         * the flying foot position, the position 
+         * The state is given by the support foot
+         * (left ot right), the flying foot position
+         * and orientation, the position 
          * and orientation of the trunk with
          * respect to support foot.
          * Support foot is set flat on the ground.
-         * Flying foot orientation is set the same as
-         * support foot in world frame.
          * False is returned if the inverse 
          * kinematics fails.
          */
@@ -109,14 +108,15 @@ class HumanoidFixedModel
             SupportFoot support,
             const Eigen::Vector3d& trunkPos, 
             const Eigen::Matrix3d& trunkRotation,
-            const Eigen::Vector3d& flyingFootPos);
+            const Eigen::Vector3d& flyingFootPos,
+            const Eigen::Matrix3d& flyingFootRotation);
 
         /**
          * Compute and return all degrees of
          * freedom velocities from given
          * trunk translation, orientation velocities
-         * and flying foot translation velocity 
-         * in support foot frame.
+         * and flying foot translation, orientation 
+         * velocity in support foot frame.
          * Translation velocity is the velocity vector.
          * Orientation velocity is the instantaneous 
          * angular velocity vector (in support foot frame)
@@ -131,12 +131,14 @@ class HumanoidFixedModel
         Eigen::VectorXd trunkFootIKVel(
             const Eigen::Vector3d& trunkPosVel, 
             const Eigen::Vector3d& trunkAxisAnglesVel,
-            const Eigen::Vector3d& flyingFootPosVel);
+            const Eigen::Vector3d& flyingFootPosVel,
+            const Eigen::Vector3d& flyingFootAxisAnglesVel);
 
         /**
          * Compute and return all degrees of freedom
          * accelerations from given trunk translation,
-         * orientation and flying foot velocities and accelerations
+         * orientation and flying foot translation, 
+         * orientation velocities and accelerations
          * in support foot frame. All degrees of freedom
          * velocities are also given.
          * Translation velocity/acceleration 
@@ -156,9 +158,11 @@ class HumanoidFixedModel
             const Eigen::Vector3d& trunkPosVel, 
             const Eigen::Vector3d& trunkAxisAnglesVel,
             const Eigen::Vector3d& flyingFootPosVel,
+            const Eigen::Vector3d& flyingFootAxisAnglesVel,
             const Eigen::Vector3d& trunkPosAcc, 
             const Eigen::Vector3d& trunkAxisAnglesAcc,
-            const Eigen::Vector3d& flyingFootPosAcc);
+            const Eigen::Vector3d& flyingFootPosAcc,
+            const Eigen::Vector3d& flyingFootAxisAnglesAcc);
 
     private:
         

@@ -191,7 +191,8 @@ bool HumanoidFixedModel::trunkFootIK(
     SupportFoot support,
     const Eigen::Vector3d& trunkPos, 
     const Eigen::Matrix3d& trunkRotation,
-    const Eigen::Vector3d& flyingFootPos)
+    const Eigen::Vector3d& flyingFootPos,
+    const Eigen::Matrix3d& flyingFootRotation)
 {
     //Set the new support foot flat on the ground
     setSupportFoot(support);
@@ -213,7 +214,7 @@ bool HumanoidFixedModel::trunkFootIK(
         isSuccessRight = get().legIkRight(
             "left_foot_tip",
             flyingFootPos,
-            Eigen::Matrix3d::Identity());
+            flyingFootRotation.transpose());
     }
     if (support == RightSupportFoot) {
         isSuccessRight = get().legIkRight(
@@ -223,7 +224,7 @@ bool HumanoidFixedModel::trunkFootIK(
         isSuccessLeft = get().legIkLeft(
             "right_foot_tip",
             flyingFootPos,
-            Eigen::Matrix3d::Identity());
+            flyingFootRotation.transpose());
     }
 
     return isSuccessLeft && isSuccessRight;
@@ -232,7 +233,8 @@ bool HumanoidFixedModel::trunkFootIK(
 Eigen::VectorXd HumanoidFixedModel::trunkFootIKVel(
     const Eigen::Vector3d& trunkPosVel, 
     const Eigen::Vector3d& trunkAxisAnglesVel,
-    const Eigen::Vector3d& flyingFootPosVel)
+    const Eigen::Vector3d& flyingFootPosVel,
+    const Eigen::Vector3d& flyingFootAxisAnglesVel)
 {
     //Support foot selection
     std::string supportName;
@@ -318,7 +320,7 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKVel(
     //Build spatial vector of the relative velocity of
     //flying foot with respect the the trunk in support foot frame 
     Eigen::VectorXd footVel(6);
-    footVel.segment(0, 3) = -trunkAxisAnglesVel;
+    footVel.segment(0, 3) = flyingFootAxisAnglesVel - trunkAxisAnglesVel;
     //Compute relative linear translation velocity
     //of the trunk in support frame.
     //T (trunk), F (foot), O (support)
@@ -358,9 +360,11 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKAcc(
     const Eigen::Vector3d& trunkPosVel, 
     const Eigen::Vector3d& trunkAxisAnglesVel,
     const Eigen::Vector3d& flyingFootPosVel,
+    const Eigen::Vector3d& flyingFootAxisAnglesVel,
     const Eigen::Vector3d& trunkPosAcc, 
     const Eigen::Vector3d& trunkAxisAnglesAcc,
-    const Eigen::Vector3d& flyingFootPosAcc)
+    const Eigen::Vector3d& flyingFootPosAcc,
+    const Eigen::Vector3d& flyingFootAxisAnglesAcc)
 {
     //Support foot selection
     std::string supportName;
@@ -446,7 +450,7 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKAcc(
     //Build spatial vector of the relative acceleration of
     //flying foot with respect the the trunk in support foot frame 
     Eigen::VectorXd footAcc(6);
-    footAcc.segment(0, 3) = -trunkAxisAnglesAcc;
+    footAcc.segment(0, 3) = flyingFootAxisAnglesAcc - trunkAxisAnglesAcc;
     //Compute relative linear translation acceleration
     //of the trunk in support frame. 
     //T (trunk), F (foot), O (support)
