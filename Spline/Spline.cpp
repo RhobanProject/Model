@@ -46,7 +46,7 @@ double Spline::max() const
         return _splines.back().max;
     }
 }
-
+        
 void Spline::exportData(std::ostream& os) const
 {
     for (size_t i=0;i<_splines.size();i++) {
@@ -98,6 +98,8 @@ void Spline::importData(std::istream& is)
         throw std::logic_error(
             "Spline import format invalid");
     }
+    //Call possible post import
+    importCallBack();
 }
         
 size_t Spline::size() const
@@ -115,10 +117,18 @@ void Spline::addPart(const Polynom& poly,
 {
     _splines.push_back({poly, min, max});
 }
+        
+void Spline::importCallBack()
+{
+}
 
 double Spline::interpolation(double x, 
     double(Polynom::*func)(double) const) const
 {
+    //Empty case
+    if (_splines.size() == 0) {
+        return 0.0;
+    }
     //Bound asked abscisse into spline range
     if (x <= _splines.front().min) {
         x = _splines.front().min;

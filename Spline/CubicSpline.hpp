@@ -22,6 +22,23 @@ class CubicSpline : public Spline
         void addPoint(double time, double position, 
             double velocity = 0.0);
         
+        /**
+         * Apply normal random noise on spline point 
+         * position and velocity of given standart deviation.
+         * If updateBounds is true, extremum point (min and max time)
+         * are also updated.
+         */
+        void randomNoise(
+            double stdDevPos, double stdDevVel, bool updateBounds);
+
+    protected:
+
+        /**
+         * Inherit
+         * Load Points
+         */
+        virtual void importCallBack() override;
+        
     private:
 
         /**

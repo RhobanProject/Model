@@ -82,6 +82,14 @@ class Spline
          * Spline part container
          */
         std::vector<Spline_t> _splines;
+
+        /**
+         * Possible override callback
+         * after importation
+         */
+        virtual void importCallBack();
+
+    private:
         
         /**
          * Return spline interpolation of given value and
