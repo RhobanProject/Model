@@ -14,6 +14,15 @@ namespace Leph {
 class CubicSpline : public Spline
 {
     public:
+        
+        /**
+         * Simple point struture
+         */
+        struct Point {
+            double time;
+            double position;
+            double velocity;
+        };
 
         /**
          * Add a new point with its time, position value,
@@ -31,6 +40,11 @@ class CubicSpline : public Spline
         void randomNoise(
             double stdDevPos, double stdDevVel, bool updateBounds);
 
+        /**
+         * Read access to points container
+         */
+        const std::vector<Point>& points() const;
+
     protected:
 
         /**
@@ -40,15 +54,6 @@ class CubicSpline : public Spline
         virtual void importCallBack() override;
         
     private:
-
-        /**
-         * Simple point struture
-         */
-        struct Point {
-            double time;
-            double position;
-            double velocity;
-        };
 
         /**
          * Points container

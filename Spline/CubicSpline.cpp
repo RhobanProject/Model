@@ -35,6 +35,11 @@ void CubicSpline::randomNoise(
     computeSplines();
 }
         
+const std::vector<CubicSpline::Point>& CubicSpline::points() const
+{
+    return _points;
+}
+        
 void CubicSpline::importCallBack()
 {
     size_t size = Spline::_splines.size();
