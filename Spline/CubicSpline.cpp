@@ -28,8 +28,10 @@ void CubicSpline::randomNoise(
         if (!updateBounds && (i == 0 || i == _points.size()-1)) {
             continue;
         }
-        _points[i].position += distPos(generator);
-        _points[i].velocity += distVel(generator);
+        double deltaPos = distPos(generator);
+        double deltaVel = distVel(generator);
+        _points[i].position += deltaPos;
+        _points[i].velocity += deltaVel;
     }
     //Recompute the splines
     computeSplines();
@@ -78,9 +80,9 @@ void CubicSpline::importCallBack()
         double t1 = Spline::_splines[i-1].max;
         double t2 = Spline::_splines[i].min;
         double pos1 = Spline::pos(t1);
-        double vel1 = Spline::pos(t1);
+        double vel1 = Spline::vel(t1);
         double pos2 = Spline::pos(t2);
-        double vel2 = Spline::pos(t2);
+        double vel2 = Spline::vel(t2);
 
         if (
             fabs(t2-t1) < 0.0001 && 
