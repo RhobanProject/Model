@@ -41,6 +41,13 @@ class CubicSpline : public Spline
             double stdDevPos, double stdDevVel, bool updateBounds);
 
         /**
+         * Add between each two following interpolation 
+         * points a given number of point uniformaly 
+         * distributed. Cubic splines are splited.
+         */
+        void subdivide(unsigned int divider);
+
+        /**
          * Read access to points container
          */
         const std::vector<Point>& points() const;

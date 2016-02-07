@@ -44,7 +44,8 @@ int main()
         Leph::CubicSpline splineTmp;
         std::istringstream iss(rawStr);
         splineTmp.importData(iss);
-        splineTmp.randomNoise(0.3, 0.5, false);
+        splineTmp.subdivide(2);
+        splineTmp.randomNoise(0.2, 0.5, false);
         for (double t=spline2.min();t<spline2.max();t+=0.01) {
             if (k == 0) {
                 plot.add(Leph::VectorLabel(

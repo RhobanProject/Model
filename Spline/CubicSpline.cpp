@@ -35,6 +35,29 @@ void CubicSpline::randomNoise(
     computeSplines();
 }
         
+void CubicSpline::subdivide(unsigned int divider)
+{
+    std::vector<Point> newPoints;
+    for (size_t i=1;i<_points.size();i++) {
+        double t1 = _points[i-1].time;
+        double t2 = _points[i].time;
+        double length = fabs(t2 - t1);
+        if (length < 0.0001) {
+            continue;
+        }
+        double step = length/(divider + 1);
+        for (double t=t1;t<t2-step/2.0;t+=step) {
+            newPoints.push_back({
+                t, Spline::pos(t), Spline::vel(t)});
+        }
+    }
+    newPoints.push_back(_points.back());
+    //Replace points container
+    _points = newPoints;
+    //Recompute the splines
+    computeSplines();
+}
+        
 const std::vector<CubicSpline::Point>& CubicSpline::points() const
 {
     return _points;
