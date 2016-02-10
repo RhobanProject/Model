@@ -42,6 +42,15 @@ class SplineContainer
         }
 
         /**
+         * Return true if given spline 
+         * name is contained
+         */
+        inline bool exist(const std::string& name) const
+        {
+            return _container.count(name) > 0;
+        }
+
+        /**
          * Access to given named spline
          */
         inline const T& get(const std::string& name) const
