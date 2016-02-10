@@ -24,6 +24,7 @@ struct LearningTask {
     std::vector<std::string> logfiles;
     std::vector<std::string> inputs;
     std::vector<size_t> inputsLag;
+    std::vector<size_t> inputsDelta;
     std::vector<std::string> outputs;
     std::function<void(Leph::MatrixLabel& logs)> funcComputeModelData;
     std::function<LWPR_Object(const LearningTask& task)> funcInitLWPR;
@@ -46,13 +47,20 @@ struct LearningData {
  */
 Eigen::VectorXd learningRetrieveInputs(const LearningTask& task, const Leph::MatrixLabel& logs, size_t index)
 {
-    Eigen::VectorXd in(task.inputs.size());
+    Eigen::VectorXd in(2*task.inputs.size());
     for (size_t i=0;i<task.inputs.size();i++) {
         size_t lag = task.inputsLag[i];
-        if (index < lag || !logs[index-lag].exist(task.inputs[i])) {
+        size_t delta = task.inputsDelta[i];
+        if (
+            index < lag || 
+            index < lag+delta || 
+            !logs[index-lag].exist(task.inputs[i]) ||
+            !logs[index-lag-delta].exist(task.inputs[i])
+        ) {
             return Eigen::VectorXd();
         }
-        in(i) = logs[index-lag](task.inputs[i]);
+        in(2*i) = logs[index-lag](task.inputs[i]);
+        in(2*i+1) = logs[index-lag-delta](task.inputs[i]);
     }
     return in;
 }
@@ -267,10 +275,28 @@ void learningOptimize(LearningTask& task)
         }
         task.inputsLag[i] = bestLag;
     }
+    for (size_t i=0;i<task.inputs.size();i++) {
+        size_t bestDelta = 0;
+        double bestScore = -1.0;
+        for (size_t k=0;k<20;k++) {
+            task.inputsDelta[i] = k;
+            LWPR_Object model = task.funcInitLWPR(task);
+            LearningData data = learningInit(task);
+            learningDoLearn(data, model);
+            double score = learningDoTesting(data, model);
+            if (bestScore < 0.0 || bestScore > score) {
+                bestScore = score;
+                bestDelta = k;
+            }
+            std::cout << "Optimizing " << task.inputs[i] << " delta=" << k << " score=" << score << std::endl;
+        }
+        task.inputsDelta[i] = bestDelta;
+    }
 
     //Display found stats
     for (size_t i=0;i<task.inputs.size();i++) {
         std::cout << "Inputs: " << task.inputs[i] << " bestLag=" << task.inputsLag[i] << std::endl;
+        std::cout << "Inputs: " << task.inputs[i] << " bestDelta=" << task.inputsDelta[i] << std::endl;
     }
     LearningData data = learningInit(task);
     LWPR_Object model = task.funcInitLWPR(task);
@@ -442,15 +468,28 @@ void testLearning()
         "../../These/Data/logs-2016-02-02/tmpTrajLog3/model_2016-02-08-13-25-56.log",
         "../../These/Data/logs-2016-02-02/tmpTrajLog3/model_2016-02-08-13-26-19.log",
     };
-    task.inputs = {"model:trunk_pos_x", "goal_model:trunk_pos_x"};
-    task.inputsLag = {0, 0};
+    task.inputs = {
+        "goal_model:trunk_pos_x", 
+        "goal_model:trunk_pos_y",
+        "goal_model:trunk_pos_z",
+        /*
+        "goal_model:trunk_axis_x", 
+        "goal_model:trunk_axis_y",
+        "goal_model:trunk_axis_z",
+        */
+        "goal_model:foot_pos_x",
+        "goal_model:foot_pos_y",
+        "goal_model:foot_pos_z",
+    };
     task.outputs = {"pressure:left_x"};
+    task.inputsLag = std::vector<size_t>(task.inputs.size(), 0);
+    task.inputsDelta = std::vector<size_t>(task.inputs.size(), 0);
     task.funcComputeModelData = [&splines](Leph::MatrixLabel& logs){
         computeModelData(logs, splines);
     };
     std::function<void(Leph::MatrixLabel& logs)> funcComputeModelData;
     task.funcInitLWPR = [](const LearningTask& task) -> LWPR_Object {
-        LWPR_Object model(task.inputs.size(), task.outputs.size());
+        LWPR_Object model(2*task.inputs.size(), task.outputs.size());
         //Normalisation value for each input dimension (>0)
         model.normIn(0.01);
         //Use only diagonal matrix. Big speed up in high dimension
@@ -473,7 +512,7 @@ void testLearning()
 int main()
 {
     testLearning();
-    //return 0;
+    return 0;
 
     //Trajectory splines
     std::string splinesfile = "../../These/Data/logs-2016-02-02/trajBest_3.000000_1.000000_0.000000_2.398569.splines";
