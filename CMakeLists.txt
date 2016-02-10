@@ -165,7 +165,6 @@ set(APPS_FILES
     appSplineGenerationCircle
     appTestLearningFromLogs
     appExperimentOdometry
-    appExperimentKick
 )
 
 #LephCode linked libraries
@@ -226,6 +225,8 @@ if (BUILD_LEPH_CODE_VIEWER)
         appViewerModelZMP
         appDynamicTrajectoryOptimizationTorques
         appTestLegTorques
+        appExperimentKick
+        appExperimentKick2
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
