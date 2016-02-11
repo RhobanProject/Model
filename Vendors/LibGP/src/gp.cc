@@ -91,6 +91,10 @@ namespace libgp {
     update_k_star(x_star);
     return k_star.dot(alpha);    
   }
+  double GaussianProcess::f(const Eigen::VectorXd& x)
+  {
+    return f(x.data());
+  }
   
   double GaussianProcess::var(const double x[])
   {
@@ -102,6 +106,10 @@ namespace libgp {
     int n = sampleset->size();
     Eigen::VectorXd v = L.topLeftCorner(n, n).triangularView<Eigen::Lower>().solve(k_star);
     return cf->get(x_star, x_star) - v.dot(v);	
+  }
+  double GaussianProcess::var(const Eigen::VectorXd& x)
+  {
+    return var(x.data());
   }
 
   void GaussianProcess::compute()
@@ -182,6 +190,10 @@ namespace libgp {
     }
     alpha_needs_update = true;
 #endif
+  }
+  void GaussianProcess::add_pattern(const Eigen::VectorXd& x, double y)
+  {
+    add_pattern(x.data(), y);
   }
 
   bool GaussianProcess::set_y(size_t i, double y) 

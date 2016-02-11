@@ -45,11 +45,13 @@ namespace libgp {
      *  @param x input vector
      *  @return predicted value */
     virtual double f(const double x[]);
+    virtual double f(const Eigen::VectorXd& x);
     
     /** Predict variance of prediction for given input.
      *  @param x input vector
      *  @return predicted variance */
     virtual double var(const double x[]);
+    virtual double var(const Eigen::VectorXd& x);
     
     /** Add input-output-pair to sample set.
      *  Add a copy of the given input-output-pair to sample set.
@@ -57,6 +59,7 @@ namespace libgp {
      *  @param y output value
      */
     void add_pattern(const double x[], double y);
+    void add_pattern(const Eigen::VectorXd& x, double y);
 
 
     bool set_y(size_t i, double y);
