@@ -64,7 +64,39 @@ const std::vector<CubicSpline::Point>& CubicSpline::points() const
 {
     return _points;
 }
+std::vector<CubicSpline::Point>& CubicSpline::points()
+{
+    return _points;
+}
         
+void CubicSpline::computeSplines() 
+{
+    Spline::_splines.clear();
+    if (_points.size() < 2) {
+        return;
+    }
+
+    std::sort(
+        _points.begin(), 
+        _points.end(), 
+        [](const Point& p1, const Point& p2) -> bool { 
+            return p1.time < p2.time;
+        });
+
+    for (size_t i=1;i<_points.size();i++) {
+        double time = _points[i].time - _points[i-1].time;
+        if (time > 0.00001) {
+            Spline::_splines.push_back({
+                polynomFit(time,
+                    _points[i-1].position, _points[i-1].velocity,
+                    _points[i].position, _points[i].velocity),
+                _points[i-1].time,
+                _points[i].time
+            });
+        }
+    }
+}
+
 void CubicSpline::importCallBack()
 {
     size_t size = Spline::_splines.size();
@@ -119,34 +151,6 @@ Polynom CubicSpline::polynomFit(double t,
     p.getCoefs()[2] = (pos2 - pos1 - vel1*t - p.getCoefs()[3]*t3)/t2;
 
     return p;
-}
-
-void CubicSpline::computeSplines() 
-{
-    Spline::_splines.clear();
-    if (_points.size() < 2) {
-        return;
-    }
-
-    std::sort(
-        _points.begin(), 
-        _points.end(), 
-        [](const Point& p1, const Point& p2) -> bool { 
-            return p1.time < p2.time;
-        });
-
-    for (size_t i=1;i<_points.size();i++) {
-        double time = _points[i].time - _points[i-1].time;
-        if (time > 0.00001) {
-            Spline::_splines.push_back({
-                polynomFit(time,
-                    _points[i-1].position, _points[i-1].velocity,
-                    _points[i].position, _points[i].velocity),
-                _points[i-1].time,
-                _points[i].time
-            });
-        }
-    }
 }
 
 }

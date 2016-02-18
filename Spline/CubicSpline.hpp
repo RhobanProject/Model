@@ -48,9 +48,15 @@ class CubicSpline : public Spline
         void subdivide(unsigned int divider);
 
         /**
-         * Read access to points container
+         * Access to points container
          */
         const std::vector<Point>& points() const;
+        std::vector<Point>& points();
+        
+        /**
+         * Recompute splines interpolation model
+         */
+        void computeSplines();
 
     protected:
 
@@ -75,10 +81,6 @@ class CubicSpline : public Spline
             double pos1, double vel1,
             double pos2, double vel2) const;
         
-        /**
-         * Recompute splines interpolation model
-         */
-        void computeSplines();
 };
 
 }
