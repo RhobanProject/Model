@@ -31,10 +31,16 @@ namespace libgp {
     
     /** Create and instance of GaussianProcess with given input dimensionality 
      *  and covariance function. */
+    GaussianProcess ();
     GaussianProcess (size_t input_dim, std::string covf_def);
     
     /** Create and instance of GaussianProcess from file. */
     GaussianProcess (const char * filename);
+
+    /* copy constructor */
+    GaussianProcess(const GaussianProcess& gp);
+    /* No assignement */
+    GaussianProcess& operator=(const GaussianProcess&) = delete;
     
     virtual ~GaussianProcess ();
     

@@ -30,7 +30,8 @@ namespace libgp {
   
   void SampleSet::add(const Eigen::VectorXd x, double y)
   {
-    Eigen::VectorXd * v = new Eigen::VectorXd(x);
+    Eigen::VectorXd * v = new Eigen::VectorXd(x.size());
+    for (size_t i=0; i<x.size(); ++i) (*v)(i) = x(i);
     inputs.push_back(v);
     targets.push_back(y);
     assert(inputs.size()==targets.size());
@@ -66,10 +67,11 @@ namespace libgp {
   
   void SampleSet::clear()
   {
-    while (!inputs.empty()) {
-      delete inputs.back();
-      inputs.pop_back();
-    }    
+    for (size_t i=0;i<inputs.size();i++) {
+      delete inputs[i];
+      inputs[i] = nullptr;
+    }
+    inputs.clear();
     n = 0;
     targets.clear();
   }
