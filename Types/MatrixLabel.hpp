@@ -196,7 +196,7 @@ class MatrixLabel
         }
 
         /**
-         * Append given VectorLabel at the end of the serie
+         * Append given VectorLabel at the end of the serie.
          */
         inline void append(const VectorLabel& vect)
         {
@@ -204,6 +204,17 @@ class MatrixLabel
                 throw std::logic_error("MatrixLabel invalid dimension");
             } 
 
+            appendForce(vect);
+        }
+
+        /**
+         * Append given VectorLabel at the end of the serie.
+         * No error is thrown if given vector 
+         * has invalid dimension but export/import are expected
+         * to failed !!!
+         */
+        inline void appendForce(const VectorLabel& vect)
+        {
             if (_indexEnd == (size_t)-1 || 
                 _indexEnd == _container->size()-1
             ) {

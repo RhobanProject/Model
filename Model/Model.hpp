@@ -350,7 +350,7 @@ class Model
         /**
          * Update given Eigen vector with set values
          * in VectorLabel
-         * Base DOF are skipped if setBase is true
+         * Base DOF are skipped if setBase is false
          */
         void loadLabelToEigen(const VectorLabel& vect, 
             Eigen::VectorXd& dst, bool setBase);

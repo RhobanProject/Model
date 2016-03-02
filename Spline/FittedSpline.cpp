@@ -14,6 +14,12 @@ void FittedSpline::addPoint(double x, double y)
         
 bool FittedSpline::fittingPieces(double maxError, bool throwError)
 {
+    //Data check
+    if (_points.size() < 3) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
     //Sort data
     prepareData();
 
@@ -112,6 +118,12 @@ bool FittedSpline::fittingPieces(double maxError, bool throwError)
 void FittedSpline::fittingGlobal(
     unsigned int degree, unsigned int sequenceLength)
 {
+    //Data check
+    if (_points.size() == 0) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
     //Sort data
     prepareData();
 
@@ -194,6 +206,12 @@ void FittedSpline::fittingGlobal(
         
 void FittedSpline::fittingCubic(unsigned int sequenceLength)
 {
+    //Data check
+    if (_points.size() < 3) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
     prepareData();
     
     //Fit cubic splines
@@ -232,12 +250,6 @@ void FittedSpline::fittingCubic(unsigned int sequenceLength)
         
 void FittedSpline::prepareData()
 {
-    //Data check
-    if (_points.size() < 3) {
-        throw std::logic_error(
-            "FittedSpline not enough points");
-    }
-    
     //Clear spline
     Spline::_splines.clear();
 
