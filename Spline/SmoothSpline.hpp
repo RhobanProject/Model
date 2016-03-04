@@ -14,16 +14,7 @@ namespace Leph {
 class SmoothSpline : public Spline
 {
     public:
-
-        /**
-         * Add a new point with its time, position value,
-         * velocity and acceleration
-         */
-        void addPoint(double time, double position, 
-            double velocity = 0.0, double acceleration = 0.0);
         
-    private:
-
         /**
          * Simple point struture
          */
@@ -33,6 +24,34 @@ class SmoothSpline : public Spline
             double velocity;
             double acceleration;
         };
+
+        /**
+         * Add a new point with its time, position value,
+         * velocity and acceleration
+         */
+        void addPoint(double time, double position, 
+            double velocity = 0.0, double acceleration = 0.0);
+        
+        /**
+         * Access to points container
+         */
+        const std::vector<Point>& points() const;
+        std::vector<Point>& points();
+        
+        /**
+         * Recompute splines interpolation model
+         */
+        void computeSplines();
+    
+    protected:
+
+        /**
+         * Inherit
+         * Load Points
+         */
+        virtual void importCallBack() override;    
+        
+    private:
 
         /**
          * Points container
@@ -46,11 +65,6 @@ class SmoothSpline : public Spline
         Polynom polynomFit(double t, 
             double pos1, double vel1, double acc1,
             double pos2, double vel2, double acc2) const;
-        
-        /**
-         * Recompute splines interpolation model
-         */
-        void computeSplines();
 };
 
 }
