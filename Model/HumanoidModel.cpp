@@ -5,7 +5,8 @@ namespace Leph {
 
 HumanoidModel::HumanoidModel(
     RobotType type,
-    const std::string& frameRoot) :
+    const std::string& frameRoot,
+    bool isFloatingBase) :
     Model(),
     _type(type)
 {
@@ -37,7 +38,7 @@ HumanoidModel::HumanoidModel(
 
     //Update old urdf model with new root frame
     RBDL::Model modelNew = 
-        Leph::RBDLRootUpdate(modelOld, frameRootId, true);
+        Leph::RBDLRootUpdate(modelOld, frameRootId, isFloatingBase);
     //Initialize base model
     Model::initializeModel(modelNew);
 

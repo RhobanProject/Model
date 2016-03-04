@@ -41,11 +41,13 @@ class HumanoidModel : public Model
         /**
          * Initialize the model with given
          * Robot type and root updater
-         * and enable floating base 6 DOF
+         * and enable floating base 6 DOF if
+         * isFloatingBase is true
          */
         HumanoidModel(
             RobotType type,
-            const std::string& frameRoot);
+            const std::string& frameRoot,
+            bool isFloatingBase = true);
         
         /**
          * Virtual destructor
