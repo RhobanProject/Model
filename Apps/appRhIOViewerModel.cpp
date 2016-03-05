@@ -42,6 +42,7 @@ int main(int argc, char** argv)
     
     //Initialize model instances
     Leph::HumanoidFixedPressureModel model(type);
+    Leph::HumanoidFixedPressureModel modelGoal(type);
     Leph::ModelViewer viewer(1200, 900);
     viewer.maxTrajectory = 50;
     Leph::Scheduling scheduling;
@@ -75,7 +76,7 @@ int main(int argc, char** argv)
     };
     //Setting streaming handler
     clientSub.setHandlerFloat(
-        [&mutexVar, &mutexModel, &model, &pitch, &roll, &yaw,
+        [&mutexVar, &mutexModel, &model, &modelGoal, &pitch, &roll, &yaw,
         &pressureW, &pressureW1, &pressureW2, 
         &pressureX1, &pressureX2, &pressureY1, &pressureY2, 
         &servosNames]
@@ -98,6 +99,10 @@ int main(int argc, char** argv)
             if (name == "servos/" + servosNames[i] + "/angle") {
                 std::lock_guard<std::mutex> lock(mutexModel);
                 model.get().setDOF(servosNames[i], val*M_PI/180.0);
+            }
+            if (name == "servos/" + servosNames[i] + "/goalAngle") {
+                std::lock_guard<std::mutex> lock(mutexModel);
+                modelGoal.get().setDOF(servosNames[i], val*M_PI/180.0);
             }
         }
         if (name == "pressure/weight") {
@@ -136,6 +141,8 @@ int main(int argc, char** argv)
     for (size_t i=0;i<servosNames.size();i++) {
         clientReq.enableStreamingValue(
             "servos/" + servosNames[i] + "/angle");
+        clientReq.enableStreamingValue(
+            "servos/" + servosNames[i] + "/goalAngle");
     }
     clientReq.enableStreamingValue("pressure/weight");
     clientReq.enableStreamingValue("pressure/leftRatio");
@@ -161,10 +168,15 @@ int main(int argc, char** argv)
             pressureX2/100.0,
             pressureY2/100.0);
         model.updateBase();
+        modelGoal.updateBase();
         model.setOrientation(
             pitch*M_PI/180.0, 
             -roll*M_PI/180.0);
+        modelGoal.setOrientation(
+            pitch*M_PI/180.0, 
+            -roll*M_PI/180.0);
         model.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
+        modelGoal.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
         //Model viewer
         Eigen::Vector3d copLeft = model.centerOfPressureLeft("origin");
         Eigen::Vector3d copRight = model.centerOfPressureRight("origin");
@@ -184,13 +196,18 @@ int main(int argc, char** argv)
             Eigen::Matrix3d::Identity(),
             0.0, 1.0, 0.0);
         //Display centers of pressures trajectory
+        Eigen::Vector3d com = model.get().centerOfMass("origin");
+        com.z() = 0.0;
         viewer.addTrackedPoint(
             copLeft, Leph::ModelViewer::Red);
         viewer.addTrackedPoint(
             copRight, Leph::ModelViewer::Green);
         viewer.addTrackedPoint(
             copMiddle, Leph::ModelViewer::Yellow);
+        viewer.addTrackedPoint(
+            com, Leph::ModelViewer::Purple);
         Leph::ModelDraw(model.get(), viewer);
+        Leph::ModelDraw(modelGoal.get(), viewer);
     }
 
     return 0;
