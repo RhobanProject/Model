@@ -36,7 +36,8 @@ namespace libcmaes
     //Proxy CMAES converting Eigen::VectorXd to double array
     template <class TGenoPheno=GenoPheno<NoBoundStrategy>>
         CMASolutions cmaes(FitFuncEigen &funcEigen,
-        CMAParameters<TGenoPheno> &parameters)
+        CMAParameters<TGenoPheno> &parameters,
+        ProgressFunc<CMAParameters<TGenoPheno>,CMASolutions>& progress = CMAStrategy<CovarianceUpdate,TGenoPheno>::_defaultPFunc)
     {
         FitFunc func = [funcEigen](const double* data, const int &n)
         { 
@@ -46,7 +47,7 @@ namespace libcmaes
             }
             return funcEigen(vect); 
         };
-        return cmaes(func, parameters);
+        return cmaes(func, parameters, progress);
     }
 
   template <class TGenoPheno=GenoPheno<NoBoundStrategy>>
