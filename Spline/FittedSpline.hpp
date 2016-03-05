@@ -59,6 +59,16 @@ class FittedSpline : public Spline
          */
         void fittingCubic(unsigned int sequenceLength);
 
+        /**
+         * Fit given points with pieces of Polynom of given
+         * degree. No continuity at knots are ensure. Knots are
+         * chosen in preference at extremum point with optional
+         * time minimum and maximum bounds.
+         * Data must not be noised and must have clear extremum.
+         */
+        double fittingPolynomPieces(unsigned int degree, 
+            double minTimeLength = -1.0, double maxTimeLength = -1.0);
+
     private:
 
         /**

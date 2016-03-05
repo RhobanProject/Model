@@ -248,6 +248,94 @@ void FittedSpline::fittingCubic(unsigned int sequenceLength)
     Spline::operator=(cubic);
 }
         
+double FittedSpline::fittingPolynomPieces(unsigned int degree, 
+    double minTimeLength, double maxTimeLength)
+{
+    //Data check
+    if (_points.size() < 3) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
+    //Sort data
+    prepareData();
+
+    //Cut x axis into sequences
+    //(select spline knots points)
+    //by founding data extremum and
+    //taking into account time min/max length
+    std::vector<std::pair<size_t, size_t>> parts;
+    size_t beginIndex = 0;
+    bool isIncreasing;
+    //Find initial trend
+    if (_points[1].second > _points[0].second + 1e-6) {
+        isIncreasing = true;
+    } else {
+        isIncreasing = false;
+    }
+    for (size_t i=1;i<_points.size();i++) {
+        //Choose when to create a new part
+        bool doAdd = false;
+        //Detect (noiseless) extremum
+        if (
+            isIncreasing && 
+            _points[i].second < _points[i-1].second - 1e-6
+        ) {
+            doAdd = true;
+            isIncreasing = false;
+        } else if (
+            !isIncreasing && 
+            _points[i].second > _points[i-1].second + 1e-6
+        ) {
+            isIncreasing = true;
+            doAdd = true;
+        } 
+        //Check min/max time length
+        double currentLength = 
+            _points[i].first - _points[beginIndex].first;
+        if (maxTimeLength > 0.0 && currentLength >= maxTimeLength) {
+            //Force adding to time length is too long
+            doAdd = true;
+        }
+        if (doAdd && minTimeLength > 0.0 && currentLength < currentLength) {
+            //Cancel adding if time length is too short
+            doAdd = false;
+        }
+        //Add the new part
+        if (doAdd) {
+            parts.push_back({beginIndex, i-1});
+            beginIndex = i-1;
+        }
+    }
+    parts.push_back({beginIndex, _points.size()-1});
+
+    //Compute linear regression for each parts
+    //to find best polynomial fit of given degree
+    double maxError = 0.0;
+    for (size_t i=0;i<parts.size();i++) {
+        //Polynomial simple linear regression
+        PolyFit fit(degree);
+        for (size_t j=parts[i].first;j<=parts[i].second;j++) {
+            fit.add(
+                _points[j].first - _points[parts[i].first].first, 
+                _points[j].second);
+        }
+        Polynom polynom = fit.fitting();
+        //Compute max fitting error
+        double error = fit.regression().maxError();
+        if (error > maxError) {
+            maxError = error;
+        }
+        //Save computed fitting polynom to Splines container
+        Spline::_splines.push_back({
+            polynom, 
+            _points[parts[i].first].first,
+            _points[parts[i].second].first});
+    }
+
+    return maxError;
+}
+        
 void FittedSpline::prepareData()
 {
     //Clear spline
