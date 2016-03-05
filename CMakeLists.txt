@@ -116,6 +116,8 @@ set(SOURCES_FILES
     Spline/CubicSpline.cpp
     Spline/FittedSpline.cpp
     Spline/PolyFit.cpp
+    TrajectoryGeneration/TrajectoryGeneration.cpp
+    TrajectoryGeneration/TrajectoryUtils.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
     TimeSeries/SeriesUtils.cpp
@@ -165,6 +167,7 @@ set(APPS_FILES
     appSplineGenerationCircle
     appTestLearningFromLogs
     appExperimentOdometry
+    appTrajectoriesFitting
 )
 
 #LephCode linked libraries
@@ -224,6 +227,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appViewerModelLogs
         appViewerModelZMP
         appDynamicTrajectoryOptimizationTorques
+        appTrajectoriesViewer
         appTestLegTorques
         appExperimentKick
         appExperimentKick2
