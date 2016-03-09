@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include "Spline/Polynom.hpp"
+#include "Plot/Plot.hpp"
 
 namespace Leph {
 
@@ -51,6 +52,17 @@ class Spline
          */
         double min() const;
         double max() const;
+
+        /**
+         * Return or update given a Plot instance 
+         * with spline pos/vel/acc data with given
+         * optional name.
+         */
+        void plot(
+            Leph::Plot& plot, 
+            const std::string& name = "value") const;
+        Leph::Plot plot(
+            const std::string& name = "value") const;
 
         /**
          * Write and read splines data into given

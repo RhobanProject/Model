@@ -47,6 +47,28 @@ double Spline::max() const
     }
 }
         
+void Spline::plot(
+    Leph::Plot& plot, 
+    const std::string& name) const
+{
+    double step = (max()-min())/100.0;
+    for (double t=min();t<=max();t+=step) {
+        plot.add(Leph::VectorLabel(
+            "t", t, 
+            "pos:" + name, pos(t),
+            "vel:" + name, vel(t),
+            "acc:" + name, acc(t)
+        ));
+    }
+}
+Leph::Plot Spline::plot(
+    const std::string& name) const
+{
+    Leph::Plot p;
+    Spline::plot(p, name);
+    return p;
+}
+        
 void Spline::exportData(std::ostream& os) const
 {
     for (size_t i=0;i<_splines.size();i++) {

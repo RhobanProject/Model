@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <fstream>
 #include "Spline/Spline.hpp"
+#include "Plot/Plot.hpp"
 
 namespace Leph {
 
@@ -115,6 +116,23 @@ class SplineContainer
                 }
             }
             return m;
+        }
+
+        /**
+         * Update to return a Plot instance with
+         * pos/vel/acc values for each contained splines.
+         */
+        void plot(Leph::Plot& plot) const
+        {
+            for (const auto& sp : _container) {
+                sp.second.plot(plot, sp.first);
+            }
+        }
+        Leph::Plot plot() const
+        {
+            Leph::Plot p;
+            SplineContainer::plot(p);
+            return p;
         }
 
         /**

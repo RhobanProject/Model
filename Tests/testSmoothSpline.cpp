@@ -55,6 +55,8 @@ int main()
             << std::endl;
     }
 
+    spline.plot().plot("t", "all").render();
+
     return 0;
 }
 
