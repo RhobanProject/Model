@@ -61,6 +61,11 @@ void TrajectoryGeneration::setEndScoreFunc(
     _endScoreFunc = func;
 }
         
+Eigen::VectorXd TrajectoryGeneration::initialParameters() const
+{
+    return _initialParameters;
+}
+        
 Trajectories TrajectoryGeneration::generateTrajectory(
     const Eigen::VectorXd& params) const
 {
@@ -92,14 +97,16 @@ double TrajectoryGeneration::score(
     HumanoidFixedModel& model,
     const Eigen::VectorXd& torques,
     const Eigen::VectorXd& dq,
-    const Eigen::VectorXd& ddq) const
+    const Eigen::VectorXd& ddq,
+    std::vector<double>& data) const
 {
-    return _scoreFunc(t, model, torques, dq, ddq);
+    return _scoreFunc(t, model, torques, dq, ddq, data);
 }
 double TrajectoryGeneration::endScore(
-    const Trajectories& traj) const
+    const Trajectories& traj,
+    std::vector<double>& data) const
 {
-    return _endScoreFunc(traj);
+    return _endScoreFunc(traj, data);
 }
         
 double TrajectoryGeneration::scoreTrajectory(
@@ -119,6 +126,7 @@ double TrajectoryGeneration::scoreTrajectory(
     //Sigmaban fixed model
     Leph::HumanoidFixedModel model(_type);
     double cost = 0.0;
+    std::vector<double> data;
     for (double t=traj.min();t<=traj.max();t+=0.01) {
         //Check Cartesian State
         Eigen::Vector3d trunkPos;
@@ -170,10 +178,10 @@ double TrajectoryGeneration::scoreTrajectory(
         torques(model.get().getDOFIndex("base_pitch")) = 0.0;
         torques(model.get().getDOFIndex("base_roll")) = 0.0;
         //Evaluate the trajectory
-        cost += score(t, model, torques, dq, ddq);
+        cost += score(t, model, torques, dq, ddq, data);
     }
     //Ending trajectory scoring
-    cost += endScore(traj);
+    cost += endScore(traj, data);
 
     return cost;
 }
@@ -234,7 +242,7 @@ void TrajectoryGeneration::runOptimization(
     };
 
 
-    Eigen::VectorXd initParams = _initialParameters;
+    Eigen::VectorXd initParams = initialParameters();
 
     double initScore = scoreTrajectory(initParams);
     std::cout << "============" << std::endl;

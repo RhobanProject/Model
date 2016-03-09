@@ -44,10 +44,12 @@ class TrajectoryGeneration
             HumanoidFixedModel& model,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
-            const Eigen::VectorXd& ddq)>
+            const Eigen::VectorXd& ddq,
+            std::vector<double>& data)>
             ScoreFunc;
         typedef std::function<double(
-            const Trajectories& traj)> 
+            const Trajectories& traj,
+            std::vector<double>& data)> 
             EndScoreFunc;
 
         /**
@@ -114,6 +116,11 @@ class TrajectoryGeneration
         void setEndScoreFunc(EndScoreFunc func);
 
         /**
+         * Return initial parameters
+         */
+        Eigen::VectorXd initialParameters() const;
+
+        /**
          * Call Trajectory Generation function
          */
         Trajectories generateTrajectory(
@@ -140,9 +147,11 @@ class TrajectoryGeneration
             HumanoidFixedModel& model,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
-            const Eigen::VectorXd& ddq) const;
+            const Eigen::VectorXd& ddq,
+            std::vector<double>& data) const;
         double endScore(
-            const Trajectories& traj) const;
+            const Trajectories& traj,
+            std::vector<double>& data) const;
 
         /**
          * Build up the Trajectories from 

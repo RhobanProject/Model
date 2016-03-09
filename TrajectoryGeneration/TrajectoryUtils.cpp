@@ -140,9 +140,9 @@ bool TrajectoriesComputeKinematics(
     HumanoidFixedModel::SupportFoot supportFoot;
     TrajectoriesTrunkFootPos(t, traj, 
         trunkPos, trunkAxis, footPos, footAxis);
-    TrajectoriesTrunkFootPos(t, traj, 
+    TrajectoriesTrunkFootVel(t, traj, 
         trunkPosVel, trunkAxisVel, footPosVel, footAxisVel);
-    TrajectoriesTrunkFootPos(t, traj, 
+    TrajectoriesTrunkFootAcc(t, traj, 
         trunkPosAcc, trunkAxisAcc, footPosAcc, footAxisAcc);
     TrajectoriesSupportFootState(t, traj,
         isDoubleSupport, supportFoot);
@@ -233,6 +233,7 @@ void TrajectoriesDisplay(
     double sumTorques = 0.0;
     double sumZMP = 0.0;
     double maxZMP = -1.0;
+    double waiting = 0.0;
     while (viewer.update()) {
         Eigen::VectorXd dq;
         Eigen::VectorXd ddq;
@@ -280,11 +281,16 @@ void TrajectoriesDisplay(
         Leph::ModelDraw(model.get(), viewer);
         //Scheduling
         scheduling.wait();
-        if (t >= traj.max()) {
-            t = traj.min();
-            isLoop = true;
+        if (waiting > 0.0) {
+            waiting -= 0.01;
         } else {
-            t += 0.01;
+            if (t >= traj.max()) {
+                t = traj.min();
+                isLoop = true;
+                waiting = 1.0;
+            } else {
+                t += 0.01;
+            }
         }
         if (!isLoop) {
             plot.add(Leph::VectorLabel(
@@ -346,8 +352,8 @@ double DefaultCheckState(
     if (trunkAxis.norm() >= M_PI/2.0) {
         cost += 1000.0 + 1000.0*(trunkAxis.norm() - M_PI/2.0);
     }
-    if (footPos.y() > -2.0*0.039995) {
-        cost += 1000.0 + 1000.0*(footPos.y() + 2.0*0.039995);
+    if (footPos.y() > -2.0*0.045) {
+        cost += 1000.0 + 1000.0*(footPos.y() + 2.0*0.045);
     }
     if (footPos.z() < 0.0) {
         cost += 1000.0 - 1000.0*footPos.z();
