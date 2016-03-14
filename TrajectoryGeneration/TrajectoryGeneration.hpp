@@ -48,6 +48,7 @@ class TrajectoryGeneration
             std::vector<double>& data)>
             ScoreFunc;
         typedef std::function<double(
+            const Eigen::VectorXd& params,
             const Trajectories& traj,
             std::vector<double>& data)> 
             EndScoreFunc;
@@ -150,6 +151,7 @@ class TrajectoryGeneration
             const Eigen::VectorXd& ddq,
             std::vector<double>& data) const;
         double endScore(
+            const Eigen::VectorXd& params,
             const Trajectories& traj,
             std::vector<double>& data) const;
 
@@ -157,8 +159,11 @@ class TrajectoryGeneration
          * Build up the Trajectories from 
          * given parameters and evaluates it.
          */
-        double scoreTrajectory(const Eigen::VectorXd& params) const;
-        double scoreTrajectory(const Trajectories& traj) const;
+        double scoreTrajectory(
+            const Eigen::VectorXd& params) const;
+        double scoreTrajectory(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj) const;
 
         /**
          * Run the CMA-ES Trajectories optimization

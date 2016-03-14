@@ -103,10 +103,11 @@ double TrajectoryGeneration::score(
     return _scoreFunc(t, model, torques, dq, ddq, data);
 }
 double TrajectoryGeneration::endScore(
+    const Eigen::VectorXd& params,
     const Trajectories& traj,
     std::vector<double>& data) const
 {
-    return _endScoreFunc(traj, data);
+    return _endScoreFunc(params, traj, data);
 }
         
 double TrajectoryGeneration::scoreTrajectory(
@@ -117,10 +118,11 @@ double TrajectoryGeneration::scoreTrajectory(
         return cost;
     } else {
         Trajectories traj = generateTrajectory(params);
-        return scoreTrajectory(traj);
+        return scoreTrajectory(params, traj);
     }
 }
 double TrajectoryGeneration::scoreTrajectory(
+    const Eigen::VectorXd& params,
     const Trajectories& traj) const
 {
     //Sigmaban fixed model
@@ -181,7 +183,7 @@ double TrajectoryGeneration::scoreTrajectory(
         cost += score(t, model, torques, dq, ddq, data);
     }
     //Ending trajectory scoring
-    cost += endScore(traj, data);
+    cost += endScore(params, traj, data);
 
     return cost;
 }
