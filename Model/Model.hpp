@@ -246,6 +246,19 @@ class Model
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
 
         /**
+         * Compute Forward Dynamics on the tree model
+         * and return the acceleration for each degrees
+         * of freedom.
+         * Given DOF positions, velocity
+         * and torque are used.
+         * (current model position is not used)
+         */
+        Eigen::VectorXd forwardDynamics(
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque);
+
+        /**
          * Return optionaly non zero aligned axis bounding box
          * with respect to given frame base and its half size
          */

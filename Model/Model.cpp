@@ -457,6 +457,31 @@ Eigen::VectorXd Model::inverseDynamicsClosedLoop(
         velocity, acceleration);
 }
         
+Eigen::VectorXd Model::forwardDynamics(
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque)
+{
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
+    }
+    RBDLMath::VectorNd QDDot(_model.dof_count);
+    RBDL::ForwardDynamics(
+        _model, position, velocity, torque, 
+        QDDot, NULL);
+
+    return QDDot;
+}
+        
 void Model::boundingBox(size_t frameIndex, 
     double& sizeX, double& sizeY, double& sizeZ,
     Eigen::Vector3d& center) const
