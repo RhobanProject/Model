@@ -7,6 +7,16 @@
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 
 /**
+ * All Joint DOF names
+ */
+static std::vector<std::string> dofNames = {
+    "left_ankle_pitch", "left_ankle_roll", "left_knee",
+    "left_hip_pitch", "left_hip_roll", "left_hip_yaw",
+    "right_ankle_pitch", "right_ankle_roll", "right_knee",
+    "right_hip_pitch", "right_hip_roll", "right_hip_yaw"
+};
+
+/**
  * Ending precompute optimal state
  */
 static Eigen::Vector3d targetTrunkPos()
@@ -253,8 +263,10 @@ void generateLegLift()
         return cost;
     });
     generator.setEndScoreFunc([](
+        const Eigen::VectorXd& params,
         const Leph::Trajectories& traj,
         std::vector<double>& data) -> double {
+        (void)params;
         (void)traj;
         return data[0];
     });
@@ -273,8 +285,8 @@ void generateLegLift()
 
 void generateKick()
 {
-    double KickPosX = 0.0;
-    double KickPosY = -0.1;
+    double KickPosX = 0.01;
+    double KickPosY = -0.11;
     double KickPosZ = 0.07;
 
     //Initialize the generator
@@ -301,21 +313,21 @@ void generateKick()
         params(10) = 0.0;
         
         //Middle 1 trunk pos
-        params(11) = targetTrunkPos().x();
+        params(11) = targetTrunkPos().x() - 0.01;
         params(12) = targetTrunkPos().y();
         //Middle 1 trunk axis
         params(13) = targetTrunkAxis().x();
         params(14) = targetTrunkAxis().y();
         params(15) = targetTrunkAxis().z();
         //Middle 1 foot pos
-        params(16) = KickPosX + 0.02;
+        params(16) = KickPosX + 0.01;
         params(17) = KickPosZ;
         //Middle 1 foot vel
         params(18) = 0.0;
         params(19) = 0.0;
         
         //Middle 2 trunk pos
-        params(20) = targetTrunkPos().x();
+        params(20) = targetTrunkPos().x() + 0.01;
         params(21) = targetTrunkPos().y();
         //Middle 2 trunk vel
         params(22) = 0.0;
@@ -329,7 +341,7 @@ void generateKick()
         params(28) = 0.0;
         params(29) = 0.0;
         //Middle 2 foot pos
-        params(30) = KickPosX - 0.02;
+        params(30) = KickPosX - 0.01;
         params(31) = KickPosZ;
         //Middle 2 foot vel
         params(32) = 0.0;
@@ -353,8 +365,8 @@ void generateKick()
         params(48) = 0.0;
         
         //Middle1/Middle2 time ratio
-        params(49) = 0.4;
-        params(50) = 0.6;
+        params(49) = 0.3;
+        params(50) = 0.7;
         
         return params;
     }());
@@ -522,10 +534,10 @@ void generateKick()
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
         std::vector<double>& data) -> double {
-        
         (void)t;
         (void)data;
         double cost = 0.0;
+        //ZMP
         Eigen::Vector3d zmp = model.zeroMomentPoint("origin", dq, ddq);
         cost += 0.01*torques.norm();
         zmp.z() = 0.0;
@@ -533,8 +545,10 @@ void generateKick()
         return cost;
     });
     generator.setEndScoreFunc([](
+        const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
         std::vector<double>& data) -> double {
+        (void)params;
         (void)traj;
         (void)data;
         return 0.0;
@@ -646,8 +660,10 @@ void generateStaticSingleSupport()
         return cost;
     });
     generator.setEndScoreFunc([](
+        const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
         std::vector<double>& data) -> double {
+        (void)params;
         (void)data;
         (void)traj;
         return 0.0;
@@ -871,8 +887,10 @@ void generateRecovery()
         return cost;
     });
     generator.setEndScoreFunc([](
+        const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
         std::vector<double>& data) -> double {
+        (void)params;
         (void)traj;
         (void)data;
         return 0.0;
