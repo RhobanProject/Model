@@ -187,6 +187,15 @@ void TrajectoriesDisplay(
     for (double t=traj.min();t<=traj.max();t+=0.01) {
         plot.add(Leph::VectorLabel(
             "time", t,
+            "is_double_support", traj.get("is_double_support").pos(t),
+            "is_left_support_foot", traj.get("is_left_support_foot").pos(t)
+        ));
+    }
+    plot.plot("time", "all").render();
+    plot.clear();
+    for (double t=traj.min();t<=traj.max();t+=0.01) {
+        plot.add(Leph::VectorLabel(
+            "time", t,
             "trunk_pos_x", traj.get("trunk_pos_x").pos(t),
             "trunk_pos_y", traj.get("trunk_pos_y").pos(t),
             "trunk_pos_z", traj.get("trunk_pos_z").pos(t),
@@ -352,8 +361,8 @@ double DefaultCheckState(
     if (trunkAxis.norm() >= M_PI/2.0) {
         cost += 1000.0 + 1000.0*(trunkAxis.norm() - M_PI/2.0);
     }
-    if (footPos.y() > -2.0*0.045) {
-        cost += 1000.0 + 1000.0*(footPos.y() + 2.0*0.045);
+    if (fabs(footPos.y()) < 2.0*0.045) {
+        cost += 1000.0 + 1000.0*(2.0*0.045 - fabs(footPos.y()));
     }
     if (footPos.z() < 0.0) {
         cost += 1000.0 - 1000.0*footPos.z();

@@ -108,6 +108,7 @@ set(SOURCES_FILES
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
+    Model/ForwardSimulation.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -160,6 +161,7 @@ set(TESTS_FILES
     testLWPRInputsOptimization
     testEuler
     testAxisAngle
+    testEncoderFilter
 )
 
 #Applications main files
@@ -220,6 +222,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testZeroMomentPoint
         testHumanoidPressureModel
         testTrunkFootIK
+        testForwardSimulation
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
