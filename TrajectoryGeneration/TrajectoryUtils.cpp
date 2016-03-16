@@ -3,6 +3,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Model/MotorModel.hpp"
 #include "Plot/Plot.hpp"
 
 namespace Leph {
@@ -277,6 +278,8 @@ void TrajectoriesDisplay(
         torques(model.get().getDOFIndex("base_yaw")) = 0.0;
         torques(model.get().getDOFIndex("base_pitch")) = 0.0;
         torques(model.get().getDOFIndex("base_roll")) = 0.0;
+        //Compute voltage
+        Eigen::VectorXd volts = MotorModel::voltage(dq, torques);
         //Display ZMP and trunk/foot trajectory
         viewer.addTrackedPoint(
             model.get().position("trunk", "origin"), 
@@ -328,6 +331,30 @@ void TrajectoriesDisplay(
                     torques(model.get().getDOFIndex("right_ankle_pitch")),
                 "right_torque:ankle_roll", 
                     torques(model.get().getDOFIndex("right_ankle_roll")),
+                "left_volt:hip_yaw", 
+                    volts(model.get().getDOFIndex("left_hip_yaw")),
+                "left_volt:hip_pitch", 
+                    volts(model.get().getDOFIndex("left_hip_pitch")),
+                "left_volt:hip_roll", 
+                    volts(model.get().getDOFIndex("left_hip_roll")),
+                "left_volt:knee", 
+                    volts(model.get().getDOFIndex("left_knee")),
+                "left_volt:ankle_pitch", 
+                    volts(model.get().getDOFIndex("left_ankle_pitch")),
+                "left_volt:ankle_roll", 
+                    volts(model.get().getDOFIndex("left_ankle_roll")),
+                "right_volt:hip_yaw", 
+                    volts(model.get().getDOFIndex("right_hip_yaw")),
+                "right_volt:hip_pitch", 
+                    volts(model.get().getDOFIndex("right_hip_pitch")),
+                "right_volt:hip_roll", 
+                    volts(model.get().getDOFIndex("right_hip_roll")),
+                "right_volt:knee", 
+                    volts(model.get().getDOFIndex("right_knee")),
+                "right_volt:ankle_pitch", 
+                    volts(model.get().getDOFIndex("right_ankle_pitch")),
+                "right_volt:ankle_roll", 
+                    volts(model.get().getDOFIndex("right_ankle_roll")),
                 "zmp_x", zmp.x(),
                 "zmp_y", zmp.y()
             ));
@@ -345,6 +372,8 @@ void TrajectoriesDisplay(
     //Plot DOF torques and ZMP
     plot.plot("t", "left_torque:*").render();
     plot.plot("t", "right_torque:*").render();
+    plot.plot("t", "left_volt:*").render();
+    plot.plot("t", "right_volt:*").render();
     plot.plot("t", "zmp_x").plot("t", "zmp_y").render();
 }
 
