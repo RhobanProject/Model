@@ -5,6 +5,7 @@
 #include "Spline/SplineContainer.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
+#include "Model/MotorModel.hpp"
 
 /**
  * All Joint DOF names
@@ -1164,9 +1165,20 @@ void generateWalk()
         //Maximum torque
         if (data.size() == 0) {
             data.push_back(0.0);
+            data.push_back(0.0);
         }
         if (data[0] < torques.lpNorm<Eigen::Infinity>()) {
             data[0] = torques.lpNorm<Eigen::Infinity>();
+        }
+        //Voltage
+        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, torques);
+        cost += 0.01*(1.0/Leph::MotorModel::maxVoltage())*volts.norm();
+        //Maximum voltage
+        if (volts.lpNorm<Eigen::Infinity>() > 0.75*Leph::MotorModel::maxVoltage()) {
+            cost += 100.0 + 100.0*volts.lpNorm<Eigen::Infinity>();
+        }
+        if (data[1] < volts.lpNorm<Eigen::Infinity>()) {
+            data[1] = volts.lpNorm<Eigen::Infinity>();
         }
         return cost;
     });
@@ -1176,7 +1188,7 @@ void generateWalk()
         std::vector<double>& data) -> double {
         (void)params;
         (void)traj;
-        return data[0];
+        return 5.0*data[0] + 0.1*data[1];
     });
     
     //Display initial trajectory
