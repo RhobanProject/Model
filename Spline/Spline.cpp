@@ -140,6 +140,13 @@ void Spline::addPart(const Polynom& poly,
     _splines.push_back({poly, min, max});
 }
         
+void Spline::copyData(const Spline& sp)
+{
+    _splines = sp._splines;
+    //Call possible post import
+    importCallBack();
+}
+        
 void Spline::importCallBack()
 {
 }

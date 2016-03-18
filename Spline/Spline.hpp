@@ -88,6 +88,12 @@ class Spline
         void addPart(const Polynom& poly, 
             double min, double max);
 
+        /**
+         * Replace this spline part with the 
+         * internal data of givne spline
+         */
+        void copyData(const Spline& sp);
+
     protected:
 
         /**
