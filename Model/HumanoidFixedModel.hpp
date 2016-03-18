@@ -93,6 +93,14 @@ class HumanoidFixedModel
             const VectorLabel& acceleration);
 
         /**
+         * Compute and return the Zero Moment Point
+         * (ZMP) in given frame from given torques.
+         */
+        Eigen::Vector3d zeroMomentPointFromTorques(
+            const std::string& frame,
+            const Eigen::VectorXd& torques);
+
+        /**
          * Set the model state by running 
          * Inverse Kinematics on both legs.
          * The state is given by the support foot

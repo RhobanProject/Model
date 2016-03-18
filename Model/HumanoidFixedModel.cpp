@@ -152,18 +152,7 @@ Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     Eigen::VectorXd torque = get().inverseDynamics(
         velocity, acceleration);
 
-    double Fx = torque(get().getDOFIndex("base_x"));
-    double Fy = torque(get().getDOFIndex("base_y"));
-    double Fz = torque(get().getDOFIndex("base_z"));
-    double MRoll = torque(get().getDOFIndex("base_roll"));
-    double MPitch = torque(get().getDOFIndex("base_pitch"));
-    
-    double Mx;
-    double My;
-    convertFootMoment(MPitch, MRoll, Mx, My);
-    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
-
-    return get().position("origin", frame, zmp);
+    return zeroMomentPointFromTorques(frame, torque);
 }
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     const std::string& frame,
@@ -185,6 +174,25 @@ Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
     
     return get().position("origin", frame, zmp);
+}
+        
+Eigen::Vector3d HumanoidFixedModel::zeroMomentPointFromTorques(
+    const std::string& frame,
+    const Eigen::VectorXd& torques)
+{
+    double Fx = torques(get().getDOFIndex("base_x"));
+    double Fy = torques(get().getDOFIndex("base_y"));
+    double Fz = torques(get().getDOFIndex("base_z"));
+    double MRoll = torques(get().getDOFIndex("base_roll"));
+    double MPitch = torques(get().getDOFIndex("base_pitch"));
+    
+    double Mx;
+    double My;
+    convertFootMoment(MPitch, MRoll, Mx, My);
+    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
+
+    return get().position("origin", frame, zmp);
+
 }
 
 bool HumanoidFixedModel::trunkFootIK(
