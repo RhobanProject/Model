@@ -52,12 +52,14 @@ class FittedSpline : public Spline
             unsigned int degree, unsigned int sequenceLength);
 
         /**
-         * Fit given points with cubic polynoms every
-         * sequenceLength of points.
-         * Polynom velocity are computed numerically.
+         * Fit given points with cubic/smooth polynoms 
+         * every sequenceLength of points.
+         * Polynom velocity (or acceleration) 
+         * are computed numerically.
          * Noised data would not fit well.
          */
         void fittingCubic(unsigned int sequenceLength);
+        void fittingSmooth(unsigned int sequenceLength);
 
         /**
          * Fit given points with pieces of Polynom of given

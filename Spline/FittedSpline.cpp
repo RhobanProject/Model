@@ -2,6 +2,7 @@
 #include "Spline/FittedSpline.hpp"
 #include "Spline/PolyFit.hpp"
 #include "Spline/CubicSpline.hpp"
+#include "Spline/SmoothSpline.hpp"
 #include "LinearRegression/SimpleLinearRegression.hpp"
 #include "Utils/NewtonBinomial.hpp"
 
@@ -248,6 +249,72 @@ void FittedSpline::fittingCubic(unsigned int sequenceLength)
     Spline::operator=(cubic);
 }
         
+void FittedSpline::fittingSmooth(unsigned int sequenceLength)
+{
+    //Data check
+    if (_points.size() < 5) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
+    prepareData();
+    
+    //Fit smooth splines
+    SmoothSpline smooth;
+
+    //Add first point
+    double dYFirst = _points[1].second - _points[0].second;
+    double dTFirst = _points[1].first - _points[0].first;
+    double dTFirst2 = _points[2].first - _points[1].first;
+    double velFirst = dYFirst/dTFirst;
+    double accFirst = (
+        _points[2].second 
+        - 2.0*_points[1].second 
+        + _points[0].second
+        )/(dTFirst*dTFirst2);
+    smooth.addPoint(_points[0].first, 
+        _points[0].second, velFirst, accFirst);
+
+    //Add point every sequenceLength
+    for (size_t i=2;i<_points.size()-sequenceLength/2;i++) {
+        if (i%sequenceLength == 0) {
+            double dY = _points[i+1].second - _points[i-1].second;
+            double dT = _points[i+1].first - _points[i-1].first;
+            if (dT <= 0.0) {
+                throw std::logic_error(
+                    "FittedSpline differentiation error");
+            }
+            double vel = dY/dT;
+            double acc = (
+                _points[i+1].second 
+                - 2.0*_points[i].second 
+                + _points[i-1].second
+                )/(
+                (_points[i+1].first - _points[i].first)
+                *(_points[i].first - _points[i-1].first));
+            smooth.addPoint(_points[i].first, 
+                _points[i].second, vel, acc);
+        }
+    }
+    
+    //Add last point
+    size_t size = _points.size();
+    double dYEnd = _points[size-1].second - _points[size-2].second;
+    double dTEnd = _points[size-1].first - _points[size-2].first;
+    double dTEnd2 = _points[size-2].first - _points[size-3].first;
+    double velEnd = dYEnd/dTEnd;
+    double accEnd = (
+        _points[size-1].second 
+        - 2.0*_points[size-2].second 
+        + _points[size-3].second
+        )/(dTEnd*dTEnd2);
+    smooth.addPoint(_points[size-1].first, 
+        _points[size-1].second, velEnd, accEnd);
+
+    //Copy spline data
+    Spline::operator=(smooth);
+}
+
 double FittedSpline::fittingPolynomPieces(unsigned int degree, 
     double minTimeLength, double maxTimeLength)
 {
