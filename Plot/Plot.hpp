@@ -63,6 +63,17 @@ class Plot
         }
 
         /**
+         * Merge the given plot data base into
+         * this. 
+         */
+        inline void merge(const Plot plot)
+        {
+            for (size_t i=0;i<plot._database.size();i++) {
+                add(plot._database[i]);
+            }
+        }
+
+        /**
          * Add given TimeSeries with optionally
          * an other name
          */
