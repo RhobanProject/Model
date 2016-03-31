@@ -1,5 +1,6 @@
 #include <iostream>
 #include "TrajectoryGeneration/TrajectoryUtils.h"
+#include "TrajectoryGeneration/TrajectoryDisplay.h"
 
 int main(int argc, char** argv)
 {

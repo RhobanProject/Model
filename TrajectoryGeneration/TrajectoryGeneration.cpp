@@ -173,12 +173,6 @@ double TrajectoryGeneration::scoreTrajectory(
         } else {
             torques = model.get().inverseDynamics(dq, ddq);
         }
-        torques(model.get().getDOFIndex("base_x")) = 0.0;
-        torques(model.get().getDOFIndex("base_y")) = 0.0;
-        torques(model.get().getDOFIndex("base_z")) = 0.0;
-        torques(model.get().getDOFIndex("base_yaw")) = 0.0;
-        torques(model.get().getDOFIndex("base_pitch")) = 0.0;
-        torques(model.get().getDOFIndex("base_roll")) = 0.0;
         //Evaluate the trajectory
         cost += score(t, model, torques, dq, ddq, data);
     }

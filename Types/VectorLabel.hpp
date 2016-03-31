@@ -635,6 +635,18 @@ class VectorLabel
             op([](double& self){
                 self = 0.0; }, filter);
         }
+        inline void minOp(double val, 
+            const std::string& filter = "#")
+        {
+            op(val, [](double& self, double value){
+                if (self < value) self = value; }, filter);
+        }
+        inline void maxOp(double val, 
+            const std::string& filter = "#")
+        {
+            op(val, [](double& self, double value){
+                if (self > value) self = value; }, filter);
+        }
 
         /**
          * Return the mean of (filtered) 
