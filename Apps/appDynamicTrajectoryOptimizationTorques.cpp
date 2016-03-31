@@ -1,10 +1,12 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "Spline/SmoothSpline.hpp"
+#include "Spline/FittedSpline.hpp"
 #include "Utils/time.h"
 #include "Spline/SplineContainer.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
+#include "TrajectoryGeneration/TrajectoryDisplay.h"
 #include "Model/MotorModel.hpp"
 
 /**
@@ -246,19 +248,28 @@ void generateLegLift()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
-        std::vector<double>& data) -> double {
-        
+        std::vector<double>& data) -> double 
+    {
         (void)t;
         (void)model;
         (void)dq;
         (void)ddq;
+
+        Eigen::VectorXd tmpTorques = torques;
+        tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_z")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
+
         double cost = 0.0;
-        cost += 0.01*torques.norm();
+        cost += 0.01*tmpTorques.norm();
         if (data.size() == 0) {
             data.push_back(0.0);
         }
-        if (data[0] < torques.lpNorm<Eigen::Infinity>()) {
-            data[0] = torques.lpNorm<Eigen::Infinity>();
+        if (data[0] < tmpTorques.lpNorm<Eigen::Infinity>()) {
+            data[0] = tmpTorques.lpNorm<Eigen::Infinity>();
         }
 
         return cost;
@@ -534,16 +545,26 @@ void generateKick()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
-        std::vector<double>& data) -> double {
+        std::vector<double>& data) -> double 
+    {
         (void)t;
         (void)data;
+
+        Eigen::VectorXd tmpTorques = torques;
+        tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_z")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
+
         double cost = 0.0;
         //ZMP
-        Eigen::Vector3d zmp = model.zeroMomentPoint("origin", dq, ddq);
+        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
         zmp.z() = 0.0;
         cost += zmp.norm();
         //Torques
-        cost += 0.01*torques.norm();
+        cost += 0.01*tmpTorques.norm();
         return cost;
     });
     generator.setEndScoreFunc([](
@@ -650,15 +671,24 @@ void generateStaticSingleSupport()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
-        std::vector<double>& data) -> double {
-        
+        std::vector<double>& data) -> double 
+    {
         (void)t;
         (void)model;
         (void)dq;
         (void)ddq;
         (void)data;
+
+        Eigen::VectorXd tmpTorques = torques;
+        tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_z")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
+
         double cost = 0.0;
-        cost += 0.01*torques.norm();
+        cost += 0.01*tmpTorques.norm();
         return cost;
     });
     generator.setEndScoreFunc([](
@@ -697,7 +727,7 @@ void generateRecovery()
         params(2) = 0.8;
 
         //Pos time 1
-        params(3) = targetTrunkPos().x() - 0.03;
+        params(3) = targetTrunkPos().x();
         params(4) = targetTrunkPos().y();
         params(9) = targetTrunkAxis().x();
         params(10) = targetTrunkAxis().y();
@@ -709,7 +739,7 @@ void generateRecovery()
         params.segment<3>(15).setZero();
         
         //Pos time 2
-        params(18) = targetTrunkPos().x() - 0.03;
+        params(18) = targetTrunkPos().x();
         params(19) = targetTrunkPos().y();
         params(24) = targetTrunkAxis().x();
         params(25) = targetTrunkAxis().y();
@@ -721,7 +751,7 @@ void generateRecovery()
         params.segment<3>(30).setZero();
         
         //Pos time 3
-        params(33) = targetTrunkPos().x() - 0.03;
+        params(33) = targetTrunkPos().x();
         params(34) = targetTrunkPos().y();
         params(39) = targetTrunkAxis().x();
         params(40) = targetTrunkAxis().y();
@@ -1159,19 +1189,28 @@ void generateWalk()
         (void)model;
         (void)dq;
         (void)ddq;
+
+        Eigen::VectorXd tmpTorques = torques;
+        tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_z")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
+
         double cost = 0.0;
         //Torques
-        cost += 0.01*torques.norm();
+        cost += 0.01*tmpTorques.norm();
         //Maximum torque
         if (data.size() == 0) {
             data.push_back(0.0);
             data.push_back(0.0);
         }
-        if (data[0] < torques.lpNorm<Eigen::Infinity>()) {
-            data[0] = torques.lpNorm<Eigen::Infinity>();
+        if (data[0] < tmpTorques.lpNorm<Eigen::Infinity>()) {
+            data[0] = tmpTorques.lpNorm<Eigen::Infinity>();
         }
         //Voltage
-        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, torques);
+        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
         cost += 0.01*(1.0/Leph::MotorModel::maxVoltage())*volts.norm();
         //Maximum voltage
         if (volts.lpNorm<Eigen::Infinity>() > 0.75*Leph::MotorModel::maxVoltage()) {
