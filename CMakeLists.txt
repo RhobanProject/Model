@@ -107,6 +107,8 @@ set(SOURCES_FILES
     Utils/RandomWalk.cpp
     Utils/IterativeLearningControl.cpp
     Utils/LWPRInputsOptimization.cpp
+    Utils/EncoderFilter.cpp
+    Utils/ComputeModelData.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -118,6 +120,7 @@ set(SOURCES_FILES
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
+    Model/MotorModel.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
