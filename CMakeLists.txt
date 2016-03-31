@@ -277,6 +277,7 @@ if (BUILD_LEPH_CODE_RHAL)
         RhAL
         serial
         RhIO
+        zmq
     )
 endif (BUILD_LEPH_CODE_RHAL)
 
