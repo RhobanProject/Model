@@ -179,6 +179,7 @@ set(APPS_FILES
     appTestLearningFromLogs
     appExperimentOdometry
     appTrajectoriesFitting
+    appStatsDynaban
 )
 
 #LephCode linked libraries
