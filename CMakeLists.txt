@@ -11,6 +11,7 @@ option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
 option(BUILD_LEPH_CODE_APPS "Build Leph Code Apps" OFF)
 option(BUILD_LEPH_CODE_VIEWER "Build Leph Code Viewer (SFML)" OFF)
 option(BUILD_LEPH_CODE_RHIO "Build Leph Code with RhIO" OFF)
+option(BUILD_LEPH_CODE_RHAL "Build Leph Code with RhAL" OFF)
 
 #Includes directories lists
 set(LEPHCODE_INCLUDE_DIRECTORIES "")
@@ -64,6 +65,14 @@ if (BUILD_LEPH_CODE_RHIO)
     link_directories(${RHIO_DIRECTORY}/build)
     link_directories(${ZMQ_DIRECTORY}/lib)
 endif (BUILD_LEPH_CODE_RHIO)
+
+#Include RhAL (Rhoban Abstraction Layer Library) if needed
+set(RHAL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RhAL" CACHE STRING "RhAL lib directory")
+if (BUILD_LEPH_CODE_RHAL)
+    add_definitions(-DBUILD_RHAL_RHIO_BINDING)
+    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHAL_DIRECTORY}/Lib)
+    link_directories(${RHAL_DIRECTORY}/build)
+endif (BUILD_LEPH_CODE_RHAL)
 
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -200,6 +209,9 @@ execute_process(COMMAND "/bin/bash" "-c"
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
+#Add RhAL config sybolic link
+execute_process(COMMAND "/bin/bash" "-c" 
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/django_rhal.json django_rhal.json")
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)
@@ -254,6 +266,18 @@ if (BUILD_LEPH_CODE_RHIO)
         zmq
     )
 endif (BUILD_LEPH_CODE_RHIO)
+
+#Build App RhAL Motion 
+if (BUILD_LEPH_CODE_RHAL)
+    set(APPS_FILES ${APPS_FILES}
+        appRhALTrajectory
+    )
+    set(CODE_LIBRARIES ${CODE_LIBRARIES} 
+        RhAL
+        serial
+        RhIO
+    )
+endif (BUILD_LEPH_CODE_RHAL)
 
 #Include need directories
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
