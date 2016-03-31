@@ -220,6 +220,7 @@ if (BUILD_LEPH_CODE_VIEWER)
     set(SOURCES_FILES ${SOURCES_FILES} 
         Viewer/ModelViewer.cpp
         Viewer/ModelDraw.cpp
+        TrajectoryGeneration/TrajectoryDisplay.cpp
     )
     set(TESTS_FILES ${TESTS_FILES} 
         testModelViewer

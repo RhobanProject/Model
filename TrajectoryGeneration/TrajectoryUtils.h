@@ -52,22 +52,15 @@ void TrajectoriesSupportFootState(
  * at given time t the kinematics.
  * The DOF positions with inverse kinematics is computed
  * and assign to the given model.
+ * If available, base DOF are also assign.
  * The DOF velocities and accelerations are assign
  * to given vector dq and ddq.
  * False is returned if inverse kinematics fails.
  */
 bool TrajectoriesComputeKinematics(
     double t, const Trajectories& traj,
-    Leph::HumanoidFixedModel& model, 
+    HumanoidFixedModel& model, 
     Eigen::VectorXd& dq, Eigen::VectorXd& ddq);
-
-/**
- * Plot and Display the given Trajectories
- * spline container.
- */
-void TrajectoriesDisplay(
-    const Trajectories& traj, 
-    RobotType type = SigmabanModel);
 
 /**
  * Default Cartesian state check function.
@@ -88,7 +81,7 @@ double DefaultCheckState(
  * standard valid range
  */
 double DefaultCheckDOF(
-    const Leph::HumanoidFixedModel& model);
+    const HumanoidFixedModel& model);
 
 }
 
