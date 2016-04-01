@@ -115,7 +115,7 @@ set(SOURCES_FILES
     Model/HumanoidFloatingModel.cpp
     Model/HumanoidFixedModel.cpp
     Model/HumanoidFixedPressureModel.cpp
-    Model/InverseKinematics.cpp
+    #    Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
