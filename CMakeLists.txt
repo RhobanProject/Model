@@ -181,6 +181,7 @@ set(APPS_FILES
     appSplineGenerationCircle
     appTestLearningFromLogs
     appExperimentOdometry
+    appOdometryOffline
     appTrajectoriesFitting
     appStatsDynaban
 )
