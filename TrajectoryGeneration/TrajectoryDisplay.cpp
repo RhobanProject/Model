@@ -113,7 +113,12 @@ void TrajectoriesDisplay(
             torques = model.get().inverseDynamics(dq, ddq);
         }
         //Compute ZMP
-        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
+        Eigen::Vector3d zmp;
+        if (isDoubleSupport) {
+            zmp = model.get().centerOfMass("origin");
+        } else {
+            zmp = model.zeroMomentPointFromTorques("origin", torques);
+        }
         zmp.z() = 0.0;
         //Disable base DOF
         torques(model.get().getDOFIndex("base_x")) = 0.0;
@@ -125,14 +130,19 @@ void TrajectoriesDisplay(
         //Compute voltage
         Eigen::VectorXd volts = MotorModel::voltage(dq, torques);
         //Display ZMP and trunk/foot trajectory
+        if (isDoubleSupport) {
+            viewer.addTrackedPoint(
+                zmp, ModelViewer::Red);
+        } else {
+            viewer.addTrackedPoint(
+                zmp, ModelViewer::Yellow);
+        }
         viewer.addTrackedPoint(
             model.get().position("trunk", "origin"), 
             ModelViewer::Purple);
         viewer.addTrackedPoint(
             model.get().position("right_foot_tip", "origin"), 
             ModelViewer::Cyan);
-        viewer.addTrackedPoint(
-            zmp, ModelViewer::Yellow);
         //Model display
         ModelDraw(model.get(), viewer);
         //Scheduling

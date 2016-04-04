@@ -45,6 +45,8 @@ class TrajectoryGeneration
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
+            bool isDoubleSupport,
+            HumanoidFixedModel::SupportFoot supportFoot,
             std::vector<double>& data)>
             ScoreFunc;
         typedef std::function<double(
@@ -149,6 +151,8 @@ class TrajectoryGeneration
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
+            bool isDoubleSupport,
+            HumanoidFixedModel::SupportFoot supportFoot,
             std::vector<double>& data) const;
         double endScore(
             const Eigen::VectorXd& params,

@@ -98,9 +98,15 @@ double TrajectoryGeneration::score(
     const Eigen::VectorXd& torques,
     const Eigen::VectorXd& dq,
     const Eigen::VectorXd& ddq,
+    bool isDoubleSupport,
+    HumanoidFixedModel::SupportFoot supportFoot,
     std::vector<double>& data) const
 {
-    return _scoreFunc(t, model, torques, dq, ddq, data);
+    return _scoreFunc(
+        t, model, 
+        torques, dq, ddq, 
+        isDoubleSupport, supportFoot, 
+        data);
 }
 double TrajectoryGeneration::endScore(
     const Eigen::VectorXd& params,
@@ -174,7 +180,11 @@ double TrajectoryGeneration::scoreTrajectory(
             torques = model.get().inverseDynamics(dq, ddq);
         }
         //Evaluate the trajectory
-        cost += score(t, model, torques, dq, ddq, data);
+        cost += score(
+            t, model, 
+            torques, dq, ddq, 
+            isDoubleSupport, supportFoot,
+            data);
     }
     //Ending trajectory scoring
     cost += endScore(params, traj, data);

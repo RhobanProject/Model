@@ -248,6 +248,8 @@ void generateLegLift()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
+        bool isDoubleSupport,
+        Leph::HumanoidFixedModel::SupportFoot supportFoot,
         std::vector<double>& data) -> double 
     {
         (void)t;
@@ -545,11 +547,23 @@ void generateKick()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
+        bool isDoubleSupport,
+        Leph::HumanoidFixedModel::SupportFoot supportFoot,
         std::vector<double>& data) -> double 
     {
         (void)t;
         (void)data;
+        (void)isDoubleSupport;
+        (void)supportFoot;
+        
+        double cost = 0.0;
 
+        //ZMP
+        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
+        zmp.z() = 0.0;
+        cost += zmp.norm();
+        
+        //Torques
         Eigen::VectorXd tmpTorques = torques;
         tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
@@ -557,13 +571,6 @@ void generateKick()
         tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
-
-        double cost = 0.0;
-        //ZMP
-        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
-        zmp.z() = 0.0;
-        cost += zmp.norm();
-        //Torques
         cost += 0.01*tmpTorques.norm();
         return cost;
     });
@@ -671,6 +678,8 @@ void generateStaticSingleSupport()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
+        bool isDoubleSupport,
+        Leph::HumanoidFixedModel::SupportFoot supportFoot,
         std::vector<double>& data) -> double 
     {
         (void)t;

@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include "Model/HumanoidFixedModel.hpp"
 
 namespace Leph {
@@ -564,6 +565,11 @@ Eigen::Vector3d HumanoidFixedModel::computeZMP(
     double Ax = posA.x();
     double Ay = posA.y();
     double Az = posA.z();
+
+    if (Fz == 0.0) {
+        throw std::logic_error(
+            "HumanoidFixedModel null vertical force Fz");
+    }
 
     double Px = (-My - (Az*Fx-Ax*Fz))/Fz;
     double Py = (Mx + (Ay*Fz-Az*Fy))/Fz;
