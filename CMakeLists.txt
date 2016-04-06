@@ -219,6 +219,8 @@ execute_process(COMMAND "/bin/bash" "-c"
 #Add RhAL config sybolic link
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/django_rhal.json django_rhal.json")
+execute_process(COMMAND "/bin/bash" "-c" 
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/chewbacca_rhal.json chewbacca_rhal.json")
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)
