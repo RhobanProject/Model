@@ -105,6 +105,7 @@ set(SOURCES_FILES
     Utils/NewtonBinomial.cpp
     Utils/LWPRUtils.cpp
     Utils/RandomWalk.cpp
+    Utils/RandomVelocitySpline.cpp
     Utils/IterativeLearningControl.cpp
     Utils/LWPRInputsOptimization.cpp
     Utils/EncoderFilter.cpp
@@ -170,6 +171,7 @@ set(TESTS_FILES
     testLWPRAdvanced
     testIterativeLearningControl
     testRandomWalk
+    testRandomVelocitySpline
     testLWPRInputsOptimization
     testEuler
     testAxisAngle
