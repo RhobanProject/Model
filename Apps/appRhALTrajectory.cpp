@@ -9,6 +9,7 @@
 #include "Utils/AxisAngle.h"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Utils/RandomVelocitySpline.hpp"
+#include "RhAL/RhALUtils.h"
 
 //Static single support pose
 static Eigen::Vector3d targetTrunkPos()
@@ -39,7 +40,7 @@ int main()
 {
     //Initialize the Manager
     RhAL::StandardManager manager;
-    manager.readConfig("django_rhal.json");
+    manager.readConfig("chewbacca_rhal.json");
     std::cout << "Scanning the bus..." << std::endl;
     manager.scan();
     
@@ -56,9 +57,11 @@ int main()
     Leph::HumanoidFixedModel model(Leph::SigmabanModel);
 
     //Start cooperative thread
+    std::cout << "Starting User thread" << std::endl;
     manager.enableCooperativeThread();
 
-    while (isOver) {
+    while (!isOver) {
+        //Compute model Inverse Kinematics
         Eigen::Vector3d trunkPos = targetTrunkPos();
         Eigen::Vector3d trunkAxis = targetTrunkAxis();
         Eigen::Vector3d footPos = targetFootPos();
@@ -73,12 +76,17 @@ int main()
             std::cout << "IK ERROR" << std::endl;
             break;
         }
+        //Write target to RhAL
+        RhALWriteStateGoal(manager, model.get(), true, false, false);
         //Wait next Manager cycle
         manager.waitNextFlush();
+        std::cout << "User cycle" << std::endl;
     }
     
     //Stop the manager
+    std::cout << "Stopping User thread" << std::endl;
     manager.disableCooperativeThread();
+    std::cout << "Stopping Manager thread" << std::endl;
     manager.stopManagerThread();
 
     return 0;

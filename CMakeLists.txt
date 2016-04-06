@@ -279,6 +279,9 @@ endif (BUILD_LEPH_CODE_RHIO)
 
 #Build App RhAL Motion 
 if (BUILD_LEPH_CODE_RHAL)
+    set(SOURCES_FILES ${SOURCES_FILES} 
+        RhAL/RhALUtils.cpp
+    )
     set(APPS_FILES ${APPS_FILES}
         appRhALTrajectory
     )
