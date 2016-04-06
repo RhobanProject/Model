@@ -2,6 +2,38 @@
 #include <thread>
 #include <chrono>
 #include <RhAL.hpp>
+#include <RhIO.hpp>
+#include "Spline/SplineContainer.hpp"
+#include "Spline/SmoothSpline.hpp"
+#include "Model/HumanoidFixedModel.hpp"
+#include "Utils/AxisAngle.h"
+#include "TrajectoryGeneration/TrajectoryUtils.h"
+#include "Utils/RandomVelocitySpline.hpp"
+
+//Static single support pose
+static Eigen::Vector3d targetTrunkPos()
+{
+    return Eigen::Vector3d(-0.00557785331559037,  -0.0115849568418458, 0.28);
+}
+static Eigen::Vector3d targetTrunkAxis()
+{
+    return Eigen::Vector3d(-0.672036398746933, 0.0743358280850477, 0.0028323027017884);
+}
+static Eigen::Vector3d targetFootPos()
+{
+    return Eigen::Vector3d(0.0208647084129351, -0.095, 0.0591693358237435);
+}
+
+//Global variables
+static bool isOver = false;
+
+//RhIO Command
+std::string cmdOver(std::vector<std::string> argv)
+{
+    (void)argv;
+    isOver = true;
+    return "Over";
+}
 
 int main()
 {
@@ -17,9 +49,37 @@ int main()
     std::cout << "Starting RhIO binding" << std::endl;
     RhAL::RhIOBinding binding(manager);
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+    //Set up RhIO commands
+    RhIO::Root.newCommand("expOver", "Stop the experiment", cmdOver);
+
+    //Initialize the model
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
+
+    //Start cooperative thread
+    manager.enableCooperativeThread();
+
+    while (isOver) {
+        Eigen::Vector3d trunkPos = targetTrunkPos();
+        Eigen::Vector3d trunkAxis = targetTrunkAxis();
+        Eigen::Vector3d footPos = targetFootPos();
+        Eigen::Vector3d footAxis = Eigen::Vector3d::Zero();
+        bool isSuccess = model.trunkFootIK(
+            Leph::HumanoidFixedModel::LeftSupportFoot,
+            trunkPos,
+            Leph::AxisToMatrix(trunkAxis),
+            footPos,
+            Leph::AxisToMatrix(footAxis));
+        if (!isSuccess) {
+            std::cout << "IK ERROR" << std::endl;
+            break;
+        }
+        //Wait next Manager cycle
+        manager.waitNextFlush();
     }
+    
+    //Stop the manager
+    manager.disableCooperativeThread();
+    manager.stopManagerThread();
 
     return 0;
 }
