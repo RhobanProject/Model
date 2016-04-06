@@ -167,7 +167,7 @@
             },
             {
                 "id": 10,
-                "name": "left_hip_roll,
+                "name": "left_hip_roll",
                 "parameters": {
                     "angleLimitCCWParameter": 0.0,
                     "angleLimitCWParameter": 0.0,
