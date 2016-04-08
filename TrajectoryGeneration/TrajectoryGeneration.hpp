@@ -164,10 +164,12 @@ class TrajectoryGeneration
          * given parameters and evaluates it.
          */
         double scoreTrajectory(
-            const Eigen::VectorXd& params) const;
+            const Eigen::VectorXd& params, 
+            bool verbose = false) const;
         double scoreTrajectory(
             const Eigen::VectorXd& params,
-            const Trajectories& traj) const;
+            const Trajectories& traj,
+            bool verbose = false) const;
 
         /**
          * Run the CMA-ES Trajectories optimization

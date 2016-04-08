@@ -117,19 +117,26 @@ double TrajectoryGeneration::endScore(
 }
         
 double TrajectoryGeneration::scoreTrajectory(
-    const Eigen::VectorXd& params) const
+    const Eigen::VectorXd& params,
+    bool verbose) const
 {
     double cost = checkParameters(params);
     if (cost > 0.0) {
+        if (verbose) {
+            std::cout 
+                << "Error checkParameters() cost=" 
+                << cost << std::endl;
+        }
         return cost;
     } else {
         Trajectories traj = generateTrajectory(params);
-        return scoreTrajectory(params, traj);
+        return scoreTrajectory(params, traj, verbose);
     }
 }
 double TrajectoryGeneration::scoreTrajectory(
     const Eigen::VectorXd& params,
-    const Trajectories& traj) const
+    const Trajectories& traj,
+    bool verbose) const
 {
     //Sigmaban fixed model
     Leph::HumanoidFixedModel model(_type);
@@ -147,6 +154,12 @@ double TrajectoryGeneration::scoreTrajectory(
         double costState = checkState(
             trunkPos, trunkAxis, footPos, footAxis);
         if (costState > 0.0) {
+            if (verbose) {
+                std::cout 
+                    << "Error checkState() cost=" 
+                    << 1000.0 + costState 
+                    << std::endl;
+            }
             return 1000.0 + costState;
         }
         //Compute kinematics
@@ -155,11 +168,23 @@ double TrajectoryGeneration::scoreTrajectory(
         bool isIKSuccess = TrajectoriesComputeKinematics(
             t, traj, model, dq, ddq);
         if (!isIKSuccess) {
+            if (verbose) {
+                std::cout 
+                    << "Error checkIK() cost=" 
+                    << 1000.0 + 1000.0*(traj.max()-t) 
+                    << std::endl;
+            }
             return 1000.0 + 1000.0*(traj.max()-t);
         }
         //Check Joit DOF
         double costDOF = checkDOF(model);
         if (costDOF > 0.0) {
+            if (verbose) {
+                std::cout 
+                    << "Error checkDOF() cost=" 
+                    << 1000.0 + costDOF 
+                    << std::endl;
+            }
             return 1000.0 + costDOF;
         }
         //Compute DOF torques
@@ -250,7 +275,7 @@ void TrajectoryGeneration::runOptimization(
 
     Eigen::VectorXd initParams = initialParameters();
 
-    double initScore = scoreTrajectory(initParams);
+    double initScore = scoreTrajectory(initParams, true);
     std::cout << "============" << std::endl;
     std::cout << "Init Score: " << initScore << std::endl;
     std::cout << "============" << std::endl;
