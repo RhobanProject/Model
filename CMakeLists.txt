@@ -134,6 +134,7 @@ set(SOURCES_FILES
     TrajectoryGeneration/TrajectoryUtils.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
+    QuinticWalk/QuinticWalk.cpp
     TimeSeries/SeriesUtils.cpp
 )
 
@@ -245,6 +246,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
         testTrunkFootIK
         testForwardSimulation
+        testQuinticWalk
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
