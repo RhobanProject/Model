@@ -177,6 +177,7 @@ set(TESTS_FILES
     testEuler
     testAxisAngle
     testEncoderFilter
+    testMapSeries
 )
 
 #Applications main files
