@@ -3,6 +3,7 @@
 
 #include <RhAL.hpp>
 #include "Model/HumanoidModel.hpp"
+#include "Types/MapSeries.hpp"
 
 namespace Leph {
 
@@ -20,6 +21,15 @@ void RhALWriteStateGoal(
     bool writeLegs,
     bool writeArms,
     bool writeHead);
+
+/**
+ * Append to given MapSeries
+ * degrees of freedom goal targets,
+ * read positions and available sensors.
+ */
+void RhALAppendLog(
+    MapSeries& map,
+    RhAL::StandardManager& manager);
 
 }
 
