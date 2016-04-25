@@ -251,13 +251,25 @@ class MapSeries
                     + filename);
             }
 
+            std::string name = "";
             while (!file.eof()) {
-                std::string name;
+                while (file.peek() == ' ' || file.peek() == '\n') {
+                    file.ignore();
+                }
+                if (file.peek() == '#') {
+                    file.ignore();
+                    file >> name;
+                    continue;
+                }
                 double time;
                 double value;
-                file >> name >> time >> value;
+                file >> time >> value;
                 if (!file.good()) {
                     break;
+                }
+                if (name == "") {
+                    throw std::runtime_error(
+                        "MapSeries malformed file");
                 }
                 append(name, time, value);
             }
@@ -274,9 +286,9 @@ class MapSeries
             }
             
             for (const auto& it : _data) {
+                file << "#" << it.first << std::endl;
                 for (size_t i=0;i<it.second.size();i++) {
                     file 
-                        << it.first << " " 
                         << it.second[i].time << " " 
                         << it.second[i].value 
                         << std::endl;
