@@ -7,9 +7,10 @@ void RhALWriteStateGoal(
     const HumanoidModel& model,
     bool writeLegs,
     bool writeArms,
-    bool writeHead)
+    bool writeHead,
+    bool smoothing)
 {
-    if (writeLegs) {
+    if (writeLegs && !smoothing) {
         manager.dev<RhAL::DXL>("left_hip_yaw")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("left_hip_yaw"));
         manager.dev<RhAL::DXL>("left_hip_pitch")
@@ -35,7 +36,7 @@ void RhALWriteStateGoal(
         manager.dev<RhAL::DXL>("right_ankle_roll")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("right_ankle_roll"));
     }
-    if (writeArms) {
+    if (writeArms && !smoothing) {
         manager.dev<RhAL::DXL>("left_shoulder_pitch")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("left_shoulder_pitch"));
         manager.dev<RhAL::DXL>("left_shoulder_roll")
@@ -49,11 +50,58 @@ void RhALWriteStateGoal(
         manager.dev<RhAL::DXL>("right_elbow")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("right_elbow"));
     }
-    if (writeHead) {
+    if (writeHead && !smoothing) {
         manager.dev<RhAL::DXL>("head_pitch")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("head_pitch"));
         manager.dev<RhAL::DXL>("head_yaw")
             .goalPosition() = RhAL::Rad2Deg(model.getDOF("head_yaw"));
+    }
+    //Go with smoothing enable 
+    if (writeLegs && smoothing) {
+        manager.dev<RhAL::DXL>("left_hip_yaw")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_hip_yaw")), 1.0);
+        manager.dev<RhAL::DXL>("left_hip_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_hip_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("left_hip_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_hip_roll")), 1.0);
+        manager.dev<RhAL::DXL>("left_knee")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_knee")), 1.0);
+        manager.dev<RhAL::DXL>("left_ankle_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_ankle_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("left_ankle_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_ankle_roll")), 1.0);
+        manager.dev<RhAL::DXL>("right_hip_yaw")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_hip_yaw")), 1.0);
+        manager.dev<RhAL::DXL>("right_hip_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_hip_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("right_hip_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_hip_roll")), 1.0);
+        manager.dev<RhAL::DXL>("right_knee")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_knee")), 1.0);
+        manager.dev<RhAL::DXL>("right_ankle_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_ankle_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("right_ankle_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_ankle_roll")), 1.0);
+    }
+    if (writeArms && smoothing) {
+        manager.dev<RhAL::DXL>("left_shoulder_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_shoulder_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("left_shoulder_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_shoulder_roll")), 1.0);
+        manager.dev<RhAL::DXL>("left_elbow")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("left_elbow")), 1.0);
+        manager.dev<RhAL::DXL>("right_shoulder_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_shoulder_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("right_shoulder_roll")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_shoulder_roll")), 1.0);
+        manager.dev<RhAL::DXL>("right_elbow")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("right_elbow")), 1.0);
+    }
+    if (writeHead && smoothing) {
+        manager.dev<RhAL::DXL>("head_pitch")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("head_pitch")), 1.0);
+        manager.dev<RhAL::DXL>("head_yaw")
+            .setGoalPositionSmooth(RhAL::Rad2Deg(model.getDOF("head_yaw")), 1.0);
     }
 }
 

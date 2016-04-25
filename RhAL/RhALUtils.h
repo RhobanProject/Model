@@ -20,7 +20,8 @@ void RhALWriteStateGoal(
     const HumanoidModel& model,
     bool writeLegs,
     bool writeArms,
-    bool writeHead);
+    bool writeHead,
+    bool smoothing = false);
 
 /**
  * Append to given MapSeries

@@ -80,9 +80,9 @@ int main(int argc, char** argv)
     std::cout << "Starting User thread" << std::endl;
     manager.enableCooperativeThread();
 
-    manager.exitEmergencyState();
     RhAL::TimePoint lastTime = RhAL::getTimePoint();
     Leph::MapSeries logs;
+    std::cout << "Starting Experiment" << std::endl;
     while (true) {
         //Compute elapsed time
         RhAL::TimePoint nowTime = RhAL::getTimePoint();
@@ -92,6 +92,40 @@ int main(int argc, char** argv)
         std::string state = RhIO::Root.getStr("experiment/state");
         if (state == "quit") {
             break;
+        }
+        if (state == "ready") {
+            RhIO::Root.setStr("experiment/state", "idle");
+            double t = trajs.min();
+            //Compute Cartesian target
+            Eigen::Vector3d trunkPos;
+            Eigen::Vector3d trunkAxis;
+            Eigen::Vector3d footPos;
+            Eigen::Vector3d footAxis;
+            bool isDoubleSupport;
+            Leph::HumanoidFixedModel::SupportFoot supportFoot;
+            Leph::TrajectoriesTrunkFootPos(t, trajs, 
+                trunkPos, trunkAxis, footPos, footAxis);
+            Leph::TrajectoriesSupportFootState(t, trajs,
+                isDoubleSupport, supportFoot);
+            //Apply offsets
+            trunkPos.x() += RhIO::Root.getFloat("experiment/trunkPosXOffset");
+            trunkPos.y() += RhIO::Root.getFloat("experiment/trunkPosYOffset");
+            trunkAxis.x() += RhIO::Root.getFloat("experiment/trunkAxisXOffset");
+            trunkAxis.y() += RhIO::Root.getFloat("experiment/trunkAxisYOffset");
+            //Compute DOF positions
+            bool isSuccess = model.trunkFootIK(
+                supportFoot,
+                trunkPos,
+                Leph::AxisToMatrix(trunkAxis),
+                footPos,
+                Leph::AxisToMatrix(footAxis));
+            //Check IK Success
+            if (!isSuccess) {
+                std::cout << "IK ERROR" << std::endl;
+                break;
+            }
+            //Write target to RhAL with smoothing
+            RhALWriteStateGoal(manager, model.get(), true, false, false, true);
         }
         if (state == "play") {
             double t = RhIO::Root.getFloat("experiment/t");
@@ -160,9 +194,11 @@ int main(int argc, char** argv)
         //Wait next Manager cycle
         manager.waitNextFlush();
     }
+    std::cout << "Stopping Experiment" << std::endl;
     manager.emergencyStop();
 
     //Save logs
+    std::cout << "Writing logs to /tmp/log.series" << std::endl;
     logs.exportData("/tmp/log.series");
     
     //Stop the manager
