@@ -230,6 +230,43 @@ void testFittingSmooth()
     plot.plot("t", "all").render();
 }
 
+void testFittingCMAES()
+{
+    Leph::FittedSpline spline;
+    Leph::Plot plot;
+    
+    //Generates noisy data
+    for (int k=0;k<5;k++) {
+        for (double t=0;t<1.0;t+=0.01) {
+            double f = function(t);
+            double p = f + noise(0.3);
+            spline.addPoint(t, p);
+            plot.add(Leph::VectorLabel(
+                "t", t, 
+                "target", f,
+                "data", p
+            ));
+        }
+    }
+    
+    //Do fitting
+    spline.fittingSmoothCMAES(
+        3, false, 0.0, 1.0,
+        5000, 5);
+
+    //Display fitted splines
+    for (double t=0;t<1.0;t+=0.005) {
+        plot.add(Leph::VectorLabel(
+            "t", t, 
+            "fitted", spline.pos(t)
+        ));
+    }
+    plot
+        .plot("t", "target")
+        .plot("t", "fitted")
+        .plot("t", "data", Leph::Plot::Points)
+        .render();
+}
 
 int main() 
 {
@@ -239,6 +276,7 @@ int main()
     testCapturedDataWindow();
     testFittingCubic();
     testFittingSmooth();
+    testFittingCMAES();
    
     return 0;
 }

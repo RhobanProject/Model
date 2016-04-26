@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <libcmaes/cmaes.h>
 #include "Spline/FittedSpline.hpp"
 #include "Spline/PolyFit.hpp"
 #include "Spline/CubicSpline.hpp"
@@ -401,6 +402,142 @@ double FittedSpline::fittingPolynomPieces(unsigned int degree,
     }
 
     return maxError;
+}
+
+double FittedSpline::fittingSmoothCMAES(
+    unsigned int number, 
+    bool isCycle, double minTime, double maxTime,
+    unsigned int maxIterations, unsigned int restarts)
+{
+    //Data check
+    if (_points.size() < 3) {
+        throw std::logic_error(
+            "FittedSpline not enough points");
+    }
+    
+    //Sort data
+    prepareData();
+
+    //Lambda check parameters time bounds
+    auto checkParams = 
+        [](const Eigen::VectorXd& params) -> double 
+    {
+        for (size_t i=3;i<(size_t)params.size()-3;i+=4) {
+            if (params(i) <= 0.01) {
+                return 1000.0 + 1000.0*(0.01-params(i));
+            }
+            if (params(i) >= 0.99) {
+                return 1000.0 + 1000.0*(params(i)-0.99);
+            }
+            if (i >=4 && params(i) <= params(i-4)+0.01) {
+                return 1000.0 + 1000.0*(params(i-4)+0.01-params(i));
+            }
+        }
+        return 0.0;
+    };
+
+    //Lambda build smooth spline from parameters
+    auto buildSpline = 
+        [this, isCycle, minTime, maxTime](const Eigen::VectorXd& params) -> SmoothSpline 
+    {
+        size_t size = params.size();
+        //Get min/max bounds
+        double lengthTime = maxTime-minTime;
+        //Build the spline
+        SmoothSpline spline;
+        spline.addPoint(minTime, 
+            params(0), params(1), params(2));
+        for (size_t i=3;i<size-3;i+=4) {
+            spline.addPoint(
+                params(i)*lengthTime + minTime, 
+                params(i+1), 
+                params(i+2), 
+                params(i+3));
+        }
+        if (isCycle) {
+            spline.addPoint(maxTime, 
+                params(0), params(1), params(2));
+        } else {
+            spline.addPoint(maxTime, 
+                params(size-3), params(size-2), params(size-1));
+        }
+
+        return spline;
+    };
+
+    //Lambda score parameters RMSE
+    libcmaes::FitFuncEigen fitness = 
+        [this, checkParams, buildSpline](const Eigen::VectorXd& params) -> double
+    {
+        double check = checkParams(params);
+        if (check > 0.0) {
+            return check;
+        }
+        SmoothSpline spline = buildSpline(params);
+
+        double sumError = 0.0;
+        unsigned long count = 0;
+        for (size_t i=0;i<this->_points.size();i++) {
+            double t = this->_points[i].first;
+            double val = this->_points[i].second;
+            double error = spline.pos(t) - val;
+            sumError += error*error;
+            count++;
+        }
+
+        return sqrt(sumError/count);
+    };
+
+    //Initial parameters
+    size_t size = 3 + 4*number;
+    if (!isCycle) {
+        size += 3;
+    }
+    Eigen::VectorXd initialParams(size);
+    initialParams(0) = _points.front().second;
+    initialParams(1) = 0.0;
+    initialParams(2) = 0.0;
+    for (size_t i=0;i<number;i++) {
+        size_t index = i*4 + 3;
+        double ratio = ((double)i+1.0)/((double)number+1.0);
+        initialParams(index+0) = ratio;
+        initialParams(index+1) = 
+            (1.0-ratio)*_points.front().second 
+            + ratio*_points.back().second;
+        initialParams(index+2) = 0.0;
+        initialParams(index+3) = 0.0;
+    }
+    if (!isCycle) {
+        initialParams(size-3) = _points.back().second;
+        initialParams(size-2) = 0.0;
+        initialParams(size-1) = 0.0;
+    }
+
+    //Run optimization
+    libcmaes::CMAParameters<> cmaparams(
+        initialParams, -1.0, 20);
+    cmaparams.set_quiet(false);
+    cmaparams.set_mt_feval(true);
+    cmaparams.set_str_algo("abipop");
+    cmaparams.set_elitism(true);
+    cmaparams.set_restarts(restarts);
+    cmaparams.set_max_iter(maxIterations);
+
+    //Run optimization
+    libcmaes::CMASolutions cmasols = 
+        libcmaes::cmaes<>(fitness, cmaparams);
+
+    //Retrieve best Spline and score
+    Eigen::VectorXd bestParams = 
+        cmasols.get_best_seen_candidate().get_x_dvec();
+    double score = 
+        cmasols.get_best_seen_candidate().get_fvalue();
+    SmoothSpline bestSpline = buildSpline(bestParams);
+    
+    //Copy spline data
+    Spline::operator=(bestSpline);
+
+    return score;
 }
         
 void FittedSpline::prepareData()

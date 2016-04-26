@@ -71,6 +71,19 @@ class FittedSpline : public Spline
         double fittingPolynomPieces(unsigned int degree, 
             double minTimeLength = -1.0, double maxTimeLength = -1.0);
 
+        /**
+         * Fit a smooth 5 degress splines on data points using
+         * CMA-ES global optimisation. 
+         * The number of spline parts, min and max time bounds
+         * and the number of maximum CMA-ES iterations and restart is given.
+         * If isCycle is true, the fitted spline is supposed periodic.
+         * Best founded RMSE is returned.
+         */
+        double fittingSmoothCMAES(
+            unsigned int number, 
+            bool isCycle, double minTime, double maxTime,
+            unsigned int maxIterations, unsigned int restarts);
+
     private:
 
         /**
