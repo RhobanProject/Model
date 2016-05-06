@@ -75,9 +75,18 @@ static void rootUpdateForward(
         modelOld.mBodies[bodyId].mCenterOfMass,
         modelOld.mBodies[bodyId].mInertia);
     RBDL::Joint joint(modelOld.mJoints[bodyId]);
+    //Manually compute the transformation from last
+    //frame to current frame.
+    //Last parent frame and the next currently buit frame 
+    //are both a children of root in old model.
+    //rotation (E) and translation (t).
+    RBDLMath::SpatialTransform transform = modelOld.X_T[bodyId];
+    transform.E = transform.E * transformToFrame.E;
+    transform.r = -transformToFrame.r + transform.r;
+    transform.r = transformToFrame.E * transform.r;
     size_t bodyIdNewModel = modelNew.AddBody(
         parentIdNewModel, 
-        transformToFrame*modelOld.X_T[bodyId],
+        transform, 
         joint, 
         body,
         bodyName(modelOld, bodyId));
@@ -152,7 +161,7 @@ static void rootUpdateBackward(
         modelOld, bodyId, parentId, 
         modelOld.X_T[parentId].inverse(),
         modelNew, bodyIdNewModel);
-    
+        
     //Iterate though parent if no root
     if (bodyId != 0) {
         rootUpdateBackward(
@@ -165,7 +174,7 @@ static void rootUpdateBackward(
         if (modelOld.mu[bodyId][i] != parentId) {
             rootUpdateForward(
                 modelOld, modelOld.mu[bodyId][i], bodyId,
-                modelOld.X_T[parentId].inverse(),
+                modelOld.X_T[parentId],
                 modelNew, bodyIdNewModel);
         }
     }
