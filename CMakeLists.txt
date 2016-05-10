@@ -31,10 +31,7 @@ set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/urdfreader)
 
-#Include LibCMAES (Black box non linear stochastic optimization)
-set(LIBCMAES_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibCMAES" CACHE STRING "LibCMAES lib directory")
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBCMAES_DIRECTORY})
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibCMAES)
+#OpenMP flags for LibCMAES
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
 #Include LWPR (Fast non parametric regression)
@@ -199,9 +196,6 @@ set(CODE_LIBRARIES
     lwpr
     gp
 )
-
-#Build LibCMAES vendors
-add_subdirectory(${LIBCMAES_DIRECTORY})
 
 #Build LWPR vendors
 add_subdirectory(${LWPR_DIRECTORY})
