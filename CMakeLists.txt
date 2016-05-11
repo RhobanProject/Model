@@ -19,10 +19,6 @@ set(LEPHCODE_INCLUDE_DIRECTORIES "")
 #Include sources directory
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR})
 
-#Include Eigen (linear algebra template library)
-set(EIGEN_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/Eigen" CACHE STRING "Eigen lib directory")
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${EIGEN_DIRECTORY})
-
 #Include RBDL (dynamic and geometric robot library)
 set(RBDL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RBDL" CACHE STRING "RBDL lib directory")
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RBDL_DIRECTORY}/addons)
@@ -34,34 +30,8 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/urdfreader)
 #OpenMP flags for LibCMAES
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
-#Include LWPR (Fast non parametric regression)
-set(LWPR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LWPR" CACHE STRING "LWPR lib directory")
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LWPR_DIRECTORY}/include)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LWPR)
-
-#Include LibGP (Gaussian Process regression C++ library)
-set(LIBGP_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/LibGP" CACHE STRING "LibGP lib directory")
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${LIBGP_DIRECTORY}/include)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/LibGP)
-
 #Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
-
-#Include ZeroMQ (network library)
-set(ZMQ_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/ZeroMQ" CACHE STRING "ZMQ lib directory")
-
-#Include RhIO (Rhoban Input Output Library) if needed
-set(RHIO_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RhIO" CACHE STRING "RhIO lib directory")
-if (BUILD_LEPH_CODE_RHIO)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/include)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/contrib)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Common)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Server)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHIO_DIRECTORY}/Client)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${ZMQ_DIRECTORY}/include)
-    link_directories(${RHIO_DIRECTORY}/build)
-    link_directories(${ZMQ_DIRECTORY}/lib)
-endif (BUILD_LEPH_CODE_RHIO)
 
 #Include RhAL (Rhoban Abstraction Layer Library) if needed
 set(RHAL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RhAL" CACHE STRING "RhAL lib directory")
@@ -196,12 +166,6 @@ set(CODE_LIBRARIES
     lwpr
     gp
 )
-
-#Build LWPR vendors
-add_subdirectory(${LWPR_DIRECTORY})
-
-#Build LibGP vendors
-add_subdirectory(${LIBGP_DIRECTORY})
 
 #Build RBDL vendors
 set(RBDL_BUILD_ADDON_URDFREADER ON CACHE BOOL "Build RBDL URDF Addon")
