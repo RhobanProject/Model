@@ -44,11 +44,11 @@ static void rootUpdateFixed(
             //Massless fixed body (already take into 
             //account in movable parent)
             RBDL::Body body = RBDL::Body(
-                    0.0,
-                    RBDLMath::Vector3d(0.0, 0.0, 0.0),
-                    RBDLMath::Vector3d(0.0, 0.0, 0.0));
+                0.0,
+                RBDLMath::Vector3d(0.0, 0.0, 0.0),
+                RBDLMath::Vector3d(0.0, 0.0, 0.0));
             RBDL::Joint joint = RBDL::Joint(
-                    RBDL::JointTypeFixed);
+                RBDL::JointTypeFixed, bodyName(modelOld, i+modelOld.fixed_body_discriminator)+"_fixed");
             modelNew.AddBody(
                 parentIdNewModel, 
                 tranformToFrame*modelOld.mFixedBodies[i].mParentTransform, 
@@ -221,10 +221,11 @@ RBDL::Model RBDLRootUpdate(
             RBDLMath::SpatialVector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
             RBDLMath::SpatialVector(0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
             RBDLMath::SpatialVector(0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
-            RBDLMath::SpatialVector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+            RBDLMath::SpatialVector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            "base");
     } else {
         jointRoot = RBDL::Joint(
-            RBDL::JointTypeFixed);
+            RBDL::JointTypeFixed, "root");
     }
 
     RBDL::Body bodyRoot = RBDL::Body(
