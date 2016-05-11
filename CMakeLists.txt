@@ -19,14 +19,6 @@ set(LEPHCODE_INCLUDE_DIRECTORIES "")
 #Include sources directory
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR})
 
-#Include RBDL (dynamic and geometric robot library)
-set(RBDL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RBDL" CACHE STRING "RBDL lib directory")
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RBDL_DIRECTORY}/addons)
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RBDL_DIRECTORY}/include)
-set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/include)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/Vendors/RBDL/urdfreader)
-
 #OpenMP flags for LibCMAES
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 
@@ -34,11 +26,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
 
 #Include RhAL (Rhoban Abstraction Layer Library) if needed
-set(RHAL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Vendors/RhAL" CACHE STRING "RhAL lib directory")
 if (BUILD_LEPH_CODE_RHAL)
     add_definitions(-DBUILD_RHAL_RHIO_BINDING)
-    set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${RHAL_DIRECTORY}/Lib)
-    link_directories(${RHAL_DIRECTORY}/build)
 endif (BUILD_LEPH_CODE_RHAL)
 
 #Enable C++11
@@ -167,16 +156,12 @@ set(CODE_LIBRARIES
     gp
 )
 
-#Build RBDL vendors
-set(RBDL_BUILD_ADDON_URDFREADER ON CACHE BOOL "Build RBDL URDF Addon")
-add_subdirectory(${RBDL_DIRECTORY})
-
 #Add URDF model symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
-#Add RhAL config sybolic link
+#Add RhAL config symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/django_rhal.json django_rhal.json")
 execute_process(COMMAND "/bin/bash" "-c" 
