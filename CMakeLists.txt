@@ -246,8 +246,8 @@ endif (BUILD_LEPH_CODE_RHAL)
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
 include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
 
-#Build Code as static library
-add_library(LephCode STATIC ${SOURCES_FILES})
+#Build Code as shared library
+add_library(LephCode SHARED ${SOURCES_FILES})
 target_link_libraries(LephCode ${CODE_LIBRARIES})
 
 #Build Tests
