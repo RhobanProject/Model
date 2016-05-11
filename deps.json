@@ -1,0 +1,19 @@
+{
+    "name": "rhobanproject/model",
+    "deps": [
+        "rhobandeps/eigen", 
+        "rhobandeps/lwpr", 
+        "rhobandeps/libgp", 
+        "rhobandeps/libcmaes", 
+        "rhobandeps/rbdl"
+    ],
+    "includes": ["."],
+    "libraries": "build",
+    "links": "build/libLephCode.a",
+    "build": [
+        "mkdir -p build",
+        "cd build",
+        "cmake -DCMAKE_BUILD_TYPE=Release ..",
+        "make"
+    ]
+}

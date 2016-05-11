@@ -151,6 +151,9 @@ set(CODE_LIBRARIES
     ncurses
     rbdl
     rbdl_urdfreader
+    console_bridge 
+    urdfdom_world 
+    urdfdom_model
     cmaes
     lwpr
     gp
