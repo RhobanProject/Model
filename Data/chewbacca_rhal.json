@@ -17,7 +17,8 @@
         "protocol": "DynamixelV1",
         "scheduleMode": true,
         "throwErrorOnRead": false,
-        "throwErrorOnScan": false
+        "throwErrorOnScan": false,
+        "waitWriteCheckResponse": false
     },
     "Pins": {
         "devices": [
