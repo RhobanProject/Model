@@ -42,7 +42,7 @@ Eigen::VectorXd MotorModel::voltage(
     const Eigen::VectorXd& velocity, const Eigen::VectorXd& torque)
 {
     Eigen::VectorXd volt(velocity.size());
-    for (size_t i=0;i<volt.size();i++) {
+    for (size_t i=0;i<(size_t)volt.size();i++) {
         volt(i) = voltage(velocity(i), torque(i));
     }
 

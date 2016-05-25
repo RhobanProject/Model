@@ -95,6 +95,7 @@ void TrajectoriesDisplay(
             t += 0.01;
             continue;
         }
+        Eigen::VectorXd positions = model.get().getDOFVect();
         //Compute DOF torques
         bool isDoubleSupport;
         HumanoidFixedModel::SupportFoot supportFoot;
@@ -151,65 +152,49 @@ void TrajectoriesDisplay(
             if (t >= traj.max()) {
                 t = traj.min();
                 isLoop = true;
-                waiting = 1.0;
+                //waiting = 0.5;
             } else {
                 t += 0.01;
             }
         }
         if (!isLoop) {
-            plot.add(VectorLabel(
-                "t", t,
-                "left_torque:hip_yaw", 
-                    torques(model.get().getDOFIndex("left_hip_yaw")),
-                "left_torque:hip_pitch", 
-                    torques(model.get().getDOFIndex("left_hip_pitch")),
-                "left_torque:hip_roll", 
-                    torques(model.get().getDOFIndex("left_hip_roll")),
-                "left_torque:knee", 
-                    torques(model.get().getDOFIndex("left_knee")),
-                "left_torque:ankle_pitch", 
-                    torques(model.get().getDOFIndex("left_ankle_pitch")),
-                "left_torque:ankle_roll", 
-                    torques(model.get().getDOFIndex("left_ankle_roll")),
-                "right_torque:hip_yaw", 
-                    torques(model.get().getDOFIndex("right_hip_yaw")),
-                "right_torque:hip_pitch", 
-                    torques(model.get().getDOFIndex("right_hip_pitch")),
-                "right_torque:hip_roll", 
-                    torques(model.get().getDOFIndex("right_hip_roll")),
-                "right_torque:knee", 
-                    torques(model.get().getDOFIndex("right_knee")),
-                "right_torque:ankle_pitch", 
-                    torques(model.get().getDOFIndex("right_ankle_pitch")),
-                "right_torque:ankle_roll", 
-                    torques(model.get().getDOFIndex("right_ankle_roll")),
-                "left_volt:hip_yaw", 
-                    volts(model.get().getDOFIndex("left_hip_yaw")),
-                "left_volt:hip_pitch", 
-                    volts(model.get().getDOFIndex("left_hip_pitch")),
-                "left_volt:hip_roll", 
-                    volts(model.get().getDOFIndex("left_hip_roll")),
-                "left_volt:knee", 
-                    volts(model.get().getDOFIndex("left_knee")),
-                "left_volt:ankle_pitch", 
-                    volts(model.get().getDOFIndex("left_ankle_pitch")),
-                "left_volt:ankle_roll", 
-                    volts(model.get().getDOFIndex("left_ankle_roll")),
-                "right_volt:hip_yaw", 
-                    volts(model.get().getDOFIndex("right_hip_yaw")),
-                "right_volt:hip_pitch", 
-                    volts(model.get().getDOFIndex("right_hip_pitch")),
-                "right_volt:hip_roll", 
-                    volts(model.get().getDOFIndex("right_hip_roll")),
-                "right_volt:knee", 
-                    volts(model.get().getDOFIndex("right_knee")),
-                "right_volt:ankle_pitch", 
-                    volts(model.get().getDOFIndex("right_ankle_pitch")),
-                "right_volt:ankle_roll", 
-                    volts(model.get().getDOFIndex("right_ankle_roll")),
-                "zmp_x", zmp.x(),
-                "zmp_y", zmp.y()
-            ));
+            std::vector<std::string> namesLeft = {
+                "left_hip_yaw", "left_hip_roll", "left_hip_pitch",
+                "left_knee", "left_ankle_pitch", "left_ankle_roll",
+            };
+            std::vector<std::string> namesRight = {
+                "right_hip_yaw", "right_hip_roll", "right_hip_pitch",
+                "right_knee", "right_ankle_pitch", "right_ankle_roll",
+            };
+            Leph::VectorLabel vect;
+            vect.append("t", t);
+            vect.append("zmp_x", zmp.x());
+            vect.append("zmp_y", zmp.y());
+            for (const std::string& name : namesLeft) {
+                vect.append("left_torque:"+name, 
+                    torques(model.get().getDOFIndex(name)));
+                vect.append("left_volt:"+name, 
+                    volts(model.get().getDOFIndex(name)));
+                vect.append("left_q:"+name, 
+                    positions(model.get().getDOFIndex(name)));
+                vect.append("left_dq:"+name, 
+                    dq(model.get().getDOFIndex(name)));
+                vect.append("left_ddq:"+name, 
+                    ddq(model.get().getDOFIndex(name)));
+            }
+            for (const std::string& name : namesRight) {
+                vect.append("right_torque:"+name, 
+                    torques(model.get().getDOFIndex(name)));
+                vect.append("right_volt:"+name, 
+                    volts(model.get().getDOFIndex(name)));
+                vect.append("right_q:"+name, 
+                    positions(model.get().getDOFIndex(name)));
+                vect.append("right_dq:"+name, 
+                    dq(model.get().getDOFIndex(name)));
+                vect.append("right_ddq:"+name, 
+                    ddq(model.get().getDOFIndex(name)));
+            }
+            plot.add(vect);
             sumTorques += 0.01*torques.norm();
             sumZMP += 0.01*zmp.norm();
             if (maxZMP < 0.0 || maxZMP < zmp.lpNorm<Eigen::Infinity>()) {
@@ -226,6 +211,12 @@ void TrajectoriesDisplay(
     plot.plot("t", "right_torque:*").render();
     plot.plot("t", "left_volt:*").render();
     plot.plot("t", "right_volt:*").render();
+    plot.plot("t", "left_q:*").render();
+    plot.plot("t", "right_q:*").render();
+    plot.plot("t", "left_dq:*").render();
+    plot.plot("t", "right_dq:*").render();
+    plot.plot("t", "left_ddq:*").render();
+    plot.plot("t", "right_ddq:*").render();
     plot.plot("t", "zmp_x").plot("t", "zmp_y").render();
 }
 

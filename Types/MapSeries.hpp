@@ -21,10 +21,11 @@ class MapSeries
     public:
 
         /**
-         * Structure for data point
+         * Structure for data point.
+         * time should not be assigned.
          */
         struct Point {
-            const double time;
+            double time;
             double value;
         };
 
@@ -185,11 +186,51 @@ class MapSeries
         }
 
         /**
+         * Return the closest data index from given 
+         * time point for given series name.
+         */
+        inline size_t getIndex(const std::string& name, double time) const
+        {
+            checkSeries(name);
+            const std::vector<Point>& vect = _data.at(name);
+            if (time <= vect.front().time) {
+                return 0;
+            }
+            if (time >= vect.back().time) {
+                return vect.size()-1;
+            }
+            if (vect.size() == 1) {
+                return 0;
+            }
+
+            size_t indexLow = 0;
+            size_t indexUp = vect.size()-1;
+            while (indexUp - indexLow != 1) {
+                size_t indexMiddle = (indexLow + indexUp)/2;
+                if (vect[indexMiddle].time <= time) {
+                    indexLow = indexMiddle;
+                } else {
+                    indexUp = indexMiddle;
+                }
+            }
+            
+            if (fabs(time-vect[indexLow].time) <= fabs(time-vect[indexUp].time)) {
+                return indexLow;
+            } else {
+                return indexUp;
+            }
+        }
+
+        /**
          * Interpolate (linear) given series name to given time.
          * If given time is out of bounds, mininum or
          * maximum value is returned.
+         * Il not null optionaly assign low and up index and Point
+         * used for interpolation.
          */
-        inline double get(const std::string& name, double time) const
+        inline double get(const std::string& name, double time,
+            size_t* ptrIndexLow = nullptr, size_t* ptrIndexUp = nullptr,
+            Point* ptrPtLow = nullptr, Point* ptrPtUp = nullptr) const
         {
             checkSeries(name);
             const std::vector<Point>& vect = _data.at(name);
@@ -216,6 +257,20 @@ class MapSeries
 
             Point ptLow = vect[indexLow];
             Point ptUp = vect[indexUp];
+            
+            if (ptrIndexLow != nullptr) {
+                *ptrIndexLow = indexLow;
+            }
+            if (ptrIndexUp != nullptr) {
+                *ptrIndexUp = indexUp;
+            }
+            if (ptrPtLow != nullptr) {
+                *ptrPtLow = ptLow;
+            }
+            if (ptrPtUp != nullptr) {
+                *ptrPtUp = ptUp;
+            }
+            
             double ratio = ptUp.time - ptLow.time;
             return (ptUp.time-time)/ratio*ptLow.value + (time-ptLow.time)/ratio*ptUp.value;
         }

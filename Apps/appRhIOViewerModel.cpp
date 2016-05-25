@@ -6,8 +6,7 @@
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
 #include "RhIO.hpp"
-#include "ClientReq.hpp"
-#include "ClientSub.hpp"
+#include "RhIOClient.hpp"
 
 int main(int argc, char** argv)
 {
