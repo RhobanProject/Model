@@ -424,20 +424,20 @@ class Plot
             commands += "set grid;\n";
             if (_rangeMinX < _rangeMaxX) {
                 std::ostringstream oss;
-                oss << "set xrange[" << _rangeMinX;
-                oss << ":" << _rangeMaxX << "];\n";
+                oss << "set xrange[" << std::setprecision(10) << _rangeMinX;
+                oss << ":" << std::setprecision(10) << _rangeMaxX << "];\n";
                 commands += oss.str();
             }
             if (_rangeMinY < _rangeMaxY) {
                 std::ostringstream oss;
-                oss << "set yrange[" << _rangeMinY;
-                oss << ":" << _rangeMaxY << "];\n";
+                oss << "set yrange[" << std::setprecision(10) << _rangeMinY;
+                oss << ":" << std::setprecision(10) << _rangeMaxY << "];\n";
                 commands += oss.str();
             }
             if (_rangeMinZ < _rangeMaxZ) {
                 std::ostringstream oss;
-                oss << "set zrange[" << _rangeMinZ;
-                oss << ":" << _rangeMaxZ << "];\n";
+                oss << "set zrange[" << std::setprecision(10) << _rangeMinZ;
+                oss << ":" << std::setprecision(10) << _rangeMaxZ << "];\n";
                 commands += oss.str();
             }
 
@@ -505,16 +505,16 @@ class Plot
                     }
                     std::ostringstream oss;
                     if (_plots2D[i].xAxis == "index") {
-                        oss << j << " " << _database[j](_plots2D[i].yAxis);
+                        oss << j << " " << std::setprecision(10) << _database[j](_plots2D[i].yAxis);
                     } else {
-                        oss << _database[j](_plots2D[i].xAxis) << " " 
-                            << _database[j](_plots2D[i].yAxis);
+                        oss << std::setprecision(10) << _database[j](_plots2D[i].xAxis) << " " 
+                            << std::setprecision(10) << _database[j](_plots2D[i].yAxis);
                     }
                     if (isPalette) {
                         if (_plots2D[i].palette == "index") {
                             oss << " " << j;
                         } else {
-                            oss << " " << _database[j](_plots2D[i].palette);
+                            oss << " " << std::setprecision(10) << _database[j](_plots2D[i].palette);
                         }
                     }
                     data += oss.str() + "\n";
@@ -569,23 +569,23 @@ class Plot
                     if (_plots3D[i].xAxis == "index") {
                         oss << j << " ";
                     } else {
-                        oss << _database[j](_plots3D[i].xAxis) << " ";
+                        oss << std::setprecision(10) << _database[j](_plots3D[i].xAxis) << " ";
                     }
                     if (_plots3D[i].yAxis == "index") {
                         oss << j << " ";
                     } else {
-                        oss << _database[j](_plots3D[i].yAxis) << " ";
+                        oss << std::setprecision(10) << _database[j](_plots3D[i].yAxis) << " ";
                     }
                     if (_plots3D[i].zAxis == "ZERO") {
                         oss << "0.0";
                     } else {
-                        oss << _database[j](_plots3D[i].zAxis);
+                        oss << std::setprecision(10) << _database[j](_plots3D[i].zAxis);
                     }
                     if (isPalette) {
                         if (_plots3D[i].palette == "index") {
                             oss << " " << j;
                         } else {
-                            oss << " " << _database[j](_plots3D[i].palette);
+                            oss << " " << std::setprecision(10) << _database[j](_plots3D[i].palette);
                         }
                     }
                     data += oss.str() + "\n";
