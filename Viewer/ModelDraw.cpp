@@ -49,9 +49,14 @@ void ModelDraw(Model& model, ModelViewer& viewer)
                 (jointAxis-RBDLMath::Vector3d(1.0, 0.0, 0.0)).norm() > 0.001 &&
                 (jointAxis-RBDLMath::Vector3d(-1.0, 0.0, 0.0)).norm() > 0.001
             ) {
-                transformAxis = Eigen::AngleAxisd(M_PI/2.0, 
+                transformAxis = Eigen::AngleAxisd(-M_PI/2.0, 
                         jointAxis.cross(RBDLMath::Vector3d(1.0, 0.0, 0.0)))
                     .toRotationMatrix();
+            }
+            if (
+                (jointAxis-RBDLMath::Vector3d(-1.0, 0.0, 0.0)).norm() < 0.001
+            ) {
+                transformAxis *= -1.0;
             }
             transformAxis.transposeInPlace();
             transformAxis *= mat;

@@ -225,6 +225,12 @@ void ModelViewer::drawJoint(
             glVertex3f(-2.0*frameLength, 0.0, 0.0);
             glVertex3f(2.0*frameLength, 0.0, 0.0);
         glEnd();
+        glLineWidth(20.0*frameThickness);
+        glBegin(GL_LINES);
+            glColor3f(0.6, 0.6, 0.8);
+            glVertex3f(0.0, 0.0, 0.0);
+            glVertex3f(1.5*frameLength, 0.0, 0.0);
+        glEnd();
         glScaled(3.0*frameLength/4.0, frameLength/6.0, frameLength/6.0);
         drawCube(0.3, 0.3, 0.6);
     glPopMatrix();
