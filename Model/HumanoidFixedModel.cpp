@@ -58,11 +58,11 @@ void HumanoidFixedModel::setYaw(SupportFoot foot, double trunkYaw)
 {
     if (foot == RightSupportFoot) {
         double yaw = trunkYaw;
-        yaw += _modelRight.getDOF("right_hip_yaw");
+        yaw -= get().orientationYaw("trunk", "right_foot_tip");
         _modelRight.setDOF("base_yaw", yaw);
     } else {
         double yaw = trunkYaw;
-        yaw += _modelLeft.getDOF("left_hip_yaw");
+        yaw -= get().orientationYaw("trunk", "left_foot_tip");
         _modelLeft.setDOF("base_yaw", yaw);
     }
 }
