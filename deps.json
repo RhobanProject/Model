@@ -9,7 +9,7 @@
     ],
     "includes": ["."],
     "libraries": "build",
-    "links": "build/libLephCode.a",
+    "links": "build/libLephCode.so",
     "build": [
         "mkdir -p build",
         "cd build",
