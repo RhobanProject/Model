@@ -43,12 +43,18 @@ int main()
         model.updateBase();
         model2.updateBase();
         //Set IMU data for motors real model state
-        model.setOrientation(
-            logs[index]("sensor:pitch"), 
-            logs[index]("sensor:roll"));
-        model2.setOrientation(
-            logs[index]("sensor:pitch"), 
-            logs[index]("sensor:roll"));
+        model.setOrientation( 
+            Eigen::AngleAxisd(logs[index]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix()
+            * Eigen::AngleAxisd(logs[index]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
+        model2.setOrientation( 
+            Eigen::AngleAxisd(logs[index]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix()
+            * Eigen::AngleAxisd(logs[index]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
         //Display foot pressure force
         viewer.drawBox(0.005, 0.005, 0.1*model.pressureLeftRatio(),
             copLeft + Eigen::Vector3d(0, 0, 0.1*model.pressureLeftRatio()), 

@@ -55,6 +55,7 @@ class HumanoidFixedModel
          */
         void setYaw(SupportFoot foot);
         void setYaw(SupportFoot foot, double trunkYaw);
+        void setYaw(double trunkYaw);
 
         /**
          * Return Leph::HumanoidModel fixed
@@ -71,11 +72,25 @@ class HumanoidFixedModel
         virtual void updateBase();
 
         /**
-         * Udpate support foot floating base (pitch, roll)
+         * Update support foot floating base
+         * (complete rotation matrix)
          * orientation in order that trunk
-         * orientation matches given euler angle (IMU)
+         * orientation matches given orientation (IMU)
+         * in origin.
+         * If applyYaw is false, the base_yaw DOF
+         * is not assign.
          */
-        void setOrientation(double trunkPitch, double trunkRoll);
+        void setOrientation(
+            const Eigen::Matrix3d& originToTrunk,
+            bool applyYaw = true);
+
+        /**
+         * Return the rotation matrix and translation vector
+         * expressing given frame into the robot self frame
+         * (flat (pitch/roll) on ground at the vertical of trunk).
+         */
+        Eigen::Matrix3d selfFrameOrientation(const std::string& frame);
+        Eigen::Vector3d selfFramePosition(const std::string& frame);
 
         /**
          * Compute and return the Zero Moment Point

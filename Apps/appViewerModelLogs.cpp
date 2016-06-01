@@ -150,9 +150,12 @@ int main(int argc, char** argv)
         modelMotors.updateBase();
         modelWalk.updateBase();
         //Set IMU data for motors real model state
-        modelMotors.setOrientation(
-            logs[indexLog]("sensor:pitch"), 
-            logs[indexLog]("sensor:roll"));
+        modelMotors.setOrientation( 
+            Eigen::AngleAxisd(logs[indexLog]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix()
+            * Eigen::AngleAxisd(logs[indexLog]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
         modelMotors.setYaw(modelMotors.getSupportFoot(), 
             logs[indexLog]("sensor:gyro_yaw")-logs[0]("sensor:gyro_yaw"));
         std::cout 

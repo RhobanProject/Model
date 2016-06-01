@@ -168,12 +168,14 @@ int main(int argc, char** argv)
             pressureY2/100.0);
         model.updateBase();
         modelGoal.updateBase();
+        /* TODO XXX
         model.setOrientation(
             pitch*M_PI/180.0, 
             -roll*M_PI/180.0);
         modelGoal.setOrientation(
             pitch*M_PI/180.0, 
             -roll*M_PI/180.0);
+        */
         model.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
         modelGoal.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
         //Model viewer

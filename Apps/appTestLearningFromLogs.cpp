@@ -70,9 +70,12 @@ void computeModelData(std::vector<Leph::MatrixLabel> logs)
             //Model update
             modelOutputs.updateBase();
             modelMotors.updateBase();
-            modelMotors.setOrientation(
-                logs[i][j]("sensor:pitch"), 
-                logs[i][j]("sensor:roll"));
+            modelMotors.setOrientation( 
+                Eigen::AngleAxisd(logs[i][j]("sensor:roll"), 
+                    Eigen::Vector3d::UnitX()).toRotationMatrix()
+                * Eigen::AngleAxisd(logs[i][j]("sensor:pitch"), 
+                    Eigen::Vector3d::UnitY()).toRotationMatrix(),
+                false);
             //Compute model quantities
             logs[i][j].setOrAppend("model output:left_foot_x", 
                 modelOutputs.get().position("left_foot_tip", "origin").x());

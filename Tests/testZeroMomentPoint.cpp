@@ -53,9 +53,12 @@ int main()
         plot.add(acc.rename("", "acc"));
         //Inject DOF into the model
         model.get().setDOF(pos, false);
-        model.setOrientation(
-            logs[index]("sensor:pitch"), 
-            -logs[index]("sensor:roll"));
+        model.setOrientation( 
+            Eigen::AngleAxisd(-logs[index]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix() *
+            Eigen::AngleAxisd(logs[index]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
         //Contraint the model on the ground
         model.updateBase();
         //Compute ZMP point

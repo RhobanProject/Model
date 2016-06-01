@@ -66,6 +66,10 @@ void HumanoidFixedModel::setYaw(SupportFoot foot, double trunkYaw)
         _modelLeft.setDOF("base_yaw", yaw);
     }
 }
+void HumanoidFixedModel::setYaw(double trunkYaw)
+{
+    setYaw(_supportFoot, trunkYaw);
+}
         
 const HumanoidModel& HumanoidFixedModel::get() const
 {
@@ -105,44 +109,95 @@ void HumanoidFixedModel::updateBase()
 }
         
 void HumanoidFixedModel::setOrientation(
-    double trunkPitch, double trunkRoll)
+    const Eigen::Matrix3d& originToTrunk,
+    bool applyYaw)
 {
-    //Trunk euler angle orientation to 
-    //rotation matrix
-    Eigen::AngleAxisd pitchRot(-trunkPitch, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd rollRot(-trunkRoll, Eigen::Vector3d::UnitX());
-    Eigen::Quaternion<double> quat = rollRot*pitchRot;
-    Eigen::Matrix3d baseToTrunk = quat.matrix();
-    
     //Computing rotation matrix from support foot tip to trunk
     Eigen::Matrix3d footToTrunk;
     if (_supportFoot == LeftSupportFoot) {
-        footToTrunk = _modelLeft.orientation("left_foot_tip", "trunk");
+        footToTrunk = _modelLeft.orientation("trunk", "left_foot_tip");
     } else {
-        footToTrunk = _modelRight.orientation("right_foot_tip", "trunk");
+        footToTrunk = _modelRight.orientation("trunk", "right_foot_tip");
     }
     
     //Computing rotation matrix to apply on floating base
     //from base to foot
-    Eigen::Matrix3d baseToFoot = footToTrunk * baseToTrunk;
+    Eigen::Matrix3d originToFoot = 
+        footToTrunk.transpose() * originToTrunk.transpose();
     
-    //Retrieve euler angles from rotation matrix
+    //Retrieve YawPitchRoll euler angles from rotation matrix
     //(Manual computing without singular check seems better than
     //Eigen euler angles and with better range)
     Eigen::Vector3d angles;
-    angles(0) = atan2(baseToFoot(1, 2), baseToFoot(2, 2));
-    angles(1) = atan2(-baseToFoot(0, 2), 
-        sqrt(baseToFoot(0,0)*baseToFoot(0,0) + baseToFoot(0,1)*baseToFoot(0,1)));
-    angles(2) = atan2(baseToFoot(0, 1), baseToFoot(0, 0));
+    //Roll
+    angles(0) = atan2(originToFoot(1, 2), originToFoot(2, 2));
+    //Pitch
+    angles(1) = atan2(-originToFoot(0, 2), 
+        sqrt(originToFoot(0, 0)*originToFoot(0, 0) 
+            + originToFoot(0, 1)*originToFoot(0, 1)));
+    //Yaw
+    angles(2) = atan2(originToFoot(0, 1), originToFoot(0, 0));
 
     //Assign floating base DOFs with fixed yaw
     if (_supportFoot == LeftSupportFoot) {
         _modelLeft.setDOF("base_roll", angles(0));
         _modelLeft.setDOF("base_pitch", angles(1));
+        if (applyYaw) {
+            _modelLeft.setDOF("base_yaw", angles(2));
+        }
     } else {
         _modelRight.setDOF("base_roll", angles(0));
         _modelRight.setDOF("base_pitch", angles(1));
+        if (applyYaw) {
+            _modelRight.setDOF("base_yaw", angles(2));
+        }
     }
+}
+
+Eigen::Matrix3d HumanoidFixedModel::selfFrameOrientation(
+    const std::string& frame)
+{
+    //Compute self frame to trunk pitch/roll rotation
+    Eigen::Matrix3d originToTrunk = get().orientation("trunk", "origin");
+    double roll = atan2(originToTrunk(1, 2), originToTrunk(2, 2));
+    double pitch = atan2(-originToTrunk(0, 2), 
+        sqrt(originToTrunk(0, 0)*originToTrunk(0, 0) 
+            + originToTrunk(0, 1)*originToTrunk(0, 1)));
+    //double yaw = atan2(originToTrunk(0, 1), originToTrunk(0, 0));
+
+    //Compute trunk to target frame rotation
+    Eigen::Matrix3d trunkToFrame = get().orientation(frame, "trunk");
+
+    //Build rotation matrix from self base to target frame
+    //by using pitch/roll trunk orientation
+    Eigen::AngleAxisd pitchRot(-pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd rollRot(-roll, Eigen::Vector3d::UnitX());
+    Eigen::Matrix3d baseToFrame = 
+        rollRot.toRotationMatrix() * pitchRot.toRotationMatrix();
+    //Then adding trunk to frame orientation
+    baseToFrame *= trunkToFrame;
+
+    return baseToFrame;
+}
+Eigen::Vector3d HumanoidFixedModel::selfFramePosition(
+    const std::string& frame)
+{
+    //Compute self frame rotation state in origin
+    double yaw = get().orientationYaw("trunk", "origin");
+
+    //Compute trunk and frame position in origin
+    Eigen::Vector3d trunkPos = get().position("trunk", "origin");
+    Eigen::Vector3d framePos = get().position(frame, "origin");
+    //Project the trunk position on ground
+    trunkPos.z() = 0.0;
+    //Compute translation vector in origin
+    Eigen::Vector3d translationInOrigin = framePos - trunkPos;
+    //Rotate the translation into self frame
+    Eigen::Vector3d translationInBase = 
+        Eigen::AngleAxisd(-yaw, Eigen::Vector3d::UnitZ())
+        .toRotationMatrix() * translationInOrigin;
+
+    return translationInBase;
 }
 
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(

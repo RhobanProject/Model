@@ -88,9 +88,12 @@ int main(int argc, char** argv)
             logs[i]("pressure:x2")/100.0,
             logs[i]("pressure:y2")/100.0);
         modelMotors.updateBase();
-        modelMotors.setOrientation(
-            logs[i]("sensor:pitch"), 
-            logs[i]("sensor:roll"));
+        modelMotors.setOrientation( 
+            Eigen::AngleAxisd(logs[i]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix()
+            * Eigen::AngleAxisd(logs[i]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
         logs[i]("motor:base_pitch") = modelMotors.get().getDOF("base_pitch");
         logs[i]("motor:base_roll") = modelMotors.get().getDOF("base_roll");
     }

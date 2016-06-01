@@ -3,6 +3,10 @@
 #include "Viewer/ModelDraw.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "CartWalk/CartWalkProxy.hpp"
+#include "Utils/Euler.h"
+#include "Utils/AxisAngle.h"
+
+#include "Utils/Euler.h"
 
 int main()
 {
@@ -34,10 +38,21 @@ int main()
         output.mulOp(M_PI/180.0);
         //Send motor output to model
         model.get().setDOF(output);
+        model.get().setDOF("head_pitch", 1.0*sin(t));
+
         //Update model floating base
         model.updateBase();
         //Set pitch roll reference for trunk orientation
-        model.setOrientation(0.8*sin(t), 0.1);
+        Eigen::Matrix3d matOrientation = 
+            Eigen::AngleAxisd(0.1, Eigen::Vector3d::UnitX()).toRotationMatrix() *
+            Eigen::AngleAxisd(0.8*sin(t), Eigen::Vector3d::UnitY()).toRotationMatrix();
+        model.setOrientation(matOrientation, false);
+
+        Eigen::Matrix3d mat = model.selfFrameOrientation("camera");
+        Eigen::Vector3d vec = model.selfFramePosition("camera");
+        viewer.drawFrame(Eigen::Vector3d(0.1, 0.1, 0) + vec, mat);
+        viewer.drawFrame(Eigen::Vector3d(0.1, 0.1, 0), Eigen::Matrix3d::Identity());
+
         //Display center of mass trajectory
         Eigen::Vector3d com = model.get().centerOfMass("origin");
         viewer.addTrackedPoint(com);    

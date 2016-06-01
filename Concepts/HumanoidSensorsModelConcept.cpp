@@ -83,12 +83,15 @@ bool HumanoidSensorsModelConcept::doCompute(double time)
     //Update support foot and compute odometry
     _model.updateBase();
     //Update trunk orientation using IMU
-    _model.setOrientation(
-        Concept::getInput(20)->get(time),
-        Concept::getInput(21)->get(time));
-    //Override computed body orientation using gyro integration
-    _model.setYaw(_model.getSupportFoot(), 
-        Concept::getInput(22)->getAngular(time));
+    //and gyro integration
+    _model.setOrientation( 
+        Eigen::AngleAxisd(Concept::getInput(21)->get(time), 
+            Eigen::Vector3d::UnitX()).toRotationMatrix()
+        * Eigen::AngleAxisd(Concept::getInput(20)->get(time), 
+            Eigen::Vector3d::UnitY()).toRotationMatrix()
+        * Eigen::AngleAxisd(Concept::getInput(22)->getAngular(time), 
+            Eigen::Vector3d::UnitZ()).toRotationMatrix()
+    );
 
     //Write output is_support_foot_left
     double is_support_foot_left = (_model.getSupportFoot() 

@@ -31,9 +31,12 @@ void ComputeModelData(MatrixLabel& logs, RobotType type)
         modelGoal.updateBase();
         modelPos.updateBase();
         //Set IMU data for read model state
-        modelPos.setOrientation(
-            logs[i]("sensor:pitch"), 
-            logs[i]("sensor:roll"));
+        modelPos.setOrientation( 
+            Eigen::AngleAxisd(logs[i]("sensor:roll"), 
+                Eigen::Vector3d::UnitX()).toRotationMatrix()
+            * Eigen::AngleAxisd(logs[i]("sensor:pitch"), 
+                Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            false);
         //Append base DOF
         logs[i].append("pos:base_pitch", modelPos.get().getDOF("base_pitch"));
         logs[i].append("pos:base_roll", modelPos.get().getDOF("base_roll"));
