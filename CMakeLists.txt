@@ -161,7 +161,7 @@ set(CODE_LIBRARIES
 
 #Add URDF model symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
-    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban.urdf sigmaban.urdf")
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban_metabot.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
 #Add RhAL config symbolic link
