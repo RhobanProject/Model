@@ -226,22 +226,6 @@ if (BUILD_LEPH_CODE_RHIO)
     )
 endif (BUILD_LEPH_CODE_RHIO)
 
-#Build App RhAL Motion 
-if (BUILD_LEPH_CODE_RHAL)
-    set(SOURCES_FILES ${SOURCES_FILES} 
-        RhAL/RhALUtils.cpp
-    )
-    set(APPS_FILES ${APPS_FILES}
-        appRhALTrajectory
-    )
-    set(CODE_LIBRARIES ${CODE_LIBRARIES} 
-        RhAL
-        serial
-        RhIO
-        zmq
-    )
-endif (BUILD_LEPH_CODE_RHAL)
-
 #Include need directories
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
 include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
@@ -265,4 +249,24 @@ if (BUILD_LEPH_CODE_APPS)
         target_link_libraries(${APP} LephCode)
     endforeach ()
 endif (BUILD_LEPH_CODE_APPS)
+
+#Build App RhAL Motion 
+if (BUILD_LEPH_CODE_RHAL)
+    set(APPS_RHAL_SOURCES_FILES
+        RhAL/RhALUtils
+    )
+    set(APPS_RHAL_LIBRARIES
+        RhAL 
+        RhIO 
+        serial 
+        zmq
+    )
+    set(APPS_RHAL_FILES
+        appRhALTrajectory
+    )
+    foreach (APP ${APPS_RHAL_FILES})
+        add_executable(${APP} Apps/${APP}.cpp ${APPS_RHAL_SOURCES_FILES})
+        target_link_libraries(${APP} LephCode ${APPS_RHAL_LIBRARIES})
+    endforeach ()
+endif (BUILD_LEPH_CODE_RHAL)
 
