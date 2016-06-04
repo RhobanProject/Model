@@ -85,5 +85,31 @@ void ModelDraw(Model& model, ModelViewer& viewer)
     }
 }
 
+void CameraDraw(
+    const CameraParameters& params,
+    HumanoidModel& model, 
+    ModelViewer& viewer)
+{
+    Eigen::Vector3d groundPos1;
+    Eigen::Vector3d groundPos2;
+    Eigen::Vector3d groundPos3;
+    Eigen::Vector3d groundPos4;
+    Eigen::Vector3d groundPos5;
+    model.cameraPixelToWorld(params, Eigen::Vector2d(-1.0, -1.0), groundPos1);
+    model.cameraPixelToWorld(params, Eigen::Vector2d( 1.0, -1.0), groundPos2);
+    model.cameraPixelToWorld(params, Eigen::Vector2d( 1.0,  1.0), groundPos3);
+    model.cameraPixelToWorld(params, Eigen::Vector2d(-1.0,  1.0), groundPos4);
+    model.cameraPixelToWorld(params, Eigen::Vector2d( 0.0,  0.0), groundPos5);
+    viewer.drawLink(model.position("camera", "origin"), groundPos1);
+    viewer.drawLink(model.position("camera", "origin"), groundPos2);
+    viewer.drawLink(model.position("camera", "origin"), groundPos3);
+    viewer.drawLink(model.position("camera", "origin"), groundPos4);
+    viewer.drawLink(model.position("camera", "origin"), groundPos5);
+    viewer.drawLink(groundPos1, groundPos2);
+    viewer.drawLink(groundPos2, groundPos3);
+    viewer.drawLink(groundPos3, groundPos4);
+    viewer.drawLink(groundPos4, groundPos1);
+}
+
 }
 
