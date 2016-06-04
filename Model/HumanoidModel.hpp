@@ -95,8 +95,8 @@ class HumanoidModel : public Model
         double feetDistance() const;
 
         /**
-         * Compute 3d position in world frame of
-         * given normalized 2d pixel coordinate
+         * Compute 3d position in world frame (origin) 
+         * of given normalized 2d pixel coordinate
          * projected on the ground.
          * params is used camera parameters.
          * pixel is normalized between -1 and 1 relatively
@@ -104,12 +104,44 @@ class HumanoidModel : public Model
          * pos is updated position on the ground in
          * world frame.
          * False is returned if asked point is above
-         * the horizon and pos is not updated.
+         * the horizon and pos is shrink to the horizon line.
          */
         bool cameraPixelToWorld(
             const CameraParameters& params,
             const Eigen::Vector2d& pixel,
             Eigen::Vector3d& pos);
+
+        /**
+         * Compute normalize 2d pixel position in camera
+         * space projected from given point in world
+         * frame (origin). 
+         * Given Camera parameters are used.
+         * False is returned if projection fails (not 
+         * inversible) or if projected point comes 
+         * from camera's backside.
+         */
+        bool cameraWorldToPixel(
+            const CameraParameters& params,
+            const Eigen::Vector3d& pos,
+            Eigen::Vector2d& pixel);
+
+        /**
+         * Set head yaw and pitch degrees of
+         * freedom to look at given target position
+         * in world (origin) frame.
+         * If offsetPixelTilt is zero, the given
+         * worl point is set at the center of the
+         * camera view.
+         * If offsetPixelTilt is between -1 and 1 in
+         * pixel space, the given world point is 
+         * centered at the camera view in width 
+         * but is offset in height.
+         * Camera parameters is given as input.
+         */
+        void cameraLookAt(
+            const CameraParameters& params,
+            const Eigen::Vector3d& posTarget,
+            double offsetPixelTilt = 0.0);
 
         /**
          * Compute and return the height in
@@ -149,6 +181,14 @@ class HumanoidModel : public Model
         Eigen::Vector3d _trunkToHipRight;
         Eigen::Vector3d _trunkToFootTipLeft;
         Eigen::Vector3d _trunkToFootTipRight;
+
+        /**
+         * Neck segment lengts used by
+         * camera inverse kinematics
+         */
+        double _headYawToPitch;
+        double _headPitchToCameraZ;
+        double _headPitchToCameraX;
 
         /**
          * Compute and return the IK position reference

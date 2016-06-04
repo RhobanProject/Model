@@ -134,6 +134,7 @@ set(TESTS_FILES
     testAxisAngle
     testEncoderFilter
     testMapSeries
+    testCameraModel
 )
 
 #Applications main files

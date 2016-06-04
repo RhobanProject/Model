@@ -60,6 +60,11 @@ HumanoidModel::HumanoidModel(
     _trunkToHipRight = Model::position("right_hip_roll", "trunk");
     _trunkToFootTipLeft = Model::position("left_foot_tip", "trunk");
     _trunkToFootTipRight = Model::position("right_foot_tip", "trunk");
+
+    //Compute neck segments length
+    _headYawToPitch = Model::position("head_pitch", "head_yaw").z();
+    _headPitchToCameraZ = Model::position("camera", "head_pitch").z();
+    _headPitchToCameraX = Model::position("camera", "head_pitch").x();
 }
         
 HumanoidModel::~HumanoidModel()
@@ -185,14 +190,15 @@ bool HumanoidModel::cameraPixelToWorld(
     orientation.transposeInPlace();
 
     //Half width and height aperture distance on focal plane
-    double widthLen = focalLength*sin(params.widthAperture);
-    double heightLen = focalLength*sin(params.heightAperture);
+    double widthLen = focalLength*tan(params.widthAperture/2.0);
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
     //Pixel width and height distance from optical center
     double pixelWidthPos = pixel.x()*widthLen;
     double pixelHeightPos = pixel.y()*heightLen;
 
     //Pixel position in world frame
-    Eigen::Vector3d pixelPos = center
+    Eigen::Vector3d pixelPos = 
+        center
         + focalLength*orientation.col(0)
         - pixelWidthPos*orientation.col(1)
         - pixelHeightPos*orientation.col(2);
@@ -201,8 +207,10 @@ bool HumanoidModel::cameraPixelToWorld(
     Eigen::Vector3d forward = pixelPos - center;
 
     //Check if the asked point is above the horizon
+    bool isBelowHorizon = true;
     if (forward.z() >= -0.0001) {
-        return false;
+        forward.z() = -0.0001;
+        isBelowHorizon = false;
     }
 
     //Line abscisse intersection in the ground
@@ -212,7 +220,109 @@ bool HumanoidModel::cameraPixelToWorld(
     Eigen::Vector3d pt = center + t*forward;
 
     pos = pt;
-    return true;
+    return isBelowHorizon;
+}
+
+bool HumanoidModel::cameraWorldToPixel(
+    const CameraParameters& params,
+    const Eigen::Vector3d& pos,
+    Eigen::Vector2d& pixel)
+{
+    double focalLength = 0.01;
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+
+    //Half width and height aperture distance on focal plane
+    double widthLen = focalLength*tan(params.widthAperture/2.0);
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
+
+    //Compute the view line projection on camera plane
+    Eigen::Vector3d planeCenter = center + focalLength*orientation.col(0);
+    Eigen::Vector3d viewVector = pos - center;
+    Eigen::Vector3d widthVector = orientation.col(1);
+    Eigen::Vector3d heightVector = orientation.col(2);
+    //Build left side matrix to be solved
+    Eigen::Matrix3d mat;
+    mat.col(0) = viewVector;
+    mat.col(1) = widthVector;
+    mat.col(2) = heightVector;
+    auto decomposition = mat.colPivHouseholderQr();
+
+    //Check if the projection is not inversible
+    if (!decomposition.isInvertible()) {
+        pixel.setZero();
+        return false;
+    } else {
+        //Solve the linear equation
+        Eigen::Vector3d solution = decomposition.solve(planeCenter-center);
+        //Assign pixel coordinates normalized by frame size
+        pixel.x() = solution(1)/widthLen;
+        pixel.y() = solution(2)/heightLen;
+        //Check if the projection comes from backside
+        if (solution(0) < 0.0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+}
+        
+void HumanoidModel::cameraLookAt(
+    const CameraParameters& params,
+    const Eigen::Vector3d& posTarget, 
+    double offsetPixelTilt)
+{
+    //Compute view vector in head yaw frame
+    Eigen::Vector3d baseCenter = Model::position("head_yaw", "origin");
+    Eigen::Matrix3d orientation = Model::orientation("trunk", "origin");
+    Eigen::Vector3d viewVector = posTarget - baseCenter;
+    Eigen::Vector3d viewVectorInBase = orientation*viewVector;
+
+    //Compute yaw rotation arround Z aligned with the target
+    double yaw = atan2(viewVectorInBase.y(), viewVectorInBase.x());
+    //Assign head yaw DOF
+    Model::setDOF("head_yaw", yaw);
+
+    //Compute target in head_pitch frame fixed
+    //to head_yaw frame orientation
+    Eigen::Vector3d targetInBase = 
+        Model::position("origin", "head_yaw", posTarget);
+    targetInBase.z() -= _headYawToPitch;
+
+    //Conversion of target point to polar representation
+    double R = targetInBase.norm();
+    double gamma = atan2(targetInBase.z(), targetInBase.x());
+
+    //Compute polar distance for camera from pitch joint
+    double r = sqrt(pow(_headPitchToCameraZ, 2) + pow(_headPitchToCameraX, 2));
+    //Compute angular correction to handle a non null
+    //camera X translation offset
+    double epsilon = atan(_headPitchToCameraX/_headPitchToCameraZ);
+
+    //Compute height angular offset from pixel space offset
+    //offset from optical line)
+    double focalLength = 0.01;
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
+    double pixelHeightPos = offsetPixelTilt*heightLen;
+    double beta = -atan(pixelHeightPos/focalLength);
+    //Apply angular correction on view angle
+    beta += epsilon;
+
+    //Do the math. Geometric method is used (Alkashi, Trigo, Thales).
+    //Use Maxima for system of 3 equations, 3 unknown solving
+    double B = sin(beta);
+    double cosAngle = r/R;
+    cosAngle = -(B*sqrt(R*R+r*r*B*B-r*r)+r*B*B-r)/R;
+    cosAngle = (B*sqrt(R*R+r*r*B*B-r*r)-r*B*B+r)/R;
+    double alpha = M_PI/2.0 - acos(cosAngle) - gamma;
+    //Apply (inverse) angular correction to pitch 
+    alpha += -epsilon;
+
+    //Assignement head pitch DOF
+    Model::setDOF("head_pitch", alpha);
 }
 
 double HumanoidModel::cameraScreenHorizon(
@@ -227,8 +337,8 @@ double HumanoidModel::cameraScreenHorizon(
     orientation.transposeInPlace();
     
     //Half width and height aperture distance on focal plane
-    double widthLen = focalLength*sin(params.widthAperture);
-    double heightLen = focalLength*sin(params.heightAperture);
+    double widthLen = focalLength*tan(params.widthAperture/2.0);
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
     //Pixel width distance from optical center
     double pixelWidthPos = screenPosWidth*widthLen;
     
