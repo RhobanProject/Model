@@ -359,6 +359,20 @@ void HumanoidModel::cameraLookAt(
     const Eigen::Vector3d& posTarget, 
     double offsetPixelTilt)
 {
+    double panDOF;
+    double tiltDOF;
+    cameraLookAtNoUpdate(panDOF, tiltDOF, 
+        params, posTarget, offsetPixelTilt);
+    Model::setDOF("head_yaw", panDOF);
+    Model::setDOF("head_pitch", tiltDOF);
+}
+void HumanoidModel::cameraLookAtNoUpdate(
+    double& panDOF,
+    double& tiltDOF,
+    const CameraParameters& params,
+    const Eigen::Vector3d& posTarget,
+    double offsetPixelTilt)
+{
     //Compute view vector in head yaw frame
     Eigen::Vector3d baseCenter = Model::position("head_yaw", "origin");
     Eigen::Matrix3d orientation = Model::orientation("trunk", "origin");
@@ -368,7 +382,7 @@ void HumanoidModel::cameraLookAt(
     //Compute yaw rotation arround Z aligned with the target
     double yaw = atan2(viewVectorInBase.y(), viewVectorInBase.x());
     //Assign head yaw DOF
-    Model::setDOF("head_yaw", yaw);
+    panDOF = yaw;
 
     //Compute target in head_pitch frame fixed
     //to head_yaw frame orientation
@@ -406,7 +420,7 @@ void HumanoidModel::cameraLookAt(
     alpha += -epsilon;
 
     //Assignement head pitch DOF
-    Model::setDOF("head_pitch", alpha);
+    tiltDOF = alpha;
 }
 
 double HumanoidModel::cameraScreenHorizon(

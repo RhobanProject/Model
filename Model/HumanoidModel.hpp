@@ -158,8 +158,17 @@ class HumanoidModel : public Model
          * centered at the camera view in width 
          * but is offset in height.
          * Camera parameters is given as input.
+         * In NoUpdate version, the underlying model
+         * is not updated and given reference dof 
+         * are assigned.
          */
         void cameraLookAt(
+            const CameraParameters& params,
+            const Eigen::Vector3d& posTarget,
+            double offsetPixelTilt = 0.0);
+        void cameraLookAtNoUpdate(
+            double& panDOF,
+            double& tiltDOF,
             const CameraParameters& params,
             const Eigen::Vector3d& posTarget,
             double offsetPixelTilt = 0.0);

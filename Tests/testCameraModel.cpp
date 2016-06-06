@@ -24,7 +24,6 @@ int main()
         model.get().setDOF("left_hip_roll", 0.1 + 0.4*sin(2*t));
         
         //Camera world target
-        //Eigen::Vector3d target(0.5, 0.0, 0.0);
         Eigen::Vector3d target = model.get().selfInFrame("origin", Eigen::Vector3d(0.5, 0.0, 0.0));
 
         //Height pixel in camera target
