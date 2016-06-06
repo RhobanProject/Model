@@ -177,6 +177,90 @@ double HumanoidModel::feetDistance() const
     return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
 
+Eigen::Matrix3d HumanoidModel::selfFrameOrientation(
+    const std::string& frame)
+{
+    //Compute self frame to trunk pitch/roll rotation
+    Eigen::Matrix3d originToTrunk = Model::orientation("trunk", "origin");
+    double roll = atan2(originToTrunk(1, 2), originToTrunk(2, 2));
+    double pitch = atan2(-originToTrunk(0, 2), 
+        sqrt(originToTrunk(0, 0)*originToTrunk(0, 0) 
+            + originToTrunk(0, 1)*originToTrunk(0, 1)));
+    //double yaw = atan2(originToTrunk(0, 1), originToTrunk(0, 0));
+
+    //Compute trunk to target frame rotation
+    Eigen::Matrix3d trunkToFrame = Model::orientation(frame, "trunk");
+
+    //Build rotation matrix from self base to target frame
+    //by using pitch/roll trunk orientation
+    Eigen::AngleAxisd pitchRot(-pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd rollRot(-roll, Eigen::Vector3d::UnitX());
+    Eigen::Matrix3d baseToFrame = 
+        rollRot.toRotationMatrix() * pitchRot.toRotationMatrix();
+    //Then adding trunk to frame orientation
+    baseToFrame = trunkToFrame * baseToFrame;
+
+    return baseToFrame;
+}
+Eigen::Vector3d HumanoidModel::selfFramePosition(
+    const std::string& frame)
+{
+    //Compute self frame rotation state in origin
+    double yaw = Model::orientationYaw("trunk", "origin");
+
+    //Compute trunk and frame position in origin
+    Eigen::Vector3d trunkPos = Model::position("trunk", "origin");
+    Eigen::Vector3d framePos = Model::position(frame, "origin");
+    //Project the trunk position on ground
+    trunkPos.z() = 0.0;
+    //Compute translation vector in origin
+    Eigen::Vector3d translationInOrigin = framePos - trunkPos;
+    //Rotate the translation into self frame
+    Eigen::Vector3d translationInBase = 
+        Eigen::AngleAxisd(-yaw, Eigen::Vector3d::UnitZ())
+        .toRotationMatrix() * translationInOrigin;
+
+    return translationInBase;
+}
+
+Eigen::Vector3d HumanoidModel::selfInFrame(
+    const std::string& name, const Eigen::Vector3d& pos)
+{
+    //In: self to target in self
+    //Out: frame to target in frame
+    
+    //Self to frame orientation
+    Eigen::Matrix3d mat = selfFrameOrientation(name);
+    //Self to frame in frame
+    Eigen::Vector3d selfToFrameVect = 
+        mat*selfFramePosition(name);
+
+    //Self to target in frame
+    Eigen::Vector3d selfToTarget = mat*pos;
+    //Frame to target in frame
+    Eigen::Vector3d frameToTarget = -selfToFrameVect + selfToTarget;
+
+    return frameToTarget;
+}
+Eigen::Vector3d HumanoidModel::frameInSelf(
+    const std::string& name, const Eigen::Vector3d& pos)
+{
+    //In: frame to target in frame
+    //Out: self to target in self
+
+    //Self to frame orientation
+    Eigen::Matrix3d mat = selfFrameOrientation(name);
+    //Self to frame in self
+    Eigen::Vector3d selfToFrameVect = selfFramePosition(name);
+
+    //Frame to target in self
+    Eigen::Vector3d frameToTarget = mat.transpose()*pos;
+    //Self to target in self
+    Eigen::Vector3d selfToTarget = selfToFrameVect + frameToTarget;
+
+    return selfToTarget;
+}
+
 bool HumanoidModel::cameraPixelToWorld(
     const CameraParameters& params,
     const Eigen::Vector2d& pixel,

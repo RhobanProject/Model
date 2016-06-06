@@ -95,6 +95,27 @@ class HumanoidModel : public Model
         double feetDistance() const;
 
         /**
+         * Return the rotation matrix and translation vector
+         * expressing given frame into the robot self frame
+         * (flat (pitch/roll) on ground at the vertical of trunk).
+         */
+        Eigen::Matrix3d selfFrameOrientation(const std::string& frame);
+        Eigen::Vector3d selfFramePosition(const std::string& frame);
+
+        /**
+         * selfInFrame: return the position of the point expressed in self
+         * robot frame (zero as default) into given frame name.
+         * frameInSelf: return the position of the point expressed in given
+         * frame name (zero as default) into robot self frame.
+         */
+        Eigen::Vector3d selfInFrame(
+            const std::string& name, 
+            const Eigen::Vector3d& pos = Eigen::Vector3d::Zero());
+        Eigen::Vector3d frameInSelf(
+            const std::string& name, 
+            const Eigen::Vector3d& pos = Eigen::Vector3d::Zero());
+
+        /**
          * Compute 3d position in world frame (origin) 
          * of given normalized 2d pixel coordinate
          * projected on the ground.

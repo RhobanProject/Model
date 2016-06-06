@@ -85,14 +85,6 @@ class HumanoidFixedModel
             bool applyYaw = true);
 
         /**
-         * Return the rotation matrix and translation vector
-         * expressing given frame into the robot self frame
-         * (flat (pitch/roll) on ground at the vertical of trunk).
-         */
-        Eigen::Matrix3d selfFrameOrientation(const std::string& frame);
-        Eigen::Vector3d selfFramePosition(const std::string& frame);
-
-        /**
          * Compute and return the Zero Moment Point
          * (ZMP) in given frame. Given degrees of freedom
          * velocity and acceleration are used (to compute

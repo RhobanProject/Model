@@ -154,52 +154,6 @@ void HumanoidFixedModel::setOrientation(
     }
 }
 
-Eigen::Matrix3d HumanoidFixedModel::selfFrameOrientation(
-    const std::string& frame)
-{
-    //Compute self frame to trunk pitch/roll rotation
-    Eigen::Matrix3d originToTrunk = get().orientation("trunk", "origin");
-    double roll = atan2(originToTrunk(1, 2), originToTrunk(2, 2));
-    double pitch = atan2(-originToTrunk(0, 2), 
-        sqrt(originToTrunk(0, 0)*originToTrunk(0, 0) 
-            + originToTrunk(0, 1)*originToTrunk(0, 1)));
-    //double yaw = atan2(originToTrunk(0, 1), originToTrunk(0, 0));
-
-    //Compute trunk to target frame rotation
-    Eigen::Matrix3d trunkToFrame = get().orientation(frame, "trunk");
-
-    //Build rotation matrix from self base to target frame
-    //by using pitch/roll trunk orientation
-    Eigen::AngleAxisd pitchRot(-pitch, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd rollRot(-roll, Eigen::Vector3d::UnitX());
-    Eigen::Matrix3d baseToFrame = 
-        rollRot.toRotationMatrix() * pitchRot.toRotationMatrix();
-    //Then adding trunk to frame orientation
-    baseToFrame *= trunkToFrame;
-
-    return baseToFrame;
-}
-Eigen::Vector3d HumanoidFixedModel::selfFramePosition(
-    const std::string& frame)
-{
-    //Compute self frame rotation state in origin
-    double yaw = get().orientationYaw("trunk", "origin");
-
-    //Compute trunk and frame position in origin
-    Eigen::Vector3d trunkPos = get().position("trunk", "origin");
-    Eigen::Vector3d framePos = get().position(frame, "origin");
-    //Project the trunk position on ground
-    trunkPos.z() = 0.0;
-    //Compute translation vector in origin
-    Eigen::Vector3d translationInOrigin = framePos - trunkPos;
-    //Rotate the translation into self frame
-    Eigen::Vector3d translationInBase = 
-        Eigen::AngleAxisd(-yaw, Eigen::Vector3d::UnitZ())
-        .toRotationMatrix() * translationInOrigin;
-
-    return translationInBase;
-}
-
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     const std::string& frame,
     const Eigen::VectorXd& velocity,

@@ -15,13 +15,18 @@ int main()
     double t = 0.0;
     while (viewer.update()) {
         t += 0.01;
-        //Random trunk orientation
+        //Random trunk position and orientation
+        model.get().setDOF("base_x", 0.15*sin(t));
+        model.get().setDOF("base_y", 0.1*sin(2*t));
+        model.get().setDOF("base_yaw", -0.5*sin(3*t));
         model.get().setDOF("left_hip_pitch", -0.5 + 0.5*sin(t));
         model.get().setDOF("left_hip_yaw", 0.2 + 0.2*sin(2*t));
         model.get().setDOF("left_hip_roll", 0.1 + 0.4*sin(2*t));
         
         //Camera world target
-        Eigen::Vector3d target(0.5, 0.0, 0.0);
+        //Eigen::Vector3d target(0.5, 0.0, 0.0);
+        Eigen::Vector3d target = model.get().selfInFrame("origin", Eigen::Vector3d(0.5, 0.0, 0.0));
+
         //Height pixel in camera target
         double pixelTarget = 0.5;
 

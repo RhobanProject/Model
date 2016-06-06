@@ -48,10 +48,22 @@ int main()
             Eigen::AngleAxisd(0.8*sin(t), Eigen::Vector3d::UnitY()).toRotationMatrix();
         model.setOrientation(matOrientation, false);
 
-        Eigen::Matrix3d mat = model.selfFrameOrientation("camera");
-        Eigen::Vector3d vec = model.selfFramePosition("camera");
+        Eigen::Matrix3d mat = model.get().selfFrameOrientation("camera");
+        Eigen::Vector3d vec = model.get().selfFramePosition("camera");
         viewer.drawFrame(Eigen::Vector3d(0.1, 0.1, 0) + vec, mat);
         viewer.drawFrame(Eigen::Vector3d(0.1, 0.1, 0), Eigen::Matrix3d::Identity());
+
+        //Check self from/to frame conversion 
+        Eigen::Vector3d tmp1 = model.get().frameInSelf("origin", Eigen::Vector3d(0.0, 0.0, 0.0));
+        std::cout << "Frame in Self: " << tmp1.transpose() << std::endl;
+        Eigen::Vector3d tmp2 = model.get().selfInFrame("origin", Eigen::Vector3d(0.0, 0.0, 0.0));
+        std::cout << "Self in Frame: " << tmp2.transpose() << std::endl;
+        Eigen::Vector3d tmp3 = model.get().selfInFrame("origin", model.get().frameInSelf("origin"));
+        Eigen::Vector3d tmp4 = model.get().frameInSelf("origin", model.get().selfInFrame("origin"));
+        if (fabs(tmp1.z()) > 0.0001 || fabs(tmp2.z()) > 0.0001 || tmp3.norm() > 0.0001 || tmp4.norm() > 0.0001) {
+            std::cout << "ASSERT ERROR" << std::endl;
+            return 1;
+        }
 
         //Display center of mass trajectory
         Eigen::Vector3d com = model.get().centerOfMass("origin");
