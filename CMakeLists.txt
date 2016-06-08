@@ -6,6 +6,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(Thesis)
 
+#Deps dependencies
+find_package(Deps)
+deps_add_libraries()
+
 #Option for compiling the tests and apps
 option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
 option(BUILD_LEPH_CODE_APPS "Build Leph Code Apps" OFF)
@@ -150,14 +154,10 @@ set(APPS_FILES
 #LephCode linked libraries
 set(CODE_LIBRARIES
     ncurses
-    rbdl
-    rbdl_urdfreader
     console_bridge 
     urdfdom_world 
     urdfdom_model
-    cmaes
-    lwpr
-    gp
+    ${DEPS_LIBRARIES}
 )
 
 #Add URDF model symbolic link

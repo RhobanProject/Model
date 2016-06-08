@@ -8,7 +8,6 @@
         "rhobandeps/rbdl"
     ],
     "includes": ["."],
-    "libraries": "build",
     "links": "build/libLephCode.so",
     "build": [
         "mkdir -p build",
