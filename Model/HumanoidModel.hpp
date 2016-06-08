@@ -133,6 +133,19 @@ class HumanoidModel : public Model
             Eigen::Vector3d& pos);
 
         /**
+         * Compute the view vector in robot self
+         * frame from given pixel in normalized 
+         * pixel space and return its (pan,tilt) angles
+         * in radian with respect to self robot frame.
+         * If viewVector is not null, the unit normalized
+         * view vector is assigned.
+         */
+        Eigen::Vector2d cameraPixelToPanTilt(
+            const CameraParameters& params,
+            const Eigen::Vector2d& pixel,
+            Eigen::Vector3d* viewVector = nullptr);
+
+        /**
          * Compute normalize 2d pixel position in camera
          * space projected from given point in world
          * frame (origin). 

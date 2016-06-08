@@ -307,6 +307,56 @@ bool HumanoidModel::cameraPixelToWorld(
     return isBelowHorizon;
 }
 
+Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
+    const CameraParameters& params,
+    const Eigen::Vector2d& pixel,
+    Eigen::Vector3d* viewVector)
+{
+    double focalLength = 0.01;
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+
+    //Half width and height aperture distance on focal plane
+    double widthLen = focalLength*tan(params.widthAperture/2.0);
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
+    //Pixel width and height distance from optical center
+    double pixelWidthPos = pixel.x()*widthLen;
+    double pixelHeightPos = pixel.y()*heightLen;
+
+    //Pixel position in world frame
+    Eigen::Vector3d pixelPos = 
+        center
+        + focalLength*orientation.col(0)
+        - pixelWidthPos*orientation.col(1)
+        - pixelHeightPos*orientation.col(2);
+    
+    //Compute pixel position and optical center in 
+    //robot self frame
+    Eigen::Vector3d centerInSelf = frameInSelf("origin", center);
+    Eigen::Vector3d pixelInSelf = frameInSelf("origin", pixelPos);
+
+    Eigen::Vector3d viewInSelf = pixelInSelf - centerInSelf;
+    viewInSelf.normalize();
+
+    //Conversion to yaw/pitch angles
+    double yaw = atan2(viewInSelf.y(), viewInSelf.x());
+    double pitch = atan2(
+        -viewInSelf(2), 
+        sqrt(viewInSelf(0)*viewInSelf(0) + viewInSelf(1)*viewInSelf(1)));
+
+    //Assign view vector
+    if (viewVector != nullptr) {
+        *viewVector = viewInSelf;
+    }
+
+    Eigen::Vector2d angles;
+    angles << yaw, pitch;
+    return angles;
+}
+
 bool HumanoidModel::cameraWorldToPixel(
     const CameraParameters& params,
     const Eigen::Vector3d& pos,
