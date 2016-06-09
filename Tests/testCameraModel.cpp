@@ -24,7 +24,7 @@ int main()
         model.get().setDOF("left_hip_roll", 0.1 + 0.4*sin(2*t));
         
         //Camera world target
-        Eigen::Vector3d target = model.get().selfInFrame("origin", Eigen::Vector3d(0.5, 0.0, 0.0));
+        Eigen::Vector3d target = model.get().selfInFrame("origin", Eigen::Vector3d(0.5, 0.5, 0.0));
 
         //Height pixel in camera target
         double pixelTarget = 0.5;
@@ -43,7 +43,7 @@ int main()
         Leph::CameraDraw(camParams, model.get(), viewer);
 
         //Pixel to World and World to Pixel computation checks
-        Eigen::Vector2d pixel(-1.0, 1.0);
+        Eigen::Vector2d pixel(-1.0, 0.4);
         Eigen::Vector3d ground;
         Eigen::Vector2d pixelCheck;
         bool success1 = model.get().cameraPixelToWorld(camParams, pixel, ground);
@@ -52,6 +52,19 @@ int main()
         bool success2 = model.get().cameraWorldToPixel(camParams, ground, pixelCheck);
         std::cout << "PixelCheck: " << pixelCheck.transpose() << std::endl;
         if (!success1 || !success2 || (pixel-pixelCheck).norm() > 0.0001) {
+            std::cout << "ASSERT ERROR" << std::endl;
+            return 1;
+        }
+
+        //Pixel to PanTilt and PanTilt to Pixel computation check
+        Eigen::Vector2d pixelTarget2(0.4, 0.5);
+        Eigen::Vector2d angles = model.get().cameraPixelToPanTilt(
+            camParams, pixelTarget2);
+        std::cout << "Angles: " << angles(0)*180.0/M_PI << " " << angles(1)*180.0/M_PI << std::endl;
+        Eigen::Vector2d pixelCheck2;
+        model.get().cameraPanTiltToPixel(camParams, angles, pixelCheck2);
+        std::cout << "Pixel2: " << pixelCheck2.transpose() << std::endl;
+        if ((pixelCheck2 - pixelTarget2).norm() > 0.0001) {
             std::cout << "ASSERT ERROR" << std::endl;
             return 1;
         }

@@ -158,6 +158,19 @@ class HumanoidModel : public Model
             const CameraParameters& params,
             const Eigen::Vector3d& pos,
             Eigen::Vector2d& pixel);
+        
+        /**
+         * Compute normalized 2d pixel position in
+         * camera space from given Pan/Tilt extrinsic
+         * angles of target view vector in robot self frame.
+         * False is returned if projection fails (not 
+         * inversible) or if projected point comes 
+         * from camera's backside.
+         */
+        bool cameraPanTiltToPixel(
+            const CameraParameters& params,
+            const Eigen::Vector2d& anglesPanTilt,
+            Eigen::Vector2d& pixel);
 
         /**
          * Set head yaw and pitch degrees of

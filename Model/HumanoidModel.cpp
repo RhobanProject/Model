@@ -341,20 +341,18 @@ Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
     Eigen::Vector3d viewInSelf = pixelInSelf - centerInSelf;
     viewInSelf.normalize();
 
-    //Conversion to yaw/pitch angles
+    //Conversion to yaw/pitch extrinsic euler angles
     double yaw = atan2(viewInSelf.y(), viewInSelf.x());
     double pitch = atan2(
-        -viewInSelf(2), 
-        sqrt(viewInSelf(0)*viewInSelf(0) + viewInSelf(1)*viewInSelf(1)));
+        -viewInSelf.z(), 
+        sqrt(viewInSelf.x()*viewInSelf.x() + viewInSelf.y()*viewInSelf.y()));
 
-    //Assign view vector
+    //Assigning view vector
     if (viewVector != nullptr) {
         *viewVector = viewInSelf;
     }
 
-    Eigen::Vector2d angles;
-    angles << yaw, pitch;
-    return angles;
+    return Eigen::Vector2d(yaw, pitch);
 }
 
 bool HumanoidModel::cameraWorldToPixel(
@@ -403,7 +401,28 @@ bool HumanoidModel::cameraWorldToPixel(
         }
     }
 }
-        
+
+bool HumanoidModel::cameraPanTiltToPixel(
+    const CameraParameters& params,
+    const Eigen::Vector2d& anglesPanTilt,
+    Eigen::Vector2d& pixel)
+{
+    //Optical center
+    Eigen::Vector3d centerInSelf = frameInSelf("camera");
+
+    //Build rotation matrix from extrinsic euler angles Yaw-Pitch
+    Eigen::Matrix3d rot =
+        Eigen::AngleAxisd(anglesPanTilt(0), Eigen::Vector3d::UnitZ()).toRotationMatrix()
+        * Eigen::AngleAxisd(anglesPanTilt(1), Eigen::Vector3d::UnitY()).toRotationMatrix();
+    //Build view vector to pixel in self
+    Eigen::Vector3d vectInSelf = rot * Eigen::Vector3d(1.0, 0.0, 0.0);
+    //Build a target point on the view vector in world
+    Eigen::Vector3d pointInWorld = selfInFrame("origin", vectInSelf + centerInSelf);
+
+    //Call WorlToPixel implementation
+    return cameraWorldToPixel(params, pointInWorld, pixel);
+}
+
 void HumanoidModel::cameraLookAt(
     const CameraParameters& params,
     const Eigen::Vector3d& posTarget, 
