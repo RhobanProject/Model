@@ -71,52 +71,51 @@ double QuinticWalk::phaseToTime(double phase) const
 QuinticWalk::Parameters QuinticWalk::defaultParameters()
 {
     Eigen::VectorXd params = Eigen::VectorXd::Zero(44);
-
     params <<
-        0.587052795367217,
-        0.0330810196963711,
-        0.0372291299592743,
-        -0.143846095215358,
-        0.0256147022814838,
-        -0.0719226403405777,
-        0.252868862187121,
-        0.0885684783949165,
-        -0.117412852729617,
-        -0.000697301570667,
-         2.52078522735211,
-        0.947143923202763,
-         0.28390464026263,
-        -0.00141416374391904,
-         0.14934602062337,
-        0.00455220468531959,
-        0.00347725255578196,
-        0.000761310189592761,
-        0.00946644824913018,
-         5.09662791524356,
-         2.53164566027482,
-        -3.04071287055258,
-        0.00673286692128216,
-        -0.0538777265365676,
-        0.253037287124254,
-        0.126064591245657,
-        0.00071350121744216,
-         1.15492248971895,
-        -4.31135986803603,
-        -2.47843857224263,
-        -0.000201603768371984,
-        0.149741998963716,
-        0.00434907853592865,
-        0.00100114237161075,
-        0.00463260018644209,
-        0.696228146175223,
-        -0.0058098561858365,
-        0.759980526471494,
-        0.0174028131730471,
-        0.276221554565001,
-        0.00109671806848722,
-         8.71439889697668,
-         2.94586791159745,
-         13.0249923916764;
+        0.587908861782481,
+        0.0366993217871195,
+        0.0374323902074378,
+        -0.142998273687543,
+        0.0549407509520598,
+        -0.0714700569395352,
+        0.293404309614006,
+        0.0907329120261863,
+        -0.092261262558954,
+        -3.41792917876447e-07,
+        4.38499346000971,
+        2.29630388147032,
+        1.71037641322152,
+        -2.48126652273306e-10,
+        0.149999991776317,
+        -1.16047373162189e-08,
+        -4.9128066379382e-08,
+        -4.37503435953843e-07,
+        7.01008701998637e-06,
+        4.63190288246227,
+        1.57555094018333,
+        -5.81717909853587,
+        0.0360297008049997,
+        -0.0543930630782171,
+        0.293404317347432,
+        0.125913785907179,
+        -1.0464933421546e-07,
+        3.23423437562951,
+        -5.31053103899626,
+        -3.23163351404329,
+        4.5136184338577e-09,
+        0.150000005230885,
+        -1.71309894465846e-07,
+        -2.55441396862228e-07,
+        -4.60480256944335e-06,
+        -1.3482133702974,
+        -1.20448302808787,
+        1.13880478562503,
+        0.0205359716550638,
+        0.2660737760555,
+        -3.05712519950543e-06,
+        15.2647432128294,
+        -0.596055596325538,
+        15.4463810408885;
 
     return params;
 }
@@ -140,21 +139,26 @@ Trajectories QuinticWalk::generateTrajectories() const
     Eigen::Vector3d trunkPos_Middle(_params(4), _params(5), _params(6));
     Eigen::Vector3d trunkPosVel_Middle(_params(7), _params(8), _params(9));
     Eigen::Vector3d trunkPosAcc_Middle(_params(10), _params(11), _params(12));
+    //XXX Eigen::Vector3d trunkPosAcc_Middle(0.0, 0.0, 0.0);
     Eigen::Vector3d trunkAxis_Middle(_params(13), _params(14), _params(15));
     Eigen::Vector3d trunkAxisVel_Middle(_params(16), _params(17), _params(18));
     Eigen::Vector3d trunkAxisAcc_Middle(_params(19), _params(20), _params(21));
+    //XXX Eigen::Vector3d trunkAxisAcc_Middle(0.0, 0.0, 0.0);
     Eigen::Vector3d footPos_Middle(footStep, footLateralOffset, 0.0);
 
     //Single support target state
     Eigen::Vector3d trunkPos_Apex(_params(22), _params(23), _params(24));
     Eigen::Vector3d trunkPosVel_Apex(_params(25), 0.0, _params(26));
     Eigen::Vector3d trunkPosAcc_Apex(_params(27), _params(28), _params(29));
+    //XXX Eigen::Vector3d trunkPosAcc_Apex(0.0, 0.0, 0.0);
     Eigen::Vector3d trunkAxis_Apex(_params(30), _params(31), _params(32));
     Eigen::Vector3d trunkAxisVel_Apex(0.0, _params(33), _params(34));
     Eigen::Vector3d trunkAxisAcc_Apex(_params(35), _params(36), _params(37));
+    //XXX Eigen::Vector3d trunkAxisAcc_Apex(0.0, 0.0, 0.0);
     Eigen::Vector3d footPos_Apex(_params(38), footLateralOffset, footHeight);
     Eigen::Vector3d footPosVel_Apex(_params(39), _params(40), 0.0);
     Eigen::Vector3d footPosAcc_Apex(_params(41), _params(42), _params(43));
+    //XXX Eigen::Vector3d footPosAcc_Apex(0.0, 0.0, 0.0);
 
     //Initialize state splines
     Trajectories traj = TrajectoriesInit();
@@ -241,7 +245,7 @@ Trajectories QuinticWalk::generateTrajectories() const
     traj.get("foot_pos_x").addPoint(timeLeftEnd, footPos_Middle.x(), 0.0, 0.0);
     traj.get("foot_pos_y").addPoint(timeLeftEnd, footPos_Middle.y(), 0.0, 0.0);
     traj.get("foot_pos_z").addPoint(timeLeftEnd, footPos_Middle.z(), 0.0, 0.0);
-
+    
     return traj;
 }
         

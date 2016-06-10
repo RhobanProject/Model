@@ -7,6 +7,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Plot/Plot.hpp"
 
 double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool display)
 {
@@ -68,20 +69,24 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
     double quinticPhase = 0.5;
     double ikPhase = 0.0;
     bool firstIteration = true;
-    for (double t=0.0;t<2.0;t+=0.01) {
+    double step = 0.01;
+    Leph::Plot plot;
+    for (double t=0.0;t<1.0/1.7 || display;t+=step) {
         //Compute Quintic Walk
         bool isQuinticSuccess = quinticWalk.computePose(quinticModel, quinticPhase);
-        quinticPhase = quinticWalk.updatePhase(quinticPhase, 0.01);
+        quinticPhase = quinticWalk.updatePhase(quinticPhase, step);
         //Compute IK Walk
         bool isIKSuccess = Leph::IKWalk::walk(
-            ikModel.get(), ikParams, ikPhase, 0.01);
+            ikModel.get(), ikParams, ikPhase, step);
         ikModel.updateBase();
         //Reset start position
         if (firstIteration) {
             quinticModel.get().setDOF("base_x", 0.0);
             quinticModel.get().setDOF("base_y", 0.0);
+            quinticModel.get().setDOF("base_yaw", 0.0);
             ikModel.get().setDOF("base_x", 0.0);
             ikModel.get().setDOF("base_y", 0.0);
+            ikModel.get().setDOF("base_yaw", 0.0);
             firstIteration = false;
         }
         //Check IK
@@ -106,8 +111,6 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
         Eigen::Vector3d quinticFootRightPos = quinticModel.get().position("right_foot_tip", "origin");
         Eigen::Vector3d ikFootLeftPos = ikModel.get().position("left_foot_tip", "origin");
         Eigen::Vector3d quinticFootLeftPos = quinticModel.get().position("left_foot_tip", "origin");
-        Eigen::Vector3d ikCom = ikModel.get().centerOfMass("origin");
-        Eigen::Vector3d quinticCom = quinticModel.get().centerOfMass("origin");
         Eigen::Vector3d ikTrunkAxis = Leph::MatrixToAxis(
             ikModel.get().orientation("trunk", "origin").transpose());
         Eigen::Vector3d quinticTrunkAxis = Leph::MatrixToAxis(
@@ -116,12 +119,30 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
         cost += (ikHeadPos-quinticHeadPos).squaredNorm();
         cost += (ikFootRightPos-quinticFootRightPos).squaredNorm();
         cost += (ikFootLeftPos-quinticFootLeftPos).squaredNorm();
-        cost += (ikCom-quinticCom).squaredNorm();
         cost += (ikTrunkAxis-quinticTrunkAxis).squaredNorm();
         //Display model
         if (display) {
-            ikCom.z() = 0.0;
-            quinticCom.z() = 0.0;
+            plot.add(Leph::VectorLabel(
+                "time", t,
+                "ikFootLeftPos.x", ikFootLeftPos.x(),
+                "ikFootLeftPos.y", ikFootLeftPos.y(),
+                "ikFootLeftPos.z", ikFootLeftPos.z(),
+                "ikFootRightPos.x", ikFootRightPos.x(),
+                "ikFootRightPos.y", ikFootRightPos.y(),
+                "ikFootRightPos.z", ikFootRightPos.z(),
+                "ikTrunkPos.x", ikTrunkPos.x(),
+                "ikTrunkPos.y", ikTrunkPos.y(),
+                "ikTrunkPos.z", ikTrunkPos.z(),
+                "quinticFootLeftPos.x", quinticFootLeftPos.x(),
+                "quinticFootLeftPos.y", quinticFootLeftPos.y(),
+                "quinticFootLeftPos.z", quinticFootLeftPos.z(),
+                "quinticFootRightPos.x", quinticFootRightPos.x(),
+                "quinticFootRightPos.y", quinticFootRightPos.y(),
+                "quinticFootRightPos.z", quinticFootRightPos.z(),
+                "quinticTrunkPos.x", quinticTrunkPos.x(),
+                "quinticTrunkPos.y", quinticTrunkPos.y(),
+                "quinticTrunkPos.z", quinticTrunkPos.z()
+            ));
             viewer->addTrackedPoint(
                 ikModel.get().position("trunk", "origin"), 
                 Leph::ModelViewer::Red);
@@ -135,17 +156,16 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
                 quinticModel.get().position("right_foot_tip", "origin"), 
                 Leph::ModelViewer::Cyan);
             viewer->addTrackedPoint(
-                ikCom,
+                ikTrunkPos,
                 Leph::ModelViewer::Green);
             viewer->addTrackedPoint(
-                quinticCom,
+                quinticTrunkPos,
                 Leph::ModelViewer::Yellow);
             Leph::ModelDraw(quinticModel.get(), *viewer);
             Leph::ModelDraw(ikModel.get(), *viewer);
             if (!viewer->update()) {
                 break;
             }
-            t = 0.0;
             //Waiting
             scheduling.wait();
         }
@@ -153,12 +173,16 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
     
     if (display) {
         delete viewer;
+        plot.plot("time", "all").render();
     }
 
     return cost;
 }
 
-
+/**
+ * Find the QuinticWalk parameters 
+ * to match the IKWalk motion
+ */
 int main()
 {
     double lambda = -1.0;
@@ -173,7 +197,11 @@ int main()
     libcmaes::FitFuncEigen fitness = 
         [](const Eigen::VectorXd& params) 
     {
-        return scoreWalkDistance(params, false);
+        try {
+            return scoreWalkDistance(params, false);
+        } catch (...) {
+            return 1000.0;
+        }
     };
     
     //CMAES initialization
