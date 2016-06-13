@@ -51,7 +51,7 @@ int main()
         std::cout << "Ground: " << ground.transpose() << std::endl;
         bool success2 = model.get().cameraWorldToPixel(camParams, ground, pixelCheck);
         std::cout << "PixelCheck: " << pixelCheck.transpose() << std::endl;
-        if (!success1 || !success2 || (pixel-pixelCheck).norm() > 0.0001) {
+        if (!success1 || !success2 || (pixel-pixelCheck).norm() > 0.001) {
             std::cout << "ASSERT ERROR" << std::endl;
             return 1;
         }
@@ -64,7 +64,7 @@ int main()
         Eigen::Vector2d pixelCheck2;
         model.get().cameraPanTiltToPixel(camParams, angles, pixelCheck2);
         std::cout << "Pixel2: " << pixelCheck2.transpose() << std::endl;
-        if ((pixelCheck2 - pixelTarget2).norm() > 0.0001) {
+        if ((pixelCheck2 - pixelTarget2).norm() > 0.001) {
             std::cout << "ASSERT ERROR" << std::endl;
             return 1;
         }

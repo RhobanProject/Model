@@ -151,6 +151,15 @@ set(APPS_FILES
     appStatsDynaban
 )
 
+#Build App RhIO Viewer 
+if (BUILD_LEPH_CODE_RHIO)
+    deps_add_library("rhoban/rhio:client")
+    deps_add_library("rhobandeps/libzmq")
+    set(APPS_FILES ${APPS_FILES}
+        appRhIOViewerModel
+    )
+endif (BUILD_LEPH_CODE_RHIO)
+
 #LephCode linked libraries
 set(CODE_LIBRARIES
     ncurses
@@ -216,17 +225,6 @@ if (BUILD_LEPH_CODE_VIEWER)
     )
 endif (BUILD_LEPH_CODE_VIEWER)
 
-#Build App RhIO Viewer 
-if (BUILD_LEPH_CODE_RHIO)
-    set(APPS_FILES ${APPS_FILES}
-        appRhIOViewerModel
-    )
-    set(CODE_LIBRARIES ${CODE_LIBRARIES} 
-        RhIOClient
-        zmq
-    )
-endif (BUILD_LEPH_CODE_RHIO)
-
 #Include need directories
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
 include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
@@ -253,14 +251,10 @@ endif (BUILD_LEPH_CODE_APPS)
 
 #Build App RhAL Motion 
 if (BUILD_LEPH_CODE_RHAL)
+    deps_add_library_custom("rhoban/rhio:server" "APPS_RHAL_LIBRARIES")
+    deps_add_library_custom("rhoban/rhal" "APPS_RHAL_LIBRARIES")
     set(APPS_RHAL_SOURCES_FILES
         RhAL/RhALUtils
-    )
-    set(APPS_RHAL_LIBRARIES
-        RhAL 
-        RhIO 
-        serial 
-        zmq
     )
     set(APPS_RHAL_FILES
         appRhALTrajectory
