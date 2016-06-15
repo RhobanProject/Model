@@ -52,16 +52,15 @@ int main(int argc, char** argv)
     std::mutex mutexVar;
     
     //Model variables
-    double pitch = 0.0;
-    double roll = 0.0;
-    double yaw = 0.0;
-    double pressureW;
-    double pressureW1;
-    double pressureW2;
-    double pressureX1;
-    double pressureY1;
-    double pressureX2;
-    double pressureY2;
+    double yaw;
+    double pitch;
+    double roll;
+    double pressureLeftWeight;
+    double pressureLeftX;
+    double pressureLeftY;
+    double pressureRightWeight;
+    double pressureRightX;
+    double pressureRightY;
     std::vector<std::string> servosNames = {
         "head_pitch", "head_yaw", 
         "left_ankle_pitch", "left_ankle_roll", 
@@ -75,81 +74,77 @@ int main(int argc, char** argv)
     };
     //Setting streaming handler
     clientSub.setHandlerFloat(
-        [&mutexVar, &mutexModel, &model, &modelGoal, &pitch, &roll, &yaw,
-        &pressureW, &pressureW1, &pressureW2, 
-        &pressureX1, &pressureX2, &pressureY1, &pressureY2, 
+        [&mutexVar, &mutexModel, &model, &modelGoal,
+        &yaw, &pitch, &roll,
+        &pressureLeftWeight, &pressureLeftX, &pressureLeftY,
+        &pressureRightWeight, &pressureRightX, &pressureRightY,
         &servosNames]
         (const std::string name, int64_t timestamp, double val) 
     {
         (void)timestamp;
-        if (name == "sensors/Pitch/value") {
+        if (name == "lowlevel/imu/yaw") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pitch = val;
+            yaw = val*M_PI/180.0;
         }
-        if (name == "sensors/Roll/value") {
+        if (name == "lowlevel/imu/pitch") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            roll = val;
+            pitch = val*M_PI/180.0;
         }
-        if (name == "sensors/GyroYaw/value") {
+        if (name == "lowlevel/imu/roll") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            yaw = val;
+            roll = val*M_PI/180.0;
         }
         for (size_t i=0;i<servosNames.size();i++) {
-            if (name == "servos/" + servosNames[i] + "/angle") {
+            if (name == "lowlevel/" + servosNames[i] + "/position") {
                 std::lock_guard<std::mutex> lock(mutexModel);
                 model.get().setDOF(servosNames[i], val*M_PI/180.0);
             }
-            if (name == "servos/" + servosNames[i] + "/goalAngle") {
+            if (name == "lowlevel/" + servosNames[i] + "/goalPosition") {
                 std::lock_guard<std::mutex> lock(mutexModel);
                 modelGoal.get().setDOF(servosNames[i], val*M_PI/180.0);
             }
         }
-        if (name == "pressure/weight") {
+        if (name == "lowlevel/left_pressure/weight") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureW = val;
+            pressureLeftWeight = val;
         }
-        if (name == "pressure/leftRatio") {
+        if (name == "lowlevel/left_pressure/x") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureW1 = val;
+            pressureLeftX = val;
         }
-        if (name == "pressure/rightRatio") {
+        if (name == "lowlevel/left_pressure/y") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureW2 = val;
+            pressureLeftY = val;
         }
-        if (name == "pressure/leftX") {
+        if (name == "lowlevel/right_pressure/weight") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureX1 = val;
+            pressureRightWeight = val;
         }
-        if (name == "pressure/leftY") {
+        if (name == "lowlevel/right_pressure/x") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureY1 = val;
+            pressureRightX = val;
         }
-        if (name == "pressure/rightX") {
+        if (name == "lowlevel/right_pressure/y") {
             std::lock_guard<std::mutex> lock(mutexVar);
-            pressureX2 = val;
-        }
-        if (name == "pressure/rightY") {
-            std::lock_guard<std::mutex> lock(mutexVar);
-            pressureY2 = val;
+            pressureRightY = val;
         }
     });
     //Enabling value streaming
-    clientReq.enableStreamingValue("sensors/Pitch/value");
-    clientReq.enableStreamingValue("sensors/Roll/value");
-    clientReq.enableStreamingValue("sensors/GyroYaw/value");
+    clientReq.enableStreamingValue("lowlevel/imu/yaw");
+    clientReq.enableStreamingValue("lowlevel/imu/pitch");
+    clientReq.enableStreamingValue("lowlevel/imu/roll");
     for (size_t i=0;i<servosNames.size();i++) {
         clientReq.enableStreamingValue(
-            "servos/" + servosNames[i] + "/angle");
+            "lowlevel/" + servosNames[i] + "/position");
         clientReq.enableStreamingValue(
-            "servos/" + servosNames[i] + "/goalAngle");
+            "lowlevel/" + servosNames[i] + "/goalPosition");
     }
-    clientReq.enableStreamingValue("pressure/weight");
-    clientReq.enableStreamingValue("pressure/leftRatio");
-    clientReq.enableStreamingValue("pressure/rightRatio");
-    clientReq.enableStreamingValue("pressure/leftX");
-    clientReq.enableStreamingValue("pressure/leftY");
-    clientReq.enableStreamingValue("pressure/rightX");
-    clientReq.enableStreamingValue("pressure/rightY");
+    clientReq.enableStreamingValue("lowlevel/left_pressure/weight");
+    clientReq.enableStreamingValue("lowlevel/left_pressure/x");
+    clientReq.enableStreamingValue("lowlevel/left_pressure/y");
+    clientReq.enableStreamingValue("lowlevel/right_pressure/weight");
+    clientReq.enableStreamingValue("lowlevel/right_pressure/x");
+    clientReq.enableStreamingValue("lowlevel/right_pressure/y");
     
     //Main viewer loop
     while (viewer.update()) {
@@ -158,26 +153,27 @@ int main(int argc, char** argv)
         //Model update
         std::lock_guard<std::mutex> lockVar(mutexVar);
         std::lock_guard<std::mutex> lockModel(mutexModel);
-        model.setPressure(
-            pressureW/1000.0,
-            pressureW1,
-            pressureW2,
-            pressureX1/100.0,
-            pressureY1/100.0,
-            pressureX2/100.0,
-            pressureY2/100.0);
+        if (pressureLeftWeight+pressureRightWeight > 0.0001) {
+            model.setPressure(
+                pressureLeftWeight+pressureRightWeight,
+                pressureLeftWeight/(pressureLeftWeight+pressureRightWeight),
+                pressureRightWeight/(pressureLeftWeight+pressureRightWeight),
+                pressureLeftX,
+                pressureLeftY,
+                pressureRightX,
+                pressureRightY);
+        }
         model.updateBase();
         modelGoal.updateBase();
-        /* TODO XXX
+        //Rebuilt extrinsic matrix
+        Eigen::Matrix3d imuMatrix = 
+            Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix()
+            * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()).toRotationMatrix()
+            * Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()).toRotationMatrix();
         model.setOrientation(
-            pitch*M_PI/180.0, 
-            -roll*M_PI/180.0);
+            imuMatrix);
         modelGoal.setOrientation(
-            pitch*M_PI/180.0, 
-            -roll*M_PI/180.0);
-        */
-        model.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
-        modelGoal.setYaw(model.getSupportFoot(), yaw*M_PI/180.0);
+            imuMatrix);
         //Model viewer
         Eigen::Vector3d copLeft = model.centerOfPressureLeft("origin");
         Eigen::Vector3d copRight = model.centerOfPressureRight("origin");
@@ -199,17 +195,38 @@ int main(int argc, char** argv)
         //Display centers of pressures trajectory
         Eigen::Vector3d com = model.get().centerOfMass("origin");
         com.z() = 0.0;
+        /*
         viewer.addTrackedPoint(
             copLeft, Leph::ModelViewer::Red);
         viewer.addTrackedPoint(
             copRight, Leph::ModelViewer::Green);
         viewer.addTrackedPoint(
             copMiddle, Leph::ModelViewer::Yellow);
+        */
         viewer.addTrackedPoint(
-            com, Leph::ModelViewer::Purple);
-        Leph::ModelDraw(model.get(), viewer);
+            com, Leph::ModelViewer::Red);
         Leph::ModelDraw(modelGoal.get(), viewer);
+        Leph::CameraParameters camParams = {74*3.14/180.0, 99*3.14/180.0};
+        viewer.drawFrame(Eigen::Vector3d(1.0, 0.0, 0.0), Eigen::Matrix3d::Identity());
+        Leph::ModelDraw(model.get(), viewer);
+        Leph::CameraDraw(camParams, model.get(), viewer);
     }
+    //Disabling value streaming
+    clientReq.disableStreamingValue("lowlevel/imu/yaw");
+    clientReq.disableStreamingValue("lowlevel/imu/pitch");
+    clientReq.disableStreamingValue("lowlevel/imu/roll");
+    for (size_t i=0;i<servosNames.size();i++) {
+        clientReq.disableStreamingValue(
+            "lowlevel/" + servosNames[i] + "/position");
+        clientReq.disableStreamingValue(
+            "lowlevel/" + servosNames[i] + "/goalPosition");
+    }
+    clientReq.disableStreamingValue("lowlevel/left_pressure/weight");
+    clientReq.disableStreamingValue("lowlevel/left_pressure/x");
+    clientReq.disableStreamingValue("lowlevel/left_pressure/y");
+    clientReq.disableStreamingValue("lowlevel/right_pressure/weight");
+    clientReq.disableStreamingValue("lowlevel/right_pressure/x");
+    clientReq.disableStreamingValue("lowlevel/right_pressure/y");
 
     return 0;
 }
