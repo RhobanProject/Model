@@ -85,6 +85,14 @@ class HumanoidFixedModel
             bool applyYaw = true);
 
         /**
+         * Update base_x dans base_y DOF in order
+         * that trunk x/y position in world frame
+         * matches given planar position.
+         * Use to assign and override corrected odometry.
+         */
+        void setOdometryState(const Eigen::Vector2d& pose);
+
+        /**
          * Compute and return the Zero Moment Point
          * (ZMP) in given frame. Given degrees of freedom
          * velocity and acceleration are used (to compute

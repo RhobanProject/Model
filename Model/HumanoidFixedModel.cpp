@@ -153,6 +153,21 @@ void HumanoidFixedModel::setOrientation(
         }
     }
 }
+        
+void HumanoidFixedModel::setOdometryState(const Eigen::Vector2d& pose)
+{
+    //Translation in world frame
+    Eigen::Vector3d baseToTrunk;
+    if (_supportFoot == LeftSupportFoot) {
+        baseToTrunk = get().position("trunk", "origin")
+            - get().position("left_foot_tip", "origin");
+    } else {
+        baseToTrunk = get().position("trunk", "origin")
+            - get().position("right_foot_tip", "origin");
+    }
+    get().setDOF("base_x", pose.x() - baseToTrunk.x());
+    get().setDOF("base_y", pose.y() - baseToTrunk.y());
+}
 
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     const std::string& frame,
