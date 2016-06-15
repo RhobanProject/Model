@@ -1,5 +1,6 @@
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
+#include "Utils/FileVector.h"
 
 namespace Leph {
 
@@ -254,9 +255,12 @@ void TrajectoryGeneration::runOptimization(
             std::cout << "============" 
                 << std::endl;
             if (filename != "") {
-                _bestTraj.exportData(filename);
+                _bestTraj.exportData(filename + ".splines");
                 std::cout << "Saving Trajectories to: " 
-                    << filename << std::endl;
+                    << filename + ".splines" << std::endl;
+                WriteVector(filename + ".params", _bestParams);
+                std::cout << "Saving Parameters to: " 
+                    << filename + ".params" << std::endl;
             }
             std::cout << "BestScore: " 
                 << _bestScore << std::endl;
@@ -304,9 +308,12 @@ void TrajectoryGeneration::runOptimization(
     std::cout << "############" 
         << std::endl;
     if (filename != "") {
-        _bestTraj.exportData(filename);
+        _bestTraj.exportData(filename + ".splines");
         std::cout << "Saving Trajectories to: " 
-            << filename << std::endl;
+            << filename + ".splines" << std::endl;
+        WriteVector(filename + ".params", _bestParams);
+        std::cout << "Saving Parameters to: " 
+            << filename + ".params" << std::endl;
     }
     std::cout << "BestScore: " 
         << _bestScore << std::endl;

@@ -208,7 +208,7 @@ double DefaultCheckState(
     if (fabs(footPos.y()) < 2.0*0.045) {
         cost += 1000.0 + 1000.0*(2.0*0.045 - fabs(footPos.y()));
     }
-    if (footPos.z() < 0.0) {
+    if (footPos.z() < -1e6) {
         cost += 1000.0 - 1000.0*footPos.z();
     }
     if (footAxis.norm() >= M_PI/2.0) {
@@ -230,9 +230,9 @@ double DefaultCheckDOF(const HumanoidFixedModel& modelFixed)
         cost += 1000.0 + 
             1000.0*(fabs(model.getDOF("left_hip_roll")) - M_PI/3.0);
     }
-    if (fabs(model.getDOF("left_hip_pitch")) > M_PI/2.0) {
+    if (fabs(model.getDOF("left_hip_pitch")) > M_PI/1.5) {
         cost += 1000.0 + 
-            1000.0*(fabs(model.getDOF("left_hip_pitch")) - M_PI/2.0);
+            1000.0*(fabs(model.getDOF("left_hip_pitch")) - M_PI/1.5);
     }
     if (fabs(model.getDOF("left_knee")) > 3.0*M_PI/2.0) {
         cost += 1000.0 + 
@@ -254,9 +254,9 @@ double DefaultCheckDOF(const HumanoidFixedModel& modelFixed)
         cost += 1000.0 + 
             1000.0*(fabs(model.getDOF("right_hip_roll")) - M_PI/3.0);
     }
-    if (fabs(model.getDOF("right_hip_pitch")) > M_PI/2.0) {
+    if (fabs(model.getDOF("right_hip_pitch")) > M_PI/1.5) {
         cost += 1000.0 + 
-            1000.0*(fabs(model.getDOF("right_hip_pitch")) - M_PI/2.0);
+            1000.0*(fabs(model.getDOF("right_hip_pitch")) - M_PI/1.5);
     }
     if (fabs(model.getDOF("right_knee")) > 3.0*M_PI/2.0) {
         cost += 1000.0 + 
