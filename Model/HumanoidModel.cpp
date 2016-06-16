@@ -307,6 +307,105 @@ bool HumanoidModel::cameraPixelToWorld(
     return isBelowHorizon;
 }
 
+bool HumanoidModel::cameraPixelToBallWorld(
+    const CameraParameters& params,
+    const Eigen::Vector2d& pixel,
+    double radius,
+    Eigen::Vector3d& ballCenter,
+    Eigen::Vector2d* ballCenterPixel,
+    std::vector<Eigen::Vector2d>* bordersPixel,
+    std::vector<Eigen::Vector3d>* borders)
+{
+    double focalLength = 0.01;
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+
+    //Half width and height aperture distance on focal plane
+    double widthLen = focalLength*tan(params.widthAperture/2.0);
+    double heightLen = focalLength*tan(params.heightAperture/2.0);
+    //Pixel width and height distance from optical center
+    double pixelWidthPos = pixel.x()*widthLen;
+    double pixelHeightPos = pixel.y()*heightLen;
+
+    //Pixel position in world frame
+    Eigen::Vector3d pixelPos = 
+        center
+        + focalLength*orientation.col(0)
+        - pixelWidthPos*orientation.col(1)
+        - pixelHeightPos*orientation.col(2);
+
+    //Unnormalize forward pixel vector 
+    Eigen::Vector3d forward = pixelPos - center;
+
+    //Check if the asked point is above the horizon
+    bool isBelowHorizon = true;
+    if (forward.z() >= -0.0001) {
+        forward.z() = -0.0001;
+        isBelowHorizon = false;
+    }
+
+    //Line abscisse intersection in the ground
+    double t = -center.z()/forward.z();
+
+    //Compute ball center using Thales
+    //Optical center height in world frame
+    double height = fabs(center.z());
+    double opticalCenterToPointDist = (t*forward).norm();
+    double ballCenterToPointDist;
+    if (height < 0.0001) {
+        ballCenterToPointDist = radius;
+    } else {
+        ballCenterToPointDist = opticalCenterToPointDist*radius/height;
+    }
+    ballCenter = 
+        center + 
+        forward.normalized()
+        *(opticalCenterToPointDist-ballCenterToPointDist);
+
+    //Compute radial vector from ball center and parallel
+    //to projection frame 
+    Eigen::Vector3d radialVect1 = 
+        forward.cross(Eigen::Vector3d(0.0, 0.0, 1.0));
+    Eigen::Vector3d radialVect2 = 
+        forward.cross(radialVect1);
+    //Normalize them
+    radialVect1.normalize();
+    radialVect2.normalize();
+
+    //Compute point on the ball view border from camera
+    Eigen::Vector3d border1 = ballCenter + radius*radialVect1;
+    Eigen::Vector3d border2 = ballCenter - radius*radialVect1;
+    Eigen::Vector3d border3 = ballCenter + radius*radialVect2;
+    Eigen::Vector3d border4 = ballCenter - radius*radialVect2;
+
+    //Compute in the previous position in pixel spaces
+    if (ballCenterPixel != nullptr) {
+        cameraWorldToPixel(params, ballCenter, *ballCenterPixel);
+    }
+    if (bordersPixel != nullptr) {
+        Eigen::Vector2d pix;
+        cameraWorldToPixel(params, border1, pix);
+        bordersPixel->push_back(pix);
+        cameraWorldToPixel(params, border2, pix);
+        bordersPixel->push_back(pix);
+        cameraWorldToPixel(params, border3, pix);
+        bordersPixel->push_back(pix);
+        cameraWorldToPixel(params, border4, pix);
+        bordersPixel->push_back(pix);
+    }
+    if (borders != nullptr) {
+        borders->push_back(border1);
+        borders->push_back(border2);
+        borders->push_back(border3);
+        borders->push_back(border4);
+    }
+
+    return isBelowHorizon;
+}
+
 Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
     const CameraParameters& params,
     const Eigen::Vector2d& pixel,

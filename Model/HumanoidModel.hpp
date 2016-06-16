@@ -133,6 +133,26 @@ class HumanoidModel : public Model
             Eigen::Vector3d& pos);
 
         /**
+         * Compute cartesian position in world
+         * frame of a ball of given radius view at
+         * given coordinate in pixel space.
+         * World cartesian ball center, it coordinate
+         * in pixel space and the viewed ball borders in pixel
+         * space and borders in cartesian world 
+         * are optionnaly computed.
+         * False is returned if asked point is above
+         * the horizon and pos is shrink to the horizon line.
+         */
+        bool cameraPixelToBallWorld(
+            const CameraParameters& params,
+            const Eigen::Vector2d& pixel,
+            double radius,
+            Eigen::Vector3d& ballCenter,
+            Eigen::Vector2d* ballCenterPixel = nullptr,
+            std::vector<Eigen::Vector2d>* bordersPixel = nullptr,
+            std::vector<Eigen::Vector3d>* borders = nullptr);
+
+        /**
          * Compute the view vector in robot self
          * frame from given pixel in normalized 
          * pixel space and return its (pan,tilt) angles
