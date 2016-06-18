@@ -176,6 +176,16 @@ double HumanoidModel::feetDistance() const
 {
     return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
+        
+Eigen::Vector3d HumanoidModel::getPose()
+{
+    Eigen::Vector3d pos = selfInFrame("origin");
+    return Eigen::Vector3d(
+        pos.x(),
+        pos.y(),
+        orientationYaw("trunk", "origin")
+    );
+}
 
 Eigen::Matrix3d HumanoidModel::selfFrameOrientation(
     const std::string& frame)
