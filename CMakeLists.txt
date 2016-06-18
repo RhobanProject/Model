@@ -83,6 +83,7 @@ set(SOURCES_FILES
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/MotorModel.cpp
+    Model/OdometryModel.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -140,6 +141,7 @@ set(TESTS_FILES
     testEncoderFilter
     testMapSeries
     testCameraModel
+    testOdometryModel
 )
 
 #Applications main files
