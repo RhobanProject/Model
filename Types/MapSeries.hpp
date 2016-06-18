@@ -234,19 +234,25 @@ class MapSeries
         {
             checkSeries(name);
             const std::vector<Point>& vect = _data.at(name);
+            
+            //Degererate failback cases
+            if (vect.size() == 0) {
+                return 0.0;
+            }
+            if (vect.size() == 1) {
+                return vect.front().value;
+            }
             if (time <= vect.front().time) {
                 return vect.front().value;
             }
             if (time >= vect.back().time) {
                 return vect.back().value;
             }
-            if (vect.size() == 1) {
-                return vect.front().value;
-            }
 
+            //Bijection search
             size_t indexLow = 0;
             size_t indexUp = vect.size()-1;
-            while (indexUp - indexLow != 1) {
+            while (indexUp - indexLow > 1) {
                 size_t indexMiddle = (indexLow + indexUp)/2;
                 if (vect[indexMiddle].time <= time) {
                     indexLow = indexMiddle;
@@ -272,7 +278,9 @@ class MapSeries
             }
             
             double ratio = ptUp.time - ptLow.time;
-            return (ptUp.time-time)/ratio*ptLow.value + (time-ptLow.time)/ratio*ptUp.value;
+            return 
+                (ptUp.time-time)/ratio*ptLow.value 
+                + (time-ptLow.time)/ratio*ptUp.value;
         }
 
         /**
