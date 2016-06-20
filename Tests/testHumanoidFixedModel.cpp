@@ -65,6 +65,25 @@ int main()
             return 1;
         }
 
+        //Check IMU inputs rebuild
+        Eigen::Vector3d angles = model.get().trunkSelfOrientation();
+        //Orientation before check
+        Eigen::Matrix3d testMat1 = model.get().orientation("trunk", "origin");
+        //Build imu extrinsuc matrix orientation
+        Eigen::Matrix3d imuMatrix = 
+            Eigen::AngleAxisd(angles(2), Eigen::Vector3d::UnitZ()).toRotationMatrix() *
+            Eigen::AngleAxisd(angles(1), Eigen::Vector3d::UnitY()).toRotationMatrix() *
+            Eigen::AngleAxisd(angles(0), Eigen::Vector3d::UnitX()).toRotationMatrix();
+        model.setOrientation(imuMatrix);
+        //Orientation after check
+        Eigen::Matrix3d testMat2 = model.get().orientation("trunk", "origin");
+        //Check identity
+        if ((testMat1 - testMat2).norm() > 0.0001) {
+            std::cout << "ASSERT ERROR" << std::endl;
+            return 1;
+        }
+        std::cout << "IMU angles ==> " << angles.transpose() << std::endl;
+
         //Display center of mass trajectory
         Eigen::Vector3d com = model.get().centerOfMass("origin");
         viewer.addTrackedPoint(com);    

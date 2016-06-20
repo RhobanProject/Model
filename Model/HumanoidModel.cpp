@@ -186,6 +186,26 @@ Eigen::Vector3d HumanoidModel::getPose()
         orientationYaw("trunk", "origin")
     );
 }
+        
+Eigen::Vector3d HumanoidModel::trunkSelfOrientation()
+{
+    Eigen::Matrix3d mat = selfFrameOrientation("trunk");
+
+    //Retrieve YawPitchRoll euler angles from rotation matrix
+    //(Manual computing without singular check seems better than
+    //Eigen euler angles and with better range)
+    Eigen::Vector3d angles;
+    //Roll
+    angles(0) = atan2(mat(1, 2), mat(2, 2));
+    //Pitch
+    angles(1) = atan2(-mat(0, 2), 
+        sqrt(mat(0, 0)*mat(0, 0) 
+            + mat(0, 1)*mat(0, 1)));
+    //Yaw
+    angles(2) = Model::orientationYaw("trunk", "origin");
+
+    return angles;
+}
 
 Eigen::Matrix3d HumanoidModel::selfFrameOrientation(
     const std::string& frame)

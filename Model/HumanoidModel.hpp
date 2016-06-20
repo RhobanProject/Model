@@ -101,6 +101,12 @@ class HumanoidModel : public Model
         Eigen::Vector3d getPose();
 
         /**
+         * Return extrinsic [roll,pitch,yaw] trunk orientation
+         * with respect to self frame (equivalent imu inputs)
+         */
+        Eigen::Vector3d trunkSelfOrientation();
+
+        /**
          * Return the rotation matrix and translation vector
          * expressing given frame into the robot self frame
          * (flat (pitch/roll) on ground at the vertical of trunk).
