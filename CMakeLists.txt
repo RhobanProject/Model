@@ -176,7 +176,7 @@ set(CODE_LIBRARIES
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban_metabot.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
-    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban.urdf grosban.urdf")
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban_metabot.urdf grosban.urdf")
 #Add RhAL config symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/django_rhal.json django_rhal.json")
