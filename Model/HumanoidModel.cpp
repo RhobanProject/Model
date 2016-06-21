@@ -739,17 +739,9 @@ void HumanoidModel::setIKResult(
 
     Model::setDOF(prefix+"hip_yaw", result.theta[0]);
     Model::setDOF(prefix+"hip_roll", result.theta[1]);
-    if (_type == GrosbanModel) {
-        //Handle non alignement in zero position
-        //of hip and ankle Z (zaw) axes (knee angle of Grosban)
-        Model::setDOF(prefix+"hip_pitch", -result.theta[2] - 0.0603);
-        Model::setDOF(prefix+"knee", result.theta[3] + 0.0603);
-        Model::setDOF(prefix+"ankle_pitch", -result.theta[4] + 0.0035);
-    } else {
-        Model::setDOF(prefix+"hip_pitch", -result.theta[2]);
-        Model::setDOF(prefix+"knee", result.theta[3]);
-        Model::setDOF(prefix+"ankle_pitch", -result.theta[4]);
-    }
+    Model::setDOF(prefix+"hip_pitch", -result.theta[2]);
+    Model::setDOF(prefix+"knee", result.theta[3]);
+    Model::setDOF(prefix+"ankle_pitch", -result.theta[4]);
     Model::setDOF(prefix+"ankle_roll", result.theta[5]);
 }
 
