@@ -277,6 +277,36 @@ void ModelViewer::drawBox(double sizeX, double sizeY, double sizeZ,
     glPopMatrix();
 }
         
+void ModelViewer::drawSphere(
+    const Eigen::Vector3d& center, double radius)
+{
+    glPushMatrix();
+        glLineWidth(3.0*groundThickness);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glColor3d(0.0, 0.0, 0.5);
+        glTranslated(center.x(), center.y(), center.z());
+        GLUquadric* quad;
+        quad = gluNewQuadric();
+        gluSphere(quad, radius, 10, 10);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPopMatrix();
+}
+
+void ModelViewer::drawCylinder(const Eigen::Vector3d& base, 
+    double radius, double height)
+{
+    glPushMatrix();
+        glLineWidth(3.0*groundThickness);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glColor3d(0.0, 0.0, 0.5);
+        glTranslated(base.x(), base.y(), base.z());
+        GLUquadric* quad;
+        quad = gluNewQuadric();
+        gluCylinder(quad, radius, radius, height, 10, 10);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPopMatrix();
+}
+        
 void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point, 
     Color color)
 {

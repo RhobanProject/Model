@@ -47,20 +47,7 @@ int main()
         Eigen::Vector3d lookAtPos4;
         Eigen::Vector3d lookAtPos5;
         Leph::CameraParameters camParams = {80.0*3.14/180.0, 50.0*3.14/180.0};
-        model.cameraPixelToWorld(camParams, Eigen::Vector2d(-1.0, -1.0), lookAtPos1);
-        model.cameraPixelToWorld(camParams, Eigen::Vector2d(1.0, -1.0), lookAtPos2);
-        model.cameraPixelToWorld(camParams, Eigen::Vector2d(1.0, 1.0), lookAtPos3);
-        model.cameraPixelToWorld(camParams, Eigen::Vector2d(-1.0, 1.0), lookAtPos4);
-        model.cameraPixelToWorld(camParams, Eigen::Vector2d(0.0, 0.0), lookAtPos5);
-        viewer.drawLink(model.position("camera", "origin"), lookAtPos1);
-        viewer.drawLink(model.position("camera", "origin"), lookAtPos2);
-        viewer.drawLink(model.position("camera", "origin"), lookAtPos3);
-        viewer.drawLink(model.position("camera", "origin"), lookAtPos4);
-        viewer.drawLink(model.position("camera", "origin"), lookAtPos5);
-        viewer.drawLink(lookAtPos1, lookAtPos2);
-        viewer.drawLink(lookAtPos2, lookAtPos3);
-        viewer.drawLink(lookAtPos3, lookAtPos4);
-        viewer.drawLink(lookAtPos4, lookAtPos1);
+        Leph::CameraDraw(camParams, model, viewer);
         std::cout << "Horizon at screen height: " << 
             model.cameraScreenHorizon(camParams, 0.0) << std::endl;
         //Display model

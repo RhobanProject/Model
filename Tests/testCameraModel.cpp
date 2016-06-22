@@ -84,17 +84,16 @@ int main()
             model.get().cameraPixelToViewVector(camParams, Eigen::Vector2d(0.0, 0.5)), 
             0.07,
             ballCenter, &ballCenterPixel, &bordersPixel, &borders);
+        viewer.drawSphere(ballCenter, 0.07);
         viewer.drawFrame(ballCenter, Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(0.0, 0.0, 0.07), Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(0.0, 0.0, -0.07), Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(0.0, 0.07, 0.0), Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(0.0, -0.07, 0.0), Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(0.07, 0.0, 0.0), Eigen::Matrix3d::Identity());
-        viewer.drawFrame(ballCenter+Eigen::Vector3d(-0.07, 0.0, 0.0), Eigen::Matrix3d::Identity());
         viewer.drawFrame(borders[0], Eigen::Matrix3d::Identity());
         viewer.drawFrame(borders[1], Eigen::Matrix3d::Identity());
         viewer.drawFrame(borders[2], Eigen::Matrix3d::Identity());
         viewer.drawFrame(borders[3], Eigen::Matrix3d::Identity());
+        viewer.drawLink(borders[0], model.get().position("camera", "origin"));
+        viewer.drawLink(borders[1], model.get().position("camera", "origin"));
+        viewer.drawLink(borders[2], model.get().position("camera", "origin"));
+        viewer.drawLink(borders[3], model.get().position("camera", "origin"));
         std::cout << ballCenter.transpose() << std::endl;
         std::cout << ballCenterPixel.transpose() << std::endl;
         std::cout << bordersPixel[0].transpose() << std::endl;
@@ -102,7 +101,7 @@ int main()
         std::cout << bordersPixel[2].transpose() << std::endl;
         std::cout << bordersPixel[3].transpose() << std::endl;
         std::cout << "-------------" << std::endl;
-
+        
         //Pixel to PanTilt and PanTilt to Pixel computation check
         Eigen::Vector2d pixelTarget2(0.4, 0.5);
         Eigen::Vector2d angles = model.get().cameraPixelToPanTilt(

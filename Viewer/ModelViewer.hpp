@@ -108,6 +108,19 @@ class ModelViewer
             double r = 0.3, double g = 0.6, double b = 0.6);
 
         /**
+         * Draw a sphere at given position and
+         * of given radius
+         */
+        void drawSphere(const Eigen::Vector3d& center, double radius);
+
+        /**
+         * Fraw a cylinder at given base position and of given
+         * radiuas and height
+         */
+        void drawCylinder(const Eigen::Vector3d& base, 
+            double radius, double height);
+
+        /**
          * Add a position for drawing trajectory
          */
         void addTrackedPoint(
