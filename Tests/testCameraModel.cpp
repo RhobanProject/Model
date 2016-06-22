@@ -35,7 +35,9 @@ int main()
         viewer.drawFrame(target, Eigen::Matrix3d::Identity());
         //Draw view line on pixel target
         Eigen::Vector3d groundPos;
-        model.get().cameraPixelToWorld(camParams, Eigen::Vector2d(0.0, pixelTarget), groundPos);
+        model.get().cameraViewVectorToWorld(
+            model.get().cameraPixelToViewVector(camParams, Eigen::Vector2d(0.0, pixelTarget)), 
+            groundPos);
         viewer.drawLink(model.get().position("camera", "origin"), groundPos);
         
         //Display model and view box
@@ -46,13 +48,29 @@ int main()
         Eigen::Vector2d pixel(-1.0, 0.4);
         Eigen::Vector3d ground;
         Eigen::Vector2d pixelCheck;
-        bool success1 = model.get().cameraPixelToWorld(camParams, pixel, ground);
+        bool success1 = model.get().cameraViewVectorToWorld(
+            model.get().cameraPixelToViewVector(camParams, pixel), 
+            ground);
         std::cout << "Pixel: " << pixel.transpose() << std::endl;
         std::cout << "Ground: " << ground.transpose() << std::endl;
         bool success2 = model.get().cameraWorldToPixel(camParams, ground, pixelCheck);
         std::cout << "PixelCheck: " << pixelCheck.transpose() << std::endl;
-        if (!success1 || !success2 || (pixel-pixelCheck).norm() > 0.001) {
-            std::cout << "ASSERT ERROR" << std::endl;
+        if (success1 && success2 && (pixel-pixelCheck).norm() > 0.005) {
+            std::cout << "!!! " << (pixel-pixelCheck).norm() << std::endl;
+            std::cout << "ASSERT ERROR VIEWVECTOR TO WORLD" << std::endl;
+            return 1;
+        }
+
+        //Check view vector convertion
+        Eigen::Vector3d view1 = model.get().cameraPixelToViewVector(camParams, Eigen::Vector2d(0.0, 0.0));
+        Eigen::Vector2d panTilt1 = model.get().cameraPixelToPanTilt(camParams, Eigen::Vector2d(0.0, 0.0));
+        Eigen::Vector2d pixel1;
+        model.get().cameraPanTiltToPixel(camParams, panTilt1, pixel1);
+        Eigen::Vector3d view2 = model.get().cameraPanTiltToViewVector(panTilt1);
+        view1.normalize();
+        view2.normalize();
+        if ((view1-view2).norm() > 0.0001) {
+            std::cout << "ASSERT ERROR VIEW VECTOR" << std::endl;
             return 1;
         }
 
@@ -62,7 +80,9 @@ int main()
         Eigen::Vector2d ballCenterPixel;
         std::vector<Eigen::Vector2d> bordersPixel;
         std::vector<Eigen::Vector3d> borders;
-        model.get().cameraPixelToBallWorld(camParams, Eigen::Vector2d(0.0, 0.5), 0.07,
+        model.get().cameraViewVectorToBallWorld(camParams, 
+            model.get().cameraPixelToViewVector(camParams, Eigen::Vector2d(0.0, 0.5)), 
+            0.07,
             ballCenter, &ballCenterPixel, &bordersPixel, &borders);
         viewer.drawFrame(ballCenter, Eigen::Matrix3d::Identity());
         viewer.drawFrame(ballCenter+Eigen::Vector3d(0.0, 0.0, 0.07), Eigen::Matrix3d::Identity());
@@ -92,7 +112,7 @@ int main()
         model.get().cameraPanTiltToPixel(camParams, angles, pixelCheck2);
         std::cout << "Pixel2: " << pixelCheck2.transpose() << std::endl;
         if ((pixelCheck2 - pixelTarget2).norm() > 0.001) {
-            std::cout << "ASSERT ERROR" << std::endl;
+            std::cout << "ASSERT ERROR PANTILT/PIXEL" << std::endl;
             return 1;
         }
     }

@@ -291,10 +291,9 @@ Eigen::Vector3d HumanoidModel::frameInSelf(
     return selfToTarget;
 }
 
-bool HumanoidModel::cameraPixelToWorld(
+Eigen::Vector3d HumanoidModel::cameraPixelToViewVector(
     const CameraParameters& params,
-    const Eigen::Vector2d& pixel,
-    Eigen::Vector3d& pos)
+    const Eigen::Vector2d& pixel)
 {
     double focalLength = 0.01;
     //Optical center
@@ -319,6 +318,37 @@ bool HumanoidModel::cameraPixelToWorld(
 
     //Unnormalize forward pixel vector 
     Eigen::Vector3d forward = pixelPos - center;
+
+    return forward;
+}
+Eigen::Vector3d HumanoidModel::cameraPanTiltToViewVector(
+    const Eigen::Vector2d& anglesPanTilt)
+{
+    //World to Self yaw
+    double pitch = anglesPanTilt.y();
+    double yaw = anglesPanTilt.x();
+    yaw += Model::orientationYaw("trunk", "origin");
+
+    //Rebuilt transformation matrix
+    Eigen::Matrix3d rot =
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix()
+        * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()).toRotationMatrix();
+
+    return rot.col(0);
+}
+
+bool HumanoidModel::cameraViewVectorToWorld(
+    const Eigen::Vector3d& viewVector,
+    Eigen::Vector3d& pos)
+{
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
+    //Camera orientation
+    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
+    orientation.transposeInPlace();
+
+    //Unnormalize forward pixel vector 
+    Eigen::Vector3d forward = viewVector;
 
     //Check if the asked point is above the horizon
     bool isBelowHorizon = true;
@@ -337,38 +367,17 @@ bool HumanoidModel::cameraPixelToWorld(
     return isBelowHorizon;
 }
 
-bool HumanoidModel::cameraPixelToBallWorld(
+bool HumanoidModel::cameraViewVectorToBallWorld(
     const CameraParameters& params,
-    const Eigen::Vector2d& pixel,
+    const Eigen::Vector3d& viewVector,
     double radius,
     Eigen::Vector3d& ballCenter,
     Eigen::Vector2d* ballCenterPixel,
     std::vector<Eigen::Vector2d>* bordersPixel,
     std::vector<Eigen::Vector3d>* borders)
 {
-    double focalLength = 0.01;
-    //Optical center
-    Eigen::Vector3d center = Model::position("camera", "origin");
-    //Camera orientation
-    Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
-    orientation.transposeInPlace();
-
-    //Half width and height aperture distance on focal plane
-    double widthLen = focalLength*tan(params.widthAperture/2.0);
-    double heightLen = focalLength*tan(params.heightAperture/2.0);
-    //Pixel width and height distance from optical center
-    double pixelWidthPos = pixel.x()*widthLen;
-    double pixelHeightPos = pixel.y()*heightLen;
-
-    //Pixel position in world frame
-    Eigen::Vector3d pixelPos = 
-        center
-        + focalLength*orientation.col(0)
-        - pixelWidthPos*orientation.col(1)
-        - pixelHeightPos*orientation.col(2);
-
     //Unnormalize forward pixel vector 
-    Eigen::Vector3d forward = pixelPos - center;
+    Eigen::Vector3d forward = viewVector;
 
     //Check if the asked point is above the horizon
     bool isBelowHorizon = true;
@@ -376,6 +385,9 @@ bool HumanoidModel::cameraPixelToBallWorld(
         forward.z() = -0.0001;
         isBelowHorizon = false;
     }
+    
+    //Optical center
+    Eigen::Vector3d center = Model::position("camera", "origin");
 
     //Line abscisse intersection in the ground
     double t = -center.z()/forward.z();

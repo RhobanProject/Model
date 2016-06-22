@@ -126,10 +126,22 @@ class HumanoidModel : public Model
         Eigen::Vector3d frameInSelf(
             const std::string& name, 
             const Eigen::Vector3d& pos = Eigen::Vector3d::Zero());
+        
+        /**
+         * Convect given pixel in image space (-1,1)
+         * or given extrinsic Pan/Tilt euler angles
+         * with respect to robot self frame to unnormalized
+         * view vector in world frame.
+         */
+        Eigen::Vector3d cameraPixelToViewVector(
+            const CameraParameters& params,
+            const Eigen::Vector2d& pixel);
+        Eigen::Vector3d cameraPanTiltToViewVector(
+            const Eigen::Vector2d& anglesPanTilt);
 
         /**
          * Compute 3d position in world frame (origin) 
-         * of given normalized 2d pixel coordinate
+         * of given unnormalized view vector in world frame
          * projected on the ground.
          * params is used camera parameters.
          * pixel is normalized between -1 and 1 relatively
@@ -139,15 +151,14 @@ class HumanoidModel : public Model
          * False is returned if asked point is above
          * the horizon and pos is shrink to the horizon line.
          */
-        bool cameraPixelToWorld(
-            const CameraParameters& params,
-            const Eigen::Vector2d& pixel,
+        bool cameraViewVectorToWorld(
+            const Eigen::Vector3d& viewVector,
             Eigen::Vector3d& pos);
 
         /**
          * Compute cartesian position in world
          * frame of a ball of given radius view at
-         * given coordinate in pixel space.
+         * given view vector in world frame.
          * World cartesian ball center, it coordinate
          * in pixel space and the viewed ball borders in pixel
          * space and borders in cartesian world 
@@ -155,9 +166,9 @@ class HumanoidModel : public Model
          * False is returned if asked point is above
          * the horizon and pos is shrink to the horizon line.
          */
-        bool cameraPixelToBallWorld(
+        bool cameraViewVectorToBallWorld(
             const CameraParameters& params,
-            const Eigen::Vector2d& pixel,
+            const Eigen::Vector3d& viewVector,
             double radius,
             Eigen::Vector3d& ballCenter,
             Eigen::Vector2d* ballCenterPixel = nullptr,

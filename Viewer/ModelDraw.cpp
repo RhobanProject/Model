@@ -95,11 +95,21 @@ void CameraDraw(
     Eigen::Vector3d groundPos3;
     Eigen::Vector3d groundPos4;
     Eigen::Vector3d groundPos5;
-    model.cameraPixelToWorld(params, Eigen::Vector2d(-1.0, -1.0), groundPos1);
-    model.cameraPixelToWorld(params, Eigen::Vector2d( 1.0, -1.0), groundPos2);
-    model.cameraPixelToWorld(params, Eigen::Vector2d( 1.0,  1.0), groundPos3);
-    model.cameraPixelToWorld(params, Eigen::Vector2d(-1.0,  1.0), groundPos4);
-    model.cameraPixelToWorld(params, Eigen::Vector2d( 0.0,  0.0), groundPos5);
+    model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
+        params, Eigen::Vector2d(-1.0, -1.0)),
+        groundPos1);
+    model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
+        params, Eigen::Vector2d( 1.0, -1.0)), 
+        groundPos2);
+    model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
+        params, Eigen::Vector2d( 1.0,  1.0)), 
+        groundPos3);
+    model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
+        params, Eigen::Vector2d(-1.0,  1.0)), 
+        groundPos4);
+    model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
+        params, Eigen::Vector2d( 0.0,  0.0)), 
+        groundPos5);
     viewer.drawLink(model.position("camera", "origin"), groundPos1);
     viewer.drawLink(model.position("camera", "origin"), groundPos2);
     viewer.drawLink(model.position("camera", "origin"), groundPos3);
