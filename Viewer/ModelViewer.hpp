@@ -3,7 +3,10 @@
 
 #include <list>
 #include <SFML/Window.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics.hpp>
 #include <Eigen/Dense>
+#include <string>
 
 namespace Leph {
 
@@ -111,14 +114,38 @@ class ModelViewer
          * Draw a sphere at given position and
          * of given radius
          */
-        void drawSphere(const Eigen::Vector3d& center, double radius);
+        void drawSphere(
+            const Eigen::Vector3d& center, double radius, 
+            double r = 0.0, double g = 0.0, double b = 0.5);
 
         /**
-         * Fraw a cylinder at given base position and of given
+         * Draw a cylinder at given base position and of given
          * radiuas and height
          */
-        void drawCylinder(const Eigen::Vector3d& base, 
-            double radius, double height);
+        void drawCylinder(
+            const Eigen::Vector3d& base, 
+            double radius, double height,
+            double r = 0.0, double g = 0.0, double b = 0.5);
+
+        /**
+         * Draw an arrow from given point with given
+         * direction and length
+         */
+        void drawArrow(
+            const Eigen::Vector3d& center,
+            const Eigen::Vector3d& vect,
+            double length,
+            double r = 0.0, double g = 0.0, double b = 1.0);
+
+        /**
+         * Draw given text at a 3d position 
+         * with given color and size in pixel
+         */
+        void drawText(
+            const Eigen::Vector3d& position,
+            unsigned int size, 
+            const std::string& str,
+            double r = 0.0, double g = 0.0, double b = 1.0);
 
         /**
          * Add a position for drawing trajectory
@@ -135,9 +162,20 @@ class ModelViewer
     private:
 
         /**
+         * Windows size
+         */
+        unsigned int _width;
+        unsigned int _height;
+
+        /**
          * SFML Windows instance
          */
-        sf::Window _window;
+        sf::RenderWindow _window;
+
+        /**
+         * Text font
+         */
+        sf::Font _font;
 
         /**
          * Camera position and view direction
@@ -191,6 +229,13 @@ class ModelViewer
         void drawColorTrajectory(
             const std::list<Eigen::Vector3d>& traj, 
             double r, double g, double b);
+
+        /**
+         * Return pixel position of given 3d
+         * point in world frame
+         */
+        Eigen::Vector2d getPointProjection(
+            const Eigen::Vector3d& pos) const;
 };
 
 }

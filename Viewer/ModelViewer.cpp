@@ -5,8 +5,11 @@ namespace Leph {
 
 ModelViewer::ModelViewer(unsigned int width, 
     unsigned int height) :
+    _width(width),
+    _height(height),
     _window(sf::VideoMode(width, height), "OpenGL", 
         sf::Style::Default, sf::ContextSettings(32)),
+    _font(),
     _camPos(0.0, 0.0, 0.0),
     _camView(1.0, 0.0, 0.0),
     _trajectoryRed(),
@@ -18,6 +21,11 @@ ModelViewer::ModelViewer(unsigned int width,
     _lastMousePosX(0),
     _lastMousePosY(0)
 {
+    //Load font file
+    if (!_font.loadFromFile("../Data/font.ttf")) {
+        throw std::logic_error("ModelViewer fail to load font");
+    }
+
     _window.setVerticalSyncEnabled(true);
     _camView.normalize();
     
@@ -278,12 +286,13 @@ void ModelViewer::drawBox(double sizeX, double sizeY, double sizeZ,
 }
         
 void ModelViewer::drawSphere(
-    const Eigen::Vector3d& center, double radius)
+    const Eigen::Vector3d& center, double radius,
+    double r, double g, double b)
 {
     glPushMatrix();
         glLineWidth(3.0*groundThickness);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glColor3d(0.0, 0.0, 0.5);
+        glColor3d(r, g, b);
         glTranslated(center.x(), center.y(), center.z());
         GLUquadric* quad;
         quad = gluNewQuadric();
@@ -292,19 +301,93 @@ void ModelViewer::drawSphere(
     glPopMatrix();
 }
 
-void ModelViewer::drawCylinder(const Eigen::Vector3d& base, 
-    double radius, double height)
+void ModelViewer::drawCylinder(
+    const Eigen::Vector3d& base, 
+    double radius, double height,
+    double r, double g, double b)
 {
     glPushMatrix();
         glLineWidth(3.0*groundThickness);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glColor3d(0.0, 0.0, 0.5);
+        glColor3d(r, g, b);
         glTranslated(base.x(), base.y(), base.z());
         GLUquadric* quad;
         quad = gluNewQuadric();
         gluCylinder(quad, radius, radius, height, 10, 10);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glPopMatrix();
+}
+
+void ModelViewer::drawArrow(
+    const Eigen::Vector3d& center,
+    const Eigen::Vector3d& vect,
+    double length,
+    double r, double g, double b)
+{
+    if (fabs(length) < 0.0001) {
+        return;
+    }
+    glPushMatrix();
+        Eigen::Vector3d end = center + length*vect.normalized();
+        Eigen::Vector3d sideVect1 = 
+            Eigen::AngleAxisd(M_PI/4.0, 
+                Eigen::Vector3d(0.0, 0.0, 1.0)).toRotationMatrix()
+            * vect.normalized();
+        Eigen::Vector3d sideVect2 = 
+            Eigen::AngleAxisd(-M_PI/4.0, 
+                Eigen::Vector3d(0.0, 0.0, 1.0)).toRotationMatrix()
+            * vect.normalized();
+        Eigen::Vector3d side1 = end - 0.2*length*sideVect1;
+        Eigen::Vector3d side2 = end - 0.2*length*sideVect2;
+        glLineWidth(20.0*groundThickness);
+        glColor3d(r, g, b);
+        glBegin(GL_LINES);
+            glVertex3d(center.x(), center.y(), center.z());
+            glVertex3d(end.x(), end.y(), end.z());
+            glVertex3d(end.x(), end.y(), end.z());
+            glVertex3d(side1.x(), side1.y(), side1.z());
+            glVertex3d(end.x(), end.y(), end.z());
+            glVertex3d(side2.x(), side2.y(), side2.z());
+        glEnd();
+    glPopMatrix();
+}
+
+void ModelViewer::drawText(
+    const Eigen::Vector3d& position,
+    unsigned int size, 
+    const std::string& str,
+    double r, double g, double b)
+{
+    //Compute 3d position on screen
+    Eigen::Vector2d pixel = getPointProjection(position);
+    if (
+        pixel.x() < 0.0 || pixel.x() >= _width ||
+        pixel.y() < 0.0 || pixel.y() >= _height
+    ) {
+        return;
+    }
+
+    //Save all OpenGL state
+    _window.pushGLStates();
+
+    //Configure the text
+    sf::Text text;
+    //Font
+    text.setFont(_font); 
+    //Text
+    text.setString(str);
+    //Size in pixel
+    text.setCharacterSize(size);
+    //Color
+    text.setColor(sf::Color(r*255, g*255, b*255));
+    //Position
+    text.move(pixel.x(), pixel.y());
+
+    //Draw in screen
+    _window.draw(text);
+
+    //Restore all OpenGL state
+    _window.popGLStates();
 }
         
 void ModelViewer::addTrackedPoint(const Eigen::Vector3d& point, 
@@ -501,6 +584,40 @@ void ModelViewer::drawColorTrajectory(
         length++;
     }
 }
-        
+
+Eigen::Vector2d ModelViewer::getPointProjection(
+    const Eigen::Vector3d& pos) const
+{
+    //Requested 3d point
+    GLdouble x = pos.x();
+    GLdouble y = pos.y();
+    GLdouble z = pos.z();
+
+    //Windows coordinates
+    GLdouble wx = 0.0;
+    GLdouble wy = 0.0;
+    GLdouble wz = 0.0;
+
+    //Retrieve the current active matrices
+    GLint viewport[4];
+    GLdouble model[16];
+    GLdouble projection[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, model);
+    glGetDoublev(GL_PROJECTION_MATRIX, projection);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    //Calculate the screen projection
+    GLint success = gluProject(
+        x, y, z, 
+        model, projection, viewport, 
+        &wx, &wy, &wz);
+
+    if (success != GL_TRUE || wz < 0.0) {
+        return Eigen::Vector2d(-1.0, -1.0);
+    } else {
+        return Eigen::Vector2d(wx, _height-wy);
+    }
+}
+
 }
 
