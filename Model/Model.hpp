@@ -47,6 +47,26 @@ class Model
         Model(RBDL::Model& model);
 
         /**
+         * Return current update mode
+         */
+        bool isAutoUpdate() const;
+
+        /**
+         * Set the update policy. 
+         * If false, use fast no update position
+         * RBDL calls but updatePosition() have to be
+         * called manually.
+         * (default is true).
+         */
+        void setAutoUpdate(bool isEnabled);
+
+        /**
+         * Update the underlying RBDL model with
+         * all current degrees of freedom position values
+         */
+        virtual void updateDOFPosition();
+
+        /**
          * Return the number of degrees of freedom
          */
         size_t sizeDOF() const;
@@ -298,6 +318,14 @@ class Model
          * RBDL model instance
          */
         RBDL::Model _model;
+
+        /**
+         * If true (default), RBDL calls are not optimized 
+         * and does not use caching.
+         * If false, use fast RBDL caching. 
+         * Manual force updates have to be called.
+         */
+        bool _isAutoUpdate;
 
         /**
          * Joint index to name 

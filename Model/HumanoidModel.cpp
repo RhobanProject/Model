@@ -575,6 +575,8 @@ void HumanoidModel::cameraLookAt(
         params, posTarget, offsetPixelTilt);
     Model::setDOF("head_yaw", panDOF);
     Model::setDOF("head_pitch", tiltDOF);
+    //Update the model when optimization is enabled
+    Model::updateDOFPosition();
 }
 void HumanoidModel::cameraLookAtNoUpdate(
     double& panDOF,
@@ -755,6 +757,8 @@ void HumanoidModel::setIKResult(
     Model::setDOF(prefix+"knee", result.theta[3]);
     Model::setDOF(prefix+"ankle_pitch", -result.theta[4]);
     Model::setDOF(prefix+"ankle_roll", result.theta[5]);
+    //Update the model when optimization is enabled
+    Model::updateDOFPosition();
 }
 
 void HumanoidModel::checkNaN(

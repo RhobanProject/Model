@@ -30,6 +30,8 @@ void HumanoidFixedModel::setSupportFoot(SupportFoot foot)
             _modelRight.importDOF(_modelLeft);
             _modelRight.setDOF("base_x", posFoot.x());
             _modelRight.setDOF("base_y", posFoot.y());
+            //Update the model when optimization is enabled
+            _modelRight.updateDOFPosition();
             setYaw(foot);
             _supportFoot = RightSupportFoot;
         } else {
@@ -38,6 +40,8 @@ void HumanoidFixedModel::setSupportFoot(SupportFoot foot)
             _modelLeft.importDOF(_modelRight);
             _modelLeft.setDOF("base_x", posFoot.x());
             _modelLeft.setDOF("base_y", posFoot.y());
+            //Update the model when optimization is enabled
+            _modelLeft.updateDOFPosition();
             setYaw(foot);
             _supportFoot = LeftSupportFoot;
         }
@@ -49,9 +53,13 @@ void HumanoidFixedModel::setYaw(SupportFoot foot)
     if (foot == RightSupportFoot) {
         _modelRight.setDOF("base_yaw", 
             _modelLeft.orientationYaw("right_foot_tip", "origin"));
+        //Update the model when optimization is enabled
+        _modelRight.updateDOFPosition();
     } else {
         _modelLeft.setDOF("base_yaw", 
             _modelRight.orientationYaw("left_foot_tip", "origin"));
+        //Update the model when optimization is enabled
+        _modelLeft.updateDOFPosition();
     }
 }
 void HumanoidFixedModel::setYaw(SupportFoot foot, double trunkYaw)
@@ -60,10 +68,14 @@ void HumanoidFixedModel::setYaw(SupportFoot foot, double trunkYaw)
         double yaw = trunkYaw;
         yaw -= get().orientationYaw("trunk", "right_foot_tip");
         _modelRight.setDOF("base_yaw", yaw);
+        //Update the model when optimization is enabled
+        _modelRight.updateDOFPosition();
     } else {
         double yaw = trunkYaw;
         yaw -= get().orientationYaw("trunk", "left_foot_tip");
         _modelLeft.setDOF("base_yaw", yaw);
+        //Update the model when optimization is enabled
+        _modelLeft.updateDOFPosition();
     }
 }
 void HumanoidFixedModel::setYaw(double trunkYaw)
@@ -145,12 +157,16 @@ void HumanoidFixedModel::setOrientation(
         if (applyYaw) {
             _modelLeft.setDOF("base_yaw", angles(2));
         }
+        //Update the model when optimization is enabled
+        _modelLeft.updateDOFPosition();
     } else {
         _modelRight.setDOF("base_roll", angles(0));
         _modelRight.setDOF("base_pitch", angles(1));
         if (applyYaw) {
             _modelRight.setDOF("base_yaw", angles(2));
         }
+        //Update the model when optimization is enabled
+        _modelRight.updateDOFPosition();
     }
 }
         
@@ -167,6 +183,8 @@ void HumanoidFixedModel::setOdometryState(const Eigen::Vector2d& pose)
     }
     get().setDOF("base_x", pose.x() - baseToTrunk.x());
     get().setDOF("base_y", pose.y() - baseToTrunk.y());
+    //Update the model when optimization is enabled
+    get().updateDOFPosition();
 }
 
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
@@ -231,6 +249,8 @@ bool HumanoidFixedModel::trunkFootIK(
     setSupportFoot(support);
     get().setDOF("base_pitch", 0.0);
     get().setDOF("base_roll", 0.0);
+    //Update the model when optimization is enabled
+    get().updateDOFPosition();
     //Compute the rotation matrix from support
     //foot to trunk transposed
     Eigen::Matrix3d rotationT = trunkRotation.transpose();

@@ -7,6 +7,7 @@ namespace Leph {
 
 Model::Model() :
     _model(),
+    _isAutoUpdate(true),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -20,6 +21,7 @@ Model::Model() :
         
 Model::Model(const std::string& filename) :
     _model(),
+    _isAutoUpdate(true),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -46,6 +48,7 @@ Model::Model(const std::string& filename) :
 Model::Model(const std::string& filename, 
     const Eigen::MatrixXd& inertiaData) :
     _model(),
+    _isAutoUpdate(true),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -70,6 +73,7 @@ Model::Model(const std::string& filename,
         
 Model::Model(RBDL::Model& model) :
     _model(),
+    _isAutoUpdate(true),
     _dofIndexToName(),
     _dofNameToIndex(),
     _dofs(),
@@ -81,6 +85,24 @@ Model::Model(RBDL::Model& model) :
 {
     //Parse and load RBDL model
     initializeModel(model);
+}
+        
+bool Model::isAutoUpdate() const
+{
+    return _isAutoUpdate;
+}
+        
+void Model::setAutoUpdate(bool isEnabled)
+{
+    _isAutoUpdate = isEnabled;
+}
+        
+void Model::updateDOFPosition()
+{
+    if (!_isAutoUpdate) {
+        RBDL::UpdateKinematicsCustom(
+            _model, &_dofs, nullptr, nullptr);
+    }
 }
         
 size_t Model::sizeDOF() const
@@ -186,10 +208,20 @@ Eigen::Vector3d Model::position(
     dstFrameIndex = _frameIndexToId.at(dstFrameIndex);
 
     //Compute transformation from body1 to base and base to body2
-    RBDLMath::Vector3d ptBase = RBDL::CalcBodyToBaseCoordinates(
-        _model, _dofs, srcFrameIndex, point);
-    RBDLMath::Vector3d ptBody = RBDL::CalcBaseToBodyCoordinates(
-        _model, _dofs, dstFrameIndex, ptBase);
+    RBDLMath::Vector3d ptBase;
+    if (srcFrameIndex != 0) {
+        ptBase = RBDL::CalcBodyToBaseCoordinates(
+            _model, _dofs, srcFrameIndex, point, _isAutoUpdate);
+    } else {
+        ptBase = point;
+    }
+    RBDLMath::Vector3d ptBody;
+    if (dstFrameIndex != 0) {
+        ptBody = RBDL::CalcBaseToBodyCoordinates(
+            _model, _dofs, dstFrameIndex, ptBase, _isAutoUpdate);
+    } else {
+        ptBody = ptBase;
+    }
 
     return ptBody;
 }
@@ -210,10 +242,12 @@ Eigen::Matrix3d Model::orientation(
     srcFrameIndex = _frameIndexToId.at(srcFrameIndex);
     dstFrameIndex = _frameIndexToId.at(dstFrameIndex);
     
-    RBDLMath::Matrix3d transform1 = CalcBodyWorldOrientation(
-        _model, _dofs, srcFrameIndex);
-    RBDLMath::Matrix3d transform2 = CalcBodyWorldOrientation(
-        _model, _dofs, dstFrameIndex);
+    RBDLMath::Matrix3d transform1;
+    transform1 = CalcBodyWorldOrientation(
+        _model, _dofs, srcFrameIndex, _isAutoUpdate);
+    RBDLMath::Matrix3d transform2;
+    transform2 = CalcBodyWorldOrientation(
+        _model, _dofs, dstFrameIndex, _isAutoUpdate);
 
     return transform1*transform2.transpose();
 }
@@ -330,7 +364,9 @@ Eigen::Vector3d Model::centerOfMass(size_t frameIndex)
 {
     double mass;
     RBDLMath::Vector3d com;
-    RBDL::Utils::CalcCenterOfMass(_model, _dofs, _dofs, mass, com);
+    RBDL::Utils::CalcCenterOfMass(
+        _model, _dofs, _dofs, mass, com, 
+        nullptr, nullptr, _isAutoUpdate);
 
     return position(getFrameIndex("origin"), frameIndex, com);
 }
@@ -344,7 +380,8 @@ double Model::sumMass()
     RBDLMath::VectorNd Q(sizeDOF());
     double mass;
     RBDLMath::Vector3d com;
-    RBDL::Utils::CalcCenterOfMass(_model, Q, Q, mass, com);
+    RBDL::Utils::CalcCenterOfMass(_model, Q, Q, mass, com,
+        nullptr, nullptr, _isAutoUpdate);
 
     return mass;
 }

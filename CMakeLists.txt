@@ -142,6 +142,7 @@ set(TESTS_FILES
     testMapSeries
     testCameraModel
     testOdometryModel
+    benchModel
 )
 
 #Applications main files
@@ -160,6 +161,7 @@ if (BUILD_LEPH_CODE_RHIO)
     deps_add_library("rhobandeps/libzmq")
     set(APPS_FILES ${APPS_FILES}
         appRhIOViewerModel
+        appRhIOViewerRobocup
     )
 endif (BUILD_LEPH_CODE_RHIO)
 
