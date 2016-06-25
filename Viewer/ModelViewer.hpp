@@ -138,6 +138,16 @@ class ModelViewer
             double r = 0.0, double g = 0.0, double b = 1.0);
 
         /**
+         * Draw a simple line between given points with
+         * line thick and color
+         */
+        void drawLine(
+            const Eigen::Vector3d& start,
+            const Eigen::Vector3d& end,
+            double thick,
+            double r = 1.0, double g = 1.0, double b = 1.0);
+
+        /**
          * Draw given text at a 3d position 
          * with given color and size in pixel
          */
@@ -158,6 +168,11 @@ class ModelViewer
          * Draw rolling point trajectory
          */
         void drawTrajectory();
+
+        /**
+         * Override camera position
+         */
+        void setCamPosition(double x, double y);
 
     private:
 
@@ -182,6 +197,15 @@ class ModelViewer
          */
         Eigen::Vector3d _camPos;
         Eigen::Vector3d _camView;
+
+        /**
+         * Used angle when not freefly
+         */
+        double _camRadius;
+        double _camAngle1;
+        double _camAngle2;
+        double _camOffsetX;
+        double _camOffsetY;
 
         /**
          * Rolling history of tracked point trajectory

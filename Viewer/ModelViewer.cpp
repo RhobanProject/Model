@@ -12,6 +12,11 @@ ModelViewer::ModelViewer(unsigned int width,
     _font(),
     _camPos(0.0, 0.0, 0.0),
     _camView(1.0, 0.0, 0.0),
+    _camRadius(1.0),
+    _camAngle1(0.0),
+    _camAngle2(0.0),
+    _camOffsetX(0.0),
+    _camOffsetY(0.0),
     _trajectoryRed(),
     _trajectoryGreen(),
     _trajectoryBlue(),
@@ -114,24 +119,61 @@ bool ModelViewer::update(bool freeFly)
             _camPos += camPosVel*camLat;
         }
     } else {
-        _camView.setZero();
-        double radius = _camPos.norm();
-        if (radius < 0.0001) radius = 0.0001;
-        double angle1 = std::atan2(_camPos.y(), _camPos.x());
-        double angle2 = std::acos(_camPos.z()/radius);
         if (isMouseInScreen) {
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-                angle1 += -0.5*camViewVel*mouseDeltaPosX;
-                angle2 += -0.5*camViewVel*mouseDeltaPosY;
+                _camAngle1 += -0.5*camViewVel*mouseDeltaPosX;
+                _camAngle2 += -0.5*camViewVel*mouseDeltaPosY;
             }
-            radius += -wheelDelta*camPosVel*20.0;
+            _camRadius += -wheelDelta*camPosVel*20.0;
+            //Camera position control
+            if (
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || 
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Z) 
+            ) {
+                Eigen::Vector3d view = (_camView - _camPos);
+                view.normalize();
+                _camOffsetX += 5.0*camPosVel*view.x();
+                _camOffsetY += 5.0*camPosVel*view.y();
+            }
+            if (
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || 
+                sf::Keyboard::isKeyPressed(sf::Keyboard::S) 
+            ) {
+                Eigen::Vector3d view = (_camView - _camPos);
+                view.normalize();
+                _camOffsetX -= 5.0*camPosVel*view.x();
+                _camOffsetY -= 5.0*camPosVel*view.y();
+            }
+            if (
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || 
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Q) 
+            ) {
+                Eigen::Vector3d view = (_camView - _camPos);
+                view.normalize();
+                view = view.cross(Eigen::Vector3d(0.0, 0.0, 1.0));
+                _camOffsetX -= 5.0*camPosVel*view.x();
+                _camOffsetY -= 5.0*camPosVel*view.y();
+            }
+            if (
+                sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || 
+                sf::Keyboard::isKeyPressed(sf::Keyboard::D) 
+            ) {
+                Eigen::Vector3d view = (_camView - _camPos);
+                view.normalize();
+                view = view.cross(Eigen::Vector3d(0.0, 0.0, 1.0));
+                _camOffsetX += 5.0*camPosVel*view.x();
+                _camOffsetY += 5.0*camPosVel*view.y();
+            }
         }
-        if (angle2 < 0.01) angle2 = 0.01;
-        if (angle2 > M_PI-0.01) angle2 = M_PI-0.01;
-        if (radius <= 0.0) radius += wheelDelta*camPosVel*20.0;
-        _camPos.z() = radius*cos(angle2);
-        _camPos.x() = radius*cos(angle1)*sin(angle2);
-        _camPos.y() = radius*sin(angle1)*sin(angle2);
+        if (_camAngle2 < 0.01) _camAngle2 = 0.01;
+        if (_camAngle2 > M_PI-0.01) _camAngle2 = M_PI-0.01;
+        if (_camRadius <= 0.0) _camRadius += wheelDelta*camPosVel*20.0;
+        _camView.x() = _camOffsetX;
+        _camView.y() = _camOffsetY;
+        _camPos = _camView;
+        _camPos.z() += _camRadius*cos(_camAngle2);
+        _camPos.x() += _camRadius*cos(_camAngle1)*sin(_camAngle2);
+        _camPos.y() += _camRadius*sin(_camAngle1)*sin(_camAngle2);
     }
 
     //Camera
@@ -352,6 +394,22 @@ void ModelViewer::drawArrow(
     glPopMatrix();
 }
 
+void ModelViewer::drawLine(
+    const Eigen::Vector3d& start,
+    const Eigen::Vector3d& end,
+    double thick,
+    double r, double g, double b)
+{
+    glPushMatrix();
+        glLineWidth(thick*groundThickness);
+        glColor3d(r, g, b);
+        glBegin(GL_LINES);
+            glVertex3d(start.x(), start.y(), start.z());
+            glVertex3d(end.x(), end.y(), end.z());
+        glEnd();
+    glPopMatrix();
+}
+
 void ModelViewer::drawText(
     const Eigen::Vector3d& position,
     unsigned int size, 
@@ -438,6 +496,12 @@ void ModelViewer::drawTrajectory()
     drawColorTrajectory(_trajectoryYellow, 1.0, 1.0, 0.0);
     drawColorTrajectory(_trajectoryPurple, 1.0, 0.0, 1.0);
     drawColorTrajectory(_trajectoryCyan, 0.0, 1.0, 1.0);
+}
+        
+void ModelViewer::setCamPosition(double x, double y)
+{
+    _camOffsetX = x;
+    _camOffsetY = y;
 }
 
 void ModelViewer::updateCamera(bool useViewVector)
@@ -612,7 +676,7 @@ Eigen::Vector2d ModelViewer::getPointProjection(
         model, projection, viewport, 
         &wx, &wy, &wz);
 
-    if (success != GL_TRUE || wz < 0.0) {
+    if (success != GL_TRUE || wz < 0.0 || wz > 1.0) {
         return Eigen::Vector2d(-1.0, -1.0);
     } else {
         return Eigen::Vector2d(wx, _height-wy);

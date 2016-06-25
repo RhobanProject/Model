@@ -25,6 +25,17 @@ void CameraDraw(
     HumanoidModel& model, 
     ModelViewer& viewer);
 
+/**
+ * FieldDraw
+ *
+ * Draw a Robocup field at given center and given 
+ * yaw orientation
+ */
+void FieldDraw(
+    const Eigen::Vector3d& center,
+    double yaw,
+    ModelViewer& viewer);
+
 }
 
 #endif

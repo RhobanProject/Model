@@ -121,5 +121,49 @@ void CameraDraw(
     viewer.drawLink(groundPos4, groundPos1);
 }
 
+void FieldDraw(
+    const Eigen::Vector3d& center,
+    double yaw,
+    ModelViewer& viewer)
+{
+    double thick = 5.0;
+    Eigen::Matrix3d rot = 
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d(0.0, 0.0, 1.0))
+        .toRotationMatrix();
+    Eigen::Vector3d p1 = center + rot*Eigen::Vector3d(-4.5, -3.0, 0.0);
+    Eigen::Vector3d p2 = center + rot*Eigen::Vector3d(4.5, -3.0, 0.0);
+    Eigen::Vector3d p3 = center + rot*Eigen::Vector3d(4.5, 3.0, 0.0);
+    Eigen::Vector3d p4 = center + rot*Eigen::Vector3d(-4.5, 3.0, 0.0);
+    Eigen::Vector3d p5 = center + rot*Eigen::Vector3d(0.0, -3.0, 0.0);
+    Eigen::Vector3d p6 = center + rot*Eigen::Vector3d(0.0, 3.0, 0.0);
+    Eigen::Vector3d p7 = center + rot*Eigen::Vector3d(-4.5, 3.45/2.0, 0.0);
+    Eigen::Vector3d p8 = center + rot*Eigen::Vector3d(-4.5+0.6, 3.45/2.0, 0.0);
+    Eigen::Vector3d p9 = center + rot*Eigen::Vector3d(-4.5+0.6, -3.45/2.0, 0.0);
+    Eigen::Vector3d p10 = center + rot*Eigen::Vector3d(-4.5, -3.45/2.0, 0.0);
+    Eigen::Vector3d p11 = center + rot*Eigen::Vector3d(4.5, 3.45/2.0, 0.0);
+    Eigen::Vector3d p12 = center + rot*Eigen::Vector3d(4.5-0.6, 3.45/2.0, 0.0);
+    Eigen::Vector3d p13 = center + rot*Eigen::Vector3d(4.5-0.6, -3.45/2.0, 0.0);
+    Eigen::Vector3d p14 = center + rot*Eigen::Vector3d(4.5, -3.45/2.0, 0.0);
+    Eigen::Vector3d p15 = center + rot*Eigen::Vector3d(4.5, -1.80/2.0, 0.0);
+    Eigen::Vector3d p16 = center + rot*Eigen::Vector3d(4.5, 1.80/2.0, 0.0);
+    Eigen::Vector3d p17 = center + rot*Eigen::Vector3d(-4.5, -1.80/2.0, 0.0);
+    Eigen::Vector3d p18 = center + rot*Eigen::Vector3d(-4.5, 1.80/2.0, 0.0);
+    viewer.drawLine(p1, p2, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p2, p3, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p3, p4, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p4, p1, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p5, p6, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p7, p8, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p8, p9, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p9, p10, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p11, p12, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p12, p13, thick, 1.0, 1.0, 1.0);
+    viewer.drawLine(p13, p14, thick, 1.0, 1.0, 1.0);
+    viewer.drawCylinder(p15, 0.1, 1.8, 1.0, 1.0, 1.0);
+    viewer.drawCylinder(p16, 0.1, 1.8, 1.0, 1.0, 1.0);
+    viewer.drawCylinder(p17, 0.1, 1.8, 1.0, 1.0, 1.0);
+    viewer.drawCylinder(p18, 0.1, 1.8, 1.0, 1.0, 1.0);
+}
+
 }
 
