@@ -140,7 +140,6 @@ set(TESTS_FILES
     testAxisAngle
     testEncoderFilter
     testMapSeries
-    testCameraModel
     testOdometryModel
     benchModel
 )
@@ -209,6 +208,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testTrunkFootIK
         testForwardSimulation
         testQuinticWalk
+        testCameraModel
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
