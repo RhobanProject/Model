@@ -96,6 +96,7 @@ int main(int argc, char** argv)
     double walkTurn = 0.0;
     bool walkEnable = 0.0;
     std::string stateApproach;
+    std::string stateRoboCup;
     std::string stateLowlevel;
 
     //List all requested values from RhIO
@@ -178,12 +179,16 @@ int main(int argc, char** argv)
         }
     });
     clientSub.setHandlerStr(
-        [&mutexVar, &stateApproach, &stateLowlevel]
+        [&mutexVar, &stateApproach, &stateRoboCup, &stateLowlevel]
         (const std::string name, int64_t timestamp, std::string val) 
     {
         if (name == "moves/approach/state") {
             std::lock_guard<std::mutex> lock(mutexVar);
             stateApproach = val;
+        }
+        if (name == "moves/robocup/state") {
+            std::lock_guard<std::mutex> lock(mutexVar);
+            stateRoboCup = val;
         }
         if (name == "model/lowlevel_state") {
             std::lock_guard<std::mutex> lock(mutexVar);
@@ -199,6 +204,7 @@ int main(int argc, char** argv)
         clientReq.getInt(prefix + "support_foot"));
     walkEnable = clientReq.getBool("moves/walk/walkEnable");
     stateApproach = clientReq.getStr("moves/approach/state");
+    stateRoboCup = clientReq.getStr("moves/robocup/state");
     stateLowlevel = clientReq.getStr("model/lowlevel_state");
 
     //Enabling value streaming
@@ -208,6 +214,7 @@ int main(int argc, char** argv)
     clientReq.enableStreamingValue(prefix + "support_foot");
     clientReq.enableStreamingValue("moves/walk/walkEnable");
     clientReq.enableStreamingValue("moves/approach/state");
+    clientReq.enableStreamingValue("moves/robocup/state");
     clientReq.enableStreamingValue("model/lowlevel_state");
     
     //Main viewer loop
@@ -268,10 +275,13 @@ int main(int argc, char** argv)
             20, ssTurn.str(), 0.0, 0.0, 1.0);
         //Draw robot state
         viewer.drawText(
-            model.get().position("camera", "origin") + Eigen::Vector3d(0.0, 0.0, 0.2),
-            25, stateApproach, 1.0, 0.0, 0.0);
-        viewer.drawText(
             model.get().position("camera", "origin") + Eigen::Vector3d(0.0, 0.0, 0.5),
+            25, stateRoboCup, 0.0, 1.0, 1.0);
+        viewer.drawText(
+            model.get().position("camera", "origin") + Eigen::Vector3d(0.0, 0.0, 0.35),
+            25, stateApproach, 1.0, 0.0, 1.0);
+        viewer.drawText(
+            model.get().position("camera", "origin") + Eigen::Vector3d(0.0, 0.0, 0.2),
             25, stateLowlevel, 1.0, 1.0, 0.0);
         //Display centers of pressures trajectory
         viewer.setCamPosition(pose.x(), pose.y());
@@ -290,6 +300,7 @@ int main(int argc, char** argv)
     clientReq.disableStreamingValue(prefix + "support_foot");
     clientReq.disableStreamingValue("moves/walk/walkEnable");
     clientReq.disableStreamingValue("moves/approach/state");
+    clientReq.disableStreamingValue("moves/robocup/state");
     clientReq.disableStreamingValue("model/lowlevel_state");
     
     return 0;
