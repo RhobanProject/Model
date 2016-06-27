@@ -600,6 +600,13 @@ void HumanoidModel::cameraLookAtNoUpdate(
     //to head_yaw frame orientation
     Eigen::Vector3d targetInBase = 
         Model::position("origin", "head_yaw", posTarget);
+    //Here, the head_yaw (no update) used is not 
+    //aligned to the target point.
+    //The missing yaw orientation is manually
+    //computed to not update the model
+    double deltaYaw = yaw - Model::getDOF("head_yaw");
+    targetInBase = Eigen::AngleAxisd(-deltaYaw, Eigen::Vector3d::UnitZ())
+        .toRotationMatrix() * targetInBase;
     targetInBase.z() -= _headYawToPitch;
 
     //Conversion of target point to polar representation
