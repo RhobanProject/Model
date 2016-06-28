@@ -63,6 +63,15 @@ int main()
             return 1;
         }
 
+        //Check view vector to pan/tilt convertion
+        Eigen::Vector2d pixel3(0.4, 0.5);
+        Eigen::Vector3d viewVector3 = model.get().cameraPixelToViewVector(camParams, pixel3);
+        Eigen::Vector2d angles3 = model.get().cameraViewVectorToPanTilt(viewVector3);
+        Eigen::Vector2d angles4 = model.get().cameraPixelToPanTilt(camParams, pixel3);
+        if ((angles3-angles4).norm() > 0.0001) {
+            std::cout << "ASSERT ERROR VIEWVECTOR TO PANTILT" << std::endl;
+        }
+
         //Check view vector convertion
         Eigen::Vector3d view1 = model.get().cameraPixelToViewVector(camParams, Eigen::Vector2d(0.0, 0.0));
         Eigen::Vector2d panTilt1 = model.get().cameraPixelToPanTilt(camParams, Eigen::Vector2d(0.0, 0.0));

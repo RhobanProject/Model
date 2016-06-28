@@ -447,6 +447,24 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
 
     return isBelowHorizon;
 }
+        
+Eigen::Vector2d HumanoidModel::cameraViewVectorToPanTilt(
+    const Eigen::Vector3d& viewVector)
+{
+    //Retrieve the orientation self
+    Eigen::Matrix3d mat = selfFrameOrientation("origin");
+    //And convert view vector from world to self frame
+    Eigen::Vector3d viewInSelf = mat.transpose() * viewVector;
+    viewInSelf.normalize();
+
+    //Conversion to yaw/pitch extrinsic euler angles
+    double yaw = atan2(viewInSelf.y(), viewInSelf.x());
+    double pitch = atan2(
+        -viewInSelf.z(), 
+        sqrt(viewInSelf.x()*viewInSelf.x() + viewInSelf.y()*viewInSelf.y()));
+    
+    return Eigen::Vector2d(yaw, pitch);
+}
 
 Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
     const CameraParameters& params,

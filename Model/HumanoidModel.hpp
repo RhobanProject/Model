@@ -176,6 +176,14 @@ class HumanoidModel : public Model
             std::vector<Eigen::Vector3d>* borders = nullptr);
 
         /**
+         * Compute from given view vector in world
+         * frame the pan/tilt angles in radian with
+         * respect to self robot frame.
+         */
+        Eigen::Vector2d cameraViewVectorToPanTilt(
+            const Eigen::Vector3d& viewVector);
+
+        /**
          * Compute the view vector in robot self
          * frame from given pixel in normalized 
          * pixel space and return its (pan,tilt) angles
