@@ -48,7 +48,7 @@ int main()
     params.extraRightRoll = 0.0;
 
     //OdometryModel
-    Leph::OdometryModel odometry;
+    Leph::OdometryModel odometry(Leph::OdometryModel::CorrectionLinear);
     odometry.parameters()(1) = 1.5;
     odometry.parameters()(6) = 1.2;
 
