@@ -1,28 +1,69 @@
+#include <stdexcept>
 #include <Utils/Angle.h>
 #include "Model/OdometryModel.hpp"
 
 namespace Leph {
         
-OdometryModel::OdometryModel() :
+OdometryModel::OdometryModel(OdometryModelType type) :
+    _type(type),
     _isInitialized(false),
-    _odometryParameters(Eigen::VectorXd::Zero(8)),
+    _odometryParameters(),
     _support(),
     _last(),
     _state(),
     _corrected()
 {
-    //Default parameters
-    _odometryParameters <<
-        0.0, //dX = offset
-        1.0, //dX = dx
-        0.0, //dX = dy
-        0.0, //dX = dtheta
-        0.0, //dY = offset
-        0.0, //dY = dx
-        1.0, //dY = dy
-        0.0; //dY = dtheta
+    if (_type == CorrectionLinear) {
+        _odometryParameters = Eigen::VectorXd::Zero(6);
+        //Default parameters
+        _odometryParameters <<
+            0.0, //dX = offset
+            1.0, //dX = dx
+            0.0, //dX = dy
+            0.0, //dY = offset
+            0.0, //dY = dx
+            1.0; //dY = dy
+    } else if (_type == CorrectionLinearWithAzimuth) {
+        _odometryParameters = Eigen::VectorXd::Zero(8);
+        //Default parameters
+        _odometryParameters <<
+            0.0, //dX = offset
+            1.0, //dX = dx
+            0.0, //dX = dy
+            0.0, //dX = dtheta
+            0.0, //dY = offset
+            0.0, //dY = dx
+            1.0, //dY = dy
+            0.0; //dY = dtheta
+    } else if (_type == CorrectionCubic) {
+        _odometryParameters = Eigen::VectorXd::Zero(14);
+        //Default parameters
+        _odometryParameters <<
+            0.0, //dX = offset
+            1.0, //dX = dx
+            0.0, //dX = dx^2
+            0.0, //dX = dx^3
+            0.0, //dX = dy
+            0.0, //dX = dy^2
+            0.0, //dX = dy^3
+            0.0, //dY = offset
+            0.0, //dY = dx
+            0.0, //dY = dx^2
+            0.0, //dY = dx^3
+            1.0, //dY = dy
+            0.0, //dY = dy^2
+            0.0; //dY = dy^3
+    } else {
+        throw std::logic_error(
+            "OdometryModel invalid type");
+    }
     //Ask reset
     reset();
+}
+        
+OdometryModel::OdometryModelType OdometryModel::getType() const
+{
+    return _type;
 }
         
 void OdometryModel::reset()
@@ -50,16 +91,49 @@ void OdometryModel::update(
     //state and last support swap
     Eigen::Vector3d diff = odometryDiff(_last, current);
     //Apply displacement correction
-    double diffX = 
-        _odometryParameters(0) +
-        _odometryParameters(1)*diff.x() +
-        _odometryParameters(2)*diff.y() +
-        _odometryParameters(3)*diff.z();
-    double diffY = 
-        _odometryParameters(4) +
-        _odometryParameters(5)*diff.x() +
-        _odometryParameters(6)*diff.y() +
-        _odometryParameters(7)*diff.z();
+    double diffX;
+    double diffY;
+    if (_type == CorrectionLinear) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*diff.y();
+        diffY = 
+            _odometryParameters(3) +
+            _odometryParameters(4)*diff.x() +
+            _odometryParameters(5)*diff.y();
+    } else if (_type == CorrectionLinearWithAzimuth) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*diff.y() +
+            _odometryParameters(3)*diff.z();
+        diffY = 
+            _odometryParameters(4) +
+            _odometryParameters(5)*diff.x() +
+            _odometryParameters(6)*diff.y() +
+            _odometryParameters(7)*diff.z();
+    } else if (_type == CorrectionCubic) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*pow(diff.x(), 2) +
+            _odometryParameters(3)*pow(diff.x(), 3) +
+            _odometryParameters(4)*diff.y() +
+            _odometryParameters(5)*pow(diff.y(), 2) +
+            _odometryParameters(6)*pow(diff.y(), 3);
+        diffY = 
+            _odometryParameters(7) +
+            _odometryParameters(8)*diff.x() +
+            _odometryParameters(9)*pow(diff.x(), 2) +
+            _odometryParameters(10)*pow(diff.x(), 3) +
+            _odometryParameters(11)*diff.y() +
+            _odometryParameters(12)*pow(diff.y(), 2) +
+            _odometryParameters(13)*pow(diff.y(), 3);
+    } else {
+        diffX = diff.x();
+        diffY = diff.y();
+    }
     diff.x() = diffX;
     diff.y() = diffY;
 

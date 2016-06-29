@@ -17,9 +17,23 @@ class OdometryModel
     public:
 
         /**
+         * OdometryModel regression type
+         */
+        enum OdometryModelType {
+            CorrectionLinear,
+            CorrectionLinearWithAzimuth,
+            CorrectionCubic,
+        };
+
+        /**
          * Initialization
          */
-        OdometryModel();
+        OdometryModel(OdometryModelType type);
+
+        /**
+         * Return instance Correctin type
+         */
+        OdometryModelType getType() const;
 
         /**
          * Reset to zero integrated state
@@ -69,6 +83,11 @@ class OdometryModel
     private:
 
         /**
+         * Seleted correction type
+         */
+        const OdometryModelType _type;
+
+        /**
          * If false, the next update() will
          * initialize internal data to match
          * current input Model state
@@ -79,12 +98,18 @@ class OdometryModel
          * Odometry parameters
          * 0: dX = offset
          * 1: dX = dx
-         * 2: dX = dy
-         * 3: dX = dtheta
-         * 4: dY = offset
-         * 5: dY = dx
-         * 6: dY = dy
-         * 7: dY = dtheta
+         * 2: dX = dx^2
+         * 3: dX = dx^3
+         * 4: dX = dy
+         * 5: dX = dy^2
+         * 6: dX = dy^3
+         * 7: dY = offset
+         * 8: dY = dx
+         * 9: dY = dx^2
+         *10: dY = dx^3
+         *11: dY = dy
+         *12: dY = dy^2
+         *13: dY = dy^3
          */
         Eigen::VectorXd _odometryParameters;
         
