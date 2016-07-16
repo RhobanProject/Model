@@ -84,6 +84,7 @@ void TrajectoriesDisplay(
     double sumTorques = 0.0;
     double sumZMP = 0.0;
     double maxZMP = -1.0;
+    double maxVolt = -1.0;
     double waiting = 0.0;
     while (viewer.update()) {
         Eigen::VectorXd dq;
@@ -133,6 +134,13 @@ void TrajectoriesDisplay(
         torques(model.get().getDOFIndex("base_roll")) = 0.0;
         //Compute voltage
         Eigen::VectorXd volts = MotorModel::voltage(dq, torques);
+        //Disable base DOF
+        volts(model.get().getDOFIndex("base_x")) = 0.0;
+        volts(model.get().getDOFIndex("base_y")) = 0.0;
+        volts(model.get().getDOFIndex("base_z")) = 0.0;
+        volts(model.get().getDOFIndex("base_yaw")) = 0.0;
+        volts(model.get().getDOFIndex("base_pitch")) = 0.0;
+        volts(model.get().getDOFIndex("base_roll")) = 0.0;
         //Display ZMP and trunk/foot trajectory
         viewer.addTrackedPoint(
             com, ModelViewer::Red);
@@ -200,12 +208,16 @@ void TrajectoriesDisplay(
             if (maxZMP < 0.0 || maxZMP < zmp.lpNorm<Eigen::Infinity>()) {
                 maxZMP = zmp.lpNorm<Eigen::Infinity>();
             }
+            if (maxVolt < 0.0 || maxVolt < volts.lpNorm<Eigen::Infinity>()) {
+                maxVolt = volts.lpNorm<Eigen::Infinity>();
+            }
         }
     }
     //Display dynamics info
     std::cout << "Mean Torques Norm: " << sumTorques << std::endl;
     std::cout << "Mean ZMP Norm: " << sumZMP << std::endl;
     std::cout << "Max ZMP: " << maxZMP << std::endl;
+    std::cout << "Max Volt: " << maxVolt << std::endl;
     //Plot DOF torques and ZMP
     plot.plot("t", "left_torque:*").render();
     plot.plot("t", "right_torque:*").render();
