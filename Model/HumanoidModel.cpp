@@ -77,15 +77,15 @@ void HumanoidModel::boundingBox(size_t frameIndex,
 {
     if (_type == SigmabanModel) {
         if (Model::getFrameName(frameIndex) == "left_foot_tip") {
-            sizeX = 0.062495;
-            sizeY = 0.039995;
+            sizeX = 0.063;
+            sizeY = 0.040;
             sizeZ = 0.01;
-            center = Eigen::Vector3d(0.001845, 0.002495, 0.01);
+            center = Eigen::Vector3d(0.000, 0.003, 0.01);
         } else if (Model::getFrameName(frameIndex) == "right_foot_tip") {
-            sizeX = 0.062495;
-            sizeY = 0.039995;
+            sizeX = 0.063;
+            sizeY = 0.040;
             sizeZ = 0.01;
-            center = Eigen::Vector3d(0.001845, -0.002495, 0.01);
+            center = Eigen::Vector3d(0.000, -0.003, 0.01);
         } else {
             Model::boundingBox(frameIndex, 
                 sizeX, sizeY, sizeZ, center);
