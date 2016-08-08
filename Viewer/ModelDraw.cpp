@@ -22,7 +22,8 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         double sizeZ;
         Eigen::Vector3d center;
         model.boundingBox(i, sizeX, sizeY, sizeZ, center);
-        viewer.drawBox(sizeX, sizeY, sizeZ, pos+center, mat);
+        viewer.drawBox(sizeX, sizeY, sizeZ, 
+            pos+mat.transpose()*center, mat);
     }
 
     //Draw center of mass

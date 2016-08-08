@@ -14,7 +14,7 @@ ModelViewer::ModelViewer(unsigned int width,
     _camView(1.0, 0.0, 0.0),
     _camRadius(1.0),
     _camAngle1(0.0),
-    _camAngle2(0.0),
+    _camAngle2(1.0),
     _camOffsetX(0.0),
     _camOffsetY(0.0),
     _trajectoryRed(),
@@ -125,6 +125,15 @@ bool ModelViewer::update(bool freeFly)
                 _camAngle2 += -0.5*camViewVel*mouseDeltaPosY;
             }
             _camRadius += -wheelDelta*camPosVel*20.0;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Subtract)) {
+                _camRadius += 0.1;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Add)) {
+                _camRadius -= 0.1;
+                if (_camRadius <= 0.0) {
+                    _camRadius = 0.0;
+                }
+            }
             //Camera position control
             if (
                 sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || 
