@@ -279,6 +279,33 @@ class Model
             const Eigen::VectorXd& torque);
 
         /**
+         * Compute Forward Dynamics on the tree model
+         * and considering that given RBDL contact
+         * constraints are applied.
+         * Constraints force are update in 
+         * the given set.
+         * Computed degrees of freedom acceleration 
+         * are returned.
+         */
+        Eigen::VectorXd forwardDynamicsContacts(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque);
+
+        /**
+         * Compute the collision velocity impulses
+         * for given ConstraintSet. The new computed
+         * velocities accounting for the collision
+         * are returned. Current position and old
+         * velocity are given.
+         */
+        Eigen::VectorXd impulseContacts(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity);
+
+        /**
          * Return optionaly non zero aligned axis bounding box
          * with respect to given frame base and its half size
          */

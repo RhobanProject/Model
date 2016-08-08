@@ -499,6 +499,7 @@ Eigen::VectorXd Model::forwardDynamics(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque)
 {
+    //Sanity check
     if (position.size() != _model.dof_count) {
         throw std::logic_error(
             "Model invalid position vector size");
@@ -517,6 +518,55 @@ Eigen::VectorXd Model::forwardDynamics(
         QDDot, NULL);
 
     return QDDot;
+}
+
+Eigen::VectorXd Model::forwardDynamicsContacts(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
+    }
+   
+    RBDLMath::VectorNd QDDot(_model.dof_count);
+    RBDL::ForwardDynamicsContactsDirect(
+        _model, position, velocity, torque, constraints, QDDot);
+
+    return QDDot;
+}
+
+Eigen::VectorXd Model::impulseContacts(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+
+    Eigen::VectorXd newVel = velocity;
+    RBDL::ComputeContactImpulsesDirect(
+        _model, position, velocity, constraints, newVel);
+
+    return newVel;
 }
         
 void Model::boundingBox(size_t frameIndex, 

@@ -42,7 +42,8 @@ class MotorModel
          */
         static double voltage(double velocity, double torque);
         static Eigen::VectorXd voltage(
-            const Eigen::VectorXd& velocity, const Eigen::VectorXd& torque);
+            const Eigen::VectorXd& velocity, 
+            const Eigen::VectorXd& torque);
 
     private:
 

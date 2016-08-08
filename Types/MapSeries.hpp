@@ -361,6 +361,18 @@ class MapSeries
             file.close();
         }
 
+        /**
+         * Return all contained series names
+         */
+        std::vector<std::string> allNames() const
+        {
+            std::vector<std::string> container;
+            for (const auto& it : _data) {
+                container.push_back(it.first);
+            }
+            return container;
+        }
+
     private:
 
         /**

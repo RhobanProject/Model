@@ -11,7 +11,7 @@
  * differential return the system differential for each
  * dimension at given state.
  */
-Eigen::VectorXd RungeKutta4Integration(
+inline Eigen::VectorXd RungeKutta4Integration(
     const Eigen::VectorXd& state, 
     double dt,
     std::function<Eigen::VectorXd(const Eigen::VectorXd&)> differential)
