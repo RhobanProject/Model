@@ -98,6 +98,7 @@ set(SOURCES_FILES
     IKWalk/IKWalk.cpp
     QuinticWalk/QuinticWalk.cpp
     TimeSeries/SeriesUtils.cpp
+    DMP/DMP.cpp
 )
 
 #Tests main files
@@ -142,6 +143,7 @@ set(TESTS_FILES
     testMapSeries
     testOdometryModel
     benchModel
+    testDMP
 )
 
 #Applications main files
@@ -175,7 +177,7 @@ set(CODE_LIBRARIES
 
 #Add URDF model symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
-    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban_metabot.urdf sigmaban.urdf")
+    "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/sigmaban_metabot_cleats.urdf sigmaban.urdf")
 execute_process(COMMAND "/bin/bash" "-c" 
     "cd ${CMAKE_BINARY_DIR}; ln -f -s ${CMAKE_CURRENT_SOURCE_DIR}/Data/grosban_metabot.urdf grosban.urdf")
 #Add RhAL config symbolic link
