@@ -1,144 +1,171 @@
 #include "Model/ForwardSimulation.hpp"
+#include "Utils/RungeKutta4.hpp"
 
 namespace Leph {
 
-MotorModel::MotorModel()
-{
-    //DXL MX64 configuration
-    //(V)
-    _uMax = 12.0;
-    //(V.s/rad)
-    _ke = 1.399;
-    //(N.m/A)
-    _kt = _ke;
-    //(ohm)
-    _r = 4.07;
-
-    //Position P gain
-    _positionControlGain = 50.0;
-}
-    
-double MotorModel::computeTorque(
-    double goal, double pos, double vel)
-{
-    double torque = _positionControlGain*(goal - pos);
-
-    //Bound torque
-    double tauMax = _uMax/_ke;
-    if (vel > 0.0) {
-        double tmp = (_uMax - _ke*vel)*_kt/_r;
-        if (torque < -tauMax) torque = -tauMax;
-        if (torque > tmp) torque = tmp;
-    } else {
-        double tmp = (-_uMax - _ke*vel)*_kt/_r;
-        if (torque < tmp) torque = tmp;
-        if (torque > tauMax) torque = tauMax;
-    }
-
-    return torque;
-}
-        
-void MotorModel::boundState(double& pos, double& vel) const
-{
-    //Bound position range
-    if (pos < -M_PI) pos = -M_PI;
-    if (pos > M_PI) pos = M_PI;
-    //Bound velocity range
-    double velMax = _uMax/_ke;
-    if (vel < -velMax) vel = -velMax;
-    if (vel > velMax) vel = velMax;
-}
-        
 ForwardSimulation::ForwardSimulation(Model& model) :
     _model(&model),
-    _position(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _velocity(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _goal(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _torque(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _acceleration(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _motors()
+    _jointModels(),
+    _positions(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _velocities(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _goals(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _jointTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _accelerations(Eigen::VectorXd::Zero(_model->sizeDOF()))
 {
-    //Init motors model
+    //Init joint models
     for (size_t i=0;i<_model->sizeDOF();i++) {
-        _motors.push_back(MotorModel());
+        std::string name = _model->getDOFName(i);
+        //Spacial base DOF ate set as free
+        if (name.find("base_") != std::string::npos) {
+            _jointModels.push_back(JointModel(
+                JointModel::JointFree, name));
+        } else {
+            _jointModels.push_back(JointModel(
+                JointModel::JointActuated, name));
+        }
     }
-}
-
-Eigen::VectorXd& ForwardSimulation::position()
-{
-    return _position;
-}
-Eigen::VectorXd& ForwardSimulation::velocity()
-{
-    return _velocity;
-}
-Eigen::VectorXd& ForwardSimulation::goal()
-{
-    return _goal;
-}
-Eigen::VectorXd& ForwardSimulation::torque()
-{
-    return _torque;
-}
-Eigen::VectorXd& ForwardSimulation::acceleration()
-{
-    return _acceleration;
+    //Load state
+    _positions = _model->getDOFVect();
+    _goals = _model->getDOFVect();
 }
         
-void ForwardSimulation::update(double dt)
+const JointModel& ForwardSimulation::jointModel(size_t index) const
+{
+    if (index >= _jointModels.size()) {
+        throw std::logic_error("ForwardSimulation invalid index");
+    }
+    return _jointModels[index];
+}
+JointModel& ForwardSimulation::jointModel(size_t index)
+{
+    if (index >= _jointModels.size()) {
+        throw std::logic_error("ForwardSimulation invalid index");
+    }
+    return _jointModels[index];
+}
+const JointModel& ForwardSimulation::jointModel(const std::string& name) const
+{
+    return jointModel(_model->getDOFIndex(name));
+}
+JointModel& ForwardSimulation::jointModel(const std::string& name)
+{
+    return jointModel(_model->getDOFIndex(name));
+}
+
+const Eigen::VectorXd& ForwardSimulation::positions() const
+{
+    return _positions;
+}
+Eigen::VectorXd& ForwardSimulation::positions()
+{
+    return _positions;
+}
+const Eigen::VectorXd& ForwardSimulation::velocities() const
+{
+    return _velocities;
+}
+Eigen::VectorXd& ForwardSimulation::velocities()
+{
+    return _velocities;
+}
+const Eigen::VectorXd& ForwardSimulation::goals() const
+{
+    return _goals;
+}
+Eigen::VectorXd& ForwardSimulation::goals()
+{
+    return _goals;
+}
+const Eigen::VectorXd& ForwardSimulation::jointTorques() const
+{
+    return _jointTorques;
+}
+Eigen::VectorXd& ForwardSimulation::jointTorques()
+{
+    return _jointTorques;
+}
+const Eigen::VectorXd& ForwardSimulation::accelerations() const
+{
+    return _accelerations;
+}
+Eigen::VectorXd& ForwardSimulation::accelerations()
+{
+    return _accelerations;
+}
+
+void ForwardSimulation::update(double dt,
+    RBDL::ConstraintSet* constraints)
 {
     size_t size = _model->sizeDOF();
-    
-    //Update DOF torque from goal
+
+    //Update DOF output torque from goal
+    //and current state
     for (size_t i=0;i<size;i++) {
-        _torque(i) = _motors[i].computeTorque(
-            _goal(i), _position(i), _velocity(i));
+        _jointTorques(i) = 0.0;
+        _jointTorques(i) += _jointModels[i].frictionTorque(
+            _positions(i), _velocities(i));
+        _jointTorques(i) += _jointModels[i].controlTorque(
+            dt, _goals(i), _positions(i), _velocities(i)); 
     }
 
     //Build generalized state
     Eigen::VectorXd state(2*size);
-    state.segment(0, size) = _position;
-    state.segment(size, size) = _velocity;
+    state.segment(0, size) = _positions;
+    state.segment(size, size) = _velocities;
+
+    //Compute and return the generalized state
+    //derivative from given state
+    //(first vector part is position, second part is
+    //velocity)
+    //Call model forward dynamics
+    auto differential = 
+        [this, constraints](const Eigen::VectorXd& state) -> Eigen::VectorXd 
+    {
+        size_t size = this->_model->sizeDOF();
+        if (constraints == nullptr) {
+            this->_accelerations = this->_model->forwardDynamics(
+                state.segment(0, size),
+                state.segment(size, size),
+                this->_jointTorques);
+        } else {
+            this->_accelerations = this->_model->forwardDynamicsContacts(
+                *constraints,
+                state.segment(0, size),
+                state.segment(size, size),
+                this->_jointTorques);
+        }
+
+        Eigen::VectorXd diff(2*size);
+        diff.segment(0, size) = state.segment(size, size);
+        diff.segment(size, size) = this->_accelerations;
+
+        return diff;
+    };
 
     //Compute next state
-    Eigen::VectorXd nextState = RungeKutta4(dt, state);
+    Eigen::VectorXd nextState = RungeKutta4Integration(
+        state, dt, differential);
+
     //Retrieve data
-    _position = nextState.segment(0, size);
-    _velocity = nextState.segment(size, size);
-    
-    //Bound state
-    for (size_t i=0;i<size;i++) {
-        _motors[i].boundState(
-            _position(i), _velocity(i));
+    _positions = nextState.segment(0, size);
+    _velocities = nextState.segment(size, size);
+
+    //Check numerical validity
+    if (
+        !_positions.allFinite() ||
+        !_velocities.allFinite() ||
+        !_accelerations.allFinite() ||
+        !_goals.allFinite() ||
+        !_jointTorques.allFinite()
+    ) {
+        throw std::runtime_error(
+            "ForwardSimulation numerical instability");
     }
-}
-        
-Eigen::VectorXd ForwardSimulation::generalizedModelDiff(
-    const Eigen::VectorXd& state)
-{
-    size_t size = _model->sizeDOF();
-    _acceleration = _model->forwardDynamics(
-        state.segment(0, size),
-        state.segment(size, size),
-        _torque
-    );
-
-    Eigen::VectorXd diff(2*size);
-    diff.segment(0, size) = state.segment(size, size);
-    diff.segment(size, size) = _acceleration;
-
-    return diff;
-}
-        
-Eigen::VectorXd ForwardSimulation::RungeKutta4(
-    double dt, const Eigen::VectorXd& state)
-{
-    Eigen::VectorXd k1 = generalizedModelDiff(state);
-    Eigen::VectorXd k2 = generalizedModelDiff(state + 0.5*dt*k1);
-    Eigen::VectorXd k3 = generalizedModelDiff(state + 0.5*dt*k2);
-    Eigen::VectorXd k4 = generalizedModelDiff(state + dt*k3);
-
-    return state + (dt/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4);
+    
+    //Bound joint state
+    for (size_t i=0;i<size;i++) {
+        _jointModels[i].boundState(_positions(i), _velocities(i));
+    }
 }
 
 }

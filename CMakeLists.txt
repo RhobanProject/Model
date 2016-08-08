@@ -83,6 +83,7 @@ set(SOURCES_FILES
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/MotorModel.cpp
+    Model/JointModel.cpp
     Model/OdometryModel.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
