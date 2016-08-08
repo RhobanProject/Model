@@ -1,0 +1,50 @@
+<robot
+  name="URDF">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0 0 0.0"
+        rpy="0 0 0" />
+      <mass
+        value="1.17617061217883" />
+      <inertia
+        ixx="0.0047355866054342"
+        ixy="8.46086363384265E-07"
+        ixz="-1.72920181390288E-05"
+        iyy="0.00370850949536424"
+        iyz="1.85537812835413E-07"
+        izz="0.00279422271898294" />
+    </inertial>
+  </link>
+  <link
+    name="roll_link">
+    <inertial>
+      <origin
+        xyz="0.0 0 0.08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0221154306709298" />
+      <inertia
+        ixx="4.39267600793309E-06"
+        ixy="-5.21554212028579E-09"
+        ixz="4.013124607556E-08"
+        iyy="1.42379699066783E-05"
+        iyz="-1.57581288966128E-11"
+        izz="1.31984212294399E-05" />
+    </inertial>
+  </link>
+  <joint
+    name="roll"
+    type="continuous">
+    <origin
+      xyz="0.0 0.0 0.1"
+      rpy="-1.5148E-15 8.2889E-19 -0.00053101" />
+    <parent
+      link="base_link" />
+    <child
+      link="roll_link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+</robot>
