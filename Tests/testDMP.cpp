@@ -116,8 +116,91 @@ static void testLearning()
     plot.plot("t", "all").render();
 }
 
+static void testSpline()
+{
+    Leph::Plot plot;
+    unsigned int dim = 1;
+    unsigned int num = 5;
+    double timeLength = 2.0;
+    
+    Leph::DMP dmp1(dim, num);
+    Leph::DMP dmp2(dim, num);
+    Eigen::VectorXd startPos1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd startVel1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd startAcc1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endPos1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endVel1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endAcc1 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd startPos2 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd startVel2 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd startAcc2 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endPos2 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endVel2 = Eigen::VectorXd::Zero(dim);
+    Eigen::VectorXd endAcc2 = Eigen::VectorXd::Zero(dim);
+    startPos1(0) = 0.0;
+    startVel1(0) = 0.0;
+    startAcc1(0) = 0.0;
+    endPos1(0) = 2.0;
+    endVel1(0) = -1.0;
+    endAcc1(0) = 1.0;
+    startPos2(0) = endPos1(0);
+    startVel2(0) = endVel1(0);
+    startAcc2(0) = endAcc1(0);
+    endPos2(0) = 0.0;
+    endVel2(0) = 0.0;
+    endAcc2(0) = 0.0;
+    for (size_t i=0;i<num;i++) {
+        dmp1.kernelWeight(0, i) = 20.0;
+        dmp2.kernelWeight(0, i) = -20.0;
+    }
+
+    dmp1.init(
+        timeLength, 
+        startPos1, startVel1, startAcc1, 
+        endPos1, endVel1, endAcc1);
+    dmp2.init(
+        timeLength, 
+        startPos2, startVel2, startAcc2, 
+        endPos2, endVel2, endAcc2);
+    
+    while (true) {
+        if (dmp1.currentTime() >= timeLength) {
+            break;
+        }
+        dmp1.step(0.01);
+        plot.add(Leph::VectorLabel(
+            "t", dmp1.currentTime(),
+            "phase", dmp1.statePhase(),
+            "gating", dmp1.stateGating(),
+            "forcing", dmp1.forcingFunction(dmp1.statePhase(), dmp1.stateGating())(0),
+            "pos", dmp1.statePos()(0),
+            "vel", dmp1.stateVel()(0),
+            "acc", dmp1.stateAcc()(0)
+        ));
+    }
+    while (true) {
+        if (dmp2.currentTime() >= timeLength) {
+            break;
+        }
+        dmp2.step(0.01);
+        plot.add(Leph::VectorLabel(
+            "t", timeLength + dmp2.currentTime(),
+            "phase", dmp2.statePhase(),
+            "gating", dmp2.stateGating(),
+            "forcing", dmp2.forcingFunction(dmp2.statePhase(), dmp2.stateGating())(0),
+            "pos", dmp2.statePos()(0),
+            "vel", dmp2.stateVel()(0),
+            "acc", dmp2.stateAcc()(0)
+        ));
+    }
+    plot
+        .plot("t", "all")
+        .render();
+}
+
 int main()
 {
+
     Leph::Plot plot;
 
     unsigned int dim = 1;
@@ -165,6 +248,9 @@ int main()
         .plot("t", "all")
         .render();
     
+    //Test two DMP merging acceleration 
+    //continuity
+    testSpline();
     //Test DMP fitting
     testLearning();
 

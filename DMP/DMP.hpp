@@ -29,9 +29,12 @@ class DMP
 
         /**
          * Initialize the DMP with given dimension
-         * and given number of gaussian kernel
+         * and given number of gaussian kernel.
+         * Optional gaussian kernal overlap 
+         * can be overload
          */
-        DMP(unsigned int dim, unsigned int kernelNum);
+        DMP(unsigned int dim, unsigned int kernelNum, 
+            double overlap = 0.4);
 
         /**
          * Return current DMP dimension and
@@ -64,10 +67,15 @@ class DMP
         Eigen::VectorXd stateAcc() const;
 
         /**
-         * Read access to phase and gating 
-         * state position
+         * Read access to phase state
          */
         double statePhase() const;
+
+        /**
+         * Return current value for gating
+         * term computed from current phase state
+         * (between 0.0 and 1.0)
+         */
         double stateGating() const;
 
         /**
@@ -133,6 +141,13 @@ class DMP
         unsigned int _kernelNum;
 
         /**
+         * Forcing function gaussian value
+         * (between 0.0 and 1.0) at the middle of
+         * two following kernel
+         */
+        double _overlap;
+
+        /**
          * Dynamical system coeficients
          */
         double _coefDamper;
@@ -147,13 +162,13 @@ class DMP
 
         /**
          * Current dynamical system state
-         * of size 2*2*dim
+         * of size 1+2*dim
          */
         Eigen::VectorXd _state;
 
         /**
          * Last computed state differential
-         * of size 2*2*dim
+         * of size 1+2*dim
          */
         Eigen::VectorXd _lastStateVel;
 

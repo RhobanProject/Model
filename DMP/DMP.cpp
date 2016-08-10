@@ -23,15 +23,17 @@ DMP::DMP() :
 {
 }
         
-DMP::DMP(unsigned int dim, unsigned int kernelNum) :
+DMP::DMP(unsigned int dim, unsigned int kernelNum,
+    double overlap) :
     _dim(dim),
     _kernelNum(kernelNum),
+    _overlap(overlap),
     _coefDamper(80.0),
     _coefSpring(_coefDamper/4.0),
     _timeLength(0.0),
     _currentTime(0.0),
-    _state(Eigen::VectorXd::Zero(2+2*dim)),
-    _lastStateVel(Eigen::VectorXd::Zero(2+2*dim)),
+    _state(Eigen::VectorXd::Zero(1+2*dim)),
+    _lastStateVel(Eigen::VectorXd::Zero(1+2*dim)),
     _goalSplines(),
     _kernelCenters(),
     _kernelWidths(),
@@ -95,12 +97,10 @@ void DMP::init(
     //State initialization
     //Phase
     _state(0) = 0.0;
-    //Gating
-    _state(1) = 1.0;
     //Position
-    _state.segment(2, _dim) = startPos;
+    _state.segment(1, _dim) = startPos;
     //Velocity
-    _state.segment(2+_dim, _dim) = startVel*_timeLength;
+    _state.segment(1 + _dim, _dim) = startVel*_timeLength;
 
     //Initialize delayed goal spline
     //in phase time and taking into account
@@ -123,15 +123,15 @@ void DMP::init(
 
 Eigen::VectorXd DMP::statePos() const
 {
-    return _state.segment(2, _dim);
+    return _state.segment(1, _dim);
 }
 Eigen::VectorXd DMP::stateVel() const
 {
-    return _lastStateVel.segment(2, _dim);
+    return _lastStateVel.segment(1, _dim);
 }
 Eigen::VectorXd DMP::stateAcc() const
 {
-    return (1.0/_timeLength)*_lastStateVel.segment(2 + _dim, _dim);
+    return (1.0/_timeLength)*_lastStateVel.segment(1 + _dim, _dim);
 }
 
 double DMP::statePhase() const
@@ -140,7 +140,12 @@ double DMP::statePhase() const
 }
 double DMP::stateGating() const
 {
-    return _state(1);
+    //Contrary with literature or Stulp,
+    //we implement tricube kernel between 0.0 and 1.0 with
+    //phase between 0.0 and 1.0. Maximum in 0.5.
+    //This allow for acceleration continuity since
+    //the forcing term is zero at trajectory start and end.
+    return pow(1.0-pow(fabs(2.0*(_state(0)-0.5)), 3), 3);
 }
         
 double DMP::currentTime() const
@@ -232,12 +237,10 @@ void DMP::step(double dt)
             Eigen::VectorXd diff = Eigen::VectorXd::Zero(state.size());
             //Phase constant velocity
             diff(0) = 1.0/timeLength;
-            //Gating sigmoid
-            double gattingA = 11.0/timeLength;
-            double gattingB = 0.99;
-            diff(1) = -gattingA*state(1)*(1.0-state(1)*gattingB);
+            //Gating term
+            double gating = stateGating();
             //Copy velocity
-            diff.segment(2, dim) = state.segment(2+dim, dim)/timeLength;
+            diff.segment(1, dim) = state.segment(1 + dim, dim)/timeLength;
             //Compute delayed goal
             Eigen::VectorXd goalPos = Eigen::VectorXd::Zero(dim);
             Eigen::VectorXd goalVel = Eigen::VectorXd::Zero(dim);
@@ -248,13 +251,13 @@ void DMP::step(double dt)
                 goalAcc(i) = _goalSplines[i].acc(state(0));
             }
             //Compute acceleration
-            diff.segment(2+dim, dim) = (
+            diff.segment(1 + dim, dim) = (
                 this->_coefDamper*(
-                    this->_coefSpring*(goalPos - state.segment(2, dim)) 
+                    this->_coefSpring*(goalPos - state.segment(1, dim)) 
                     + goalVel
-                    - state.segment(2+dim, dim))
+                    - state.segment(1 + dim, dim))
                 + goalAcc
-                + forcingFunction(state(0), state(1))
+                + forcingFunction(state(0), gating)
             )/timeLength;
             return diff;
         };
@@ -378,14 +381,11 @@ void DMP::setParameters(
         
 void DMP::computeKernels()
 {
-    //Gaussian value (between 0.0 and 1.0) 
-    //at the middle of two following kernel
-    double overlap = 0.2;
     //Initialize the kernels uniformaly in phase space 
     //between 0.0 and 1.0 and compute associated kernel width
     //to fill the space with activation
     double length = 1.0/((double)_kernelNum);
-    double width = -log(overlap)/pow(length/2.0, 2);
+    double width = -log(_overlap)/pow(length/2.0, 2);
     for (size_t i=0;i<_kernelNum;i++) {
         _kernelCenters[i] = ((double)i)/((double)_kernelNum) + length/2.0;
         _kernelWidths[i] = width;
