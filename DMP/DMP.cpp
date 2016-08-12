@@ -39,6 +39,12 @@ DMP::DMP(unsigned int dim, unsigned int kernelNum,
     _kernelWidths(),
     _kernelWeights()
 {
+    //Check
+    if (_overlap < 0.0 || _overlap >= 1.0) {
+        throw std::logic_error(
+            "DMP invalid overlap: " 
+            + std::to_string(_overlap));
+    }
     //Zero initialization
     for (size_t i=0;i<kernelNum;i++) {
         _kernelCenters.push_back(0.0);
@@ -101,6 +107,10 @@ void DMP::init(
     _state.segment(1, _dim) = startPos;
     //Velocity
     _state.segment(1 + _dim, _dim) = startVel*_timeLength;
+    //Initialize differentiation 
+    _lastStateVel(0) = 0.0;
+    _lastStateVel.segment(1, _dim) = startVel;
+    _lastStateVel.segment(1 + _dim, _dim) = startAcc*_timeLength;
 
     //Initialize delayed goal spline
     //in phase time and taking into account
@@ -387,7 +397,7 @@ void DMP::computeKernels()
     double length = 1.0/((double)_kernelNum);
     double width = -log(_overlap)/pow(length/2.0, 2);
     for (size_t i=0;i<_kernelNum;i++) {
-        _kernelCenters[i] = ((double)i)/((double)_kernelNum) + length/2.0;
+        _kernelCenters[i] = (double)i*length + length/2.0;
         _kernelWidths[i] = width;
     }
 }

@@ -100,6 +100,7 @@ set(SOURCES_FILES
     QuinticWalk/QuinticWalk.cpp
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
+    DMP/DMPSpline.cpp
 )
 
 #Tests main files
@@ -145,6 +146,7 @@ set(TESTS_FILES
     testOdometryModel
     benchModel
     testDMP
+    testDMPSpline
 )
 
 #Applications main files

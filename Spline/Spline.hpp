@@ -90,7 +90,7 @@ class Spline
 
         /**
          * Replace this spline part with the 
-         * internal data of givne spline
+         * internal data of given spline
          */
         void copyData(const Spline& sp);
 

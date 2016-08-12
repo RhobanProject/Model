@@ -31,15 +31,18 @@ class SplineContainer
         }
 
         /**
-         * Add an empty spline with given name
+         * Add an empty spline with given name.
+         * Variadic arguments allow to pass parameters to
+         * spline constructor.
          */
-        inline void add(const std::string& name)
+        template <typename ... Args>
+        inline void add(const std::string& name, Args... args)
         {
             if (_container.count(name) != 0) {
                 throw std::logic_error(
                     "SplineContainer spline already added");
             }
-            _container[name] = T();
+            _container[name] = T(args...);
         }
 
         /**
