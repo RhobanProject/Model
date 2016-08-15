@@ -125,13 +125,13 @@ class SplineContainer
          * Update to return a Plot instance with
          * pos/vel/acc values for each contained splines.
          */
-        void plot(Leph::Plot& plot) const
+        void plot(Leph::Plot& plot)
         {
-            for (const auto& sp : _container) {
+            for (auto& sp : _container) {
                 sp.second.plot(plot, sp.first);
             }
         }
-        Leph::Plot plot() const
+        Leph::Plot plot()
         {
             Leph::Plot p;
             SplineContainer::plot(p);

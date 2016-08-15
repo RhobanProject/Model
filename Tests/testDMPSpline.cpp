@@ -99,6 +99,7 @@ int main()
         .render();
     
     //Test plot api
+    spline.setKernelWeights(Eigen::VectorXd::Ones(kernelNum)*2.0);
     spline.plot().plot("t", "all").render();
 
     //Test compatibility with SplineContainer template

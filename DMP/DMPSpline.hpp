@@ -133,9 +133,11 @@ class DMPSpline
         void setKernelWeights(const Eigen::VectorXd& vect);
         
         /**
-         * Recompute DMP parts
+         * Recompute DMP parts. DMP are just 
+         * re-initialized (save weights and widths
+         * parameters) if noRebuild is true.
          */
-        void computeSplines();
+        void computeSplines(bool noRebuild = false);
         
         /*
          * Write and read splines data into given

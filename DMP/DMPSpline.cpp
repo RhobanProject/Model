@@ -274,21 +274,23 @@ void DMPSpline::setKernelWeights(const Eigen::VectorXd& vect)
     }
 }
 
-void DMPSpline::computeSplines()
+void DMPSpline::computeSplines(bool noRebuild)
 {
-    //Clear existing DMP
-    _parts.clear();
-    if (_points.size() < 2) {
-        return;
+    if (!noRebuild) {
+        //Clear existing DMP
+        _parts.clear();
+        if (_points.size() < 2) {
+            return;
+        }
+
+        //Sort all points by time
+        std::sort(
+            _points.begin(), 
+            _points.end(), 
+            [](const Point& p1, const Point& p2) -> bool { 
+                return p1.time < p2.time;
+            });
     }
-    
-    //Sort all points by time
-    std::sort(
-        _points.begin(), 
-        _points.end(), 
-        [](const Point& p1, const Point& p2) -> bool { 
-            return p1.time < p2.time;
-        });
     
     //Gaussian kernel center distance from each other
     double kernelLength = 1.0/((double)_kernelNum);
@@ -298,6 +300,7 @@ void DMPSpline::computeSplines()
     double totalTimeLength = maxTime - minTime;
     
     //Iterate over all points from the second one
+    size_t index = (size_t)-1;
     for (size_t i=1;i<_points.size();i++) {
         //Retrieve part start and end time
         double startTime = _points[i-1].time;
@@ -339,12 +342,15 @@ void DMPSpline::computeSplines()
                 "DMPSpline assert failed kernel index");
         }
         //Append the new part
-        _parts.push_back({
-            _points[i-1].time, 
-            _points[i].time, 
-            realFirstIndex,
-            realLastIndex,
-            DMP(1, numKernel, _overlap)});
+        if (!noRebuild) {
+            _parts.push_back({
+                _points[i-1].time, 
+                _points[i].time, 
+                realFirstIndex,
+                realLastIndex,
+                DMP(1, numKernel, _overlap)});
+        }
+        index++;
         //Initialize the DMP with start and end state
         Eigen::VectorXd startPos(1);
         Eigen::VectorXd startVel(1);
@@ -358,10 +364,15 @@ void DMPSpline::computeSplines()
         endPos(0) = _points[i].position;
         endVel(0) = _points[i].velocity;
         endAcc(0) = _points[i].acceleration;
-        _parts.back().dmp.init(
+        _parts[index].dmp.init(
             partTimeLength, 
             startPos, startVel, startAcc,
             endPos, endVel, endAcc);
+        //Skip DMP update if no rebuild
+        //is done
+        if (noRebuild) {
+            continue;
+        }
         //Compute gaussian kernel width similar to
         //a complete DMP over the all time range
         double width = 
@@ -381,10 +392,11 @@ void DMPSpline::computeSplines()
                 (kernelTimePosition - startTime)/partTimeLength;
             if (kernelPhase < 0.0 || kernelPhase > 1.0) {
                 throw std::logic_error(
-                    "DMPSpline assert failed kernel phase");
+                    "DMPSpline assert failed kernel phase: "
+                    + std::to_string(kernelPhase));
             }
-            _parts.back().dmp.kernelCenter(i) = kernelPhase;
-            _parts.back().dmp.kernelWidth(i) = width;
+            _parts[index].dmp.kernelCenter(i) = kernelPhase;
+            _parts[index].dmp.kernelWidth(i) = width;
         }
     }
 }
@@ -526,7 +538,7 @@ size_t DMPSpline::updateInternalDMP(double t)
         //The request time is in the past.
         //We need to re roll all dynamical system
         //Clean and rebuild all DMP parts
-        computeSplines();
+        computeSplines(true);
         //Restart
         return updateInternalDMP(t);
     } else {
