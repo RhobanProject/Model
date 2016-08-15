@@ -161,7 +161,8 @@ double TrajectoryGeneration::scoreTrajectory(
                     << 1000.0 + costState 
                     << std::endl;
             }
-            return 1000.0 + costState;
+            cost += 1000.0 + costState;
+            continue;
         }
         //Compute kinematics
         Eigen::VectorXd dq;
@@ -175,7 +176,8 @@ double TrajectoryGeneration::scoreTrajectory(
                     << 1000.0 + 1000.0*(traj.max()-t) 
                     << std::endl;
             }
-            return 1000.0 + 1000.0*(traj.max()-t);
+            cost += 1000.0;
+            continue;
         }
         //Check Joit DOF
         double costDOF = checkDOF(model);
@@ -186,7 +188,8 @@ double TrajectoryGeneration::scoreTrajectory(
                     << 1000.0 + costDOF 
                     << std::endl;
             }
-            return 1000.0 + costDOF;
+            cost += 1000.0 + costDOF;
+            continue;
         }
         //Compute DOF torques
         bool isDoubleSupport;
@@ -282,6 +285,7 @@ void TrajectoryGeneration::runOptimization(
     double initScore = scoreTrajectory(initParams, true);
     std::cout << "============" << std::endl;
     std::cout << "Init Score: " << initScore << std::endl;
+    std::cout << "Dimension:  " << initParams.size() << std::endl;
     std::cout << "============" << std::endl;
 
     //CMAES initialization

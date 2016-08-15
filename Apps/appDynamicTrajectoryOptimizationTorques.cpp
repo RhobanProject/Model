@@ -10,22 +10,11 @@
 #include "Model/MotorModel.hpp"
 
 /**
- * All Joint DOF names
- */
-static std::vector<std::string> dofNames = {
-    "left_ankle_pitch", "left_ankle_roll", "left_knee",
-    "left_hip_pitch", "left_hip_roll", "left_hip_yaw",
-    "right_ankle_pitch", "right_ankle_roll", "right_knee",
-    "right_hip_pitch", "right_hip_roll", "right_hip_yaw"
-};
-
-/**
  * Ending precompute optimal state
  */
 static Eigen::Vector3d targetTrunkPos()
 {
     return Eigen::Vector3d(-0.00557785331559037,  -0.0115849568418458, 0.28);
-        //0.291527819747366);
 }
 static Eigen::Vector3d targetTrunkAxis()
 {
@@ -34,7 +23,6 @@ static Eigen::Vector3d targetTrunkAxis()
 static Eigen::Vector3d targetFootPos()
 {
     return Eigen::Vector3d(0.0208647084129351, -0.095, 0.0591693358237435);
-        //-0.0900000062267158, 0.0591693358237435);
 }
 
 /**
@@ -722,6 +710,7 @@ void generateStaticSingleSupport()
     TrajectoriesDisplay(generator.bestTrajectories());
 }
 
+/*
 void generateRecovery()
 {
     //Initialize the generator
@@ -862,6 +851,55 @@ void generateRecovery()
         traj.get("foot_axis_y").addPoint(endTrajectoryTime, 0.0, 0.0);
         traj.get("foot_axis_z").addPoint(endTrajectoryTime, 0.0, 0.0);
 
+        //Prediction of base_pitch DOF
+        Leph::Plot plot;
+        Leph::FittedSpline fitted;
+        double basePitch1 = 0.15;
+        double basePitch2 = 0.13;
+        fitted.addPoint(traj.min(), 0.13);
+        fitted.addPoint(traj.min()+0.02, 0.15);
+        for (double t=traj.min()+0.04;t<=traj.max();t+=0.02) {
+            Eigen::VectorXd in(19);
+            in << 
+                1.0,
+                basePitch1,
+                pow(basePitch1, 2),
+                pow(basePitch1, 3),
+                basePitch2,
+                pow(basePitch2, 2),
+                pow(basePitch2, 3),
+                traj.get("trunk_axis_y").pos(t),
+                pow(traj.get("trunk_axis_y").pos(t), 2),
+                pow(traj.get("trunk_axis_y").pos(t), 3),
+                traj.get("trunk_axis_y").pos(t-0.04),
+                pow(traj.get("trunk_axis_y").pos(t-0.04), 2),
+                pow(traj.get("trunk_axis_y").pos(t-0.04), 3),
+                traj.get("trunk_pos_x").pos(t),
+                pow(traj.get("trunk_pos_x").pos(t), 2),
+                pow(traj.get("trunk_pos_x").pos(t), 3),
+                traj.get("trunk_pos_x").pos(t-0.04),
+                pow(traj.get("trunk_pos_x").pos(t-0.04), 2),
+                pow(traj.get("trunk_pos_x").pos(t-0.04), 3);
+            Eigen::VectorXd params(19);
+            //params << 0.0103546211334937,    1.74794674232662, -0.0199965144590223,   -1.47061678542555,  -0.725820337320682,  -0.443239683432601,    2.73392480277782,   0.256862313765961,   -1.33153138729058,    3.55420789543342,  -0.283590499587426,   0.573616200027463,   -4.38768196123613,  0.0305010006062203,    22.8659275289408,    23.2178130052898,    1.06654758979916,    7.50814284189734,    18.0400387045032;
+
+            params << 0.171175921540038,  -2.04938242995119,   26.4791690980276,  -133.429826772291,  -1.97550591755917,   33.7710347540175,  -151.993181081481, -0.847598940928787,  -1.36185904648208,   3.57343177625409,  0.826883316896905,   1.47720437598528,  -4.18264295969538,  -1.50553611404296,  -6.87438200245366,  -365.137332830405,   2.26947070272837,   6.24171723202638,   286.151684252741;
+            double value = in.dot(params);
+            if (value > 1.0) value = 1.0;
+            if (value < -1.0) value = -1.0;
+            basePitch2 = basePitch1;
+            basePitch1 = value;
+            fitted.addPoint(t, value);
+            plot.add(Leph::VectorLabel("t", t, "value", value));
+        }
+        fitted.fittingSmooth(6);
+        traj.add("base_pitch");
+        traj.get("base_pitch").copyData(fitted);
+        for (double t=traj.min();t<=traj.max();t+=0.01) {
+            plot.add(Leph::VectorLabel("t", t, "fitted", traj.get("base_pitch").pos(t)));
+        }
+        //plot.plot("t", "all").render();
+
         return traj;
     });
 
@@ -897,33 +935,32 @@ void generateRecovery()
     generator.setCheckStateFunc(Leph::DefaultCheckState);
     generator.setCheckDOFFunc(Leph::DefaultCheckDOF);
 
-    Leph::SmoothSpline zmpSpline;
-    zmpSpline.addPoint(0.0, 0.0);
-    zmpSpline.addPoint(0.5, -0.02);
-    zmpSpline.addPoint(endTrajectoryTime, 0.0);
-    zmpSpline.plot().plot("t", "pos:*").render();
-
     //Set trajectory scoring function
-    generator.setScoreFunc([&zmpSpline](
+    generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
-        std::vector<double>& data) -> double {
-        
-        (void)model;
+        bool isDoubleSupport,
+        Leph::HumanoidFixedModel::SupportFoot supportFoot,
+        std::vector<double>& data) -> double
+    {    
         (void)data;
+
+        Eigen::VectorXd tmpTorques = torques;
+        tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_z")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
+        //tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
+        tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
+
         double cost = 0.0;
-        cost += 0.001*torques.norm();
-        Eigen::Vector3d zmp = model.zeroMomentPoint("origin", dq, ddq);
+        cost += 0.01*tmpTorques.norm();
+        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
         cost += fabs(zmp.y());
-        cost += fabs(zmpSpline.pos(t) - zmp.x());
-        /*
-        if (zmp.x() > 0.0) {
-            cost += 5.0*zmp.x();
-        }
-        */
+        cost += fabs(zmp.x());
 
         return cost;
     });
@@ -948,6 +985,7 @@ void generateRecovery()
     //Display found trajectory
     TrajectoriesDisplay(generator.bestTrajectories());
 }
+*/
 
 void generateWalk()
 {
@@ -960,36 +998,41 @@ void generateWalk()
         Eigen::VectorXd params = Eigen::VectorXd::Zero(61);
 
         //Double support ratio
-        params(0) = 0.5;
+        params(0) = 1.5;
+        //params(0) = 0.3;
 
         //Trunk pos double support begin
         params(1) = -0.01;
         params(2) = -0.03;
         params(3) = 0.24;
-        //Trunk pos velocity y
-        params(5) = -0.1;
+        //Trunk pos velocity x/y
+        params(4) = 0.2;
+        params(5) = -0.2;
 
         //Trunk pos double support end
         params(19) = 0.01;
         params(20) = -0.07;
         params(21) = 0.24;
-        //Trunk pos velocity y
-        params(23) = -0.1;
+        //Trunk pos velocity x/y
+        params(22) = 0.2;
+        params(23) = -0.2;
 
         //Foot double support lateral
-        params(37) = -0.1;
+        params(37) = -0.115;
 
         //Trunk position single support 
-        params(38) = 0.02;
+        params(38) = -0.04;
         params(39) = -0.01;
         params(40) = 0.24;
+        //Trunk position x vel
+        params(41) = 0.1;
         //Trunk axis x
-        params(46) = -0.3;
+        //params(46) = -0.1;
         //Foot position x/y
         params(54) = 0.0;
-        params(55) = -0.1;
+        params(55) = -0.115;
         //Foot velocity x
-        params(58) = 0.1;
+        params(56) = 0.3;
 
         return params;
     }());
@@ -999,14 +1042,16 @@ void generateWalk()
         [](const Eigen::VectorXd& params) -> Leph::Trajectories {
 
         //Walk configuration
-        double footHeight = 0.04;
-        double footStep = 0.0;
-        double cycleLength = 1.0;
+        double footHeight = 0.035;
+        double footStep = 0.04;
+        //double cycleLength = 1.0;
+        double cycleLength = params(0);
 
         //Double support time ratio
-        double doubleSupportRatio = params(0);
-        double timeDSLength = doubleSupportRatio*cycleLength;
-        double timeSSLength = (1.0-doubleSupportRatio)*cycleLength;
+        double doubleSupportRatio = 0.0;
+        //double doubleSupportRatio = params(0);
+        double timeDSLength = doubleSupportRatio*cycleLength/2.0;
+        double timeSSLength = (1.0-doubleSupportRatio)*cycleLength/2.0;
 
         //Time ratio
         double timeDSLeftBegin1 = 0.0;
@@ -1030,7 +1075,8 @@ void generateWalk()
         Eigen::Vector3d trunkAxis_DSEnd(params(28), params(29), params(30));
         Eigen::Vector3d trunkAxisVel_DSEnd(params(31), params(32), params(33));
         Eigen::Vector3d trunkAxisAcc_DSEnd(params(34), params(35), params(36));
-        Eigen::Vector3d footPos_DS(footStep, params(37), 0.0);
+        Eigen::Vector3d footPos_DS(footStep, -0.12, 0.0);
+        //Eigen::Vector3d footPos_DS(footStep, params(37), 0.0); TODO TODO
         
         //Single support target state
         Eigen::Vector3d trunkPos_SS(params(38), params(39), params(40));
@@ -1039,14 +1085,15 @@ void generateWalk()
         Eigen::Vector3d trunkAxis_SS(params(46), params(47), params(48));
         Eigen::Vector3d trunkAxisVel_SS(0.0, params(49), params(50));
         Eigen::Vector3d trunkAxisAcc_SS(params(51), params(52), params(53));
-        Eigen::Vector3d footPos_SS(params(54), params(55), footHeight);
+        Eigen::Vector3d footPos_SS(params(54), -0.12, footHeight);
+        //Eigen::Vector3d footPos_SS(params(54), params(55), footHeight); TODO TODO
         Eigen::Vector3d footPosVel_SS(params(56), params(57), 0.0);
         Eigen::Vector3d footPosAcc_SS(params(58), params(59), params(60));
 
         //Initialize state splines
         Leph::Trajectories traj = Leph::TrajectoriesInit();
         
-        //Support foot
+        //Support foot phase
         traj.get("is_double_support").addPoint(timeDSLeftBegin1, 1.0);
         traj.get("is_double_support").addPoint(timeDSLeftEnd, 1.0);
         traj.get("is_double_support").addPoint(timeDSLeftEnd, 0.0);
@@ -1071,6 +1118,7 @@ void generateWalk()
         traj.get("foot_axis_y").addPoint(timeDSLeftBegin2, 0.0);
         traj.get("foot_axis_z").addPoint(timeDSLeftBegin2, 0.0);
 
+        /*
         //Begin double support left 1
         traj.get("trunk_pos_x").addPoint(timeDSLeftBegin1, trunkPos_DSBegin.x(), trunkPosVel_DSBegin.x(), trunkPosAcc_DSBegin.x());
         traj.get("trunk_pos_y").addPoint(timeDSLeftBegin1, trunkPos_DSBegin.y(), trunkPosVel_DSBegin.y(), trunkPosAcc_DSBegin.y());
@@ -1091,6 +1139,7 @@ void generateWalk()
         traj.get("foot_pos_x").addPoint(timeDSLeftEnd, footPos_DS.x(), 0.0, 0.0);
         traj.get("foot_pos_y").addPoint(timeDSLeftEnd, footPos_DS.y(), 0.0, 0.0);
         traj.get("foot_pos_z").addPoint(timeDSLeftEnd, footPos_DS.z(), 0.0, 0.0);
+        */
         
         //Support foot swap
         traj.get("trunk_pos_x").addPoint(timeDSLeftEnd, trunkPos_DSEnd.x()-footPos_DS.x(), trunkPosVel_DSEnd.x(), trunkPosAcc_DSEnd.x());
@@ -1115,6 +1164,7 @@ void generateWalk()
         traj.get("foot_pos_z").addPoint(timeSSRightApex, footPos_SS.z(), footPosVel_SS.z(), footPosAcc_SS.z());
         
         //Begin double support right
+        /*
         traj.get("trunk_pos_x").addPoint(timeDSRightBegin, trunkPos_DSBegin.x(), trunkPosVel_DSBegin.x(), trunkPosAcc_DSBegin.x());
         traj.get("trunk_pos_y").addPoint(timeDSRightBegin, -trunkPos_DSBegin.y(), -trunkPosVel_DSBegin.y(), -trunkPosAcc_DSBegin.y());
         traj.get("trunk_pos_z").addPoint(timeDSRightBegin, trunkPos_DSBegin.z(), trunkPosVel_DSBegin.z(), trunkPosAcc_DSBegin.z());
@@ -1124,6 +1174,17 @@ void generateWalk()
         traj.get("foot_pos_x").addPoint(timeDSRightBegin, footPos_DS.x(), 0.0, 0.0);
         traj.get("foot_pos_y").addPoint(timeDSRightBegin, -footPos_DS.y(), 0.0, 0.0);
         traj.get("foot_pos_z").addPoint(timeDSRightBegin, footPos_DS.z(), 0.0, 0.0);
+        */
+        traj.get("trunk_pos_x").addPoint(timeDSRightBegin, trunkPos_DSEnd.x(), trunkPosVel_DSEnd.x(), trunkPosAcc_DSEnd.x());
+        traj.get("trunk_pos_y").addPoint(timeDSRightBegin, -trunkPos_DSEnd.y(), -trunkPosVel_DSEnd.y(), -trunkPosAcc_DSEnd.y());
+        traj.get("trunk_pos_z").addPoint(timeDSRightBegin, trunkPos_DSEnd.z(), trunkPosVel_DSEnd.z(), trunkPosAcc_DSEnd.z());
+        traj.get("trunk_axis_x").addPoint(timeDSRightBegin, -trunkAxis_DSEnd.x(), -trunkAxisVel_DSEnd.x(), -trunkAxisAcc_DSEnd.x());
+        traj.get("trunk_axis_y").addPoint(timeDSRightBegin, trunkAxis_DSEnd.y(), trunkAxisVel_DSEnd.y(), trunkAxisAcc_DSEnd.y());
+        traj.get("trunk_axis_z").addPoint(timeDSRightBegin, trunkAxis_DSEnd.z(), trunkAxisVel_DSEnd.z(), trunkAxisAcc_DSEnd.z());
+        traj.get("foot_pos_x").addPoint(timeDSRightBegin, footPos_DS.x(), 0.0, 0.0);
+        traj.get("foot_pos_y").addPoint(timeDSRightBegin, -footPos_DS.y(), 0.0, 0.0);
+        traj.get("foot_pos_z").addPoint(timeDSRightBegin, footPos_DS.z(), 0.0, 0.0);
+
         //End double support right
         traj.get("trunk_pos_x").addPoint(timeDSRightEnd, trunkPos_DSEnd.x(), trunkPosVel_DSEnd.x(), trunkPosAcc_DSEnd.x());
         traj.get("trunk_pos_y").addPoint(timeDSRightEnd, -trunkPos_DSEnd.y(), -trunkPosVel_DSEnd.y(), -trunkPosAcc_DSEnd.y());
@@ -1158,12 +1219,23 @@ void generateWalk()
         traj.get("foot_pos_z").addPoint(timeSSLeftApex, footPos_SS.z(), footPosVel_SS.z(), footPosAcc_SS.z());
         
         //Begin double support left 2
+        /*
         traj.get("trunk_pos_x").addPoint(timeDSLeftBegin2, trunkPos_DSBegin.x(), trunkPosVel_DSBegin.x(), trunkPosAcc_DSBegin.x());
         traj.get("trunk_pos_y").addPoint(timeDSLeftBegin2, trunkPos_DSBegin.y(), trunkPosVel_DSBegin.y(), trunkPosAcc_DSBegin.y());
         traj.get("trunk_pos_z").addPoint(timeDSLeftBegin2, trunkPos_DSBegin.z(), trunkPosVel_DSBegin.z(), trunkPosAcc_DSBegin.z());
         traj.get("trunk_axis_x").addPoint(timeDSLeftBegin2, trunkAxis_DSBegin.x(), trunkAxisVel_DSBegin.x(), trunkAxisAcc_DSBegin.x());
         traj.get("trunk_axis_y").addPoint(timeDSLeftBegin2, trunkAxis_DSBegin.y(), trunkAxisVel_DSBegin.y(), trunkAxisAcc_DSBegin.y());
         traj.get("trunk_axis_z").addPoint(timeDSLeftBegin2, trunkAxis_DSBegin.z(), trunkAxisVel_DSBegin.z(), trunkAxisAcc_DSBegin.z());
+        traj.get("foot_pos_x").addPoint(timeDSLeftBegin2, footPos_DS.x(), 0.0, 0.0);
+        traj.get("foot_pos_y").addPoint(timeDSLeftBegin2, footPos_DS.y(), 0.0, 0.0);
+        traj.get("foot_pos_z").addPoint(timeDSLeftBegin2, footPos_DS.z(), 0.0, 0.0);
+        */
+        traj.get("trunk_pos_x").addPoint(timeDSLeftBegin2, trunkPos_DSEnd.x(), trunkPosVel_DSEnd.x(), trunkPosAcc_DSEnd.x());
+        traj.get("trunk_pos_y").addPoint(timeDSLeftBegin2, trunkPos_DSEnd.y(), trunkPosVel_DSEnd.y(), trunkPosAcc_DSEnd.y());
+        traj.get("trunk_pos_z").addPoint(timeDSLeftBegin2, trunkPos_DSEnd.z(), trunkPosVel_DSEnd.z(), trunkPosAcc_DSEnd.z());
+        traj.get("trunk_axis_x").addPoint(timeDSLeftBegin2, trunkAxis_DSEnd.x(), trunkAxisVel_DSEnd.x(), trunkAxisAcc_DSEnd.x());
+        traj.get("trunk_axis_y").addPoint(timeDSLeftBegin2, trunkAxis_DSEnd.y(), trunkAxisVel_DSEnd.y(), trunkAxisAcc_DSEnd.y());
+        traj.get("trunk_axis_z").addPoint(timeDSLeftBegin2, trunkAxis_DSEnd.z(), trunkAxisVel_DSEnd.z(), trunkAxisAcc_DSEnd.z());
         traj.get("foot_pos_x").addPoint(timeDSLeftBegin2, footPos_DS.x(), 0.0, 0.0);
         traj.get("foot_pos_y").addPoint(timeDSLeftBegin2, footPos_DS.y(), 0.0, 0.0);
         traj.get("foot_pos_z").addPoint(timeDSLeftBegin2, footPos_DS.z(), 0.0, 0.0);
@@ -1176,9 +1248,11 @@ void generateWalk()
         if (params(0) <= 0.1) {
             return 1000.0 - 1000.0*(params(0) - 0.1);
         }
+        /*
         if (params(0) >= 0.9) {
             return 1000.0 + 1000.0*(params(0) - 0.9);
         }
+        */
         return 0.0;
     });
     //Set default Cartesian state and Joint DOF bounds
@@ -1192,13 +1266,46 @@ void generateWalk()
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
+        bool isDoubleSupport,
+        Leph::HumanoidFixedModel::SupportFoot supportFoot,
         std::vector<double>& data) -> double 
     {
         (void)t;
-        (void)model;
         (void)dq;
         (void)ddq;
+        
+        double cost = 0.0;
 
+        //Compute leg distance from trunk
+        double leftDistLeg = std::fabs(model.get().position("left_foot_tip", "trunk").z());
+        double rightDistLeg = std::fabs(model.get().position("right_foot_tip", "trunk").z());
+        if (leftDistLeg > 0.29) {
+            cost += 100.0;
+        }
+        if (leftDistLeg > 0.28) {
+            return leftDistLeg*10.0;
+        }
+        if (rightDistLeg > 0.29) {
+            cost += 100.0;
+        }
+        if (rightDistLeg > 0.28) {
+            return rightDistLeg*10.0;
+        }
+
+        //ZMP
+        /*
+        if (!isDoubleSupport) {
+            Eigen::Vector3d zmp;
+            if (supportFoot == Leph::HumanoidFixedModel::LeftSupportFoot) {
+                zmp = model.zeroMomentPointFromTorques("left_foot_tip", torques);
+            } else {
+                zmp = model.zeroMomentPointFromTorques("right_foot_tip", torques);
+            }
+            cost += 10.0*fabs(zmp.x()) + 10.0*fabs(zmp.y());
+        }
+        */
+
+        //Torques
         Eigen::VectorXd tmpTorques = torques;
         tmpTorques(model.get().getDOFIndex("base_x")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_y")) = 0.0;
@@ -1206,9 +1313,6 @@ void generateWalk()
         tmpTorques(model.get().getDOFIndex("base_yaw")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
-
-        double cost = 0.0;
-        //Torques
         cost += 0.01*tmpTorques.norm();
         //Maximum torque
         if (data.size() == 0) {
@@ -1218,16 +1322,19 @@ void generateWalk()
         if (data[0] < tmpTorques.lpNorm<Eigen::Infinity>()) {
             data[0] = tmpTorques.lpNorm<Eigen::Infinity>();
         }
+
         //Voltage
         Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
         cost += 0.01*(1.0/Leph::MotorModel::maxVoltage())*volts.norm();
         //Maximum voltage
         if (volts.lpNorm<Eigen::Infinity>() > 0.75*Leph::MotorModel::maxVoltage()) {
-            cost += 100.0 + 100.0*volts.lpNorm<Eigen::Infinity>();
+            //cost += 10.0 + 10.0*volts.lpNorm<Eigen::Infinity>();
+            //TODO
         }
         if (data[1] < volts.lpNorm<Eigen::Infinity>()) {
             data[1] = volts.lpNorm<Eigen::Infinity>();
         }
+
         return cost;
     });
     generator.setEndScoreFunc([](
@@ -1244,7 +1351,7 @@ void generateWalk()
     //Target filename
     std::string filename = "/tmp/trajWalk_" + Leph::currentDate() + ".splines";
     //Run the CMA-ES optimization
-    generator.runOptimization(5000, 5, filename, 20, -1.0);
+    generator.runOptimization(10000, 5, filename, 20, -1.0);
     //Display found trajectory
     TrajectoriesDisplay(generator.bestTrajectories());
 }
@@ -1265,9 +1372,9 @@ int main(int argc, char** argv)
     } else if (mode == "static") {
         generateStaticSingleSupport();
     } else if (mode == "recovery") {
-        generateRecovery();
+        //generateRecovery();
     } else if (mode == "walk") {
-        generateWalk();
+        //generateWalk();
     } else {
         std::cout << "Bad mode: " + mode << std::endl;
     }
