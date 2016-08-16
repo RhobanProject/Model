@@ -52,7 +52,9 @@ class TrajectoryGeneration
         typedef std::function<double(
             const Eigen::VectorXd& params,
             const Trajectories& traj,
-            std::vector<double>& data)> 
+            double score,
+            std::vector<double>& data,
+            bool verbose)> 
             EndScoreFunc;
 
         /**
@@ -157,7 +159,9 @@ class TrajectoryGeneration
         double endScore(
             const Eigen::VectorXd& params,
             const Trajectories& traj,
-            std::vector<double>& data) const;
+            double score,
+            std::vector<double>& data,
+            bool verbose) const;
 
         /**
          * Build up the Trajectories from 

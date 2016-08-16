@@ -320,9 +320,13 @@ int main()
     generator.setEndScoreFunc([](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj,
-        std::vector<double>& data) -> double {
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double {
         (void)params;
         (void)traj;
+        (void)score;
+        (void)verbose;
         double cost = 0.0;
         if (data[0] > Leph::MotorModel::maxVoltage()) {
             cost += 5.0 + 5.0*data[0];

@@ -267,9 +267,13 @@ void generateLegLift()
     generator.setEndScoreFunc([](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj,
-        std::vector<double>& data) -> double {
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double {
         (void)params;
         (void)traj;
+        (void)score;
+        (void)verbose;
         return data[0];
     });
     
@@ -375,7 +379,7 @@ void generateKick()
 
     //Set Trajectory generation function
     generator.setTrajectoryGenerationFunc([&KickPosX, &KickPosY, &KickPosZ](const Eigen::VectorXd& params) -> Leph::Trajectories {
-        double KickSpeed = 1.0;
+        double KickSpeed = 1.5;
         double endTrajectoryTime = 3.0;
         double ratioContactTime = params(0);
 
@@ -540,16 +544,25 @@ void generateKick()
         std::vector<double>& data) -> double 
     {
         (void)t;
-        (void)data;
         (void)isDoubleSupport;
         (void)supportFoot;
         
         double cost = 0.0;
+        
+        //Init data
+        if (data.size() == 0) {
+            data.push_back(0.0);
+            data.push_back(0.0);
+        }
 
         //ZMP
         Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
         zmp.z() = 0.0;
         cost += zmp.norm();
+        //Max ZMP
+        if (data[0] < zmp.lpNorm<Eigen::Infinity>()) {
+            data[0] = zmp.lpNorm<Eigen::Infinity>();
+        }
         
         //Torques
         Eigen::VectorXd tmpTorques = torques;
@@ -560,16 +573,43 @@ void generateKick()
         tmpTorques(model.get().getDOFIndex("base_pitch")) = 0.0;
         tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
         cost += 0.01*tmpTorques.norm();
+        
+        //Voltage
+        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
+        //Maximum voltage
+        if (data[1] < volts.lpNorm<Eigen::Infinity>()) {
+            data[1] = volts.lpNorm<Eigen::Infinity>();
+        }
+
         return cost;
     });
     generator.setEndScoreFunc([](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
-        std::vector<double>& data) -> double {
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double {
         (void)params;
         (void)traj;
-        (void)data;
-        return 0.0;
+        if (verbose) {
+            std::cout << "SumTorque=" << score 
+                << " MaxZMP=" << data[0] 
+                << " MaxVolt=" << data[1] << std::endl;
+        }
+        double cost = 0.0;
+        if (fabs(data[1]) > 0.75*12.0) {
+            cost = 10.0 + 10.0*data[1];
+            if (verbose) {
+                std::cout << "VoltBound=" << cost << std::endl;
+            }
+        } else {
+            cost = 150.0*data[0] + 0.2*data[1];
+            if (verbose) {
+                std::cout << "ZMPCost=" << 150.0*data[0] 
+                    << " VoltCost=" << 0.2*data[1] << std::endl;
+            }
+        }
+        return cost;
     });
     
     //Display initial trajectory
@@ -691,7 +731,9 @@ void generateStaticSingleSupport()
     generator.setEndScoreFunc([](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
-        std::vector<double>& data) -> double {
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double {
         (void)params;
         (void)data;
         (void)traj;
@@ -1340,9 +1382,13 @@ void generateWalk()
     generator.setEndScoreFunc([](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj, 
-        std::vector<double>& data) -> double {
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double {
         (void)params;
         (void)traj;
+        (void)score;
+        (void)verbose;
         return 5.0*data[0] + 0.1*data[1];
     });
     

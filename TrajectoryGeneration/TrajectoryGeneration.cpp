@@ -112,9 +112,12 @@ double TrajectoryGeneration::score(
 double TrajectoryGeneration::endScore(
     const Eigen::VectorXd& params,
     const Trajectories& traj,
-    std::vector<double>& data) const
+    double score,
+    std::vector<double>& data,
+    bool verbose) const
 {
-    return _endScoreFunc(params, traj, data);
+    return _endScoreFunc(params, traj, 
+        score, data, verbose);
 }
         
 double TrajectoryGeneration::scoreTrajectory(
@@ -216,7 +219,7 @@ double TrajectoryGeneration::scoreTrajectory(
             data);
     }
     //Ending trajectory scoring
-    cost += endScore(params, traj, data);
+    cost += endScore(params, traj, cost, data, verbose);
 
     return cost;
 }
@@ -269,6 +272,12 @@ void TrajectoryGeneration::runOptimization(
                 << _bestScore << std::endl;
             std::cout << "BestParams: " 
                 << _bestParams.transpose() << std::endl;
+            std::cout << "BestFitness verbose:" << std::endl;
+            scoreTrajectory(_bestParams, true);
+            std::cout << "CurrentScore: " 
+                << score << std::endl;
+            std::cout << "CurrentFitness verbose:" << std::endl;
+            scoreTrajectory(params, true);
             std::cout << "============" 
                 << std::endl;
         }
