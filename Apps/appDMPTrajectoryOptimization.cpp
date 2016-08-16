@@ -8,43 +8,35 @@
 #include "Utils/AxisAngle.h"
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
+#include "Utils/time.h"
+#include "Utils/FileVector.h"
 #include "Plot/Plot.hpp"
 
 /**
  * Configuration
  */
 static unsigned int kernelNum = 8;
-static double overlap = 0.2;
+static double overlap = 0.8;
 static double maxTimeStep = 0.005;
 static double timeLength = 3.0;
 static double kickTime = 1.5;
 static double kickPosX = 0.01;
 static double kickPosY = -0.11;
 static double kickPosZ = 0.07;
-static double kickVelX = 0.3;
-
-/**
- * Return initial parameterd
- */
-static Eigen::VectorXd initParameters()
-{
-    Eigen::VectorXd params = Eigen::VectorXd::Zero(9*kernelNum+1);
-    //Eigen::VectorXd params = Eigen::VectorXd::Zero(2*9*kernelNum+1);
-    params(9*kernelNum) = 100.0*0.2;
-    return params;
-}
+static double kickVelX = 1.0;
 
 /**
  * Build DMP Spline trajectories from given parameters
  */
-static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::VectorXd& params)
+static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::VectorXd& params, bool noWidthsInit = false)
 {
+    //Target static pose
     Leph::SplineContainer<Leph::DMPSpline> traj;
-
     Eigen::Vector3d staticTrunkPos(-0.00557785331559037,  -0.0115849568418458, 0.28);
     Eigen::Vector3d staticTrunkAngles(-0.672036398746933, 0.0743358280850477, 0.0028323027017884);
     Eigen::Vector3d staticFootPos(0.0208647084129351, -0.095, 0.0591693358237435);
 
+    //Declare dimension
     traj.add("trunk_pos_x", kernelNum, overlap, maxTimeStep);
     traj.add("trunk_pos_y", kernelNum, overlap, maxTimeStep);
     traj.add("trunk_pos_z", kernelNum, overlap, maxTimeStep);
@@ -55,6 +47,7 @@ static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::Vec
     traj.add("foot_pos_y", kernelNum, overlap, maxTimeStep);
     traj.add("foot_pos_z", kernelNum, overlap, maxTimeStep);
 
+    //Start points
     traj.get("trunk_pos_x").addPoint(0.0, staticTrunkPos.x());
     traj.get("trunk_pos_y").addPoint(0.0, staticTrunkPos.y());
     traj.get("trunk_pos_z").addPoint(0.0, staticTrunkPos.z());
@@ -64,12 +57,11 @@ static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::Vec
     traj.get("foot_pos_x").addPoint(0.0, staticFootPos.x());
     traj.get("foot_pos_y").addPoint(0.0, staticFootPos.y());
     traj.get("foot_pos_z").addPoint(0.0, staticFootPos.z());
-    
-    double tmpKickVelX = params(9*kernelNum)/100.0;
-    traj.get("foot_pos_x").addPoint(kickTime, kickPosX, tmpKickVelX, 0.0);
+    //Kick points
+    traj.get("foot_pos_x").addPoint(kickTime, kickPosX, kickVelX, 0.0);
     traj.get("foot_pos_y").addPoint(kickTime, kickPosY, 0.0, 0.0);
     traj.get("foot_pos_z").addPoint(kickTime, kickPosZ, 0.0, 0.0);
-    
+    //End points
     traj.get("trunk_pos_x").addPoint(timeLength, staticTrunkPos.x());
     traj.get("trunk_pos_y").addPoint(timeLength, staticTrunkPos.y());
     traj.get("trunk_pos_z").addPoint(timeLength, staticTrunkPos.z());
@@ -80,6 +72,7 @@ static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::Vec
     traj.get("foot_pos_y").addPoint(timeLength, staticFootPos.y());
     traj.get("foot_pos_z").addPoint(timeLength, staticFootPos.z());
 
+    //Set weights
     traj.get("trunk_pos_x").setKernelWeights(params.segment(0*kernelNum, kernelNum));
     traj.get("trunk_pos_y").setKernelWeights(params.segment(1*kernelNum, kernelNum));
     traj.get("trunk_pos_z").setKernelWeights(params.segment(2*kernelNum, kernelNum));
@@ -90,20 +83,36 @@ static Leph::SplineContainer<Leph::DMPSpline> buildTrajectories(const Eigen::Vec
     traj.get("foot_pos_y").setKernelWeights(params.segment(7*kernelNum, kernelNum));
     traj.get("foot_pos_z").setKernelWeights(params.segment(8*kernelNum, kernelNum));
     
-    /*
-    traj.get("trunk_pos_x").setKernelWidths(params.segment(9*kernelNum, kernelNum));
-    traj.get("trunk_pos_y").setKernelWidths(params.segment(10*kernelNum, kernelNum));
-    traj.get("trunk_pos_z").setKernelWidths(params.segment(11*kernelNum, kernelNum));
-    traj.get("trunk_axis_x").setKernelWidths(params.segment(12*kernelNum, kernelNum));
-    traj.get("trunk_axis_y").setKernelWidths(params.segment(13*kernelNum, kernelNum));
-    traj.get("trunk_axis_z").setKernelWidths(params.segment(14*kernelNum, kernelNum));
-    traj.get("foot_pos_x").setKernelWidths(params.segment(15*kernelNum, kernelNum));
-    traj.get("foot_pos_y").setKernelWidths(params.segment(16*kernelNum, kernelNum));
-    traj.get("foot_pos_z").setKernelWidths(params.segment(17*kernelNum, kernelNum));
-    */
+    //Set widths
+    if (!noWidthsInit) {
+        traj.get("trunk_pos_x").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("trunk_pos_y").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("trunk_pos_z").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("trunk_axis_x").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("trunk_axis_y").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("trunk_axis_z").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("foot_pos_x").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("foot_pos_y").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+        traj.get("foot_pos_z").setKernelWidths(params.segment(9*kernelNum, kernelNum));
+    }
 
     return traj;
 }
+
+/**
+ * Return initial parameters
+ */
+static Eigen::VectorXd initParameters()
+{
+    Eigen::VectorXd params = Eigen::VectorXd::Zero(9*kernelNum + kernelNum);
+    //Init weights
+    params.segment(0, 9*kernelNum) = 10.0*Eigen::VectorXd::Ones(9*kernelNum);
+    //Init widths
+    Leph::SplineContainer<Leph::DMPSpline> traj = buildTrajectories(params, true);
+    params.segment(9*kernelNum, kernelNum) = traj.get("trunk_pos_x").getKernelWidths();
+    return params;
+}
+
 
 /**
  * Score the given DMP trajectory using Robot Model
@@ -120,6 +129,7 @@ static double scoreTrajectories(Leph::SplineContainer<Leph::DMPSpline>& traj, bo
     }
 
     double score = 0.0;
+    double maxTorque = 0.0;
     for (double t=min;t<=max;t+=0.01) {
         Eigen::Vector3d trunkPos;
         Eigen::Vector3d trunkAngles;
@@ -191,14 +201,25 @@ static double scoreTrajectories(Leph::SplineContainer<Leph::DMPSpline>& traj, bo
             footPosAcc,
             Leph::AxisDiffToAngularDiff(footAngles, footAnglesAcc));
         
+        //Compute dynamic torques
         Eigen::VectorXd torques = model.get().inverseDynamics(dq, ddq);
+
+        //Max ZMP torques
+        double zmp = 0.0;
+        zmp += fabs(torques(model.get().getDOFIndex("base_pitch")));
+        zmp += fabs(torques(model.get().getDOFIndex("base_roll")));
+        if (zmp > maxTorque) {
+            maxTorque = zmp;
+        }
+
+        //DOF torques
         torques(model.get().getDOFIndex("base_x")) = 0.0;
         torques(model.get().getDOFIndex("base_y")) = 0.0;
         torques(model.get().getDOFIndex("base_z")) = 0.0;
         torques(model.get().getDOFIndex("base_yaw")) = 0.0;
         torques(model.get().getDOFIndex("base_pitch")) = 0.0;
         torques(model.get().getDOFIndex("base_roll")) = 0.0;
-        score += 0.1*torques.norm();
+        score += 0.01*torques.norm();
 
         if (verbose) {
             Leph::ModelDraw(model.get(), *viewer);
@@ -206,6 +227,7 @@ static double scoreTrajectories(Leph::SplineContainer<Leph::DMPSpline>& traj, bo
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
+    score += maxTorque;
 
     if (verbose) {
         delete viewer;
@@ -255,25 +277,29 @@ int main()
     libcmaes::FitFuncEigen fitness = 
         [](const Eigen::VectorXd& params) 
     {
+        //Bound widths parameters
         Eigen::VectorXd tmpParams = params;
-        if (tmpParams(9*kernelNum) <= 0.1) {
-            tmpParams(9*kernelNum) = 0.1;
-            return 1000.0 + -1000.0*params(9*kernelNum);
+        double cost = 0.0;
+        for (size_t i=9*kernelNum;i<(size_t)params.size();i++) {
+            if (tmpParams(i) < 0.1) {
+                cost += 500.0 - 100.0*tmpParams(i);
+                tmpParams(i) = 0.1;
+            }
         }
+        //Score trajectory
         Leph::SplineContainer<Leph::DMPSpline> traj = buildTrajectories(tmpParams);
         double scoreTraj = scoreTrajectories(traj, false);
-        double scoreVel = 100.0*20.0/tmpParams(9*kernelNum);
-        return scoreTraj + scoreVel;
+        return scoreTraj + cost;
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 10.0, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, -1.0, 20);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
     cmaparams.set_restarts(1);
-    cmaparams.set_max_iter(1000);
+    cmaparams.set_max_iter(500);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
@@ -309,6 +335,10 @@ int main()
         .plot("t", "forcing:foot_pos_y")
         .plot("t", "forcing:foot_pos_z")
         .render();
+    Leph::WriteVector("/tmp/DMPKick_" 
+        + Leph::currentDate() + ".params", bestParams);
+    bestTraj.exportData("/tmp/DMPKick_" 
+        + Leph::currentDate() + ".splines");
     while (true) {
         scoreTrajectories(bestTraj, true);
     }
