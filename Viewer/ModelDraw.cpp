@@ -166,5 +166,29 @@ void FieldDraw(
     viewer.drawCylinder(p18, 0.1, 1.8, 1.0, 1.0, 1.0);
 }
 
+void CleatsDraw(
+    HumanoidSimulation& simulation,
+    ModelViewer& viewer)
+{
+    std::vector<std::string> names = {
+        "left_cleat_1", "left_cleat_2",
+        "left_cleat_3", "left_cleat_4",
+        "right_cleat_1", "right_cleat_2",
+        "right_cleat_3", "right_cleat_4",
+    };
+    for (const std::string& name : names) {
+        Eigen::Vector3d pos = simulation.model().position(name, "origin");
+        Eigen::Vector3d force = simulation.getCleatForce(name);
+        if (force.z() >= 0.0) {
+            viewer.drawCylinder(
+                pos, 0.002, 0.01*force.z(), 1.0, 1.0, 1.0);
+        } else {
+            viewer.drawCylinder(
+                pos + Eigen::Vector3d(0.0, 0.0, 0.01*force.z()), 
+                0.002, -0.01*force.z(), 1.0, 0.0, 0.0);
+        }
+    }
+}
+
 }
 

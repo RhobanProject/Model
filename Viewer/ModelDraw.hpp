@@ -3,6 +3,7 @@
 
 #include "Model/Model.hpp"
 #include "Model/HumanoidModel.hpp"
+#include "Model/HumanoidSimulation.hpp"
 #include "Viewer/ModelViewer.hpp"
 
 namespace Leph {
@@ -34,6 +35,16 @@ void CameraDraw(
 void FieldDraw(
     const Eigen::Vector3d& center,
     double yaw,
+    ModelViewer& viewer);
+
+/**
+ * CleatsDraw
+ *
+ * Display foot cleat of given
+ * HumanoidModel given given force
+ */
+void CleatsDraw(
+    HumanoidSimulation& simulation,
     ModelViewer& viewer);
 
 }

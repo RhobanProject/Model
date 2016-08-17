@@ -82,6 +82,7 @@ set(SOURCES_FILES
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
+    Model/HumanoidSimulation.cpp
     Model/MotorModel.cpp
     Model/JointModel.cpp
     Model/OdometryModel.cpp
@@ -157,6 +158,9 @@ set(APPS_FILES
     appOdometryOffline
     appTrajectoriesFitting
     appStatsDynaban
+    appTrajectoriesKickGeneration
+    appOdometryModelCalibration
+    appHumanoidSimulationLearning
 )
 
 #Build App RhIO Viewer 
@@ -214,6 +218,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testForwardSimulation
         testQuinticWalk
         testCameraModel
+        testHumanoidSimulation
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
