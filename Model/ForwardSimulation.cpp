@@ -51,6 +51,16 @@ JointModel& ForwardSimulation::jointModel(const std::string& name)
 {
     return jointModel(_model->getDOFIndex(name));
 }
+        
+void ForwardSimulation::setJointModelParameters(
+    const Eigen::VectorXd& params)
+{
+    for (size_t i=0;i<_jointModels.size();i++) {
+        if (_jointModels[i].getType() == JointModel::JointActuated) {
+            _jointModels[i].setParameters(params);
+        }
+    }
+}
 
 const Eigen::VectorXd& ForwardSimulation::positions() const
 {

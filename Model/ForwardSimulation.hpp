@@ -35,6 +35,12 @@ class ForwardSimulation
         JointModel& jointModel(size_t index);
         const JointModel& jointModel(const std::string& name) const;
         JointModel& jointModel(const std::string& name);
+        
+        /**
+         * Assign given joints parameters to all 
+         * internal joint models
+         */
+        void setJointModelParameters(const Eigen::VectorXd& params);
 
         /**
          * Access to current state

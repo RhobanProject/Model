@@ -23,7 +23,7 @@ JointModel::JointModel(
         //Friction velocity limit
         _parameters(0) = 0.2;
         //Friction viscous
-        _parameters(1) = 0.2;
+        _parameters(1) = 0.05;
         //Friction static Coulomb
         _parameters(2) = 1.0;
         //Friction static breakaway
@@ -178,7 +178,9 @@ void JointModel::boundState(double& pos, double& vel)
     //Check numerical instability
     if (fabs(pos) > 1e10 || fabs(vel) > 1e10) {
         throw std::runtime_error(
-            "JointModel numerical instability");
+            "JointModel numerical instability:"
+            + std::string(" pos=") + std::to_string(pos)
+            + std::string(" vel=") + std::to_string(vel));
     }
     //Bound position angle inside [-PI:PI]
     if (_type == JointActuated) {
