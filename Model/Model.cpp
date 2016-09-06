@@ -520,6 +520,128 @@ Eigen::VectorXd Model::forwardDynamics(
     return QDDot;
 }
 
+Eigen::VectorXd Model::forwardDynamicsPartial(
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXi& enabled,
+    RBDLMath::LinearSolver solver)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
+    }
+    if (enabled.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid enabled vector size");
+    }
+
+    //Computed returned acceleration
+    Eigen::VectorXd acceleration = 
+        Eigen::VectorXd::Zero(_model.dof_count);
+
+    //Compute full H anc C matrix
+    RBDLMath::MatrixNd H = RBDLMath::MatrixNd::Zero(
+        _model.dof_count, _model.dof_count);
+    RBDLMath::VectorNd C = RBDLMath::VectorNd::Zero(
+        _model.dof_count);
+    //Compute C with inverse dynamics
+    acceleration.setZero();
+    RBDL::InverseDynamics(_model, 
+        position, velocity, acceleration, C, NULL);
+    //Compute H
+    RBDL::CompositeRigidBodyAlgorithm(
+        _model, position, H, false);
+
+    //Count activated DOF
+    size_t sizeEnabled = 0;
+    for (size_t i=0;i<(size_t)enabled.size();i++) {
+        if (enabled(i) != 0) {
+            sizeEnabled++;
+        }
+    }
+    if (sizeEnabled == 0) {
+        acceleration.setZero();
+        return acceleration;
+    }
+    //Build shrinked vector
+    RBDLMath::MatrixNd H2 = 
+        RBDLMath::MatrixNd::Zero(sizeEnabled, sizeEnabled);
+    RBDLMath::VectorNd C2 = 
+        RBDLMath::VectorNd::Zero(sizeEnabled);
+    RBDLMath::VectorNd pos2 = 
+        RBDLMath::VectorNd::Zero(sizeEnabled);
+    RBDLMath::VectorNd vel2 = 
+        RBDLMath::VectorNd::Zero(sizeEnabled);
+    RBDLMath::VectorNd acc2 = 
+        RBDLMath::VectorNd::Zero(sizeEnabled);
+    RBDLMath::VectorNd torque2 = 
+        RBDLMath::VectorNd::Zero(sizeEnabled);
+    size_t index = 0;
+    for (size_t i=0;i<(size_t)enabled.size();i++) {
+        if (enabled(i) != 0) {
+            pos2(index) = position(i);
+            vel2(index) = velocity(i);
+            acc2(index) = acceleration(i);
+            torque2(index) = torque(i);
+            C2(index) = C(i);
+            size_t index2 = 0;
+            for (size_t j=0;j<(size_t)enabled.size();j++) {
+                if (enabled(j) != 0) {
+                    H2(index, index2) = H(i, j);
+                    index2++;
+                }
+            }
+            index++;
+        }
+    }
+
+    //Solve the linear system
+    switch (solver) {
+        case RBDLMath::LinearSolverPartialPivLU:
+            acc2 = H2.partialPivLu().solve(-C2 + torque2);
+            break;
+        case RBDLMath::LinearSolverColPivHouseholderQR:
+            acc2 = H2.colPivHouseholderQr().solve(-C2 + torque2);
+            break;
+        case RBDLMath::LinearSolverHouseholderQR:
+            acc2 = H2.householderQr().solve(-C2 + torque2);
+            break;
+        case RBDLMath::LinearSolverLLT:
+            acc2 = H2.llt().solve(-C2 + torque2);
+            break;
+        case RBDLMath::LinearSolverFullPivLU:
+            acc2 = H2.fullPivLu().solve(-C2 + torque2);
+            break;
+        case RBDLMath::LinearSolverFullPivHouseholderQR:
+            acc2 = H2.fullPivHouseholderQr().solve(-C2 + torque2);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+    
+    //Re assign output acceleration vector
+    index = 0;
+    for (size_t i=0;i<(size_t)enabled.size();i++) {
+        if (enabled(i) != 0) {
+            acceleration(i) = acc2(index);
+            index++;
+        }
+    }
+
+    return acceleration;
+}
+
 Eigen::VectorXd Model::forwardDynamicsContacts(
     RBDL::ConstraintSet& constraints,
     const Eigen::VectorXd& position,

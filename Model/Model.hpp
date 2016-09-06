@@ -277,6 +277,24 @@ class Model
             const Eigen::VectorXd& position,
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& torque);
+        
+        /**
+         * Compute Forward Dynamics on the tree model
+         * and return acceleration for each degrees of
+         * freedom.
+         * DOFs position, velocity and applied torque 
+         * are given. Only DOF with non zero value in
+         * enabled vector are non fixed.
+         * Eigen linear solver can be choosen.
+         * (Re-implement custom RBDL function).
+         */
+        Eigen::VectorXd forwardDynamicsPartial(
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque,
+            const Eigen::VectorXi& enabled,
+            RBDLMath::LinearSolver solver = 
+                RBDLMath::LinearSolverColPivHouseholderQR);
 
         /**
          * Compute Forward Dynamics on the tree model
