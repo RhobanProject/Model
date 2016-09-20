@@ -260,7 +260,7 @@ class Plot
          * Render the plot
          * Wait until plot window is closed
          */
-        inline void render(const std::string& exportFile = "")
+        inline void render(bool waitExit = true, const std::string& exportFile = "")
         {
             if (_plots2D.size() > 0 && _plots3D.size() > 0) {
                 throw std::logic_error("Plot error 2d and 3d request");
@@ -288,7 +288,9 @@ class Plot
                     throw std::logic_error("Plot closed pipe fd");
                 }
                 write(_pipeFd, commands.c_str(), commands.length());
-                waitCloseGnuplotInstance();
+                if (waitExit) {
+                    waitCloseGnuplotInstance();
+                }
             }
             
             clearPlots();
