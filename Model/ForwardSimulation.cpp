@@ -8,14 +8,18 @@ ForwardSimulation::ForwardSimulation(Model& model) :
     _jointModels(),
     _positions(Eigen::VectorXd::Zero(_model->sizeDOF())),
     _velocities(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _actives(Eigen::VectorXi::Zero(model.sizeDOF())),
     _goals(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _jointTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _accelerations(Eigen::VectorXd::Zero(_model->sizeDOF()))
+    _accelerations(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _outputTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _frictionTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _controlTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _inputTorques(Eigen::VectorXd::Zero(_model->sizeDOF()))
 {
     //Init joint models
     for (size_t i=0;i<_model->sizeDOF();i++) {
         std::string name = _model->getDOFName(i);
-        //Spacial base DOF ate set as free
+        //Special base DOF case set as Free
         if (name.find("base_") != std::string::npos) {
             _jointModels.push_back(JointModel(
                 JointModel::JointFree, name));
@@ -78,6 +82,14 @@ Eigen::VectorXd& ForwardSimulation::velocities()
 {
     return _velocities;
 }
+const Eigen::VectorXi& ForwardSimulation::actives() const
+{
+    return _actives;
+}
+Eigen::VectorXi& ForwardSimulation::actives()
+{
+    return _actives;
+}
 const Eigen::VectorXd& ForwardSimulation::goals() const
 {
     return _goals;
@@ -86,19 +98,23 @@ Eigen::VectorXd& ForwardSimulation::goals()
 {
     return _goals;
 }
-const Eigen::VectorXd& ForwardSimulation::jointTorques() const
+const Eigen::VectorXd& ForwardSimulation::outputTorques() const
 {
-    return _jointTorques;
+    return _outputTorques;
 }
-Eigen::VectorXd& ForwardSimulation::jointTorques()
+const Eigen::VectorXd& ForwardSimulation::frictionTorques() const
 {
-    return _jointTorques;
+    return _frictionTorques;
+}
+const Eigen::VectorXd& ForwardSimulation::controlTorques() const
+{
+    return _controlTorques;
+}
+const Eigen::VectorXd& ForwardSimulation::inputTorques() const
+{
+    return _inputTorques;
 }
 const Eigen::VectorXd& ForwardSimulation::accelerations() const
-{
-    return _accelerations;
-}
-Eigen::VectorXd& ForwardSimulation::accelerations()
 {
     return _accelerations;
 }
@@ -106,22 +122,15 @@ Eigen::VectorXd& ForwardSimulation::accelerations()
 void ForwardSimulation::update(double dt,
     RBDL::ConstraintSet* constraints)
 {
+    //Save last computed velocities
     size_t size = _model->sizeDOF();
+    Eigen::VectorXd lastVelocities = _velocities;
 
-    //Update DOF output torque from goal
-    //and current state
+    //Update joint model state
     for (size_t i=0;i<size;i++) {
-        _jointTorques(i) = 0.0;
-        _jointTorques(i) += _jointModels[i].frictionTorque(
-            _positions(i), _velocities(i));
-        _jointTorques(i) += _jointModels[i].controlTorque(
-            dt, _goals(i), _positions(i), _velocities(i)); 
+        _jointModels[i].updateState(
+            dt, _goals(i), _positions(i), _velocities(i));
     }
-
-    //Build generalized state
-    Eigen::VectorXd state(2*size);
-    state.segment(0, size) = _positions;
-    state.segment(size, size) = _velocities;
 
     //Compute and return the generalized state
     //derivative from given state
@@ -129,36 +138,138 @@ void ForwardSimulation::update(double dt,
     //velocity)
     //Call model forward dynamics
     auto differential = 
-        [this, constraints](const Eigen::VectorXd& state) -> Eigen::VectorXd 
+        [this, &lastVelocities, constraints]
+        (const Eigen::VectorXd& state) -> Eigen::VectorXd 
     {
+        //Use modified state and joint actives
+        Eigen::VectorXd usedState = state;
+        Eigen::VectorXi usedActives = this->_actives;
+
         size_t size = this->_model->sizeDOF();
+        //Compute joint friction and control torque
+        for (size_t i=0;i<size;i++) {
+            if (this->_actives(i) != 0) {
+                //Compute non static control and torque friction
+                this->_frictionTorques(i) = this->_jointModels[i]
+                    .frictionTorque(state(i), state(size+i));
+                this->_controlTorques(i) = this->_jointModels[i]
+                    .controlTorque(state(i), state(size+i));
+                //If a joint has just been activated 
+                //in the last iteration, its velocity is zero.
+                //The friction torque sign could not be computed using
+                //the velocity. For this initial iteration, the current 
+                //friction torque sign is set to counter the applied
+                //external torque (same as for disable to enable condition) 
+                //of last iteration as if it was simulated and not moving.
+                if (lastVelocities(i) == 0.0) { 
+                    this->_frictionTorques(i) = 
+                        (this->_inputTorques(i)+this->_controlTorques(i) > 0.0 ? -1.0 : 1.0)
+                        * fabs(this->_frictionTorques(i));
+                }
+                //Sum applied torque on the jount
+                this->_outputTorques(i) = 
+                    this->_frictionTorques(i) + 
+                    this->_controlTorques(i);
+                //Due to Runge-Kutta integration, the current velocity
+                //can be inverted during the multitple evaluations.
+                //To prevent numerical instability, joints with inverted
+                //velocity is temporary disable for the differential evaluation 
+                //in the same ways as after the state update.
+                if (
+                    (state(size+i) < 0.0 && lastVelocities(i) > 0.0) ||
+                    (state(size+i) > 0.0 && lastVelocities(i) < 0.0)
+                ) {
+                    usedState(size+i) = 0.0;
+                    usedActives(i) = 0;
+                }
+            } else {
+                //No applied torque (not used) if the joint is disabled
+                this->_outputTorques(i) = 0.0;
+            }
+        }
+        //Compute partial (with fixed DOF for static friction)
+        //Forward Dynamics
         if (constraints == nullptr) {
-            this->_accelerations = this->_model->forwardDynamics(
-                state.segment(0, size),
-                state.segment(size, size),
-                this->_jointTorques);
+            this->_accelerations = this->_model->forwardDynamicsPartial(
+                usedState.segment(0, size),
+                usedState.segment(size, size),
+                this->_outputTorques,
+                usedActives, 
+                RBDLMath::LinearSolverFullPivHouseholderQR);
         } else {
+            //TODO TODO TODO
             this->_accelerations = this->_model->forwardDynamicsContacts(
                 *constraints,
-                state.segment(0, size),
-                state.segment(size, size),
-                this->_jointTorques);
+                usedState.segment(0, size),
+                usedState.segment(size, size),
+                this->_outputTorques);
         }
-
+        //Build generalized state derivative
         Eigen::VectorXd diff(2*size);
         diff.segment(0, size) = state.segment(size, size);
         diff.segment(size, size) = this->_accelerations;
-
         return diff;
     };
+    
+    //Build generalized state
+    Eigen::VectorXd state(2*size);
+    state.segment(0, size) = _positions;
+    state.segment(size, size) = _velocities;
 
-    //Compute next state
+    //Compute next state with 
+    //Runge-Kutta integration
     Eigen::VectorXd nextState = RungeKutta4Integration(
         state, dt, differential);
 
     //Retrieve data
     _positions = nextState.segment(0, size);
     _velocities = nextState.segment(size, size);
+    //Assign model position state
+    _model->setDOFVect(_positions);
+        
+    //Recompute with Inverse Dynamics 
+    //applied torque on each DOF
+    //(minus because InverseDynamics compute the 
+    //needed torque to produce given acceleration).
+    _inputTorques = - _model->inverseDynamics(_velocities, _accelerations);
+
+    //Handle joint activation and static friction
+    bool isOneActivation = false;
+    for (size_t i=0;i<(size_t)_velocities.size();i++) {
+        //Re compute friction and control torques
+        _frictionTorques(i) = _jointModels[i].frictionTorque(_positions(i), _velocities(i));
+        _controlTorques(i) = _jointModels[i].controlTorque(_positions(i), _velocities(i));
+        //Compute current friction torque 
+        //in case of static state
+        double staticFrictionCurrent = fabs(_inputTorques(i) + _controlTorques(i));
+        //Compute friction torque limit (Coulonb cone).
+        //1.01 prevent false numerical activation of joint
+        double staticFrictionLimit = 1.01*fabs(_frictionTorques(i));
+        if (
+            (_actives(i) != 0) &&
+            ((_velocities(i) < 0.0 && lastVelocities(i) > 0.0) ||
+            (_velocities(i) > 0.0 && lastVelocities(i) < 0.0))
+        ) {
+            //Disable the joint when the friction 
+            //causes velocity sign change to goes to 
+            //zero velocity
+            _velocities(i) = 0.0;
+            _accelerations(i) = 0.0;
+            _actives(i) = 0;
+        } else if (
+            _actives(i) == 0 &&
+            !isOneActivation &&
+            staticFrictionCurrent > staticFrictionLimit
+        ) {
+            //Enable stopped joint due to static friction
+            //when applied high enough torque.
+            _actives(i) = 1;
+            //At must one joint as activated at each iteration
+            //to avoid numerical instalibity of multiple
+            //newly activated joints
+            isOneActivation = true;
+        }
+    }
 
     //Check numerical validity
     if (
@@ -166,7 +277,10 @@ void ForwardSimulation::update(double dt,
         !_velocities.allFinite() ||
         !_accelerations.allFinite() ||
         !_goals.allFinite() ||
-        !_jointTorques.allFinite()
+        !_inputTorques.allFinite() ||
+        !_frictionTorques.allFinite() ||
+        !_controlTorques.allFinite() ||
+        !_outputTorques.allFinite()
     ) {
         throw std::runtime_error(
             "ForwardSimulation numerical instability");

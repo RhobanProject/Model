@@ -23,7 +23,7 @@ class JointModel
          */
         enum JointModelType {
             //No friction, no control torque
-            //(no parameters)
+            //(no parameter or state)
             JointFree,
             //Friction and control torque
             JointActuated,
@@ -53,37 +53,43 @@ class JointModel
          */
         const Eigen::VectorXd& getParameters() const;
         void setParameters(const Eigen::VectorXd& params);
+        
+        /**
+         * Get and set internal joint state
+         */
+        const Eigen::VectorXd& getStates() const;
+        void setStates(const Eigen::VectorXd& states);
 
         /**
          * Compute the torque applied on 
          * the joint by the mechanical friction
-         * given current joint position and velocity
+         * given current joint position and velocity.
+         * (state less const)
          */
-        double frictionTorque(
-            double pos, double vel);
+        double frictionTorque(double pos, double vel) const;
 
         /**
          * Compute the torque applied on 
          * the joint by the control algorithm
          * given current joint target position, 
          * current position and velocity.
-         * The timestep update is also given for 
-         * implementation of the lag.
+         * (state less const)
          */
-        double controlTorque(
-            double dt, double goal, 
-            double pos, double vel);
+        double controlTorque(double pos, double vel) const;
+
+        /**
+         * Update current joint friction and
+         * control state from given simulation
+         * step, target goal position and current state
+         */
+        void updateState(
+            double dt, double goal, double pos, double vel);
 
         /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
         void boundState(double& pos, double& vel);
-
-        /**
-         * Read access to joint state
-         */
-        const Eigen::VectorXd& getState() const;
 
     private:
 
@@ -103,23 +109,16 @@ class JointModel
         Eigen::VectorXd _parameters;
 
         /**
-         * Joint optionaly used state
+         * Joint used state
          * for control method
          */
-        Eigen::VectorXd _state;
+        Eigen::VectorXd _states;
 
         /**
-         * Current time counter in seconds
-         * since start of simutation
+         * Is updateState have already be
+         * called once
          */
-        double _timeCounter;
-
-        /**
-         * Hold last received goal
-         * associated with a timestamp
-         * (implement hardware lag)
-         */
-        std::deque<std::pair<double, double>> _history;
+        bool _isInitialized;
 };
 
 }

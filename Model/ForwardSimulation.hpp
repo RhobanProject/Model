@@ -22,8 +22,7 @@ class ForwardSimulation
         /**
          * Initialization with Model instance.
          * The given model is used for kinematcis
-         * and dynamics data. It is not updated
-         * automaticaly.
+         * and dynamics data. 
          */
         ForwardSimulation(Model& model);
 
@@ -49,23 +48,27 @@ class ForwardSimulation
         Eigen::VectorXd& positions();
         const Eigen::VectorXd& velocities() const;
         Eigen::VectorXd& velocities();
+        const Eigen::VectorXi& actives() const;
+        Eigen::VectorXi& actives();
         const Eigen::VectorXd& goals() const;
         Eigen::VectorXd& goals();
-        const Eigen::VectorXd& jointTorques() const;
-        Eigen::VectorXd& jointTorques();
+        const Eigen::VectorXd& outputTorques() const;
+        const Eigen::VectorXd& frictionTorques() const;
+        const Eigen::VectorXd& controlTorques() const;
+        const Eigen::VectorXd& inputTorques() const;
         const Eigen::VectorXd& accelerations() const;
-        Eigen::VectorXd& accelerations();
 
         /**
          * Update the position/velocity state
          * from current goal position over
          * the given dt time step.
+         * Underlying model position is updated.
          * Optionnaly use given RBDL contact 
          * constraint set.
          */
         void update(double dt, 
             RBDL::ConstraintSet* constraints = nullptr);
-
+        
     private:
 
         /**
@@ -84,6 +87,15 @@ class ForwardSimulation
          */
         Eigen::VectorXd _positions;
         Eigen::VectorXd _velocities;
+        
+        /**
+         * Associated degrees of freedom
+         * are fixed if the actives vector
+         * value is zero. Non zero means
+         * non fixed.
+         * (Used for static friction)
+         */
+        Eigen::VectorXi _actives;
 
         /**
          * Degrees of freedom current
@@ -92,11 +104,16 @@ class ForwardSimulation
         Eigen::VectorXd _goals;
 
         /**
-         * Last computed accelerations and last 
-         * generated output torque for each DOF
+         * Last computed accelerations, last 
+         * generated output torque (decomposed in 
+         * friction and control) and computed
+         * with inverse dynamics torques for each DOF
          */
-        Eigen::VectorXd _jointTorques;
         Eigen::VectorXd _accelerations;
+        Eigen::VectorXd _outputTorques;
+        Eigen::VectorXd _frictionTorques;
+        Eigen::VectorXd _controlTorques;
+        Eigen::VectorXd _inputTorques;
 };
 
 }

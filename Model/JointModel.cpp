@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <cmath>
 #include "Model/JointModel.hpp"
 
 namespace Leph {
@@ -9,33 +10,38 @@ JointModel::JointModel(
     _type(type),
     _name(name),
     _parameters(),
-    _state()
+    _states(),
+    _isInitialized(false)
 {
     //Initialize model parameters
     if (type == JointFree) {
         //No friction, no control
         _parameters = Eigen::VectorXd();
-        _state = Eigen::VectorXd();
+        _states = Eigen::VectorXd();
     } else if (type == JointActuated) {
         //Friction and control
-        _parameters = Eigen::VectorXd(8);
-        _state = Eigen::VectorXd();
+        _parameters = Eigen::VectorXd(9);
+        _states = Eigen::VectorXd(1);
         //Friction velocity limit
-        _parameters(0) = 0.2;
+        _parameters(0) = 0.1;
         //Friction viscous
         _parameters(1) = 0.05;
         //Friction static Coulomb
-        _parameters(2) = 1.0;
+        _parameters(2) = 0.06;
         //Friction static breakaway
-        _parameters(3) = 1.0;
+        _parameters(3) = 0.08;
         //Control proportional gain
-        _parameters(4) = 80.0;
+        _parameters(4) = 60.0;
         //Control max torque at zero velocity
         _parameters(5) = 40.0;
         //Control max velocity at zero torque
         _parameters(6) = 50.0;
         //Control lag in seconds
-        _parameters(7) = 0.00;
+        _parameters(7) = 0.0;
+        //Control delayed goal mult
+        _parameters(8) = 1.0;
+        //Current delayed goal
+        _states(0) = 0.0;
     } else {
         throw std::logic_error(
             "JointModel invalid joint type");
@@ -72,30 +78,45 @@ void JointModel::setParameters(const Eigen::VectorXd& params)
         }
     }
 }
-        
-double JointModel::frictionTorque(
-    double pos, double vel)
+
+const Eigen::VectorXd& JointModel::getStates() const
 {
-    if (_type == JointActuated) {
-        double coefVelLimit = _parameters(0);
-        double coefViscous = _parameters(1);
-        double coefStatic = _parameters(2);
-        double coefBreak = _parameters(3);
-        if (fabs(vel) < 0.001) {
-            return 0.0;
-        }
-        double sign = (vel >= 0.0 ? 1.0 : -1.0);
-        double beta = exp(-fabs(vel/coefVelLimit));
-        return -coefViscous*vel 
-            - sign*(beta*coefBreak + (1.0-beta)*coefStatic);
-    } else {
-        return 0.0;
+    return _states;
+}
+void JointModel::setStates(const Eigen::VectorXd& states)
+{
+    if (states.size() != _states.size()) {
+        throw std::logic_error(
+            "JointModel invalid states size: "
+            + std::to_string(states.size()));
     }
+    _states = states;
 }
         
-double JointModel::controlTorque(
-    double dt, double goal, 
-    double pos, double vel)
+double JointModel::frictionTorque(double pos, double vel) const
+{
+    (void)pos;
+    if (_type != JointActuated) {
+        return 0.0;
+    }
+
+    //Retrieve parameters
+    double coefVelLimit = _parameters(0);
+    double coefViscous = _parameters(1);
+    double coefStatic = _parameters(2);
+    double coefBreak = _parameters(3);
+
+    //Compute friction
+    double sign = (vel >= 0.0 ? 1.0 : -1.0);
+    double beta = exp(-fabs(vel/coefVelLimit));
+    double forceViscous = -coefViscous*vel;
+    double forceStatic1 = -sign*(beta*coefBreak);
+    double forceStatic2 = -sign*(1.0-beta)*coefStatic;
+
+    return forceViscous + forceStatic1 + forceStatic2;
+}
+        
+double JointModel::controlTorque(double pos, double vel) const
 {
     if (_type != JointActuated) {
         return 0.0;
@@ -105,10 +126,9 @@ double JointModel::controlTorque(
     double gainP = _parameters(4);
     double maxTorque = _parameters(5);
     double maxVel = _parameters(6);
-    double lag = _parameters(7);
 
-    //Increment current time
-    _timeCounter += dt;
+    //Retrieve discounted goal
+    double delayedGoal = _states(0);
 
     //Compute min and max torque range
     double rangeMax;
@@ -131,34 +151,6 @@ double JointModel::controlTorque(
             "JointModel control torque range invalid");
     }
 
-    //Time sanity check
-    if (_history.size() > 0 && _history.back().first >= _timeCounter) {
-        throw std::logic_error(
-            "JointModel history timestamp error");
-    }
-    //Append current target goal to history
-    _history.push_back({_timeCounter, goal});
-    //Used lagged time
-    double pastTime = _timeCounter - lag;
-    double delayedGoal;
-    //Compute delayed goal
-    if (_history.size() == 1 || _history.front().first >= pastTime) {
-        delayedGoal = _history.front().second;
-    } else {
-        //Pop history to meet lagged time
-        while (_history.size() >= 2 && _history[1].first < pastTime) {
-            _history.pop_front();
-        }
-        //Linear goal interpolation
-        double tsLow = _history[0].first;
-        double valLow = _history[0].second;
-        double tsUp = _history[1].first;
-        double valUp = _history[1].second;
-        delayedGoal = 
-            (tsUp-pastTime)/(tsUp-tsLow)*valLow 
-            + (pastTime-tsLow)/(tsUp-tsLow)*valUp;
-    }
-
     //Compute current control torque
     double control = gainP*(delayedGoal - pos);
 
@@ -173,12 +165,35 @@ double JointModel::controlTorque(
     return control;
 }
         
+void JointModel::updateState(
+    double dt, double goal, double pos, double vel)
+{
+    if (!_isInitialized) {
+        _isInitialized = true;
+        _states(0) = pos;
+        _states(1) = pos;
+    }
+
+
+    //Retrive parameter
+    double lag = _parameters(7);
+    double mult = _parameters(8);
+    
+    //Update delayed target goal
+    if (fabs(lag) > 1e-6) {
+        _states(0) = _states(0) + mult*dt*(goal-_states(0))/lag;
+    } else {
+        _states(0) = goal;
+    }
+}
+
 void JointModel::boundState(double& pos, double& vel)
 {
     //Check numerical instability
     if (fabs(pos) > 1e10 || fabs(vel) > 1e10) {
         throw std::runtime_error(
             "JointModel numerical instability:"
+            + std::string(" name=") + _name
             + std::string(" pos=") + std::to_string(pos)
             + std::string(" vel=") + std::to_string(vel));
     }
@@ -193,10 +208,5 @@ void JointModel::boundState(double& pos, double& vel)
     }
 }
         
-const Eigen::VectorXd& JointModel::getState() const
-{
-    return _state;
-}
-
 }
 
