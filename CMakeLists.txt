@@ -148,6 +148,7 @@ set(TESTS_FILES
     benchModel
     testDMP
     testDMPSpline
+    testJointModel
 )
 
 #Applications main files
