@@ -545,7 +545,7 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
             "Model invalid enabled vector size");
     }
 
-    //Computed returned acceleration
+    //Initialize returned acceleration
     Eigen::VectorXd acceleration = 
         Eigen::VectorXd::Zero(_model.dof_count);
 
@@ -669,6 +669,130 @@ Eigen::VectorXd Model::forwardDynamicsContacts(
     return QDDot;
 }
 
+Eigen::VectorXd Model::forwardDynamicsContactsPartial(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXi& enabled,
+    RBDLMath::LinearSolver solver)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
+    }
+    if (enabled.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid enabled vector size");
+    }
+
+    //Initialize returned acceleration
+    Eigen::VectorXd acceleration = 
+        Eigen::VectorXd::Zero(_model.dof_count);
+    
+    //Compute full H, G matrix and C, gamma 
+    //vectors into the constraint set
+    //(actually, torque is not used by RBDL)
+    RBDL::CalcContactSystemVariables(
+        _model, position, velocity, torque, constraints);
+
+    //Count activated DOF
+    size_t sizeConstraints = constraints.size();
+    size_t sizeAll = enabled.size();
+    size_t sizeEnabled = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            sizeEnabled++;
+        }
+    }
+    if (sizeEnabled == 0) {
+        acceleration.setZero();
+        return acceleration;
+    }
+
+    //Build shrinked matrix and vectors
+    RBDLMath::VectorNd acc2 = RBDLMath::VectorNd::Zero(
+        sizeEnabled + sizeConstraints);
+    RBDLMath::MatrixNd A2 = RBDLMath::MatrixNd::Zero(
+        sizeEnabled + sizeConstraints, 
+        sizeEnabled + sizeConstraints);
+    RBDLMath::VectorNd b2 = RBDLMath::VectorNd::Zero(
+        sizeEnabled + sizeConstraints);
+    size_t index = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            b2(index) = torque(i) - constraints.C(i);
+            size_t index2 = 0;
+            for (size_t j=0;j<sizeAll;j++) {
+                if (enabled(j) != 0) {
+                    A2(index, index2) = constraints.H(i, j);
+                    index2++;
+                }
+            }
+            index++;
+        }
+    }
+    for (size_t i=0;i<sizeConstraints;i++) {
+        size_t index2 = 0;
+        for (size_t j=0;j<sizeAll;j++) {
+            if (enabled(j) != 0) {
+                A2(sizeEnabled+i, index2) = constraints.G(i, j);
+                A2(index2, sizeEnabled+i) = constraints.G(i, j);
+                index2++;
+            }
+        }
+    }
+    b2.block(sizeEnabled, 0, sizeConstraints, 1) = constraints.gamma;
+
+    //Solve the linear system
+    switch (solver) {
+        case RBDLMath::LinearSolverPartialPivLU:
+            acc2 = A2.partialPivLu().solve(b2);
+            break;
+        case RBDLMath::LinearSolverColPivHouseholderQR:
+            acc2 = A2.colPivHouseholderQr().solve(b2);
+            break;
+        case RBDLMath::LinearSolverHouseholderQR:
+            acc2 = A2.householderQr().solve(b2);
+            break;
+        case RBDLMath::LinearSolverFullPivLU:
+            acc2 = A2.fullPivLu().solve(b2);
+            break;
+        case RBDLMath::LinearSolverFullPivHouseholderQR:
+            acc2 = A2.fullPivHouseholderQr().solve(b2);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+	
+    //Copy back contact forces
+    for (unsigned int i=0;i<sizeConstraints;i++) {
+        constraints.force(i) = -acc2(sizeEnabled + i);
+    }
+    
+    //Re assign output acceleration vector
+    index = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            acceleration(i) = acc2(index);
+            index++;
+        }
+    }
+
+    return acceleration;
+}
+
+
 Eigen::VectorXd Model::impulseContacts(
     RBDL::ConstraintSet& constraints,
     const Eigen::VectorXd& position,
@@ -687,6 +811,128 @@ Eigen::VectorXd Model::impulseContacts(
     Eigen::VectorXd newVel = velocity;
     RBDL::ComputeContactImpulsesDirect(
         _model, position, velocity, constraints, newVel);
+
+    return newVel;
+}
+
+Eigen::VectorXd Model::impulseContactsPartial(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXi& enabled,
+    RBDLMath::LinearSolver solver)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (enabled.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid enabled vector size");
+    }
+    
+    //Initialize returned velocities
+    Eigen::VectorXd newVel = velocity;
+    
+    //Count activated DOF
+    size_t sizeConstraints = constraints.size();
+    size_t sizeAll = enabled.size();
+    size_t sizeEnabled = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            sizeEnabled++;
+        }
+    }
+    if (sizeEnabled == 0) {
+        newVel.setZero();
+        return newVel;
+    }
+    
+    //Compute full H, G matrix into the constraint set
+    //Compute H
+    RBDL::UpdateKinematicsCustom(
+        _model, &position, NULL, NULL);
+    RBDL::CompositeRigidBodyAlgorithm(
+        _model, position, constraints.H, false);
+    //Compute G
+    RBDL::CalcContactJacobian(
+        _model, position, constraints, constraints.G, false);
+	
+    //Build shrinked matrix and vectors
+    RBDLMath::VectorNd vel2 = RBDLMath::VectorNd::Zero(
+        sizeEnabled + sizeConstraints);
+    RBDLMath::MatrixNd H2 = RBDLMath::MatrixNd::Zero(
+        sizeEnabled, sizeEnabled);
+    RBDLMath::MatrixNd A2 = RBDLMath::MatrixNd::Zero(
+        sizeEnabled + sizeConstraints, 
+        sizeEnabled + sizeConstraints);
+    RBDLMath::VectorNd b2 = RBDLMath::VectorNd::Zero(
+        sizeEnabled + sizeConstraints);
+    RBDLMath::VectorNd v2 = RBDLMath::VectorNd::Zero(sizeEnabled);
+    size_t index = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            v2(index) = velocity(i);
+            size_t index2 = 0;
+            for (size_t j=0;j<sizeAll;j++) {
+                if (enabled(j) != 0) {
+                    H2(index, index2) = constraints.H(i, j);
+                    index2++;
+                }
+            }
+            index++;
+        }
+    }
+    for (size_t i=0;i<sizeConstraints;i++) {
+        size_t index2 = 0;
+        for (size_t j=0;j<sizeAll;j++) {
+            if (enabled(j) != 0) {
+                A2(sizeEnabled+i, index2) = constraints.G(i, j);
+                A2(index2, sizeEnabled+i) = constraints.G(i, j);
+                index2++;
+            }
+        }
+    }
+    b2.block(0, 0, sizeEnabled, 1) = H2*v2;
+    b2.block(sizeEnabled, 0, sizeConstraints, 1) = 
+        Eigen::VectorXd::Zero(sizeConstraints);
+    A2.block(0, 0, sizeEnabled, sizeEnabled) = H2;
+
+    //Solve the linear system
+    switch (solver) {
+        case RBDLMath::LinearSolverPartialPivLU:
+            vel2 = A2.partialPivLu().solve(b2);
+            break;
+        case RBDLMath::LinearSolverColPivHouseholderQR:
+            vel2 = A2.colPivHouseholderQr().solve(b2);
+            break;
+        case RBDLMath::LinearSolverHouseholderQR:
+            vel2 = A2.householderQr().solve(b2);
+            break;
+        case RBDLMath::LinearSolverFullPivLU:
+            vel2 = A2.fullPivLu().solve(b2);
+            break;
+        case RBDLMath::LinearSolverFullPivHouseholderQR:
+            vel2 = A2.fullPivHouseholderQr().solve(b2);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+
+    //Re assign output velocity vector
+    index = 0;
+    for (size_t i=0;i<sizeAll;i++) {
+        if (enabled(i) != 0) {
+            newVel(i) = vel2(index);
+            index++;
+        }
+    }
 
     return newVel;
 }

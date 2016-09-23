@@ -250,7 +250,8 @@ class Model
          * but floating base degrees of freedom are set to zero.
          * Current position is used.
          * If useInfinityNorm is true, infinity norm is minimized to
-         * solve the torques underdetermined system with high performance cost.
+         * solve the torques underdetermined system with 
+         * high performance cost.
          * Optional current velocity and acceleration can be given. 
          * Default is zeros.
          */
@@ -282,8 +283,9 @@ class Model
          * Compute Forward Dynamics on the tree model
          * and return acceleration for each degrees of
          * freedom.
-         * DOFs position, velocity and applied torque 
-         * are given. Only DOF with non zero value in
+         * DOFs position, velocity and applied 
+         * torque are given. 
+         * Only DOF with non zero value in
          * enabled vector are non fixed.
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
@@ -312,6 +314,28 @@ class Model
             const Eigen::VectorXd& torque);
 
         /**
+         * Compute Forward Dynamics Contact 
+         * on the tree model by considering 
+         * given RBDL contact and return 
+         * acceleration for each degrees of
+         * freedom.
+         * DOFs position, velocity and applied 
+         * torque are given. 
+         * Only DOF with non zero value in
+         * enabled vector are non fixed.
+         * Eigen linear solver can be choosen.
+         * (Re-implement custom RBDL function).
+         */
+        Eigen::VectorXd forwardDynamicsContactsPartial(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque,
+            const Eigen::VectorXi& enabled,
+            RBDLMath::LinearSolver solver = 
+                RBDLMath::LinearSolverColPivHouseholderQR);
+
+        /**
          * Compute the collision velocity impulses
          * for given ConstraintSet. The new computed
          * velocities accounting for the collision
@@ -322,6 +346,25 @@ class Model
             RBDL::ConstraintSet& constraints,
             const Eigen::VectorXd& position,
             const Eigen::VectorXd& velocity);
+        
+        /**
+         * Compute the collision velocity impulses
+         * for given ConstraintSet. The new computed
+         * velocities accounting for the collision
+         * are returned. Current position and old
+         * velocity are given.
+         * Only DOF with non zero value in
+         * enabled vector are non fixed.
+         * Eigen linear solver can be choosen.
+         * (Re-implement custom RBDL function).
+         */
+        Eigen::VectorXd impulseContactsPartial(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXi& enabled,
+            RBDLMath::LinearSolver solver = 
+                RBDLMath::LinearSolverColPivHouseholderQR);
 
         /**
          * Return optionaly non zero aligned axis bounding box
@@ -353,7 +396,7 @@ class Model
     protected:
         
         /**
-         * Parse and initilialize RBDL model
+         * Parse and initialilize RBDL model
          */
         void initializeModel(RBDL::Model& model);
 
