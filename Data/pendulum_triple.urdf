@@ -1,7 +1,7 @@
 <robot
   name="URDF">
   <link
-    name="base_link">
+    name="base2_link">
     <inertial>
       <origin
         xyz="0 0 0.0"
@@ -41,7 +41,7 @@
       xyz="0.0 0.0 0.1"
       rpy="-1.5148E-15 8.2889E-19 -0.00053101" />
     <parent
-      link="base_link" />
+      link="base2_link" />
     <child
       link="roll1_link" />
     <axis

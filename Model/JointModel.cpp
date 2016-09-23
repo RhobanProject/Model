@@ -168,14 +168,18 @@ double JointModel::controlTorque(double pos, double vel) const
 void JointModel::updateState(
     double dt, double goal, double pos, double vel)
 {
+    if (_type != JointActuated) {
+        return;
+    }
+
+    //Initialize state
     if (!_isInitialized) {
         _isInitialized = true;
         _states(0) = pos;
         _states(1) = pos;
     }
 
-
-    //Retrive parameter
+    //Retrieve parameter
     double lag = _parameters(7);
     double mult = _parameters(8);
     

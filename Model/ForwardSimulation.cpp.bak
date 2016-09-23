@@ -162,8 +162,7 @@ void ForwardSimulation::update(double dt,
                 //of last iteration as if it was simulated and not moving.
                 if (lastVelocities(i) == 0.0) { 
                     this->_frictionTorques(i) = 
-                        (this->_inputTorques(i)+this->_controlTorques(i) 
-                            > 0.0 ? -1.0 : 1.0)
+                        (this->_inputTorques(i)+this->_controlTorques(i) > 0.0 ? -1.0 : 1.0)
                         * fabs(this->_frictionTorques(i));
                 }
                 //Sum applied torque on the joint
@@ -185,8 +184,7 @@ void ForwardSimulation::update(double dt,
                 this->_actives, 
                 RBDLMath::LinearSolverFullPivHouseholderQR);
         } else {
-            this->_accelerations = 
-                this->_model->forwardDynamicsContactsPartial(
+            this->_accelerations = this->_model->forwardDynamicsContactsPartial(
                 *constraints,
                 state.segment(0, size),
                 state.segment(size, size),
@@ -232,10 +230,8 @@ void ForwardSimulation::update(double dt,
     //Recompute all friction 
     //and control torque
     for (size_t i=0;i<size;i++) {
-        _frictionTorques(i) = _jointModels[i]
-            .frictionTorque(_positions(i), _velocities(i));
-        _controlTorques(i) = _jointModels[i]
-            .controlTorque(_positions(i), _velocities(i));
+        _frictionTorques(i) = _jointModels[i].frictionTorque(_positions(i), _velocities(i));
+        _controlTorques(i) = _jointModels[i].controlTorque(_positions(i), _velocities(i));
     }
 
     //Handle joint activation and static friction
@@ -244,25 +240,18 @@ void ForwardSimulation::update(double dt,
     for (size_t i=0;i<size;i++) {
         //Compute current friction torque 
         //in case of static state
-        double staticFrictionCurrent = 
-            fabs(_inputTorques(i) + _controlTorques(i));
+        double staticFrictionCurrent = fabs(_inputTorques(i) + _controlTorques(i));
         //Compute friction torque limit at zero velocity (Coulomb cone).
         //1.01 prevent false numerical activation of joint
-        double staticFrictionLimit = 
-            1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
-        //Active to disabled
+        double staticFrictionLimit = 1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
         if (
             _jointModels[i].getType() != JointModel::JointFree &&
             _actives(i) != 0 &&
             ((_velocities(i) < 0.0 && lastVelocities(i) > 0.0) ||
             (_velocities(i) > 0.0 && lastVelocities(i) < 0.0))
         ) {
-            //Compute with forwardDynamics the acceleration
-            //of the next iteration in order to check if
-            //its sign will changed
             Eigen::VectorXd tmpNextAcceleration;
             if (constraints == nullptr) {
-                //No constraint
                 tmpNextAcceleration = _model->forwardDynamicsPartial(
                     _positions,
                     _velocities,
@@ -270,8 +259,6 @@ void ForwardSimulation::update(double dt,
                     _actives,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
             } else {
-                //Constraints
-                //(save and restore computed forces)
                 Eigen::VectorXd tmpSaveForce = constraints->force;
                 tmpNextAcceleration = _model->forwardDynamicsContactsPartial(
                     *constraints,
@@ -282,9 +269,10 @@ void ForwardSimulation::update(double dt,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
                 constraints->force = tmpSaveForce;
             }
-            //Joint are really disabled when the friction force
+            //Joint are really disable when the friction force
             //causes the velocity sign to change and also when
             //current or next acceleration sign is changed
+            //TODO
             if (
                 (_accelerations(i) < 0.0 && tmpNextAcceleration(i) > 0.0) ||
                 (_accelerations(i) > 0.0 && tmpNextAcceleration(i) < 0.0) ||
@@ -299,7 +287,6 @@ void ForwardSimulation::update(double dt,
                 _actives(i) = 0;
                 isOneDeactivation = true;
             }
-        //Disbaled to active
         } else if (
             _jointModels[i].getType() != JointModel::JointFree &&
             _actives(i) == 0 &&
