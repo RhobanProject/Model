@@ -688,7 +688,7 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
     }
     if (torque.size() != _model.dof_count) {
         throw std::logic_error(
-            "Model invalid acceleration vector size");
+            "Model invalid torque vector size");
     }
     if (enabled.size() != _model.dof_count) {
         throw std::logic_error(
@@ -792,6 +792,51 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
     return acceleration;
 }
 
+Eigen::VectorXd Model::inverseDynamicsContacts(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& acceleration)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (acceleration.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid acceleration vector size");
+    }
+    
+    //Retrieve sizes
+    size_t sizeDOF = position.size();
+    size_t sizeConstraints = constraints.size();
+    
+    //Compute full H, G matrix and C, gamma 
+    //vectors into the constraint set
+    RBDL::CalcContactSystemVariables(
+        _model, position, velocity, 
+        Eigen::VectorXd::Zero(sizeDOF), constraints);
+
+    //Build matrix system
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(
+        sizeDOF+sizeConstraints, sizeDOF+sizeConstraints);
+    Eigen::VectorXd b = Eigen::VectorXd::Zero(
+        sizeDOF+sizeConstraints);
+    A.block(0, 0, sizeDOF, sizeDOF) = constraints.H;
+    A.block(sizeDOF, 0, sizeConstraints, sizeDOF) = constraints.G;
+    A.block(0, sizeDOF, sizeDOF, sizeConstraints) = constraints.G.transpose();
+    b.segment(0, sizeDOF) = acceleration;
+    b.segment(sizeDOF, sizeConstraints) = -constraints.force;
+
+    //Compute and retrieve DOF torques
+    Eigen::VectorXd x = A*b;
+    return x.segment(0, sizeDOF) + constraints.C;
+}
 
 Eigen::VectorXd Model::impulseContacts(
     RBDL::ConstraintSet& constraints,

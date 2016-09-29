@@ -336,6 +336,22 @@ class Model
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
         /**
+         * Compute Inverse Dynamics taking into account
+         * the given constraints set.
+         * The full matrix multiplication O(n^3) is used 
+         * (ways slower that classical Recursive Newton-Euler).
+         * Current position, velocity and acceleration 
+         * vector are given and current contact forces are
+         * retrieved from given constraints set (force vector).
+         * Computed torques are returned.
+         */
+        Eigen::VectorXd inverseDynamicsContacts(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& acceleration);
+
+        /**
          * Compute the collision velocity impulses
          * for given ConstraintSet. The new computed
          * velocities accounting for the collision
