@@ -227,7 +227,13 @@ void ForwardSimulation::update(double dt,
     //applied torque on each DOF
     //(minus because InverseDynamics compute the 
     //needed torque to produce given acceleration).
-    _inputTorques = - _model->inverseDynamics(_velocities, _accelerations);
+    if (constraints == nullptr) {
+        _inputTorques = - _model->inverseDynamics(
+            _velocities, _accelerations);
+    } else {
+        _inputTorques = - _model->inverseDynamicsContacts(
+            *constraints, _positions, _velocities, _accelerations);
+    }
 
     //Recompute all friction 
     //and control torque
@@ -299,7 +305,7 @@ void ForwardSimulation::update(double dt,
                 _actives(i) = 0;
                 isOneDeactivation = true;
             }
-        //Disbaled to active
+        //Disabled to active
         } else if (
             _jointModels[i].getType() != JointModel::JointFree &&
             _actives(i) == 0 &&
@@ -321,7 +327,7 @@ void ForwardSimulation::update(double dt,
     //An impulsion need to be applied to enforce
     //the constraints with the new velocity and model.
     if (isOneDeactivation && constraints != nullptr) {
-        this->_velocities = this->_model->impulseContactsPartial(
+        _velocities = _model->impulseContactsPartial(
             *constraints,
             _positions,
             _velocities,

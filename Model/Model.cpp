@@ -834,8 +834,8 @@ Eigen::VectorXd Model::inverseDynamicsContacts(
     b.segment(sizeDOF, sizeConstraints) = -constraints.force;
 
     //Compute and retrieve DOF torques
-    Eigen::VectorXd x = A*b;
-    return x.segment(0, sizeDOF) + constraints.C;
+    Eigen::VectorXd tmpX = A*b;
+    return tmpX.segment(0, sizeDOF) + constraints.C;
 }
 
 Eigen::VectorXd Model::impulseContacts(
