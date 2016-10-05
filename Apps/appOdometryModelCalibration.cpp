@@ -13,7 +13,7 @@ int main(int argc, char** argv)
         return 1;
     }
     Leph::OdometryModel::OdometryModelType type = 
-        Leph::OdometryModel::CorrectionLinear;
+        Leph::OdometryModel::CorrectionLinearWithAzimuth;
 
     //Load data from log
     std::vector<std::vector<Eigen::Vector3d>> readTrajsPose;
@@ -35,7 +35,6 @@ int main(int argc, char** argv)
         int supportFoot;
         double targetX;
         double targetY;
-        double targetZ;
         file >> seq;
         file >> index;
         file >> poseX;
@@ -44,7 +43,6 @@ int main(int argc, char** argv)
         file >> supportFoot;
         file >> targetX;
         file >> targetY;
-        file >> targetZ;
         if (lastSeq != seq) {
             readTrajsPose.push_back(std::vector<Eigen::Vector3d>());
             readTrajsSupport.push_back(std::vector<Leph::HumanoidFixedModel::SupportFoot>());
