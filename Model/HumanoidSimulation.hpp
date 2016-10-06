@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include "Model/HumanoidModel.hpp"
 #include "Model/ForwardSimulation.hpp"
+#include "Plot/Plot.hpp"
 
 namespace Leph {
 
@@ -59,10 +60,11 @@ class HumanoidSimulation
         Eigen::VectorXd& velocities();
         const Eigen::VectorXd& goals() const;
         Eigen::VectorXd& goals();
-        const Eigen::VectorXd& jointTorques() const;
-        Eigen::VectorXd& jointTorques();
+        const Eigen::VectorXd& outputTorques() const;
+        const Eigen::VectorXd& frictionTorques() const;
+        const Eigen::VectorXd& controlTorques() const;
+        const Eigen::VectorXd& inputTorques() const;
         const Eigen::VectorXd& accelerations() const;
-        Eigen::VectorXd& accelerations();
 
         /**
          * Set a target goal or position to given DOF name
@@ -83,6 +85,12 @@ class HumanoidSimulation
          */
         const JointModel& jointModel(const std::string& name) const;
         JointModel& jointModel(const std::string& name);
+        
+        /**
+         * Return the vertical force appling 
+         * on given cleat name
+         */
+        double getCleatForce(const std::string& name) const;
 
         /**
          * Assign given joints parameters to all 

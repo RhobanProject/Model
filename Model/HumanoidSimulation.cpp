@@ -1,6 +1,8 @@
+#include <iostream>
 #include <stdexcept>
 #include "Model/HumanoidSimulation.hpp"
 #include "Utils/Euler.h"
+#include "Utils/Combination.hpp"
 
 namespace Leph {
 
@@ -22,6 +24,8 @@ HumanoidSimulation::HumanoidSimulation(RobotType type) :
     addCleat("right_cleat_2");
     addCleat("right_cleat_3");
     addCleat("right_cleat_4");
+    //Constraints set initialization
+    buildConstraints();
 }
         
 HumanoidSimulation::~HumanoidSimulation()
@@ -128,19 +132,23 @@ Eigen::VectorXd& HumanoidSimulation::goals()
 {
     return _simulation.goals();
 }
-const Eigen::VectorXd& HumanoidSimulation::jointTorques() const
+const Eigen::VectorXd& HumanoidSimulation::outputTorques() const
 {
-    return _simulation.jointTorques();
+    return _simulation.outputTorques();
 }
-Eigen::VectorXd& HumanoidSimulation::jointTorques()
+const Eigen::VectorXd& HumanoidSimulation::frictionTorques() const
 {
-    return _simulation.jointTorques();
+    return _simulation.frictionTorques();
+}
+const Eigen::VectorXd& HumanoidSimulation::controlTorques() const
+{
+    return _simulation.controlTorques();
+}
+const Eigen::VectorXd& HumanoidSimulation::inputTorques() const
+{
+    return _simulation.inputTorques();
 }
 const Eigen::VectorXd& HumanoidSimulation::accelerations() const
-{
-    return _simulation.accelerations();
-}
-Eigen::VectorXd& HumanoidSimulation::accelerations()
 {
     return _simulation.accelerations();
 }
