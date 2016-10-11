@@ -18,6 +18,10 @@ int main(int argc, char** argv)
     //Load data from log
     std::vector<std::vector<Eigen::Vector3d>> readTrajsPose;
     std::vector<std::vector<Leph::HumanoidFixedModel::SupportFoot>> readTrajsSupport;
+    std::vector<std::vector<Eigen::Vector3d>> goalTrajsPose;
+    std::vector<std::vector<Leph::HumanoidFixedModel::SupportFoot>> goalTrajsSupport;
+    std::vector<std::vector<Eigen::Vector4d>> walkTrajsOrder;
+    std::vector<std::vector<double>> walkTrajsPhase;
     std::vector<Eigen::Vector2d> targetDisplacements;
     std::string filename(argv[1]);
     std::ifstream file(filename);
@@ -29,28 +33,54 @@ int main(int argc, char** argv)
         }
         size_t seq;
         size_t index;
-        double poseX;
-        double poseY;
-        double poseYaw;
-        int supportFoot;
+        double readPoseX;
+        double readPoseY;
+        double readPoseYaw;
+        int readSupportFoot;
+        double goalPoseX;
+        double goalPoseY;
+        double goalPoseYaw;
+        int goalSupportFoot;
+        double walkOrderX;
+        double walkOrderY;
+        double walkOrderTheta;
+        double walkOrderEnabled;
+        double walkPhase;
         double targetX;
         double targetY;
         file >> seq;
         file >> index;
-        file >> poseX;
-        file >> poseY;
-        file >> poseYaw;
-        file >> supportFoot;
+        file >> readPoseX;
+        file >> readPoseY;
+        file >> readPoseYaw;
+        file >> readSupportFoot;
+        file >> goalPoseX;
+        file >> goalPoseY;
+        file >> goalPoseYaw;
+        file >> goalSupportFoot;
+        file >> walkOrderX;
+        file >> walkOrderY;
+        file >> walkOrderTheta;
+        file >> walkOrderEnabled;
+        file >> walkPhase;
         file >> targetX;
         file >> targetY;
         if (lastSeq != seq) {
             readTrajsPose.push_back(std::vector<Eigen::Vector3d>());
             readTrajsSupport.push_back(std::vector<Leph::HumanoidFixedModel::SupportFoot>());
+            goalTrajsPose.push_back(std::vector<Eigen::Vector3d>());
+            goalTrajsSupport.push_back(std::vector<Leph::HumanoidFixedModel::SupportFoot>());
+            walkTrajsOrder.push_back(std::vector<Eigen::Vector4d>());
+            walkTrajsPhase.push_back(std::vector<double>());
             targetDisplacements.push_back(Eigen::Vector2d(targetX, targetY));
         }
         lastSeq = seq;
-        readTrajsPose.back().push_back(Eigen::Vector3d(poseX, poseY, poseYaw));
-        readTrajsSupport.back().push_back((Leph::HumanoidFixedModel::SupportFoot)supportFoot);
+        readTrajsPose.back().push_back(Eigen::Vector3d(readPoseX, readPoseY, readPoseYaw));
+        readTrajsSupport.back().push_back((Leph::HumanoidFixedModel::SupportFoot)readSupportFoot);
+        goalTrajsPose.back().push_back(Eigen::Vector3d(goalPoseX, goalPoseY, goalPoseYaw));
+        goalTrajsSupport.back().push_back((Leph::HumanoidFixedModel::SupportFoot)goalSupportFoot);
+        walkTrajsOrder.back().push_back(Eigen::Vector4d(walkOrderX, walkOrderY, walkOrderTheta, walkOrderEnabled));
+        walkTrajsPhase.back().push_back(walkPhase);
     }
     file.close();
     std::cout << "Loaded " << readTrajsPose.size() << " sequences" << std::endl;
@@ -60,13 +90,16 @@ int main(int argc, char** argv)
     }
     
     //Fitness function
+    bool verbose  = false;
     libcmaes::FitFuncEigen fitness = 
-        [&type, &readTrajsPose, &readTrajsSupport, &targetDisplacements](const Eigen::VectorXd& params) 
+        [&type, &readTrajsPose, &readTrajsSupport, &targetDisplacements, &verbose]
+        (const Eigen::VectorXd& params) 
         {
             //Check bounds
             if (params.lpNorm<Eigen::Infinity>() > 10.0) {
                 return 1000.0 + 1000.0*params.lpNorm<Eigen::Infinity>();
             }
+            Leph::Plot plot;
             double error = 0.0;
             int count = 0;
             for (size_t i=0;i<readTrajsPose.size();i++) {
@@ -77,12 +110,36 @@ int main(int argc, char** argv)
                     odometry.update(
                         readTrajsPose[i][j], 
                         readTrajsSupport[i][j]);
+                    if (verbose) {
+                        plot.add(Leph::VectorLabel(
+                            "odometry_x", odometry.state().x(),
+                            "odometry_y", odometry.state().y(),
+                            "read_x", readTrajsPose[i][j].x(),
+                            "read_y", readTrajsPose[i][j].y(),
+                            "target_x", targetDisplacements[i].x(),
+                            "target_y", targetDisplacements[i].y(),
+                            "seq", i
+                        ));
+                    }
+                }
+                if (verbose) {
+                    std::cout << "Seq " << i 
+                        << ": error=" << (targetDisplacements[i] - odometry.state().segment(0, 2)).norm()
+                        << " target=" << targetDisplacements[i].transpose()
+                        << " odometry=" << odometry.state().segment(0, 2).transpose()
+                        << std::endl;
                 }
                 error += (
                     targetDisplacements[i] 
                     - odometry.state().segment(0, 2)
                 ).squaredNorm();
                 count++;
+            }
+            if (verbose) {
+                plot
+                    .plot("odometry_x", "odometry_y", Leph::Plot::LinesPoints, "seq")
+                    .plot("target_x", "target_y")
+                    .render();
             }
             if (count == 0) {
                 return 0.0;
@@ -111,6 +168,8 @@ int main(int argc, char** argv)
     std::cout << "==========================" << std::endl;
     std::cout << "RMSE: " << rmse << std::endl; 
     std::cout << "CALIBRATION RESULT: " << std::endl << bestParams << std::endl;
+    verbose = true;
+    fitness(bestParams);
 
     return 0;
 }
