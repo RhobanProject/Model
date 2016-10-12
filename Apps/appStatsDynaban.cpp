@@ -225,8 +225,8 @@ int main(int argc, char** argv)
     }
 
     for (double delta=-0.2;delta<=0.2;delta+=0.005) {
-        //delta = 0.0;
-        delta = 0.08;
+        delta = 0.0;
+        //delta = 0.08;
 
         std::map<size_t, std::map<size_t, Leph::MatrixLabel>> container2;
         for (auto& it: container) {
@@ -271,20 +271,25 @@ int main(int argc, char** argv)
                 sum2.minOp(0.0);
                 sum2.sqrtOp();
                 containerVar[it.first][i].assignOp(sum2);
-                Leph::VectorLabel error = sum.extract("model");
-                error.subOp(sum.extract("goal"), "goal", "model");
+                /*
+                Leph::VectorLabel error = containerMean[it.first][i].extract("model");
+                error.subOp(containerMean[it.first][i].extract("goal"), "goal", "model");
                 error.rename("model", "error");
                 error.squareOp();
+                std::cout << error << std::endl;
+                std::cout << containerMean[it.first][i] << std::endl;
                 containerMean[it.first][i].mergeUnion(error);
+                */
 
-                std::cout << sum("goal_model:trunk_axis_x") << " ";
-                std::cout << sum("model:trunk_axis_x") << " ";
-                std::cout << sum("goal_model:foot_pos_x") << " ";
-                std::cout << sum("model:foot_pos_x") << " ";
+                std::cout << containerMean[it.first][i]("goal_model:trunk_axis_x") << " ";
+                std::cout << containerMean[it.first][i]("model:trunk_axis_x") << " ";
+                std::cout << containerMean[it.first][i]("goal_model:foot_pos_x") << " ";
+                std::cout << containerMean[it.first][i]("model:foot_pos_x") << " ";
                 Leph::VectorLabel vect("t", t);
-                sum = sum.rename("model", std::to_string(it.first)+"_mean_model");
-                sum = sum.rename("goal_model", std::to_string(it.first)+"_mean_goal_model");
-                vect.mergeUnion(sum);
+                Leph::VectorLabel tmpp = containerMean[it.first][i];
+                tmpp = tmpp.rename("model", std::to_string(it.first)+"_mean_model");
+                tmpp = tmpp.rename("goal_model", std::to_string(it.first)+"_mean_goal_model");
+                vect.mergeUnion(tmpp);
                 plot.add(vect);
             }
             std::cout << std::endl;
@@ -297,13 +302,11 @@ int main(int argc, char** argv)
             .plot("t", "0_mean_goal_model:trunk_axis_x")
             .render();
 
-        /*
         plot
             .plot("t", "0_mean_model:foot_pos_x")
             .plot("t", "1_mean_model:foot_pos_x")
             .plot("t", "0_mean_goal_model:foot_pos_x")
             .render();
-        */
         //return 0.0;
 
         Leph::VectorLabel mean0All = containerMean[0].mean();
