@@ -13,7 +13,10 @@ OdometryModel::OdometryModel(OdometryModelType type) :
     _state(),
     _corrected()
 {
-    if (_type == CorrectionLinear) {
+    if (_type == CorrectionIdentity) {
+        //Dummy correction
+        _odometryParameters = Eigen::VectorXd::Zero(0);
+    } else if (_type == CorrectionLinear) {
         _odometryParameters = Eigen::VectorXd::Zero(6);
         //Default parameters
         _odometryParameters <<
@@ -91,51 +94,7 @@ void OdometryModel::update(
     //state and last support swap
     Eigen::Vector3d diff = odometryDiff(_last, current);
     //Apply displacement correction
-    double diffX;
-    double diffY;
-    if (_type == CorrectionLinear) {
-        diffX = 
-            _odometryParameters(0) +
-            _odometryParameters(1)*diff.x() +
-            _odometryParameters(2)*diff.y();
-        diffY = 
-            _odometryParameters(3) +
-            _odometryParameters(4)*diff.x() +
-            _odometryParameters(5)*diff.y();
-    } else if (_type == CorrectionLinearWithAzimuth) {
-        diffX = 
-            _odometryParameters(0) +
-            _odometryParameters(1)*diff.x() +
-            _odometryParameters(2)*diff.y() +
-            _odometryParameters(3)*diff.z();
-        diffY = 
-            _odometryParameters(4) +
-            _odometryParameters(5)*diff.x() +
-            _odometryParameters(6)*diff.y() +
-            _odometryParameters(7)*diff.z();
-    } else if (_type == CorrectionCubic) {
-        diffX = 
-            _odometryParameters(0) +
-            _odometryParameters(1)*diff.x() +
-            _odometryParameters(2)*pow(diff.x(), 2) +
-            _odometryParameters(3)*pow(diff.x(), 3) +
-            _odometryParameters(4)*diff.y() +
-            _odometryParameters(5)*pow(diff.y(), 2) +
-            _odometryParameters(6)*pow(diff.y(), 3);
-        diffY = 
-            _odometryParameters(7) +
-            _odometryParameters(8)*diff.x() +
-            _odometryParameters(9)*pow(diff.x(), 2) +
-            _odometryParameters(10)*pow(diff.x(), 3) +
-            _odometryParameters(11)*diff.y() +
-            _odometryParameters(12)*pow(diff.y(), 2) +
-            _odometryParameters(13)*pow(diff.y(), 3);
-    } else {
-        diffX = diff.x();
-        diffY = diff.y();
-    }
-    diff.x() = diffX;
-    diff.y() = diffY;
+    diff = correctiveModel(diff);
 
     //Update corrected odometry at support swap
     if (
@@ -158,6 +117,25 @@ void OdometryModel::update(
     HumanoidFixedModel& model)
 {
     update(model.get().getPose(), model.getSupportFoot());
+}
+        
+void OdometryModel::updateFullStep(
+    const Eigen::Vector3d& deltaPose)
+{
+    if (!_isInitialized) {
+        _support = Leph::HumanoidFixedModel::LeftSupportFoot;
+        _last = _state;
+        _isInitialized = true;
+    }
+
+    //Apply displacement correction
+    Eigen::Vector3d diff = correctiveModel(deltaPose);
+    
+    //Integrate current state with given full 
+    //step relative displacement
+    _last = _state;
+    odometryInt(diff, _state);
+    _corrected = _state;
 }
 
 const Eigen::VectorXd& OdometryModel::parameters() const
@@ -203,6 +181,59 @@ void OdometryModel::odometryInt(
     //Shrink to -PI,PI
     if (state.z() > M_PI) state.z() -= 2.0*M_PI;
     if (state.z() < -M_PI) state.z() += 2.0*M_PI;
+}
+        
+Eigen::Vector3d OdometryModel::correctiveModel(
+    const Eigen::Vector3d& diff) const
+{
+    double diffX;
+    double diffY;
+    if (_type == CorrectionIdentity) {
+        diffX = diff.x();
+        diffY = diff.y();
+    } else if (_type == CorrectionLinear) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*diff.y();
+        diffY = 
+            _odometryParameters(3) +
+            _odometryParameters(4)*diff.x() +
+            _odometryParameters(5)*diff.y();
+    } else if (_type == CorrectionLinearWithAzimuth) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*diff.y() +
+            _odometryParameters(3)*diff.z();
+        diffY = 
+            _odometryParameters(4) +
+            _odometryParameters(5)*diff.x() +
+            _odometryParameters(6)*diff.y() +
+            _odometryParameters(7)*diff.z();
+    } else if (_type == CorrectionCubic) {
+        diffX = 
+            _odometryParameters(0) +
+            _odometryParameters(1)*diff.x() +
+            _odometryParameters(2)*pow(diff.x(), 2) +
+            _odometryParameters(3)*pow(diff.x(), 3) +
+            _odometryParameters(4)*diff.y() +
+            _odometryParameters(5)*pow(diff.y(), 2) +
+            _odometryParameters(6)*pow(diff.y(), 3);
+        diffY = 
+            _odometryParameters(7) +
+            _odometryParameters(8)*diff.x() +
+            _odometryParameters(9)*pow(diff.x(), 2) +
+            _odometryParameters(10)*pow(diff.x(), 3) +
+            _odometryParameters(11)*diff.y() +
+            _odometryParameters(12)*pow(diff.y(), 2) +
+            _odometryParameters(13)*pow(diff.y(), 3);
+    } else {
+        diffX = diff.x();
+        diffY = diff.y();
+    }
+
+    return Eigen::Vector3d(diffX, diffY, diff.z());
 }
 
 }

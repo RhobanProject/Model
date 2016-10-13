@@ -88,11 +88,15 @@ int main(int argc, char** argv)
         std::cout << "Seq " << i << " with " << readTrajsPose[i].size() << " points " 
             << "Displacement: " << targetDisplacements[i].transpose() << std::endl;
     }
-    
+
     //Fitness function
     bool verbose  = false;
     libcmaes::FitFuncEigen fitness = 
-        [&type, &readTrajsPose, &readTrajsSupport, &targetDisplacements, &verbose]
+        [&type, 
+        &readTrajsPose, &readTrajsSupport, 
+        &goalTrajsPose, &goalTrajsSupport, 
+        &walkTrajsOrder, &walkTrajsPhase, 
+        &targetDisplacements, &verbose]
         (const Eigen::VectorXd& params) 
         {
             //Check bounds
@@ -106,16 +110,32 @@ int main(int argc, char** argv)
                 Leph::OdometryModel odometry(type);
                 odometry.parameters() = params;
                 odometry.reset();
+                double lastPhase = walkTrajsPhase[i].front();
                 for (size_t j=0;j<readTrajsPose[i].size();j++) {
+                    /*
+                    double phase = walkTrajsPhase[i][j];
+                    if (lastPhase > 0.8 && phase < 0.2) {
+                        odometry.updateFullStep(
+                            walkTrajsOrder[i][j].segment(0, 3) * walkTrajsOrder[i][j](3));
+                    }
+                    lastPhase = phase;
+                    */
                     odometry.update(
                         readTrajsPose[i][j], 
                         readTrajsSupport[i][j]);
+                    /*
+                    odometry.update(
+                        goalTrajsPose[i][j], 
+                        goalTrajsSupport[i][j]);
+                    */
                     if (verbose) {
                         plot.add(Leph::VectorLabel(
                             "odometry_x", odometry.state().x(),
                             "odometry_y", odometry.state().y(),
                             "read_x", readTrajsPose[i][j].x(),
                             "read_y", readTrajsPose[i][j].y(),
+                            "goal_x", goalTrajsPose[i][j].x(),
+                            "goal_y", goalTrajsPose[i][j].y(),
                             "target_x", targetDisplacements[i].x(),
                             "target_y", targetDisplacements[i].y(),
                             "seq", i
@@ -138,6 +158,8 @@ int main(int argc, char** argv)
             if (verbose) {
                 plot
                     .plot("odometry_x", "odometry_y", Leph::Plot::LinesPoints, "seq")
+                    //.plot("read_x", "read_y", Leph::Plot::LinesPoints, "seq")
+                    //.plot("goal_x", "goal_y", Leph::Plot::LinesPoints, "seq")
                     .plot("target_x", "target_y")
                     .render();
             }

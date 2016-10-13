@@ -20,6 +20,7 @@ class OdometryModel
          * OdometryModel regression type
          */
         enum OdometryModelType {
+            CorrectionIdentity,
             CorrectionLinear,
             CorrectionLinearWithAzimuth,
             CorrectionCubic,
@@ -50,6 +51,15 @@ class OdometryModel
             Leph::HumanoidFixedModel::SupportFoot supportFoot);
         void update(
             HumanoidFixedModel& model);
+
+        /**
+         * Update pose state by integrating given
+         * relative displacement between two right to left
+         * support foot transition (dX, dY, dTheta) 
+         * (meter, radian).
+         */
+        void updateFullStep(
+            const Eigen::Vector3d& deltaPose);
 
         /**
          * Read/Write access to 
@@ -95,21 +105,8 @@ class OdometryModel
         bool _isInitialized;
 
         /**
-         * Odometry parameters
-         * 0: dX = offset
-         * 1: dX = dx
-         * 2: dX = dx^2
-         * 3: dX = dx^3
-         * 4: dX = dy
-         * 5: dX = dy^2
-         * 6: dX = dy^3
-         * 7: dY = offset
-         * 8: dY = dx
-         * 9: dY = dx^2
-         *10: dY = dx^3
-         *11: dY = dy
-         *12: dY = dy^2
-         *13: dY = dy^3
+         * Odometry parameters depending
+         * on OdometryModelType
          */
         Eigen::VectorXd _odometryParameters;
         
@@ -140,6 +137,13 @@ class OdometryModel
          * update
          */
         Eigen::Vector3d _corrected;
+
+        /**
+         * Correct and return given relative displacement 
+         * [dX,dY,dTheta] using current model parameters.
+         */
+        Eigen::Vector3d correctiveModel(
+            const Eigen::Vector3d& diff) const;
 };
 
 }
