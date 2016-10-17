@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>model</name>
+  <version>0.0.0</version>
+  <description>A fixed version of lwpr with catkin support</description>
+
+  <maintainer email="qrouxel@labri.fr">Quentin Rouxel</maintainer>
+  <author email="qrouxel@labri.fr">Quentin Rouxel</author>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>Eigen</build_depend>
+  <build_depend>lwpr</build_depend>
+  <build_depend>libgp</build_depend>
+  <build_depend>libcmaes</build_depend>
+  <build_depend>rbdl</build_depend>
+
+  <run_depend>Eigen</run_depend>
+  <run_depend>lwpr</run_depend>
+  <run_depend>libgp</run_depend>
+  <run_depend>libcmaes</run_depend>
+  <run_depend>rbdl</run_depend>
+
+  <export>
+  </export>
+</package>

@@ -4,11 +4,21 @@
 ###
 
 cmake_minimum_required(VERSION 2.8)
-project(Thesis)
+project(model)
 
-#Deps dependencies
-find_package(Deps)
-deps_add_libraries()
+find_package(catkin REQUIRED COMPONENTS
+  Eigen
+  lwpr
+  libgp
+  libcmaes
+  rbdl
+  )
+
+catkin_package(
+  INCLUDE_DIRS .
+  LIBRARIES model
+  CATKIN_DEPENDS Eigen lwpr libgp libcmaes rbdl
+)
 
 #Option for compiling the tests and apps
 option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
@@ -246,14 +256,14 @@ set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "L
 include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
 
 #Build Code as shared library
-add_library(LephCode SHARED ${SOURCES_FILES})
-target_link_libraries(LephCode ${CODE_LIBRARIES})
+add_library(model SHARED ${SOURCES_FILES})
+target_link_libraries(model ${CODE_LIBRARIES})
 
 #Build Tests
 if (BUILD_LEPH_CODE_TESTS)
     foreach (TEST ${TESTS_FILES})
         add_executable(${TEST} Tests/${TEST}.cpp)
-        target_link_libraries(${TEST} LephCode)
+        target_link_libraries(${TEST} model)
     endforeach ()
 endif (BUILD_LEPH_CODE_TESTS)
 
@@ -261,7 +271,7 @@ endif (BUILD_LEPH_CODE_TESTS)
 if (BUILD_LEPH_CODE_APPS)
     foreach (APP ${APPS_FILES})
         add_executable(${APP} Apps/${APP}.cpp)
-        target_link_libraries(${APP} LephCode)
+        target_link_libraries(${APP} model)
     endforeach ()
 endif (BUILD_LEPH_CODE_APPS)
 
@@ -277,7 +287,7 @@ if (BUILD_LEPH_CODE_RHAL)
     )
     foreach (APP ${APPS_RHAL_FILES})
         add_executable(${APP} Apps/${APP}.cpp ${APPS_RHAL_SOURCES_FILES})
-        target_link_libraries(${APP} LephCode ${APPS_RHAL_LIBRARIES})
+        target_link_libraries(${APP} model ${APPS_RHAL_LIBRARIES})
     endforeach ()
 endif (BUILD_LEPH_CODE_RHAL)
 
