@@ -92,7 +92,7 @@ set(SOURCES_FILES
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
-    Model/HumanoidSimulation.cpp
+#    Model/HumanoidSimulation.cpp
     Model/MotorModel.cpp
     Model/JointModel.cpp
     Model/OdometryModel.cpp
