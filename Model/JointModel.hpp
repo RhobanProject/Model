@@ -23,7 +23,7 @@ class JointModel
          */
         enum JointModelType {
             //No friction, no control torque
-            //(no parameter or state)
+            //(no parameter)
             JointFree,
             //Friction and control torque
             JointActuated,
@@ -55,12 +55,6 @@ class JointModel
         void setParameters(const Eigen::VectorXd& params);
         
         /**
-         * Get and set internal joint state
-         */
-        const Eigen::VectorXd& getStates() const;
-        void setStates(const Eigen::VectorXd& states);
-
-        /**
          * Compute the torque applied on 
          * the joint by the mechanical friction
          * given current joint position and velocity.
@@ -86,6 +80,11 @@ class JointModel
             double dt, double goal, double pos, double vel);
 
         /**
+         * Return current delayed goal
+         */
+        double getDelayedGoal() const;
+
+        /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
@@ -109,16 +108,12 @@ class JointModel
         Eigen::VectorXd _parameters;
 
         /**
-         * Joint used state
-         * for control method
+         * Current integrated time in seconds
+         * and target goal history (for lag
+         * implementation)
          */
-        Eigen::VectorXd _states;
-
-        /**
-         * Is updateState have already be
-         * called once
-         */
-        bool _isInitialized;
+        double _goalTime;
+        std::queue<std::pair<double, double>> _goalHistory;
 };
 
 }

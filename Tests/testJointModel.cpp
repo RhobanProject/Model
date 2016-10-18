@@ -11,7 +11,8 @@ int main()
     assert(joint.getName() == "test");
 
     Eigen::VectorXd params = joint.getParameters();
-    Eigen::VectorXd states = joint.getStates();
+    params(7) = 0.1;
+    joint.setParameters(params);
 
     plot.clear();
     std::cout << "Zero friction torque: " << joint.frictionTorque(0.0, 0.0) << std::endl;
@@ -21,7 +22,7 @@ int main()
         plot.add(Leph::VectorLabel(
             "t", t,
             "goal", goal,
-            "delayedGoal", joint.getStates()(0)
+            "delayedGoal", joint.getDelayedGoal()
         )); 
     }
     plot.plot("t", "all").render();
