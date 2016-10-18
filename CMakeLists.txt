@@ -11,13 +11,13 @@ find_package(catkin REQUIRED COMPONENTS
   lwpr
   libgp
   libcmaes
-  rbdl
+  rbdl_urdfreader
   )
 
 catkin_package(
   INCLUDE_DIRS .
   LIBRARIES model
-  CATKIN_DEPENDS Eigen lwpr libgp libcmaes rbdl
+  CATKIN_DEPENDS Eigen lwpr libgp libcmaes rbdl_urdfreader
 )
 
 #Option for compiling the tests and apps
