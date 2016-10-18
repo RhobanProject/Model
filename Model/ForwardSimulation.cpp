@@ -327,12 +327,7 @@ void ForwardSimulation::update(double dt,
     //An impulsion need to be applied to enforce
     //the constraints with the new velocity and model.
     if (isOneDeactivation && constraints != nullptr) {
-        _velocities = _model->impulseContactsPartial(
-            *constraints,
-            _positions,
-            _velocities,
-            _actives,
-            RBDLMath::LinearSolverFullPivHouseholderQR);
+        computeImpulses(*constraints);
     }
 
     //Check numerical validity
@@ -354,6 +349,17 @@ void ForwardSimulation::update(double dt,
     for (size_t i=0;i<size;i++) {
         _jointModels[i].boundState(_positions(i), _velocities(i));
     }
+}
+
+void ForwardSimulation::computeImpulses(
+    RBDL::ConstraintSet& constraints)
+{
+    _velocities = _model->impulseContactsPartial(
+        constraints,
+        _positions,
+        _velocities,
+        _actives,
+        RBDLMath::LinearSolverFullPivHouseholderQR);
 }
 
 }

@@ -68,6 +68,14 @@ class ForwardSimulation
          */
         void update(double dt, 
             RBDL::ConstraintSet* constraints = nullptr);
+
+        /**
+         * Run impulse calculations and update
+         * the velocities to comply with given
+         * constraints set
+         */
+        void computeImpulses(
+            RBDL::ConstraintSet& constraints);
         
     private:
 
