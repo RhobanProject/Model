@@ -223,18 +223,6 @@ void ForwardSimulation::update(double dt,
     //Assign model position state
     _model->setDOFVect(_positions);
     
-    //Recompute with Inverse Dynamics 
-    //applied torque on each DOF
-    //(minus because InverseDynamics compute the 
-    //needed torque to produce given acceleration).
-    if (constraints == nullptr) {
-        _inputTorques = - _model->inverseDynamics(
-            _velocities, _accelerations);
-    } else {
-        _inputTorques = - _model->inverseDynamicsContacts(
-            *constraints, _positions, _velocities, _accelerations);
-    }
-
     //Recompute all friction 
     //and control torque
     for (size_t i=0;i<size;i++) {
@@ -244,19 +232,13 @@ void ForwardSimulation::update(double dt,
             .controlTorque(_positions(i), _velocities(i));
     }
 
-    //Handle joint activation and static friction
+    //Handle joint actives stiction model
     bool isOneActivation = false;
     bool isOneDeactivation = false;
+
+    //Active to disabled
+    Eigen::VectorXi saveActives = _actives;
     for (size_t i=0;i<size;i++) {
-        //Compute current friction torque 
-        //in case of static state
-        double staticFrictionCurrent = 
-            fabs(_inputTorques(i) + _controlTorques(i));
-        //Compute friction torque limit at zero velocity (Coulomb cone).
-        //1.01 prevent false numerical activation of joint
-        double staticFrictionLimit = 
-            1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
-        //Active to disabled
         if (
             _jointModels[i].getType() != JointModel::JointFree &&
             _actives(i) != 0 &&
@@ -305,22 +287,9 @@ void ForwardSimulation::update(double dt,
                 _actives(i) = 0;
                 isOneDeactivation = true;
             }
-        //Disabled to active
-        } else if (
-            _jointModels[i].getType() != JointModel::JointFree &&
-            _actives(i) == 0 &&
-            !isOneActivation &&
-            staticFrictionCurrent > staticFrictionLimit
-        ) {
-            //Enable stopped joint due to static friction
-            //when applied high enough torque.
-            _actives(i) = 1;
-            //At must one joint as activated at each iteration
-            //to avoid numerical instalibity of multiple
-            //newly activated joints
-            isOneActivation = true;
-        }
+        } 
     }
+
     //When a DOF is disabled, the velocity is set
     //to zero and if constraints are not empty,
     //the new velocity may break the constraints.
@@ -328,6 +297,72 @@ void ForwardSimulation::update(double dt,
     //the constraints with the new velocity and model.
     if (isOneDeactivation && constraints != nullptr) {
         computeImpulses(*constraints);
+    }
+    
+    //Recompute with Inverse Dynamics 
+    //applied torque on each DOF
+    //(minus because InverseDynamics compute the 
+    //needed torque to produce given acceleration).
+    if (constraints == nullptr) {
+        _inputTorques = - _model->inverseDynamics(
+            _velocities, _accelerations);
+    } else {
+        _inputTorques = - _model->inverseDynamicsContacts(
+            *constraints, _positions, _velocities, _accelerations);
+    }
+    
+    //Disabled to active
+    for (size_t i=0;i<size;i++) {
+        //Compute current friction torque 
+        //in case of static state
+        double staticFrictionCurrent = 
+            fabs(_inputTorques(i) + _controlTorques(i));
+        //Compute friction torque limit at zero velocity (Coulomb cone).
+        //1.01 prevent false numerical activation of joint
+        double staticFrictionLimit = 
+            1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
+        if (
+            _jointModels[i].getType() != JointModel::JointFree &&
+            saveActives(i) == 0 &&
+            !isOneActivation &&
+            !isOneDeactivation &&
+            staticFrictionCurrent > staticFrictionLimit
+        ) {
+            //In case of full constraints (for example 
+            //the humanoid double support), the inverse dynamics
+            //solution is not unique and the computed static torques 
+            //can be non zero even if all the DOFs have to be locked.
+            if (constraints != nullptr) {
+                //Compute next acceleration if 
+                //the degree of freedom is realeased.
+                //(save and restore computed forces)
+                Eigen::VectorXd tmpSaveForce = constraints->force;
+                Eigen::VectorXi tmpSaveActives = _actives;
+                tmpSaveActives(i) = 1;
+                Eigen::VectorXd tmpNextAcceleration = _model->forwardDynamicsContactsPartial(
+                    *constraints,
+                    _positions,
+                    _velocities,
+                    _frictionTorques + _controlTorques,
+                    tmpSaveActives,
+                    RBDLMath::LinearSolverFullPivHouseholderQR);
+                constraints->force = tmpSaveForce;
+                //Skip the joint activation if the acceleration 
+                //is blocked by contact constraints
+                if (fabs(tmpNextAcceleration(i)) < 1e-8) {
+                    continue;
+                }
+            }
+            //Enable stopped joint due to static friction
+            //when applied high enough torque.
+            _velocities(i) = 0.0;
+            _accelerations(i) = 0.0;
+            _actives(i) = 1;
+            //At must one joint as activated at each iteration
+            //to avoid numerical instalibity of multiple
+            //newly activated joints
+            isOneActivation = true;
+        }
     }
 
     //Check numerical validity
