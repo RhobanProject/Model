@@ -525,6 +525,7 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -598,6 +599,10 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
             for (size_t j=0;j<(size_t)enabled.size();j++) {
                 if (enabled(j) != 0) {
                     H2(index, index2) = H(i, j);
+                    //Add inertial offset on diagonal
+                    if (i == j) {
+                        H2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }
@@ -675,6 +680,7 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -735,6 +741,10 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
             for (size_t j=0;j<sizeAll;j++) {
                 if (enabled(j) != 0) {
                     A2(index, index2) = constraints.H(i, j);
+                    //Add inertia offset on diagonal
+                    if (i == j) {
+                        A2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }
@@ -865,6 +875,7 @@ Eigen::VectorXd Model::impulseContactsPartial(
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -927,6 +938,10 @@ Eigen::VectorXd Model::impulseContactsPartial(
             for (size_t j=0;j<sizeAll;j++) {
                 if (enabled(j) != 0) {
                     H2(index, index2) = constraints.H(i, j);
+                    //Add inertia offset on diagonal
+                    if (i == j) {
+                        H2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }

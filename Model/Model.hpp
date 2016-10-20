@@ -287,6 +287,9 @@ class Model
          * torque are given. 
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -295,6 +298,7 @@ class Model
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& torque,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
@@ -323,6 +327,9 @@ class Model
          * torque are given. 
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -332,6 +339,7 @@ class Model
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& torque,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
@@ -371,6 +379,9 @@ class Model
          * velocity are given.
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -379,6 +390,7 @@ class Model
             const Eigen::VectorXd& position,
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 

@@ -122,6 +122,12 @@ class ForwardSimulation
         Eigen::VectorXd _frictionTorques;
         Eigen::VectorXd _controlTorques;
         Eigen::VectorXd _inputTorques;
+
+        /**
+         * Joint internal inertia offset added to 
+         * the diagonal of inertia matrix
+         */
+        Eigen::VectorXd _inertiaOffsets;
 };
 
 }

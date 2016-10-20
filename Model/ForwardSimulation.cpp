@@ -14,7 +14,8 @@ ForwardSimulation::ForwardSimulation(Model& model) :
     _outputTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
     _frictionTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
     _controlTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _inputTorques(Eigen::VectorXd::Zero(_model->sizeDOF()))
+    _inputTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _inertiaOffsets(Eigen::VectorXd::Zero(_model->sizeDOF()))
 {
     //Init joint models
     for (size_t i=0;i<_model->sizeDOF();i++) {
@@ -133,6 +134,10 @@ void ForwardSimulation::update(double dt,
     for (size_t i=0;i<size;i++) {
         _jointModels[i].updateState(
             dt, _goals(i), _positions(i), _velocities(i));
+        //Retrieve inertia offset
+        if (_jointModels[i].getType() != JointModel::JointFree) {
+            _inertiaOffsets(i) = _jointModels[i].getParameters()(0);
+        }
     }
 
     //Compute and return the generalized state
@@ -183,6 +188,7 @@ void ForwardSimulation::update(double dt,
                 state.segment(size, size),
                 this->_outputTorques,
                 this->_actives, 
+                _inertiaOffsets,
                 RBDLMath::LinearSolverFullPivHouseholderQR);
         } else {
             this->_accelerations = 
@@ -192,6 +198,7 @@ void ForwardSimulation::update(double dt,
                 state.segment(size, size),
                 this->_outputTorques,
                 this->_actives,
+                _inertiaOffsets,
                 RBDLMath::LinearSolverFullPivHouseholderQR);
         }
         //Build generalized state derivative
@@ -256,6 +263,7 @@ void ForwardSimulation::update(double dt,
                     _velocities,
                     _frictionTorques + _controlTorques,
                     _actives,
+                    _inertiaOffsets,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
             } else {
                 //Constraints
@@ -267,6 +275,7 @@ void ForwardSimulation::update(double dt,
                     _velocities,
                     _frictionTorques + _controlTorques,
                     _actives,
+                    _inertiaOffsets,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
                 constraints->force = tmpSaveForce;
             }
@@ -345,6 +354,7 @@ void ForwardSimulation::update(double dt,
                     _velocities,
                     _frictionTorques + _controlTorques,
                     tmpSaveActives,
+                    _inertiaOffsets,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
                 constraints->force = tmpSaveForce;
                 //Skip the joint activation if the acceleration 
@@ -394,6 +404,7 @@ void ForwardSimulation::computeImpulses(
         _positions,
         _velocities,
         _actives,
+        _inertiaOffsets,
         RBDLMath::LinearSolverFullPivHouseholderQR);
 }
 
