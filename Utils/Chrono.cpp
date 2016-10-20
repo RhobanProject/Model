@@ -96,6 +96,9 @@ double Chrono::sum(const std::string& name) const
             std::chrono::duration<double, std::ratio<1, 1000>>>
             (d).count();
     }
+    if (tmpSum < 0.0) {
+        tmpSum = 0.0;
+    }
 
     return tmpSum;
 }
@@ -108,12 +111,12 @@ void Chrono::printDuration(std::ostream& os,
         os << "    ";
     }
     os << "[" << name << "]";
-    os << " " << mean(name);
-    os << " ------ count=" << _durations.at(name).size();
+    os << " --- mean=" << mean(name);
+    os << " --- count=" << _durations.at(name).size();
     os << " --- sum=" << sum(name);
     os << " --- max=" << max(name);
     if (father != "") {
-        os << " --- ratio=" << 100.0*sum(name)/mean(father) << "%";
+        os << " --- ratio=" << 100.0*sum(name)/sum(father) << "%";
     }
     os << std::endl;
 }
