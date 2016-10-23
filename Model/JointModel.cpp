@@ -11,7 +11,8 @@ JointModel::JointModel(
     _name(name),
     _parameters(),
     _goalTime(0.0),
-    _goalHistory()
+    _goalHistory(),
+    _backlashPosition(0.0)
 {
     //Initialize model parameters
     if (type == JointFree) {
@@ -19,7 +20,7 @@ JointModel::JointModel(
         _parameters = Eigen::VectorXd();
     } else if (type == JointActuated) {
         //Friction and control
-        _parameters = Eigen::VectorXd(9);
+        _parameters = Eigen::VectorXd(11);
         //Joint internal inertia
         _parameters(0) = 0.01;
         //Friction velocity limit
@@ -38,6 +39,10 @@ JointModel::JointModel(
         _parameters(7) = 50.0;
         //Control lag in seconds
         _parameters(8) = 0.01;
+        //Backlask angular range
+        _parameters(9) = 0.01;
+        //Backlash friction coef
+        _parameters(10) = 0.1;
     } else {
         throw std::logic_error(
             "JointModel invalid joint type");
@@ -87,6 +92,15 @@ double JointModel::frictionTorque(double pos, double vel) const
     double coefViscous = _parameters(2);
     double coefStatic = _parameters(3);
     double coefBreak = _parameters(4);
+    double backlashRange = _parameters(9);
+    double backlashCoef = _parameters(10);
+
+    //Apply backlash friction reduction
+    if (fabs(_backlashPosition) < backlashRange) {
+        coefViscous *= backlashCoef;
+        coefStatic *= backlashCoef;
+        coefBreak *= backlashCoef;
+    }
 
     //Compute friction
     double sign = (vel >= 0.0 ? 1.0 : -1.0);
@@ -167,6 +181,16 @@ void JointModel::updateState(
     ) {
         _goalHistory.pop();
     }
+
+    //Backlash state update
+    double backlashRange = _parameters(9);
+    _backlashPosition += dt*vel;
+    if (_backlashPosition > backlashRange) {
+        _backlashPosition = backlashRange + 1e-10;
+    }
+    if (_backlashPosition < -backlashRange) {
+        _backlashPosition = -backlashRange - 1e-10;
+    }
 }
         
 double JointModel::getDelayedGoal() const
@@ -176,6 +200,11 @@ double JointModel::getDelayedGoal() const
     } else {
         return _goalHistory.front().second;
     }
+}
+        
+double JointModel::getBacklashState() const
+{
+    return _backlashPosition;
 }
 
 void JointModel::boundState(double& pos, double& vel)

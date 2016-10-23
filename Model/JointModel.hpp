@@ -85,6 +85,11 @@ class JointModel
         double getDelayedGoal() const;
 
         /**
+         * Return current backlash hidden state
+         */
+        double getBacklashState() const;
+
+        /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
@@ -114,6 +119,12 @@ class JointModel
          */
         double _goalTime;
         std::queue<std::pair<double, double>> _goalHistory;
+
+        /**
+         * Backlash hidden relative 
+         * position state
+         */
+        double _backlashPosition;
 };
 
 }
