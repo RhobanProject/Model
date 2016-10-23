@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cmath>
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidModel.hpp"
 #include "Model/ForwardSimulation.hpp"
@@ -101,6 +102,9 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     
     //Main loop
     double cost = 0.0;
+    double sumError = 0.0;
+    double maxError = -1.0;
+    double count = 0.0;
     Leph::ModelViewer* viewer = nullptr;
     if (verbose) {
         viewer = new Leph::ModelViewer(1200, 900);
@@ -123,12 +127,19 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         double error = 
             sim.positions()(modelSim.getDOFIndex("left_shoulder_pitch")) 
             - logs.get("read:left_shoulder_pitch", t);
-        cost += pow(error, 2);
+        error = pow(error, 2);
+        sumError += error;
+        if (maxError < 0.0 || maxError < error) {
+            maxError = error;
+        }
+        count += 1.0;
         plot.add(Leph::VectorLabel(
             "t", t, 
             "read", logs.get("read:left_shoulder_pitch", t),
             "goal", logs.get("goal:left_shoulder_pitch", t),
             "simPos", sim.positions()(modelSim.getDOFIndex("left_shoulder_pitch")),
+            //"simVel", sim.velocities()(modelSim.getDOFIndex("left_shoulder_pitch")),
+            //"simAcc", sim.accelerations()(modelSim.getDOFIndex("left_shoulder_pitch")),
             "error", error
         ));
         if (verbose) {
@@ -140,6 +151,8 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         delete viewer;
         plot.plot("t", "all").render();
     }
+    cost = 0.2*(sumError/count) + 0.8*maxError;
+    cost = sqrt(cost)*180.0/M_PI;
 
     return cost;
 }
@@ -151,28 +164,37 @@ int main()
 
     Leph::JointModel tmpJoint(Leph::JointModel::JointActuated, "tmp");
     Eigen::VectorXd initParams = tmpJoint.getParameters();
-    /*
     initParams <<
-        0.0782373601421692,
-        0.25470575546664,
-        3.94846140561371,
-        0.000731326995145264,
-        0.243825436631086,
-        59.4042249313153,
-        39.7030274964489,
-        49.2245641753002,
-        0.0294397630231597;
-    */
+        0.000187767361335624,
+        2.6280623085881,
+        0.251943643687315,
+        1.14155383637433,
+        0.00237072388781183,
+        12.278546662782,
+        4.19281091164888,
+        11.6048527958962,
+        0.0339800463192264,
+        0.01,
+        0.1;
+    
+    //Normalization
+    Eigen::VectorXd coef = initParams;
+    Eigen::VectorXd coefInv = initParams;
+    for (size_t i=0;i<(size_t)coef.size();i++) {
+        coefInv(i) = 1.0/coef(i);
+    }
+
     double initScore = scoreFitness(filename, initParams, true);
     std::cout << "InitScore=" << initScore << std::endl;
 
+    initParams = coefInv.array() * initParams.array();
     Eigen::VectorXd bestParams = initParams;
     double bestScore = -1.0;
     int iteration = 0;
     
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [&filename](const Eigen::VectorXd& params) 
+        [&filename, &coef](const Eigen::VectorXd& params) 
     {
         //Bound positive parameters
         Eigen::VectorXd tmpParams = params;
@@ -184,7 +206,7 @@ int main()
             }
         }
         try {
-            cost += scoreFitness(filename, params, false);
+            cost += scoreFitness(filename, coef.array() * params.array(), false);
         } catch (const std::runtime_error& e) {
             cost += 10000.0;
         }
@@ -194,13 +216,14 @@ int main()
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [&bestParams, &bestScore, &iteration](
+        [&bestParams, &bestScore, &iteration, &coef](
             const libcmaes::CMAParameters<>& cmaparams, 
             const libcmaes::CMASolutions& cmasols)
     {
         //Retrieve best Trajectories and score
         Eigen::VectorXd params = 
             cmasols.get_best_seen_candidate().get_x_dvec();
+        params = coef.array() * params.array();
         double score = 
             cmasols.get_best_seen_candidate().get_fvalue();
         if (bestScore < 0.0 || bestScore > score) {
@@ -228,8 +251,8 @@ int main()
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(1);
-    cmaparams.set_max_iter(100);
+    cmaparams.set_restarts(2);
+    cmaparams.set_max_iter(300);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
