@@ -104,6 +104,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     double cost = 0.0;
     double sumError = 0.0;
     double maxError = -1.0;
+    double maxErrorTime = 0.0;
     double count = 0.0;
     Leph::ModelViewer* viewer = nullptr;
     if (verbose) {
@@ -131,6 +132,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         sumError += error;
         if (maxError < 0.0 || maxError < error) {
             maxError = error;
+            maxErrorTime = t;
         }
         count += 1.0;
         plot.add(Leph::VectorLabel(
@@ -140,6 +142,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             "simPos", sim.positions()(modelSim.getDOFIndex("left_shoulder_pitch")),
             //"simVel", sim.velocities()(modelSim.getDOFIndex("left_shoulder_pitch")),
             //"simAcc", sim.accelerations()(modelSim.getDOFIndex("left_shoulder_pitch")),
+            //"backlash", sim.jointModel("left_shoulder_pitch").getBacklashState(),
             "error", error
         ));
         if (verbose) {
@@ -147,12 +150,18 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             Leph::ModelDraw(modelRead, *viewer);
         }
     }
-    if (verbose) {
-        delete viewer;
-        plot.plot("t", "all").render();
-    }
+    
     cost = 0.2*(sumError/count) + 0.8*maxError;
     cost = sqrt(cost)*180.0/M_PI;
+    
+    if (verbose) {
+        delete viewer;
+        std::cout << "MeanError: " << sqrt(sumError/count)*180.0/M_PI << std::endl;
+        std::cout << "MaxError:  " << sqrt(maxError)*180.0/M_PI << std::endl;
+        std::cout << "MaxTime:   " << std::setprecision(10) << maxErrorTime << std::endl;
+        std::cout << "Cost:      " << cost << std::endl;
+        plot.plot("t", "all").render();
+    }
 
     return cost;
 }
@@ -230,7 +239,7 @@ int main()
             bestParams = params;
             bestScore = score;
         }
-        if (iteration % 10 == 0) {
+        if (iteration % 50 == 0) {
             std::cout << "============" << std::endl;
             std::cout << "BestScore: " << bestScore<< std::endl;
             std::cout << "BestParams: " << bestParams.transpose() << std::endl;
