@@ -50,6 +50,7 @@ void testForward()
             count++;
             Leph::VectorLabel vect;
             for (size_t i=0;i<model.sizeDOF();i++) {
+                vect.append("backlash:" + model.getDOFName(i), sim.jointModel(i).getBacklashState());
                 vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
                 vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
                 vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
@@ -65,6 +66,7 @@ void testForward()
         model.setDOFVect(sim.positions());
         Leph::ModelDraw(model, viewer);
     }
+    plot.plot("index", "backlash:*").render();
     plot.plot("index", "acc:*").render();
     plot.plot("index", "active:*").render();
     plot.plot("index", "output:*").render();

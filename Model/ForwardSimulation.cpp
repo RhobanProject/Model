@@ -221,7 +221,6 @@ void ForwardSimulation::update(double dt,
     }
 
     //Handle joint actives stiction model
-    bool isOneActivation = false;
     bool isOneDeactivation = false;
 
     //Active to disabled
@@ -314,48 +313,14 @@ void ForwardSimulation::update(double dt,
         if (
             _jointModels[i].getType() != JointModel::JointFree &&
             saveActives(i) == 0 &&
-            !isOneActivation &&
             !isOneDeactivation &&
             staticFrictionCurrent > staticFrictionLimit
         ) {
-            //In case of full constraints (for example 
-            //the humanoid double support), the inverse dynamics
-            //solution is not unique and the computed static torques 
-            //can be non zero even if all the DOFs have to be locked.
-            bool isActivation = true;
-            if (constraints != nullptr) {
-                //Compute next acceleration if 
-                //the degree of freedom is realeased.
-                //(save and restore computed forces)
-                Eigen::VectorXd tmpSaveForce = constraints->force;
-                Eigen::VectorXi tmpSaveActives = _actives;
-                tmpSaveActives(i) = 1;
-                Eigen::VectorXd tmpNextAcceleration = _model->forwardDynamicsContactsPartial(
-                    *constraints,
-                    _positions,
-                    _velocities,
-                    _frictionTorques + _controlTorques,
-                    tmpSaveActives,
-                    _inertiaOffsets,
-                    RBDLMath::LinearSolverFullPivHouseholderQR);
-                constraints->force = tmpSaveForce;
-                //Skip the joint activation if the acceleration 
-                //is blocked by contact constraints
-                if (fabs(tmpNextAcceleration(i)) < 1e-8) {
-                    isActivation = false;
-                }
-            }
             //Enable stopped joint due to static friction
             //when applied high enough torque.
-            if (isActivation) {
-                _velocities(i) = 0.0;
-                _accelerations(i) = 0.0;
-                _actives(i) = 1;
-                //At must one joint as activated at each iteration
-                //to avoid numerical instalibity of multiple
-                //newly activated joints
-                isOneActivation = true;
-            }
+            _velocities(i) = 0.0;
+            _accelerations(i) = 0.0;
+            _actives(i) = 1;
         }
     }
 
