@@ -27,6 +27,30 @@ static std::vector<std::string> basesNames = {
     "base_roll", "base_pitch", "base_yaw",
 };
 
+/**
+ * Global inertia default data
+ * and name
+ */
+static Eigen::MatrixXd defaultInertiaData;
+static std::map<std::string, size_t> defaultInertiaName;
+
+/**
+ * Global joint parameters size
+ */
+static size_t sizeJointParameters;
+
+/**
+ * Load and assign default inertia form model
+ */
+static void loadDefaultInertiaData()
+{
+    Leph::HumanoidModel model(
+        Leph::SigmabanModel, 
+        "left_foot_tip", false);
+    defaultInertiaData = model.getInertiaData();
+    defaultInertiaName = model.getInertiaName();
+}
+
 static double scoreFitness(const std::string& filename, const Eigen::VectorXd& parameters, bool verbose)
 {
     //Load data into MapSeries
@@ -43,18 +67,31 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     }
     double min = logs.timeMin();
     double max = logs.timeMax();
+
+    //Assign inertia data
+    Eigen::MatrixXd currentInertiaData = defaultInertiaData;
+    currentInertiaData.row(defaultInertiaName.at("left_elbow")) = 
+        parameters.segment(sizeJointParameters + 0*10, 10).transpose();
+    currentInertiaData.row(defaultInertiaName.at("left_shoulder_roll")) = 
+        parameters.segment(sizeJointParameters + 1*10, 10).transpose();
+    currentInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")) = 
+        parameters.segment(sizeJointParameters + 2*10, 10).transpose();
+    currentInertiaData.row(defaultInertiaName.at("trunk")) = 
+        parameters.segment(sizeJointParameters + 3*10, 10).transpose();
     
     //Full humanoid model
     Leph::HumanoidModel modelSim(
         Leph::SigmabanModel, 
-        "left_foot_tip", false);
+        "left_foot_tip", false,
+        currentInertiaData,
+        defaultInertiaName);
     Leph::HumanoidModel modelRead(
         Leph::SigmabanModel, 
         "left_foot_tip", false);
-    
+
     //Simulator
     Leph::ForwardSimulation sim(modelSim);
-    sim.setJointModelParameters(parameters);
+    sim.setJointModelParameters(parameters.segment(0, sizeJointParameters));
     //Initialization
     for (const std::string& name : dofsNames) {
         sim.positions()(modelSim.getDOFIndex(name)) = 
@@ -163,16 +200,30 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         plot.plot("t", "all").render();
     }
 
+    if (std::isnan(cost)) {
+        std::cout << "NaN cost for parameters:" << parameters.transpose() << std::endl;
+    }
     return cost;
 }
 
 int main()
 {
-    //Load data into MapSeries
-    std::string filename = "../../These/Data/logs-2016-10-05-arm-dynamics/arm_3";
+    //Load default inertia data from model
+    loadDefaultInertiaData();
 
+    //Load data into MapSeries
+    std::vector<std::string> filenames = {
+        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_1",
+        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_2",
+        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_3",
+        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_4",
+        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_5",
+    };
+
+    //Initialize joint model parameters
     Leph::JointModel tmpJoint(Leph::JointModel::JointActuated, "tmp");
     Eigen::VectorXd initParams = tmpJoint.getParameters();
+    sizeJointParameters = initParams.size();
     initParams <<
         0.000187767361335624,
         2.6280623085881,
@@ -185,41 +236,104 @@ int main()
         0.0339800463192264,
         0.01,
         0.1;
+    initParams <<
+        0.000180534242300923,
+        3.27975358180819,
+        0.231572584872825,
+        1.34386985447662,
+        0.00108776584363242,
+        11.9949072324344,
+        3.73391961447474,
+        13.1822355976431,
+        0.0335126612266252,
+        0.00680511926306027,
+        0.1383034099226;
+    initParams <<
+        0.00192576003116526,
+        3.63823475370741,
+        0.190634113069743,
+        2.92521946266041,
+        0.000352172621829293,
+        17.3297300219461,
+        5.64645976532205,
+        12.3777471809961,
+        0.0328840813138452,
+        0.005,
+        /*
+        2.19408531779656,
+        0.0170660846476906,
+        0.0440792195453981,
+        0.000410050308032774;
+        */
+        0.01;
+    initParams <<
+        0.00233879052181243,
+        3.71669614845863,
+        0.162539217146832,
+        3.69063111598062,
+        0.000408492253049055,
+        21.060031997632,
+        5.94705506228297,
+        14.034335998561,
+        0.0331105427578845,
+        0.00362546489446558,
+        0.0103287987739863;
+
+    //Assign initial inertia parameters
+    initParams.conservativeResize(sizeJointParameters + 4*10);
+    initParams.segment(sizeJointParameters + 0*10, 10) = 
+        defaultInertiaData.row(defaultInertiaName.at("left_elbow")).transpose();
+    initParams.segment(sizeJointParameters + 1*10, 10) = 
+        defaultInertiaData.row(defaultInertiaName.at("left_shoulder_roll")).transpose();
+    initParams.segment(sizeJointParameters + 2*10, 10) = 
+        defaultInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")).transpose();
+    initParams.segment(sizeJointParameters + 3*10, 10) = 
+        defaultInertiaData.row(defaultInertiaName.at("trunk")).transpose();
     
-    //Normalization
+    //Normalization coefficient
     Eigen::VectorXd coef = initParams;
     Eigen::VectorXd coefInv = initParams;
     for (size_t i=0;i<(size_t)coef.size();i++) {
+        if (fabs(coef(i)) < 1e-10) {
+            coef(i) = 1e-10;
+        }
         coefInv(i) = 1.0/coef(i);
     }
 
-    double initScore = scoreFitness(filename, initParams, true);
-    std::cout << "InitScore=" << initScore << std::endl;
+    //Initial verbose
+    for (size_t i=0;i<filenames.size();i++) {
+        double initScore = scoreFitness(filenames[i], initParams, true);
+        std::cout << "InitScore=" << initScore << std::endl;
+    }
 
+    //Normalization of parameters
     initParams = coefInv.array() * initParams.array();
     Eigen::VectorXd bestParams = initParams;
     double bestScore = -1.0;
-    int iteration = 0;
+    int iteration = 1;
     
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [&filename, &coef](const Eigen::VectorXd& params) 
+        [&filenames, &coef](const Eigen::VectorXd& params) 
     {
         //Bound positive parameters
         Eigen::VectorXd tmpParams = params;
         double cost = 0.0;
         for (size_t i=0;i<(size_t)params.size();i++) {
-            if (tmpParams(i) < 0.0) {
+            if (i < sizeJointParameters && tmpParams(i) < 0.0) {
                 cost += 1000.0 - 1000.0*tmpParams(i);
                 tmpParams(i) = 0.0;
             }
         }
-        try {
-            cost += scoreFitness(filename, coef.array() * params.array(), false);
-        } catch (const std::runtime_error& e) {
-            cost += 10000.0;
+        //Iterate over on all logs
+        for (size_t i=0;i<filenames.size();i++) {
+            try {
+                cost += scoreFitness(filenames[i], coef.array() * params.array(), false);
+            } catch (const std::runtime_error& e) {
+                cost += 10000.0;
+            }
         }
-        return cost;
+        return cost/(double)filenames.size();
     };
     
     //Progress function
@@ -232,19 +346,21 @@ int main()
         //Retrieve best Trajectories and score
         Eigen::VectorXd params = 
             cmasols.get_best_seen_candidate().get_x_dvec();
-        params = coef.array() * params.array();
         double score = 
             cmasols.get_best_seen_candidate().get_fvalue();
-        if (bestScore < 0.0 || bestScore > score) {
+        if (!std::isnan(score) && (bestScore < 0.0 || bestScore > score)) {
             bestParams = params;
             bestScore = score;
         }
         if (iteration % 50 == 0) {
             std::cout << "============" << std::endl;
-            std::cout << "BestScore: " << bestScore<< std::endl;
-            std::cout << "BestParams: " << bestParams.transpose() << std::endl;
+            std::cout << "Dimension: " << params.size() << std::endl;
+            std::cout << "BestScore: " << bestScore << std::endl;
+            std::cout << "BestParams: " << (bestParams.array() * coef.array()).transpose() << std::endl;
+            std::cout << "BestCoef: " << bestParams.transpose() << std::endl;
             std::cout << "Score: " << score<< std::endl;
-            std::cout << "Params: " << params.transpose() << std::endl;
+            std::cout << "Params: " << (params.array() * coef.array()).transpose() << std::endl;
+            std::cout << "Coef: " << params.transpose() << std::endl;
             std::cout << "============" << std::endl;
         }
         iteration++;
@@ -255,11 +371,11 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, -1.0, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, 0.2, 10);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
-    cmaparams.set_elitism(true);
+    cmaparams.set_elitism(false);
     cmaparams.set_restarts(2);
     cmaparams.set_max_iter(300);
     
@@ -271,10 +387,13 @@ int main()
     bestParams = cmasols.get_best_seen_candidate().get_x_dvec();
     bestScore = cmasols.get_best_seen_candidate().get_fvalue();
     std::cout << "BestScore: " << bestScore << std::endl;
-    std::cout << "BestParams: " << bestParams.transpose() << std::endl;
+    std::cout << "BestParams: " << (coef.array() * bestParams.array()).transpose() << std::endl;
     
-    double finalScore = scoreFitness(filename, bestParams, true);
-    std::cout << "FinalScore=" << finalScore << std::endl;
+    //Final verbose
+    for (size_t i=0;i<filenames.size();i++) {
+        double finalScore = scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
+        std::cout << "FinalScore=" << finalScore << std::endl;
+    }
 
     return 0;
 }
