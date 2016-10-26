@@ -42,12 +42,16 @@ class HumanoidModel : public Model
          * Initialize the model with given
          * Robot type and root updater
          * and enable floating base 6 DOF if
-         * isFloatingBase is true
+         * isFloatingBase is true.
+         * If inertia data and name are not empty,
+         * given inertia override default model data.
          */
         HumanoidModel(
             RobotType type,
             const std::string& frameRoot,
-            bool isFloatingBase = true);
+            bool isFloatingBase = true,
+            const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& inertiaName = {});
         
         /**
          * Virtual destructor

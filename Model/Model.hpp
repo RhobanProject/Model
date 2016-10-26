@@ -39,12 +39,17 @@ class Model
          * file data
          */
         Model(const std::string& filename, 
-            const Eigen::MatrixXd& inertiaData);
+            const Eigen::MatrixXd& inertiaData,
+            const std::map<std::string, size_t>& inertiaName);
 
         /**
-         * Initialize with RBDL model
+         * Initialize with RBDL model.
+         * Given inertia data and name override
+         * model internal data with externaly loaded urdf.
          */
-        Model(RBDL::Model& model);
+        Model(RBDL::Model& model,
+            const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& inertiaName = {});
 
         /**
          * Return current update mode
@@ -417,16 +422,23 @@ class Model
         /**
          * Return access to inertia data matrix.
          * One line for each body. 
-         * Mass, COM vector (3d), inertia matrix (6d)
+         * Mass, COM vector (3d), inertia matrix (6d).
+         * And mapping body name to row index in 
+         * inertia data matrix
          */
         const Eigen::MatrixXd& getInertiaData() const;
+        const std::map<std::string, size_t>& getInertiaName() const;
 
     protected:
         
         /**
-         * Parse and initialilize RBDL model
+         * Parse and initialilize RBDL model.
+         * Given inertia data and name are used to
+         * assigned the model with externaly loaded urdf.
          */
-        void initializeModel(RBDL::Model& model);
+        void initializeModel(RBDL::Model& model, 
+            const Eigen::MatrixXd& inertiaData,
+            const std::map<std::string, size_t>& inertiaName);
 
     private:
     
@@ -475,8 +487,11 @@ class Model
          * Container of inertia data.
          * One line for each body. 
          * Mass, COM vector (3d), inertia matrix (6d)
+         * And mapping body name to row index in 
+         * inertia data matrix
          */
         Eigen::MatrixXd _inertiaData;
+        std::map<std::string, size_t> _inertiaName;
 
         /**
          * Filter body name to joint and frame name
