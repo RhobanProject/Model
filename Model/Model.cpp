@@ -1094,7 +1094,9 @@ void Model::initializeModel(RBDL::Model& model,
             continue;
         } else if (virtualDepth > 0) {
             throw std::logic_error(
-                "Model virtual body name not implemented");
+                "Model virtual body name not implemented: name=" 
+                + filteredName + std::string(" depth=") 
+                + std::to_string(virtualDepth));
         }
         addDOF(filteredName);
     }
