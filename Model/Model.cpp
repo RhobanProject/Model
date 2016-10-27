@@ -1093,10 +1093,19 @@ void Model::initializeModel(RBDL::Model& model,
             i += 5;
             continue;
         } else if (virtualDepth > 0) {
+            std::string verbose1 = RBDL::Utils::GetModelHierarchy(_model);
+            std::string verbose2 = RBDL::Utils::GetModelDOFOverview(_model);
             throw std::logic_error(
                 "Model virtual body name not implemented: name=" 
                 + filteredName + std::string(" depth=") 
-                + std::to_string(virtualDepth));
+                + std::to_string(virtualDepth)
+                + std::string("\n")
+                + std::string("ModelHierarchy:\n")
+                + verbose1
+                + std::string("\n")
+                + std::string("ModelDOFOverview:\n")
+                + verbose2
+            );
         }
         addDOF(filteredName);
     }
