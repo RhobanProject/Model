@@ -78,6 +78,30 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         parameters.segment(sizeJointParameters + 2*10, 10).transpose();
     currentInertiaData.row(defaultInertiaName.at("trunk")) = 
         parameters.segment(sizeJointParameters + 3*10, 10).transpose();
+
+    //Check positive inertia parameters
+    double tmpCost = 0.0;
+    for (size_t i=0;i<(size_t)currentInertiaData.rows();i++) {
+        //0 Mass
+        if (currentInertiaData(i, 0) <= 0.0) {
+            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 0);
+        }
+        //4 Ixx
+        if (currentInertiaData(i, 4) <= 0.0) {
+            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 4);
+        }
+        //7 Iyy
+        if (currentInertiaData(i, 7) <= 0.0) {
+            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 7);
+        }
+        //9 Izz
+        if (currentInertiaData(i, 9) <= 0.0) {
+            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 9);
+        }
+    }
+    if (tmpCost > 0.0) {
+        return tmpCost;
+    }
     
     //Full humanoid model
     Leph::HumanoidModel modelSim(
@@ -225,59 +249,17 @@ int main()
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
     initParams <<
-        0.000187767361335624,
-        2.6280623085881,
-        0.251943643687315,
-        1.14155383637433,
-        0.00237072388781183,
-        12.278546662782,
-        4.19281091164888,
-        11.6048527958962,
-        0.0339800463192264,
-        0.01,
-        0.1;
-    initParams <<
-        0.000180534242300923,
-        3.27975358180819,
-        0.231572584872825,
-        1.34386985447662,
-        0.00108776584363242,
-        11.9949072324344,
-        3.73391961447474,
-        13.1822355976431,
-        0.0335126612266252,
-        0.00680511926306027,
-        0.1383034099226;
-    initParams <<
-        0.00192576003116526,
-        3.63823475370741,
-        0.190634113069743,
-        2.92521946266041,
-        0.000352172621829293,
-        17.3297300219461,
-        5.64645976532205,
-        12.3777471809961,
-        0.0328840813138452,
-        0.005,
-        /*
-        2.19408531779656,
-        0.0170660846476906,
-        0.0440792195453981,
-        0.000410050308032774;
-        */
-        0.01;
-    initParams <<
-        0.00233879052181243,
-        3.71669614845863,
-        0.162539217146832,
-        3.69063111598062,
-        0.000408492253049055,
-        21.060031997632,
-        5.94705506228297,
-        14.034335998561,
-        0.0331105427578845,
-        0.00362546489446558,
-        0.0103287987739863;
+        0.002, //Inertia
+        0.2, //Velocity limit
+        0.5, //Viscous
+        0.2, //Coulomb
+        0.3, //Break away
+        10.0, //P gain
+        6.0, //Max torque
+        10.0, //Max vel
+        0.030, //Lag
+        0.01, //Backlack range
+        0.02; //Backlash coef
 
     //Assign initial inertia parameters
     initParams.conservativeResize(sizeJointParameters + 4*10);
@@ -316,14 +298,17 @@ int main()
     libcmaes::FitFuncEigen fitness = 
         [&filenames, &coef](const Eigen::VectorXd& params) 
     {
-        //Bound positive parameters
-        Eigen::VectorXd tmpParams = params;
+        //Check positive parameters
         double cost = 0.0;
+        bool isValide = true;
         for (size_t i=0;i<(size_t)params.size();i++) {
-            if (i < sizeJointParameters && tmpParams(i) < 0.0) {
-                cost += 1000.0 - 1000.0*tmpParams(i);
-                tmpParams(i) = 0.0;
+            if (i < sizeJointParameters && params(i) < 0.0) {
+                cost += 1000.0 - 1000.0*params(i);
+                isValide = false;
             }
+        }
+        if (!isValide) {
+            return cost;
         }
         //Iterate over on all logs
         for (size_t i=0;i<filenames.size();i++) {
@@ -371,7 +356,7 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 0.2, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 10);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
