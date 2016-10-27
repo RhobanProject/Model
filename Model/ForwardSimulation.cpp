@@ -148,7 +148,7 @@ void ForwardSimulation::update(double dt,
         if (_actives(i) != 0) {
             //Compute non static control and torque friction
             _frictionTorques(i) = _jointModels[i].frictionTorque(
-                _positions(i), _velocities(i));
+                _velocities(i));
             _controlTorques(i) = _jointModels[i].controlTorque(
                 _positions(i), _velocities(i));
             //If a joint has just been activated 
@@ -215,7 +215,7 @@ void ForwardSimulation::update(double dt,
     //and control torque
     for (size_t i=0;i<size;i++) {
         _frictionTorques(i) = _jointModels[i]
-            .frictionTorque(_positions(i), _velocities(i));
+            .frictionTorque(_velocities(i));
         _controlTorques(i) = _jointModels[i]
             .controlTorque(_positions(i), _velocities(i));
     }

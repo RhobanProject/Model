@@ -34,8 +34,8 @@ class JointModel
          * jont type and name
          */
         JointModel(
-            JointModelType type, 
-            const std::string& name);
+            JointModelType type = JointActuated, 
+            const std::string& name = "");
 
         /**
          * Return the joint type
@@ -58,18 +58,27 @@ class JointModel
          * Compute the torque applied on 
          * the joint by the mechanical friction
          * given current joint position and velocity.
-         * (state less const)
+         * If isBacklash is false, the backlask model
+         * is disabled.
          */
-        double frictionTorque(double pos, double vel) const;
+        double frictionTorque(
+            double vel, bool isBacklash = true) const;
 
         /**
          * Compute the torque applied on 
          * the joint by the control algorithm
          * given current joint target position, 
          * current position and velocity.
-         * (state less const)
          */
         double controlTorque(double pos, double vel) const;
+
+        /**
+         * Compute and return for 
+         * actuated joint the minimum and maximum
+         * bounds for control torque.
+         */
+        double controlMaxTorque(double vel) const;
+        double controlMinTorque(double vel) const;
 
         /**
          * Update current joint friction and
@@ -94,6 +103,20 @@ class JointModel
          * position and velocity to ensure constraints
          */
         void boundState(double& pos, double& vel);
+
+        /**
+         * Compute the actual torque seen by the
+         * control motor and return ratio between
+         * this torque and control maximum torque bound.
+         * The returnded value is always positive or zero.
+         * If between 0 and 1, the current torque can be
+         * provided by the motor.
+         * Current joint velocity, acceleration and
+         * external apllied torque is given.
+         * Backlash model is not used.
+         */
+        double ratioMaxControlTorque(
+            double vel, double acc, double torque) const;
 
     private:
 

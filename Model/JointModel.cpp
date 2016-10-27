@@ -80,9 +80,9 @@ void JointModel::setParameters(const Eigen::VectorXd& params)
     }
 }
 
-double JointModel::frictionTorque(double pos, double vel) const
+double JointModel::frictionTorque(
+    double vel, bool isBacklash) const
 {
-    (void)pos;
     if (_type != JointActuated) {
         return 0.0;
     }
@@ -96,7 +96,10 @@ double JointModel::frictionTorque(double pos, double vel) const
     double backlashCoef = _parameters(10);
 
     //Apply backlash friction reduction
-    if (fabs(_backlashPosition) < backlashRange) {
+    if (
+        isBacklash && 
+        fabs(_backlashPosition) < backlashRange
+    ) {
         coefViscous *= backlashCoef;
         coefStatic *= backlashCoef;
         coefBreak *= backlashCoef;
@@ -120,24 +123,13 @@ double JointModel::controlTorque(double pos, double vel) const
 
     //Retrieve parameters
     double gainP = _parameters(5);
-    double maxTorque = _parameters(6);
-    double maxVel = _parameters(7);
 
     //Retrieve discounted goal
     double delayedGoal = getDelayedGoal();
 
     //Compute min and max torque range
-    double rangeMax;
-    double rangeMin;
-    if (vel >= 0.0) {
-        rangeMax = std::max(0.0, 
-            -vel*maxTorque/maxVel + maxTorque);
-        rangeMin = -maxTorque;
-    } else {
-        rangeMax = maxTorque;
-        rangeMin = -std::max(0.0, 
-            vel*maxTorque/maxVel + maxTorque);
-    }
+    double rangeMax = controlMaxTorque(vel);
+    double rangeMin = controlMinTorque(vel);
     //Assert check
     if (rangeMax < rangeMin || 
         rangeMax < 0.0 || 
@@ -159,6 +151,43 @@ double JointModel::controlTorque(double pos, double vel) const
     }
 
     return control;
+}
+
+double JointModel::controlMaxTorque(double vel) const
+{
+    if (_type != JointActuated) {
+        return 0.0;
+    }
+
+    //Retrieve parameters
+    double maxTorque = _parameters(6);
+    double maxVel = _parameters(7);
+    
+    //Compute maximum bound
+    if (vel >= 0.0) {
+        return std::max(0.0, 
+            -vel*maxTorque/maxVel + maxTorque);
+    } else {
+        return maxTorque;
+    }
+}
+double JointModel::controlMinTorque(double vel) const
+{
+    if (_type != JointActuated) {
+        return 0.0;
+    }
+
+    //Retrieve parameters
+    double maxTorque = _parameters(6);
+    double maxVel = _parameters(7);
+    
+    //Compute minimum bound
+    if (vel >= 0.0) {
+        return -maxTorque;
+    } else {
+        return -std::max(0.0, 
+            vel*maxTorque/maxVel + maxTorque);
+    }
 }
         
 void JointModel::updateState(
@@ -225,6 +254,44 @@ void JointModel::boundState(double& pos, double& vel)
         while (pos < -M_PI) {
             pos += 2.0*M_PI;
         }
+    }
+}
+
+double JointModel::ratioMaxControlTorque(
+    double vel, double acc, double torque) const
+{
+    if (_type != JointActuated) {
+        return 0.0;
+    }
+
+    //Retrieve internal inertia parameter
+    double inertia = _parameters(0);
+
+    //Compute current friction with backlash model
+    double friction = frictionTorque(vel, false);
+    if (fabs(vel) < 1e-6) {
+        friction = 0.0;
+    }
+
+    //Compute the torque seens by the motor
+    double motorTorque = torque + acc*inertia - friction;
+    if (fabs(motorTorque) < 1e-6) {
+        return 0.0;
+    }
+
+    //Compute min or max control torque
+    double bound;
+    if (motorTorque >= 0.0) {
+        bound = controlMaxTorque(vel);
+    } else {
+        bound = controlMinTorque(vel);
+    }
+    
+    //Compute and return the ratio
+    if (fabs(bound) < 1e-6) {
+        return 10.0;
+    } else {
+        return motorTorque/bound;
     }
 }
         
