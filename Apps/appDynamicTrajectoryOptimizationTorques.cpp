@@ -379,7 +379,7 @@ void generateKick()
 
     //Set Trajectory generation function
     generator.setTrajectoryGenerationFunc([&KickPosX, &KickPosY, &KickPosZ](const Eigen::VectorXd& params) -> Leph::Trajectories {
-        double KickSpeed = 1.5;
+        double KickSpeed = 1.0;
         double endTrajectoryTime = 3.0;
         double ratioContactTime = params(0);
 
@@ -553,6 +553,7 @@ void generateKick()
         if (data.size() == 0) {
             data.push_back(0.0);
             data.push_back(0.0);
+            data.push_back(0.0);
         }
 
         //ZMP
@@ -562,6 +563,13 @@ void generateKick()
         //Max ZMP
         if (data[0] < zmp.lpNorm<Eigen::Infinity>()) {
             data[0] = zmp.lpNorm<Eigen::Infinity>();
+        }
+
+        //Support torque yaw
+        double torqueSupportYaw = fabs(torques(model.get().getDOFIndex("base_yaw")));
+        //Max support yaw
+        if (data[2] < torqueSupportYaw) {
+            data[2] = torqueSupportYaw;
         }
         
         //Torques
@@ -594,20 +602,38 @@ void generateKick()
         if (verbose) {
             std::cout << "SumTorque=" << score 
                 << " MaxZMP=" << data[0] 
-                << " MaxVolt=" << data[1] << std::endl;
+                << " MaxVolt=" << data[1]
+                << " MaxTorqueYaw=" << data[2] 
+                << std::endl;
         }
         double cost = 0.0;
+        if (data[2] > 0.2) {
+            cost += 10.0 + 10.0*data[2];
+            if (verbose) {
+                std::cout << "TorqueYawBound=" << cost << std::endl;
+            }
+        }
         if (fabs(data[1]) > 0.75*12.0) {
-            cost = 10.0 + 10.0*data[1];
+            cost += 10.0 + 10.0*data[1];
             if (verbose) {
                 std::cout << "VoltBound=" << cost << std::endl;
             }
         } else {
-            cost = 150.0*data[0] + 0.2*data[1];
+            cost += 150.0*data[0] + 0.2*data[1] + 2.0*data[2];
             if (verbose) {
                 std::cout << "ZMPCost=" << 150.0*data[0] 
-                    << " VoltCost=" << 0.2*data[1] << std::endl;
+                    << " VoltCost=" << 0.2*data[1]
+                    << " TorqueYawCost=" << 3.0*data[2] 
+                    << std::endl;
             }
+        }
+        if (verbose) {
+            std::cout 
+                << "--> "
+                << "IterationCost=" << score 
+                << " EndCost=" << cost 
+                << " Total=" << score + cost 
+                << std::endl;
         }
         return cost;
     });
@@ -616,7 +642,7 @@ void generateKick()
     TrajectoriesDisplay(generator.generateTrajectory(generator.initialParameters()));
 
     //Target filename
-    std::string filename = "/tmp/trajKick_" + Leph::currentDate() + ".splines";
+    std::string filename = "/tmp/trajKick_" + Leph::currentDate();
     //Run the CMA-ES optimization
     generator.runOptimization(2000, 5, filename, 20, -1.0);
 
