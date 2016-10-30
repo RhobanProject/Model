@@ -40,6 +40,11 @@ static std::map<std::string, size_t> defaultInertiaName;
 static size_t sizeJointParameters;
 
 /**
+ * Global configuration is inertia optimized
+ */
+bool isOptimizationInertia = false;
+
+/**
  * Load and assign default inertia form model
  */
 static void loadDefaultInertiaData()
@@ -70,37 +75,38 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
 
     //Assign inertia data
     Eigen::MatrixXd currentInertiaData = defaultInertiaData;
-    currentInertiaData.row(defaultInertiaName.at("left_elbow")) = 
-        parameters.segment(sizeJointParameters + 0*10, 10).transpose();
-    currentInertiaData.row(defaultInertiaName.at("left_shoulder_roll")) = 
-        parameters.segment(sizeJointParameters + 1*10, 10).transpose();
-    currentInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")) = 
-        parameters.segment(sizeJointParameters + 2*10, 10).transpose();
-    currentInertiaData.row(defaultInertiaName.at("trunk")) = 
-        parameters.segment(sizeJointParameters + 3*10, 10).transpose();
-
-    //Check positive inertia parameters
-    double tmpCost = 0.0;
-    for (size_t i=0;i<(size_t)currentInertiaData.rows();i++) {
-        //0 Mass
-        if (currentInertiaData(i, 0) <= 0.0) {
-            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 0);
+    if (isOptimizationInertia) {
+        currentInertiaData.row(defaultInertiaName.at("left_elbow")) = 
+            parameters.segment(sizeJointParameters + 0*10, 10).transpose();
+        currentInertiaData.row(defaultInertiaName.at("left_shoulder_roll")) = 
+            parameters.segment(sizeJointParameters + 1*10, 10).transpose();
+        currentInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")) = 
+            parameters.segment(sizeJointParameters + 2*10, 10).transpose();
+        currentInertiaData.row(defaultInertiaName.at("trunk")) = 
+            parameters.segment(sizeJointParameters + 3*10, 10).transpose();
+        //Check positive inertia parameters
+        double tmpCost = 0.0;
+        for (size_t i=0;i<(size_t)currentInertiaData.rows();i++) {
+            //0 Mass
+            if (currentInertiaData(i, 0) <= 0.0) {
+                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 0);
+            }
+            //4 Ixx
+            if (currentInertiaData(i, 4) <= 0.0) {
+                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 4);
+            }
+            //7 Iyy
+            if (currentInertiaData(i, 7) <= 0.0) {
+                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 7);
+            }
+            //9 Izz
+            if (currentInertiaData(i, 9) <= 0.0) {
+                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 9);
+            }
         }
-        //4 Ixx
-        if (currentInertiaData(i, 4) <= 0.0) {
-            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 4);
+        if (tmpCost > 0.0) {
+            return tmpCost;
         }
-        //7 Iyy
-        if (currentInertiaData(i, 7) <= 0.0) {
-            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 7);
-        }
-        //9 Izz
-        if (currentInertiaData(i, 9) <= 0.0) {
-            tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 9);
-        }
-    }
-    if (tmpCost > 0.0) {
-        return tmpCost;
     }
     
     //Full humanoid model
@@ -128,6 +134,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     //Right foot contact
     Leph::RBDL::ConstraintSet constraints;
     constraints.SetSolver(Leph::RBDLMath::LinearSolverFullPivHouseholderQR);
+    /*
     //Z 0
     constraints.AddConstraint(
         modelSim.frameIndexToBodyId(modelSim.getFrameIndex("right_cleat_1")),
@@ -158,14 +165,18 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         modelSim.frameIndexToBodyId(modelSim.getFrameIndex("right_cleat_3")),
         Leph::RBDLMath::Vector3d(0.0, 0.0, 0.0),
         Leph::RBDLMath::Vector3d(0.0, 0.0, 1.0));
+    */
     constraints.Bind(modelSim.getRBDLModel());
     sim.computeImpulses(constraints);
     
     //Main loop
     double cost = 0.0;
-    double sumError = 0.0;
-    double maxError = -1.0;
-    double maxErrorTime = 0.0;
+    Leph::VectorLabel sumError;
+    Leph::VectorLabel maxError;
+    for (const std::string& name : dofsNames) {
+        sumError.setOrAppend(name, 0.0);
+        maxError.setOrAppend(name, -1.0);
+    }
     double count = 0.0;
     Leph::ModelViewer* viewer = nullptr;
     if (verbose) {
@@ -186,42 +197,83 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         for (int k=0;k<10;k++) {
             sim.update(0.001, &constraints);
         }
-        double error = 
-            sim.positions()(modelSim.getDOFIndex("left_shoulder_pitch")) 
-            - logs.get("read:left_shoulder_pitch", t);
-        error = pow(error, 2);
-        sumError += error;
-        if (maxError < 0.0 || maxError < error) {
-            maxError = error;
-            maxErrorTime = t;
+        Leph::VectorLabel vect;
+        for (const std::string& name : dofsNames) {
+            double error = 
+                sim.positions()(modelSim.getDOFIndex(name)) 
+                - logs.get("read:" + name, t);
+            error = pow(error*180.0/M_PI, 2);
+            sumError(name) += error;
+            if (maxError(name) < 0.0 || maxError(name) < error) {
+                maxError(name) = error;
+            }
+            vect.setOrAppend("t", t);
+            vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
+            vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
+            vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
+            vect.setOrAppend("error:" + name, error);
         }
         count += 1.0;
-        plot.add(Leph::VectorLabel(
-            "t", t, 
-            "read", logs.get("read:left_shoulder_pitch", t),
-            "goal", logs.get("goal:left_shoulder_pitch", t),
-            "simPos", sim.positions()(modelSim.getDOFIndex("left_shoulder_pitch")),
-            //"simVel", sim.velocities()(modelSim.getDOFIndex("left_shoulder_pitch")),
-            //"simAcc", sim.accelerations()(modelSim.getDOFIndex("left_shoulder_pitch")),
-            //"backlash", sim.jointModel("left_shoulder_pitch").getBacklashState(),
-            "error", error
-        ));
+        plot.add(vect);
         if (verbose) {
             Leph::ModelDraw(modelSim, *viewer);
             Leph::ModelDraw(modelRead, *viewer);
         }
     }
     
-    cost = 0.2*(sumError/count) + 0.8*maxError;
-    cost = sqrt(cost)*180.0/M_PI;
+    sumError.divOp(count);
+    cost = 0.2*sumError.mean() + 0.8*maxError.mean();
+    cost = sqrt(cost);
     
     if (verbose) {
         delete viewer;
-        std::cout << "MeanError: " << sqrt(sumError/count)*180.0/M_PI << std::endl;
-        std::cout << "MaxError:  " << sqrt(maxError)*180.0/M_PI << std::endl;
-        std::cout << "MaxTime:   " << std::setprecision(10) << maxErrorTime << std::endl;
-        std::cout << "Cost:      " << cost << std::endl;
-        plot.plot("t", "all").render();
+        sumError.sqrtOp();
+        maxError.sqrtOp();
+        std::cout << "MeanError:" << std::endl;
+        std::cout << sumError;
+        std::cout << "MaxError:" << std::endl;
+        std::cout << maxError;
+        std::cout << "Cost: " << cost << std::endl;
+        plot
+            .plot("t", "read:left_ankle_roll")
+            .plot("t", "read:left_ankle_pitch")
+            .plot("t", "read:left_knee")
+            .plot("t", "read:left_hip_pitch")
+            .plot("t", "read:left_hip_roll")
+            .plot("t", "read:left_hip_yaw")
+            .plot("t", "goal:left_ankle_roll")
+            .plot("t", "goal:left_ankle_pitch")
+            .plot("t", "goal:left_knee")
+            .plot("t", "goal:left_hip_pitch")
+            .plot("t", "goal:left_hip_roll")
+            .plot("t", "goal:left_hip_yaw")
+            .plot("t", "sim:left_ankle_roll")
+            .plot("t", "sim:left_ankle_pitch")
+            .plot("t", "sim:left_knee")
+            .plot("t", "sim:left_hip_pitch")
+            .plot("t", "sim:left_hip_roll")
+            .plot("t", "sim:left_hip_yaw")
+            .render();
+        plot
+            .plot("t", "read:right_ankle_roll")
+            .plot("t", "read:right_ankle_pitch")
+            .plot("t", "read:right_knee")
+            .plot("t", "read:right_hip_pitch")
+            .plot("t", "read:right_hip_roll")
+            .plot("t", "read:right_hip_yaw")
+            .plot("t", "goal:right_ankle_roll")
+            .plot("t", "goal:right_ankle_pitch")
+            .plot("t", "goal:right_knee")
+            .plot("t", "goal:right_hip_pitch")
+            .plot("t", "goal:right_hip_roll")
+            .plot("t", "goal:right_hip_yaw")
+            .plot("t", "sim:right_ankle_roll")
+            .plot("t", "sim:right_ankle_pitch")
+            .plot("t", "sim:right_knee")
+            .plot("t", "sim:right_hip_pitch")
+            .plot("t", "sim:right_hip_roll")
+            .plot("t", "sim:right_hip_yaw")
+            .render();
     }
 
     if (std::isnan(cost)) {
@@ -237,40 +289,56 @@ int main()
 
     //Load data into MapSeries
     std::vector<std::string> filenames = {
-        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_1",
-        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_2",
-        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_3",
-        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_4",
-        "../../These/Data/logs-2016-10-05-arm-dynamics/arm_5",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-07-37.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-08-03.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-08-19.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-08-40.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-09-06.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_y_2016-10-30-17-10-58.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_y_2016-10-30-17-11-12.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-03-37.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-03-56.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-04-14.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-04-33.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-04-56.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_shoulder_pitch_2016-10-30-17-07-02.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_x_2016-10-30-17-09-24.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_x_2016-10-30-17-09-44.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_x_2016-10-30-17-10-06.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-19.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-31.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-45.mapseries",
     };
 
     //Initialize joint model parameters
-    Leph::JointModel tmpJoint(Leph::JointModel::JointActuated, "tmp");
+    Leph::JointModel tmpJoint;
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
     initParams <<
-        0.002, //Inertia
+        0.003, //Inertia
         0.2, //Velocity limit
         0.5, //Viscous
         0.2, //Coulomb
         0.3, //Break away
-        10.0, //P gain
+        20.0, //P gain
         6.0, //Max torque
         10.0, //Max vel
         0.030, //Lag
         0.01, //Backlack range
         0.02; //Backlash coef
 
-    //Assign initial inertia parameters
-    initParams.conservativeResize(sizeJointParameters + 4*10);
-    initParams.segment(sizeJointParameters + 0*10, 10) = 
-        defaultInertiaData.row(defaultInertiaName.at("left_elbow")).transpose();
-    initParams.segment(sizeJointParameters + 1*10, 10) = 
-        defaultInertiaData.row(defaultInertiaName.at("left_shoulder_roll")).transpose();
-    initParams.segment(sizeJointParameters + 2*10, 10) = 
-        defaultInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")).transpose();
-    initParams.segment(sizeJointParameters + 3*10, 10) = 
-        defaultInertiaData.row(defaultInertiaName.at("trunk")).transpose();
+    if (isOptimizationInertia) {
+        //Assign initial inertia parameters
+        initParams.conservativeResize(sizeJointParameters + 4*10);
+        initParams.segment(sizeJointParameters + 0*10, 10) = 
+            defaultInertiaData.row(defaultInertiaName.at("left_elbow")).transpose();
+        initParams.segment(sizeJointParameters + 1*10, 10) = 
+            defaultInertiaData.row(defaultInertiaName.at("left_shoulder_roll")).transpose();
+        initParams.segment(sizeJointParameters + 2*10, 10) = 
+            defaultInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")).transpose();
+        initParams.segment(sizeJointParameters + 3*10, 10) = 
+            defaultInertiaData.row(defaultInertiaName.at("trunk")).transpose();
+    }
     
     //Normalization coefficient
     Eigen::VectorXd coef = initParams;
@@ -284,7 +352,7 @@ int main()
 
     //Initial verbose
     for (size_t i=0;i<filenames.size();i++) {
-        double initScore = scoreFitness(filenames[i], initParams, true);
+        double initScore = scoreFitness(filenames[i], initParams, false);
         std::cout << "InitScore=" << initScore << std::endl;
     }
 
