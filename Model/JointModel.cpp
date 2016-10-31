@@ -22,27 +22,27 @@ JointModel::JointModel(
         //Friction and control
         _parameters = Eigen::VectorXd(11);
         //Joint internal inertia
-        _parameters(0) = 0.01;
+        _parameters(0) = 0.00353;
         //Friction velocity limit
-        _parameters(1) = 0.1;
+        _parameters(1) = 0.195;
         //Friction viscous
-        _parameters(2) = 0.05;
+        _parameters(2) = 0.5;
         //Friction static Coulomb
-        _parameters(3) = 0.06;
+        _parameters(3) = 0.2;
         //Friction static breakaway
-        _parameters(4) = 0.08;
+        _parameters(4) = 0.3;
         //Control proportional gain
-        _parameters(5) = 60.0;
+        _parameters(5) = 45.0;
         //Control max torque at zero velocity
-        _parameters(6) = 40.0;
+        _parameters(6) = 6.0;
         //Control max velocity at zero torque
-        _parameters(7) = 50.0;
+        _parameters(7) = 10.0;
         //Control lag in seconds
-        _parameters(8) = 0.01;
+        _parameters(8) = 0.030;
         //Backlask angular range
         _parameters(9) = 0.01;
         //Backlash friction coef
-        _parameters(10) = 0.1;
+        _parameters(10) = 0.02;
     } else {
         throw std::logic_error(
             "JointModel invalid joint type");
