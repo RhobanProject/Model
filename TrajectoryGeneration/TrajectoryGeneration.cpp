@@ -268,6 +268,8 @@ void TrajectoryGeneration::runOptimization(
                 std::cout << "****** Saving Parameters to: " 
                     << filename + ".params" << std::endl;
             }
+            std::cout << "****** Dimension: " 
+                << _bestParams.size() << std::endl;
             std::cout << "****** BestScore: " 
                 << _bestScore << std::endl;
             std::cout << "****** BestParams: " 
@@ -322,15 +324,15 @@ void TrajectoryGeneration::runOptimization(
         << std::endl;
     if (filename != "") {
         _bestTraj.exportData(filename + ".splines");
-        std::cout << "Saving Trajectories to: " 
+        std::cout << "****** Saving Trajectories to: " 
             << filename + ".splines" << std::endl;
         WriteVector(filename + ".params", _bestParams);
-        std::cout << "Saving Parameters to: " 
+        std::cout << "****** Saving Parameters to: " 
             << filename + ".params" << std::endl;
     }
-    std::cout << "BestScore: " 
+    std::cout << "****** BestScore: " 
         << _bestScore << std::endl;
-    std::cout << "BestParams: " 
+    std::cout << "****** BestParams: " 
         << _bestParams.transpose() << std::endl;
     std::cout << "############" 
         << std::endl;
