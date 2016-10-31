@@ -56,7 +56,8 @@ static void loadDefaultInertiaData()
     defaultInertiaName = model.getInertiaName();
 }
 
-static double scoreFitness(const std::string& filename, const Eigen::VectorXd& parameters, bool verbose)
+static double scoreFitness(const std::string& filename, const Eigen::VectorXd& parameters, bool verbose,
+    double* sumError = nullptr, double* countError = nullptr, double* maxError = nullptr)
 {
     //Load data into MapSeries
     Leph::MapSeries logs;
@@ -170,14 +171,9 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     sim.computeImpulses(constraints);
     
     //Main loop
-    double cost = 0.0;
-    Leph::VectorLabel sumError;
-    Leph::VectorLabel maxError;
-    for (const std::string& name : dofsNames) {
-        sumError.setOrAppend(name, 0.0);
-        maxError.setOrAppend(name, -1.0);
-    }
-    double count = 0.0;
+    double tmpMax = -1.0;
+    double tmpCount = 0.0;
+    double tmpSum = 0.0;
     Leph::ModelViewer* viewer = nullptr;
     if (verbose) {
         viewer = new Leph::ModelViewer(1200, 900);
@@ -203,37 +199,37 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
                 sim.positions()(modelSim.getDOFIndex(name)) 
                 - logs.get("read:" + name, t);
             error = pow(error*180.0/M_PI, 2);
-            sumError(name) += error;
-            if (maxError(name) < 0.0 || maxError(name) < error) {
-                maxError(name) = error;
+            tmpSum += error;
+            tmpCount += 1.0;
+            if (tmpMax < 0.0 || tmpMax < error) {
+                tmpMax = error;
+                //std::cout << "Error " << sqrt(tmpMax) << " t=" << t << " name=" << name << std::endl;
             }
-            vect.setOrAppend("t", t);
-            vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
-            vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
-            vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
-            vect.setOrAppend("error:" + name, error);
+            if (verbose) {
+                vect.setOrAppend("t", t);
+                vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
+                vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
+                vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
+                vect.setOrAppend("error:" + name, error);
+            }
         }
-        count += 1.0;
-        plot.add(vect);
         if (verbose) {
+            plot.add(vect);
             Leph::ModelDraw(modelSim, *viewer);
             Leph::ModelDraw(modelRead, *viewer);
         }
     }
     
-    sumError.divOp(count);
-    cost = 0.2*sumError.mean() + 0.8*maxError.mean();
-    cost = sqrt(cost);
-    
     if (verbose) {
         delete viewer;
-        sumError.sqrtOp();
-        maxError.sqrtOp();
-        std::cout << "MeanError:" << std::endl;
-        std::cout << sumError;
-        std::cout << "MaxError:" << std::endl;
-        std::cout << maxError;
-        std::cout << "Cost: " << cost << std::endl;
+        std::cout << "MeanError:" << sqrt(tmpSum/tmpCount) << std::endl;
+        std::cout << "MaxError:" << sqrt(tmpMax) << std::endl;
+        /*
+        plot
+            .plot("t", "read:left_shoulder_pitch")
+            .plot("t", "goal:left_shoulder_pitch")
+            .plot("t", "sim:left_shoulder_pitch")
+            .render();
         plot
             .plot("t", "read:left_ankle_roll")
             .plot("t", "read:left_ankle_pitch")
@@ -274,12 +270,18 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             .plot("t", "sim:right_hip_roll")
             .plot("t", "sim:right_hip_yaw")
             .render();
+        */
     }
-
-    if (std::isnan(cost)) {
-        std::cout << "NaN cost for parameters:" << parameters.transpose() << std::endl;
+    if (sumError != nullptr) {
+        *sumError += tmpSum;
     }
-    return cost;
+    if (countError != nullptr) {
+        *countError += tmpCount;
+    }
+    if (maxError != nullptr && (*maxError < 0.0 || *maxError < tmpMax)) {
+        *maxError = tmpMax;
+    }
+    return 0.0;
 }
 
 int main()
@@ -340,8 +342,7 @@ int main()
 
     //Initial verbose
     for (size_t i=0;i<filenames.size();i++) {
-        double initScore = scoreFitness(filenames[i], initParams, false);
-        std::cout << "InitScore=" << initScore << std::endl;
+        scoreFitness(filenames[i], initParams, true);
     }
 
     //Normalization of parameters
@@ -367,20 +368,25 @@ int main()
             return cost;
         }
         //Iterate over on all logs
+        double sumError = 0.0;
+        double countError = 0.0;
+        double maxError = -1.0;
         for (size_t i=0;i<filenames.size();i++) {
             try {
-                cost += scoreFitness(filenames[i], coef.array() * params.array(), false);
+                cost += scoreFitness(
+                    filenames[i], coef.array() * params.array(), false, 
+                    &sumError, &countError, &maxError);
             } catch (const std::runtime_error& e) {
                 cost += 10000.0;
             }
         }
-        return cost/(double)filenames.size();
+        return cost + 0.2*sqrt(sumError/countError) + 0.8*sqrt(maxError);
     };
     
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [&bestParams, &bestScore, &iteration, &coef](
+        [&bestParams, &bestScore, &iteration, &coef, &filenames](
             const libcmaes::CMAParameters<>& cmaparams, 
             const libcmaes::CMASolutions& cmasols)
     {
@@ -403,6 +409,10 @@ int main()
             std::cout << "Params: " << (params.array() * coef.array()).transpose() << std::endl;
             std::cout << "Coef: " << params.transpose() << std::endl;
             std::cout << "============" << std::endl;
+            for (size_t i=0;i<filenames.size();i++) {
+                scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
+            }
+            std::cout << "============" << std::endl;
         }
         iteration++;
         
@@ -412,13 +422,13 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 20);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
-    cmaparams.set_elitism(false);
-    cmaparams.set_restarts(2);
-    cmaparams.set_max_iter(300);
+    cmaparams.set_elitism(true);
+    cmaparams.set_restarts(8);
+    cmaparams.set_max_iter(1000);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
@@ -432,8 +442,7 @@ int main()
     
     //Final verbose
     for (size_t i=0;i<filenames.size();i++) {
-        double finalScore = scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
-        std::cout << "FinalScore=" << finalScore << std::endl;
+        scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
     }
 
     return 0;
