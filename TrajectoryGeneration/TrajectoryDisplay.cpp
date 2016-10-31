@@ -4,6 +4,7 @@
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
 #include "Model/MotorModel.hpp"
+#include "Model/JointModel.hpp"
 
 namespace Leph {
 
@@ -74,6 +75,8 @@ void TrajectoriesDisplay(
     }
     plot.plot("time", "all").render();
     plot.clear();
+    //Joint Model
+    JointModel jointModel;
     //Display Trajectory
     ModelViewer viewer(1200, 900);
     HumanoidFixedModel model(type);
@@ -193,7 +196,10 @@ void TrajectoriesDisplay(
                 vect.append("left_dq:"+name, 
                     dq(index));
                 vect.append("left_ddq:"+name, 
-                    ddq(model.get().getDOFIndex(name)));
+                    ddq(index));
+                vect.append("left_ratio:"+name, 
+                    jointModel.ratioMaxControlTorque(
+                        dq(index), ddq(index), torques(index)));
             }
             for (const std::string& name : namesRight) {
                 size_t index = model.get().getDOFIndex(name);
@@ -206,7 +212,10 @@ void TrajectoriesDisplay(
                 vect.append("right_dq:"+name, 
                     dq(index));
                 vect.append("right_ddq:"+name, 
-                    ddq(model.get().getDOFIndex(name)));
+                    ddq(index));
+                vect.append("right_ratio:"+name, 
+                    jointModel.ratioMaxControlTorque(
+                        dq(index), ddq(index), torques(index)));
             }
             plot.add(vect);
             sumTorques += 0.01*torques.norm();
@@ -240,6 +249,9 @@ void TrajectoriesDisplay(
     plot.plot("t", "left_ddq:*").render();
     plot.plot("t", "right_ddq:*").render();
     plot.plot("t", "zmp_x").plot("t", "zmp_y").render();
+    plot.plot("t", "torque_support_yaw").render();
+    plot.plot("t", "left_ratio:*").render();
+    plot.plot("t", "right_ratio:*").render();
 }
 
 }

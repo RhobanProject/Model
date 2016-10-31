@@ -136,7 +136,7 @@ void ForwardSimulation::update(double dt,
             dt, _goals(i), _positions(i), _velocities(i));
         //Retrieve inertia offset
         if (_jointModels[i].getType() != JointModel::JointFree) {
-            _inertiaOffsets(i) = _jointModels[i].getParameters()(0);
+            _inertiaOffsets(i) = _jointModels[i].getInertia();
         }
     }
 

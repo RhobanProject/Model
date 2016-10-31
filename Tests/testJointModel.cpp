@@ -28,7 +28,7 @@ int main()
     plot.plot("t", "all").render();
     
     plot.clear();
-    for (double vel=-3.0;vel<3.0;vel+=0.01) {
+    for (double vel=-1.0;vel<1.0;vel+=0.001) {
         plot.add(Leph::VectorLabel(
             "vel", vel,
             "friction", joint.frictionTorque(vel, false)

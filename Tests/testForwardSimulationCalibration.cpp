@@ -314,18 +314,6 @@ int main()
     Leph::JointModel tmpJoint;
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
-    initParams <<
-        0.003, //Inertia
-        0.2, //Velocity limit
-        0.5, //Viscous
-        0.2, //Coulomb
-        0.3, //Break away
-        20.0, //P gain
-        6.0, //Max torque
-        10.0, //Max vel
-        0.030, //Lag
-        0.01, //Backlack range
-        0.02; //Backlash coef
 
     if (isOptimizationInertia) {
         //Assign initial inertia parameters

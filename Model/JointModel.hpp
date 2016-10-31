@@ -53,6 +53,11 @@ class JointModel
          */
         const Eigen::VectorXd& getParameters() const;
         void setParameters(const Eigen::VectorXd& params);
+
+        /**
+         * Return internal joint inertia
+         */
+        double getInertia() const;
         
         /**
          * Compute the torque applied on 
@@ -71,14 +76,6 @@ class JointModel
          * current position and velocity.
          */
         double controlTorque(double pos, double vel) const;
-
-        /**
-         * Compute and return for 
-         * actuated joint the minimum and maximum
-         * bounds for control torque.
-         */
-        double controlMaxTorque(double vel) const;
-        double controlMinTorque(double vel) const;
 
         /**
          * Update current joint friction and
@@ -104,6 +101,8 @@ class JointModel
          */
         void boundState(double& pos, double& vel);
 
+
+
         /**
          * Compute the actual torque seen by the
          * control motor and return ratio between
@@ -112,7 +111,7 @@ class JointModel
          * If between 0 and 1, the current torque can be
          * provided by the motor.
          * Current joint velocity, acceleration and
-         * external apllied torque is given.
+         * external applied torque is given.
          * Backlash model is not used.
          */
         double ratioMaxControlTorque(
