@@ -380,7 +380,11 @@ int main()
                 cost += 10000.0;
             }
         }
-        return cost + 0.2*sqrt(sumError/countError) + 0.8*sqrt(maxError);
+        if (countError > 0.0 && maxError > 0.0) {
+            return cost + 0.2*sqrt(sumError/countError) + 0.8*sqrt(maxError);
+        } else {
+            return cost;
+        }
     };
     
     //Progress function
