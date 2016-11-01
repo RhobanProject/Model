@@ -6,16 +6,25 @@
 namespace Leph {
 
 /**
+ * Return the given angle in radian 
+ * bounded between -PI and PI
+ */
+inline double AngleBound(double angle)
+{
+    return 
+        angle 
+        - 2.0*M_PI*std::floor((angle + M_PI)/(2.0*M_PI));
+}
+
+/**
  * Compute the oriented distance between the two given angle
  * in the range -PI/2:PI/2 radian from angleSrc to angleDst
  * (Better than doing angleDst-angleSrc)
  */
 inline double AngleDistance(double angleSrc, double angleDst) 
 {    
-    while (angleSrc > M_PI) angleSrc -= 2.0*M_PI;
-    while (angleSrc < -M_PI) angleSrc += 2.0*M_PI;
-    while (angleDst > M_PI) angleDst -= 2.0*M_PI;
-    while (angleDst < -M_PI) angleDst += 2.0*M_PI;
+    angleSrc = AngleBound(angleSrc);
+    angleDst = AngleBound(angleDst);
 
     double max, min;
     if (angleSrc > angleDst) {

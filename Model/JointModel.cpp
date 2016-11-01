@@ -21,7 +21,7 @@ JointModel::JointModel(
         _parameters = Eigen::VectorXd();
     } else if (type == JointActuated) {
         //Friction and control
-        _parameters = Eigen::VectorXd(12);
+        _parameters = Eigen::VectorXd(15);
         //Joint internal inertia
         _parameters(0) = 0.00353;
         //Friction velocity limit
@@ -44,8 +44,14 @@ JointModel::JointModel(
         _parameters(9) = 0.030;
         //Backlask angular range
         _parameters(10) = 0.005;
-        //Backlash friction coef
-        _parameters(11) = 0.2;
+        //Backlash friction velocity limit
+        _parameters(11) = 0.195;
+        //Backlash friction viscous
+        _parameters(12) = 0.2*0.0811;
+        //Backlash friction static Coulomb
+        _parameters(13) = 0.2*0.0673;
+        //Backlash friction static breakaway
+        _parameters(14) = 0.2*0.1212;
     } else {
         throw std::logic_error(
             "JointModel invalid joint type");
@@ -105,16 +111,21 @@ double JointModel::frictionTorque(
     double coefStatic = _parameters(3);
     double coefBreak = _parameters(4);
     double backlashRange = _parameters(10);
-    double backlashCoef = _parameters(11);
+    double coefBacklashVelLimit = _parameters(11);
+    double coefBacklashViscous = _parameters(12);
+    double coefBacklashStatic = _parameters(13);
+    double coefBacklashBreak = _parameters(14);
+    
 
     //Apply backlash friction reduction
     if (
         isBacklash && 
         fabs(_backlashPosition) < backlashRange
     ) {
-        coefViscous *= backlashCoef;
-        coefStatic *= backlashCoef;
-        coefBreak *= backlashCoef;
+        coefVelLimit = coefBacklashVelLimit;
+        coefViscous = coefBacklashViscous;
+        coefStatic = coefBacklashStatic;
+        coefBreak = coefBacklashBreak;
     }
 
     //Compute friction
@@ -217,12 +228,7 @@ void JointModel::boundState(double& pos, double& vel)
     }
     //Bound position angle inside [-PI:PI]
     if (_type == JointActuated) {
-        while (pos > M_PI) {
-            pos -= 2.0*M_PI;
-        }
-        while (pos < -M_PI) {
-            pos += 2.0*M_PI;
-        }
+        pos = AngleBound(pos);
     }
 }
 
