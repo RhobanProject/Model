@@ -15,7 +15,7 @@ int main()
     joint.setParameters(params);
 
     plot.clear();
-    std::cout << "Zero friction torque: " << joint.frictionTorque(0.0, false) << std::endl;
+    std::cout << "Zero friction torque: " << joint.frictionTorque(0.0) << std::endl;
     for (double t=0.0;t<2.0;t+=0.005) {
         double goal = sin(t*2.0*3.14*3.0)*sin(t*2.0*3.14*0.2) + sin(t*2.0*3.14*2.0);
         joint.updateState(0.005, goal, 0.0, 0.0);
@@ -31,7 +31,7 @@ int main()
     for (double vel=-1.0;vel<1.0;vel+=0.001) {
         plot.add(Leph::VectorLabel(
             "vel", vel,
-            "friction", joint.frictionTorque(vel, false)
+            "friction", joint.frictionTorque(vel)
         )); 
     }
     plot.plot("vel", "friction").render();

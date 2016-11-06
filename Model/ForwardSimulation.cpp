@@ -309,7 +309,7 @@ void ForwardSimulation::update(double dt,
         //Compute friction torque limit at zero velocity (Coulomb cone).
         //1.01 prevent false numerical activation of joint
         double staticFrictionLimit = 
-            1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
+            1.01*fabs(_jointModels[i].frictionTorque(0.0));
         if (
             _jointModels[i].getType() != JointModel::JointFree &&
             saveActives(i) == 0 &&

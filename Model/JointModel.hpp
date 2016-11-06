@@ -51,7 +51,7 @@ class JointModel
          * Get and set internal 
          * model parameters
          */
-        const Eigen::VectorXd& getParameters() const;
+        const Eigen::VectorXd getParameters() const;
         void setParameters(const Eigen::VectorXd& params);
 
         /**
@@ -63,11 +63,8 @@ class JointModel
          * Compute the torque applied on 
          * the joint by the mechanical friction
          * given current joint position and velocity.
-         * If isBacklash is false, the backlask model
-         * is disabled.
          */
-        double frictionTorque(
-            double vel, bool isBacklash = true) const;
+        double frictionTorque(double vel) const;
 
         /**
          * Compute the torque applied on 
@@ -93,15 +90,15 @@ class JointModel
         /**
          * Return current backlash hidden state
          */
-        double getBacklashState() const;
+        bool getBacklashStateEnabled() const;
+        double getBacklashStatePos() const;
+        double getBacklashStateVel() const;
 
         /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
         void boundState(double& pos, double& vel);
-
-
 
         /**
          * Compute the actual torque seen by the
@@ -130,11 +127,6 @@ class JointModel
         std::string _name;
 
         /**
-         * Model parameters
-         */
-        Eigen::VectorXd _parameters;
-
-        /**
          * Current integrated time in seconds
          * and target goal history (for lag
          * implementation)
@@ -144,9 +136,59 @@ class JointModel
 
         /**
          * Backlash hidden relative 
-         * position state
+         * enable and position state
          */
-        double _backlashPosition;
+        bool _stateBacklashIsEnabled;
+        double _stateBacklashPosition;
+        double _stateBacklashVelocity;
+
+        /**
+         * Model parameters
+         */
+        //Friction Stribeck transtition velocity
+        double _paramFrictionVelLimit;
+        //Friction and inertia internal parameters
+        double _paramInertiaIn;
+        double _paramFrictionViscousIn;
+        double _paramFrictionBreakIn;
+        double _paramFrictionCoulombIn;
+        //Friction and inertia external parameters
+        double _paramInertiaOut;
+        double _paramFrictionViscousOut;
+        double _paramFrictionBreakOut;
+        double _paramFrictionCoulombOut;
+        //Electric motor parameters
+        double _paramElectricVoltage;
+        double _paramElectricKe;
+        double _paramElectricResistance;
+        //Control parameters
+        double _paramControlGainP;
+        double _paramControlDiscretization;
+        //All inclusive time lag
+        double _paramControlLag;
+        //Backlash hysteresis parameters
+        double _paramBacklashThresholdDeactivation;
+        double _paramBacklashThresholdActivation;
+        double _paramBacklashRangeMax;
+
+        /**
+         * Compute the friction force for given
+         * velocity and optional given torque.
+         * Internal and/or externzl gearbox friction
+         * is used whenether isInFriction and isOutFriction
+         * are set.
+         */
+        double computeFrictionTorque(
+            double vel, double* torque, 
+            bool isInFriction, bool isOutFriction) const;
+
+        /**
+         * Compute the control torque 
+         * (without backlash model) from given
+         * current position and velocity
+         */
+        double computeControlTorque(
+            double pos, double vel) const;
 };
 
 }
