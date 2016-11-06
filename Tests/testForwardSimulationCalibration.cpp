@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <iomanip>
 #include <cmath>
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidModel.hpp"
@@ -28,6 +29,32 @@ static std::vector<std::string> basesNames = {
 };
 
 /**
+ * Names of frame used for fitness error evaluation
+ */
+static std::vector<std::string> namesFrameFitness = {
+    "trunk", 
+    "right_foot_tip", 
+    "camera",
+};
+
+/**
+ * Names of frame whose inertia data is optimized
+ */
+static std::vector<std::string> namesFrameInertia = {
+    "trunk",
+    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+};
+
+/**
+ * Names of DOF whose Joint Model is uniquely optimized
+ */
+static std::vector<std::string> namesDOFJoint = {
+    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+};
+
+/**
  * Global inertia default data
  * and name
  */
@@ -38,11 +65,17 @@ static std::map<std::string, size_t> defaultInertiaName;
  * Global joint parameters size
  */
 static size_t sizeJointParameters;
+static size_t sizeJointAllParameters;
 
 /**
  * Global configuration is inertia optimized
  */
 bool isOptimizationInertia = false;
+
+/**
+ * Global configuration is single Joint Model optimizd
+ */
+bool isOptimizationJoint = false;
 
 /**
  * Load and assign default inertia form model
@@ -56,14 +89,15 @@ static void loadDefaultInertiaData()
     defaultInertiaName = model.getInertiaName();
 }
 
-static double scoreFitness(const std::string& filename, const Eigen::VectorXd& parameters, bool verbose,
-    double* sumError = nullptr, double* countError = nullptr, double* maxError = nullptr)
+static double scoreFitness(const std::string& filename, const Eigen::VectorXd& parameters, int verbose,
+    double* sumError = nullptr, double* countError = nullptr, double* maxError = nullptr, 
+    Eigen::VectorXd* maxAllError = nullptr)
 {
     //Load data into MapSeries
     Leph::MapSeries logs;
     logs.importData(filename);
     //Print statistics
-    if (verbose) {
+    if (verbose >= 1) {
         std::cout << "Loaded " 
             << filename << ": "
             << logs.dimension() << " series from " 
@@ -77,14 +111,12 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     //Assign inertia data
     Eigen::MatrixXd currentInertiaData = defaultInertiaData;
     if (isOptimizationInertia) {
-        currentInertiaData.row(defaultInertiaName.at("left_elbow")) = 
-            parameters.segment(sizeJointParameters + 0*10, 10).transpose();
-        currentInertiaData.row(defaultInertiaName.at("left_shoulder_roll")) = 
-            parameters.segment(sizeJointParameters + 1*10, 10).transpose();
-        currentInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")) = 
-            parameters.segment(sizeJointParameters + 2*10, 10).transpose();
-        currentInertiaData.row(defaultInertiaName.at("trunk")) = 
-            parameters.segment(sizeJointParameters + 3*10, 10).transpose();
+        size_t index = 0;
+        for (const std::string& name : namesFrameInertia) {
+            currentInertiaData.row(defaultInertiaName.at(name)) = 
+                parameters.segment(sizeJointAllParameters + index*10, 10).transpose();
+            index++;
+        }
         //Check positive inertia parameters
         double tmpCost = 0.0;
         for (size_t i=0;i<(size_t)currentInertiaData.rows();i++) {
@@ -131,6 +163,14 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             logs.get("read:" + name, min);
         sim.velocities()(modelSim.getDOFIndex(name)) = 0.0;
     }
+    if (isOptimizationJoint) {
+        size_t index = 0;
+        for (const std::string& name : namesDOFJoint) {
+            sim.jointModel(name).setParameters(
+                parameters.segment(sizeJointParameters + index*sizeJointParameters, sizeJointParameters));
+            index++;
+        }
+    }
     
     //Right foot contact
     Leph::RBDL::ConstraintSet constraints;
@@ -174,13 +214,19 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     double tmpMax = -1.0;
     double tmpCount = 0.0;
     double tmpSum = 0.0;
+    double tmpMaxTime = 0.0;
+    Eigen::VectorXd tmpMaxAll(namesFrameFitness.size());
+    for (size_t i=0;i<namesFrameFitness.size();i++) {
+        tmpMaxAll(i) = -1.0;
+    }
+    std::string tmpMaxName = "";
     Leph::ModelViewer* viewer = nullptr;
-    if (verbose) {
+    if (verbose >= 3) {
         viewer = new Leph::ModelViewer(1200, 900);
     }
     Leph::Plot plot;
     for (double t=min;t<max;t+=0.01) {
-        if (verbose) {
+        if (verbose >= 3) {
             if (!viewer->update()) {
                 break;
             }
@@ -194,42 +240,52 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             sim.update(0.001, &constraints);
         }
         Leph::VectorLabel vect;
-        for (const std::string& name : dofsNames) {
-            double error = 
-                sim.positions()(modelSim.getDOFIndex(name)) 
-                - logs.get("read:" + name, t);
-            error = pow(error*180.0/M_PI, 2);
+        size_t index = 0;
+        for (const std::string& name : namesFrameFitness) {
+            Eigen::Vector3d posCartSim = modelSim.position(name, "left_foot_tip");
+            Eigen::Vector3d posCartRead = modelRead.position(name, "left_foot_tip");
+            double error = (posCartSim-posCartRead).squaredNorm();
             tmpSum += error;
             tmpCount += 1.0;
             if (tmpMax < 0.0 || tmpMax < error) {
                 tmpMax = error;
-                //std::cout << "Error " << sqrt(tmpMax) << " t=" << t << " name=" << name << std::endl;
+                tmpMaxTime = t;
+                tmpMaxName = name;
             }
-            if (verbose) {
+            if (tmpMaxAll(index) < 0.0 || tmpMaxAll(index) < error) {
+                tmpMaxAll(index) = error;
+            }
+            index++;
+        }
+        if (verbose >= 2) {
+            for (const std::string& name : dofsNames) {
+                double error = 
+                    sim.positions()(modelSim.getDOFIndex(name)) 
+                    - logs.get("read:" + name, t);
+                error = pow(error*180.0/M_PI, 2);
                 vect.setOrAppend("t", t);
                 vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
                 vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
                 vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
                 vect.setOrAppend("error:" + name, error);
             }
-        }
-        if (verbose) {
             plot.add(vect);
+        }
+        if (verbose >= 3) {
             Leph::ModelDraw(modelSim, *viewer);
             Leph::ModelDraw(modelRead, *viewer);
         }
     }
     
-    if (verbose) {
-        delete viewer;
-        std::cout << "MeanError:" << sqrt(tmpSum/tmpCount) << std::endl;
-        std::cout << "MaxError:" << sqrt(tmpMax) << std::endl;
-        /*
-        plot
-            .plot("t", "read:left_shoulder_pitch")
-            .plot("t", "goal:left_shoulder_pitch")
-            .plot("t", "sim:left_shoulder_pitch")
-            .render();
+    if (verbose >= 1) {
+        std::cout << "MeanError: " << sqrt(tmpSum/tmpCount) << std::endl;
+        std::cout << "MaxError: " << sqrt(tmpMax) << std::endl;
+        std::cout << "MaxErrorTime: " << tmpMaxTime << std::endl;
+        std::cout << "MaxErrorName: " << tmpMaxName << std::endl;
+        std::cout << "MaxAllErrorMean: " << sqrt(tmpMaxAll.mean()) << std::endl;
+        std::cout << "MaxAllError: " << (tmpMaxAll.array().sqrt().transpose()) << std::endl;
+    }
+    if (verbose >= 2) {
         plot
             .plot("t", "read:left_ankle_roll")
             .plot("t", "read:left_ankle_pitch")
@@ -270,7 +326,9 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             .plot("t", "sim:right_hip_roll")
             .plot("t", "sim:right_hip_yaw")
             .render();
-        */
+    }
+    if (verbose >= 3) {
+        delete viewer;
     }
     if (sumError != nullptr) {
         *sumError += tmpSum;
@@ -281,6 +339,14 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     if (maxError != nullptr && (*maxError < 0.0 || *maxError < tmpMax)) {
         *maxError = tmpMax;
     }
+    if (maxAllError != nullptr) {
+        for (size_t i=0;i<namesFrameFitness.size();i++) {
+            if (tmpMaxAll(i) > maxAllError->operator()(i)) {
+                maxAllError->operator()(i) = tmpMaxAll(i);
+            }
+        }
+    }
+
     return 0.0;
 }
 
@@ -291,6 +357,12 @@ int main()
 
     //Load data into MapSeries
     std::vector<std::string> filenames = {
+        //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-10.mapseries",
+        "../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-35.mapseries",
+        //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-21.mapseries",
+        //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-50.mapseries",
+        //"../../These/Data/logs-2016-10-30_model_calibration/kick/calibration_log_trajectory_2016-11-01-10-45-08.mapseries",
+        /*
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-07-37.mapseries",
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-08-03.mapseries",
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_foot_x_2016-10-30-17-08-19.mapseries",
@@ -310,39 +382,50 @@ int main()
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-19.mapseries",
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-31.mapseries",
         "../../These/Data/logs-2016-10-30_model_calibration/nofall/calibration_log_trunk_y_2016-10-30-17-10-45.mapseries",
+        */
     };
 
     //Initialize joint model parameters
     Leph::JointModel tmpJoint;
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
+    sizeJointAllParameters = sizeJointParameters;
 
+    if (isOptimizationJoint) {
+        //Assign initial joint model parameters
+        size_t index = 0;
+        sizeJointAllParameters = (1 + namesDOFJoint.size())*sizeJointParameters;
+        initParams.conservativeResize(sizeJointAllParameters);
+        for (const std::string& name : namesDOFJoint) {
+            initParams.segment(sizeJointParameters + index*sizeJointParameters, sizeJointParameters) = 
+                tmpJoint.getParameters();
+            index++;
+        }
+    }
     if (isOptimizationInertia) {
         //Assign initial inertia parameters
-        initParams.conservativeResize(sizeJointParameters + 4*10);
-        initParams.segment(sizeJointParameters + 0*10, 10) = 
-            defaultInertiaData.row(defaultInertiaName.at("left_elbow")).transpose();
-        initParams.segment(sizeJointParameters + 1*10, 10) = 
-            defaultInertiaData.row(defaultInertiaName.at("left_shoulder_roll")).transpose();
-        initParams.segment(sizeJointParameters + 2*10, 10) = 
-            defaultInertiaData.row(defaultInertiaName.at("left_shoulder_pitch")).transpose();
-        initParams.segment(sizeJointParameters + 3*10, 10) = 
-            defaultInertiaData.row(defaultInertiaName.at("trunk")).transpose();
+        size_t index = 0;
+        initParams.conservativeResize(sizeJointAllParameters + namesFrameInertia.size()*10);
+        for (const std::string& name : namesFrameInertia) {
+            initParams.segment(sizeJointAllParameters + index*10, 10) = 
+                defaultInertiaData.row(defaultInertiaName.at(name)).transpose();
+            index++;
+        }
     }
-    
+
     //Normalization coefficient
     Eigen::VectorXd coef = initParams;
     Eigen::VectorXd coefInv = initParams;
     for (size_t i=0;i<(size_t)coef.size();i++) {
-        if (fabs(coef(i)) < 1e-10) {
-            coef(i) = 1e-10;
+        if (fabs(coef(i)) < 1e-4) {
+            coef(i) = 1e-4;
         }
         coefInv(i) = 1.0/coef(i);
     }
 
     //Initial verbose
     for (size_t i=0;i<filenames.size();i++) {
-        scoreFitness(filenames[i], initParams, true);
+        scoreFitness(filenames[i], initParams, 3);
     }
 
     //Normalization of parameters
@@ -359,7 +442,7 @@ int main()
         double cost = 0.0;
         bool isValide = true;
         for (size_t i=0;i<(size_t)params.size();i++) {
-            if (i < sizeJointParameters && params(i) < 0.0) {
+            if (i < sizeJointAllParameters && params(i) < 0.0) {
                 cost += 1000.0 - 1000.0*params(i);
                 isValide = false;
             }
@@ -371,17 +454,25 @@ int main()
         double sumError = 0.0;
         double countError = 0.0;
         double maxError = -1.0;
+        Eigen::VectorXd maxAllError(namesFrameFitness.size());
+        for (size_t i=0;i<namesFrameFitness.size();i++) {
+            maxAllError(i) = -1.0;
+        }
         for (size_t i=0;i<filenames.size();i++) {
             try {
                 cost += scoreFitness(
-                    filenames[i], coef.array() * params.array(), false, 
-                    &sumError, &countError, &maxError);
+                    filenames[i], coef.array() * params.array(), 0, 
+                    &sumError, &countError, &maxError, &maxAllError);
             } catch (const std::runtime_error& e) {
                 cost += 10000.0;
             }
         }
         if (countError > 0.0 && maxError > 0.0) {
-            return cost + 0.2*sqrt(sumError/countError) + 0.8*sqrt(maxError);
+            return 
+                cost 
+                + 0.2*sqrt(sumError/countError) 
+                + 0.3*sqrt(maxAllError.mean()) 
+                + 0.5*sqrt(maxError);
         } else {
             return cost;
         }
@@ -407,14 +498,20 @@ int main()
             std::cout << "============" << std::endl;
             std::cout << "Dimension: " << params.size() << std::endl;
             std::cout << "BestScore: " << bestScore << std::endl;
-            std::cout << "BestParams: " << (bestParams.array() * coef.array()).transpose() << std::endl;
-            std::cout << "BestCoef: " << bestParams.transpose() << std::endl;
+            std::cout << "BestParams: ";
+            for (size_t i=0;i<(size_t)bestParams.size();i++) {
+                std::cout << std::setprecision(10) << bestParams(i)*coef(i);
+                if (i != (size_t)bestParams.size()-1) {
+                    std::cout << ", ";
+                } else {
+                    std::cout << ";" << std::endl;
+                }
+            }
             std::cout << "Score: " << score<< std::endl;
             std::cout << "Params: " << (params.array() * coef.array()).transpose() << std::endl;
-            std::cout << "Coef: " << params.transpose() << std::endl;
             std::cout << "============" << std::endl;
             for (size_t i=0;i<filenames.size();i++) {
-                scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
+                scoreFitness(filenames[i], coef.array() * bestParams.array(), 1);
             }
             std::cout << "============" << std::endl;
         }
@@ -426,13 +523,14 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 20);
+    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 10);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(8);
-    cmaparams.set_max_iter(1000);
+    cmaparams.set_restarts(50);
+    cmaparams.set_max_iter(100);
+    cmaparams.set_ftolerance(1e-5);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
@@ -446,7 +544,7 @@ int main()
     
     //Final verbose
     for (size_t i=0;i<filenames.size();i++) {
-        scoreFitness(filenames[i], coef.array() * bestParams.array(), true);
+        scoreFitness(filenames[i], coef.array() * bestParams.array(), 3);
     }
 
     return 0;
