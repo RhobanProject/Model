@@ -49,7 +49,7 @@ int main()
 
     //OdometryModel
     Leph::OdometryModel odometry(
-        Leph::OdometryModel::CorrectionLinearWithAzimuth);
+        Leph::OdometryModel::CorrectionLinearSimpleXY);
     odometry.parameters()(1) = 1.5;
     odometry.parameters()(6) = 1.2;
 
