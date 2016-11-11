@@ -188,9 +188,10 @@ endif (BUILD_LEPH_CODE_RHIO)
 set(CODE_LIBRARIES
     ncurses
     console_bridge 
-    urdfdom_world 
-    urdfdom_model
-    ${DEPS_LIBRARIES}
+    ${catkin_LIBRARIES}
+    #urdfdom_world 
+    #urdfdom_model
+    #${DEPS_LIBRARIES}
 )
 
 #Add URDF model symbolic link
@@ -254,7 +255,7 @@ endif (BUILD_LEPH_CODE_VIEWER)
 
 #Include need directories
 set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} CACHE STRING "LephCode include directories")
-include_directories(${LEPHCODE_INCLUDE_DIRECTORIES})
+include_directories(${LEPHCODE_INCLUDE_DIRECTORIES} ${catkin_INCLUDE_DIRS})
 
 #Build Code as shared library
 add_library(model SHARED ${SOURCES_FILES})
