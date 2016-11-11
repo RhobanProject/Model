@@ -26,6 +26,7 @@ static const unsigned int NumberTries = 10;
 static const double AngularRangeFitness = 10.0*M_PI/180.0;
 static const bool IsPrintCSV = true;
 static const bool IsDebug = false;
+static const double AngularErrorCoef = 0.57;
 
 /**
  * Global random generator
@@ -43,7 +44,7 @@ struct OdometryData {
     std::vector<std::vector<Leph::HumanoidFixedModel::SupportFoot>> goalTrajsSupport;
     std::vector<std::vector<Eigen::Vector4d>> walkTrajsOrder;
     std::vector<std::vector<double>> walkTrajsPhase;
-    std::vector<Eigen::Vector2d> targetDisplacements;
+    std::vector<Eigen::Vector3d> targetDisplacements;
 };
 
 /**
@@ -91,6 +92,7 @@ void loadDataFromFile(OdometryData& data, const std::string& filename)
         double walkPhase;
         double targetX;
         double targetY;
+        double targetA;
         file >> seq;
         file >> index;
         file >> readPoseX;
@@ -108,6 +110,7 @@ void loadDataFromFile(OdometryData& data, const std::string& filename)
         file >> walkPhase;
         file >> targetX;
         file >> targetY;
+        file >> targetA;
         if (lastSeq != seq) {
             data.readTrajsPose.push_back(std::vector<Eigen::Vector3d>());
             data.readTrajsSupport.push_back(std::vector<Leph::HumanoidFixedModel::SupportFoot>());
@@ -115,7 +118,7 @@ void loadDataFromFile(OdometryData& data, const std::string& filename)
             data.goalTrajsSupport.push_back(std::vector<Leph::HumanoidFixedModel::SupportFoot>());
             data.walkTrajsOrder.push_back(std::vector<Eigen::Vector4d>());
             data.walkTrajsPhase.push_back(std::vector<double>());
-            data.targetDisplacements.push_back(Eigen::Vector2d(targetX, targetY));
+            data.targetDisplacements.push_back(Eigen::Vector3d(targetX, targetY, targetA));
         }
         lastSeq = seq;
         data.readTrajsPose.back().push_back(Eigen::Vector3d(readPoseX, readPoseY, readPoseYaw));
@@ -198,7 +201,11 @@ double distanceFromArc(double x, double y, double targetX, double targetY, doubl
     double dist2 = sqrt(pow(targetX1-x, 2) + pow(targetY1-y, 2));
     double dist3 = sqrt(pow(targetX2-x, 2) + pow(targetY2-y, 2));
     //Return the minimum distance
-    if (dist1 <= dist2 && dist1 <= dist3 && fabs(Leph::AngleDistance(angle, targetAngle)) <= angularRange) {
+    if (
+        dist1 <= dist2 && 
+        dist1 <= dist3 && 
+        fabs(Leph::AngleDistance(angle, targetAngle)) <= angularRange
+    ) {
         return dist1;
     } else if (dist2 <= dist3) {
         return dist2;
@@ -310,13 +317,17 @@ double odometryModelFitness(
             ));
             std::cout 
                 << "DistIdentityRead=" << 
-                (data.targetDisplacements[i] - odometryDebugRead->state().segment(0, 2)).norm() 
+                (data.targetDisplacements[i].segment(0, 2) 
+                    - odometryDebugRead->state().segment(0, 2)).norm() 
                 << " DistIdentityGoal=" << 
-                (data.targetDisplacements[i] - odometryDebugGoal->state().segment(0, 2)).norm() 
+                (data.targetDisplacements[i].segment(0, 2)
+                    - odometryDebugGoal->state().segment(0, 2)).norm() 
                 << " DistIdentityOrder=" << 
-                (data.targetDisplacements[i] - odometryDebugOrder->state().segment(0, 2)).norm() 
+                (data.targetDisplacements[i].segment(0, 2) 
+                    - odometryDebugOrder->state().segment(0, 2)).norm() 
                 << " DistParameters=" << 
-                (data.targetDisplacements[i] - odometry.state().segment(0, 2)).norm() 
+                (data.targetDisplacements[i].segment(0, 2) 
+                    - odometry.state().segment(0, 2)).norm() 
                 << std::endl;
             delete odometryDebugRead;
             delete odometryDebugOrder;
@@ -330,12 +341,22 @@ double odometryModelFitness(
                     data.targetDisplacements[i].x(),
                     data.targetDisplacements[i].y(),
                     AngularRangeFitness);
+            double finalAngle = odometry.state().z();
+            double targetAngle = -data.targetDisplacements[i].z()*2.0*M_PI/12.0;
+            double errorAngle = fabs(Leph::AngleDistance(targetAngle, finalAngle));
             if (tmpDist > 0.10) {
                 error += pow(tmpDist, 2);
             }
+            if (
+                data.targetDisplacements[i].z() >= 0.0 && 
+                errorAngle > 2.0*M_PI/12.0
+            ) {
+                error += pow(AngularErrorCoef*errorAngle, 2);
+            }
         } else {
             error += 
-                (data.targetDisplacements[i] - odometry.state().segment(0, 2))
+                (data.targetDisplacements[i].segment(0, 2) 
+                    - odometry.state().segment(0, 2))
                 .squaredNorm();
         }
         count++;

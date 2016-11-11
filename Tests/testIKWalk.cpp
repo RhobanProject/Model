@@ -6,6 +6,95 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Plot/Plot.hpp"
+
+void testIKWalkOdometry()
+{
+    //Viewer and model
+    Leph::ModelViewer viewer(1200, 900);
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
+    model.updateBase();
+    
+    //Initialing IKWalk
+    //Mowgly RoboCup 2016 parameters
+    Leph::IKWalk::Parameters params;
+    params.freq = 1.7;
+    params.enabledGain = 1.0;
+    params.supportPhaseRatio = 0.0;
+    params.footYOffset = 0.025;
+    params.stepGain = 0.04;
+    params.riseGain = 0.035;
+    params.turnGain = 0.0;
+    params.lateralGain = 0.0;
+    params.trunkZOffset = 0.02;
+    params.swingGain = 0.01999999955;
+    params.swingRollGain = 0.0;
+    params.swingPhase = 0.25;
+    params.stepUpVel = 5.0;
+    params.stepDownVel = 5.0;
+    params.riseUpVel = 5.0;
+    params.riseDownVel = 5.0;
+    params.swingPause = 0.0;
+    params.swingVel = 4.0;
+    params.trunkXOffset = 0.009999999775;
+    params.trunkYOffset = 0.0;
+    params.trunkPitch = 0.1919862181;
+    params.trunkRoll = 0.0;
+    params.extraLeftX = 0.0;
+    params.extraLeftY = 0.0;
+    params.extraLeftZ = 0.0;
+    params.extraLeftYaw = 0.0;
+    params.extraLeftPitch = 0.0;
+    params.extraLeftRoll = 0.0;
+    params.extraRightX = 0.0;
+    params.extraRightY = 0.0;
+    params.extraRightZ = 0.0;
+    params.extraRightYaw = 0.0;
+    params.extraRightPitch = 0.0;
+    params.extraRightRoll = 0.0;
+    double phase = 0.0;
+    
+    Leph::Plot plot;
+    Leph::Scheduling scheduling(50.0);
+    double t = 0.0;
+    while (viewer.update()) {
+        t += 0.01;
+        //Run walk generator
+        bool success = Leph::IKWalk::walk(
+            model.get(), params, phase, 0.01);
+        if (!success) {
+            std::cout << "IKWalk inverse kinematics failed" << std::endl;
+            return;
+        }
+        //Contraint the model on the ground
+        model.updateBase();
+        //Track moving points
+        viewer.addTrackedPoint(
+            model.get().position("left_foot_tip", "origin"), 
+            Leph::ModelViewer::Red);
+        viewer.addTrackedPoint(
+            model.get().position("trunk", "origin"), 
+            Leph::ModelViewer::Green);
+        viewer.addTrackedPoint(
+            model.get().centerOfMass("origin"), 
+            Leph::ModelViewer::Blue);
+        viewer.addTrackedPoint(
+            model.get().position("right_foot_tip", "origin"), 
+            Leph::ModelViewer::Purple);
+        //Display model
+        Leph::ModelDraw(model.get(), viewer);
+        //Waiting
+        scheduling.wait();
+        //Plot
+        plot.add(Leph::VectorLabel(
+            "t", t,
+            "phase", phase,
+            "left_foot_x", model.get().position("left_foot_tip", "origin").x(),
+            "trunk_x", model.get().position("trunk", "origin").x()
+        ));
+    }
+    plot.plot("t", "all").render();
+}
 
 int main()
 {
@@ -134,6 +223,9 @@ int main()
         Leph::IKWalk::convertParameters(vectParams, params);
         std::cout << vectParams << std::endl;
     }
+    
+    //Test IKWalk Odometry and paramater meanings
+    testIKWalkOdometry();
 
     return 0;
 }
