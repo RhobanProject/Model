@@ -15,7 +15,8 @@ Model::Model() :
     _frameIndexToName(),
     _frameNameToIndex(),
     _frameIndexToId(),
-    _inertiaData()
+    _inertiaData(),
+    _inertiaName()
 {
 }
         
@@ -29,24 +30,26 @@ Model::Model(const std::string& filename) :
     _frameIndexToName(),
     _frameNameToIndex(),
     _frameIndexToId(),
-    _inertiaData()
+    _inertiaData(),
+    _inertiaName()
 {
     //URDF loading and retrieve inertia data
-    Eigen::MatrixXd inertiaData;
     RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
-        filename.c_str(), &model, false, &_inertiaData, false)
+        filename.c_str(), &model, false, 
+        &_inertiaData, &_inertiaName, false)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
     }
 
     //Parse and load RBDL model
-    initializeModel(model);
+    initializeModel(model, _inertiaData, _inertiaName);
 }
         
 Model::Model(const std::string& filename, 
-    const Eigen::MatrixXd& inertiaData) :
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName) :
     _model(),
     _isAutoUpdate(true),
     _dofIndexToName(),
@@ -56,22 +59,26 @@ Model::Model(const std::string& filename,
     _frameIndexToName(),
     _frameNameToIndex(),
     _frameIndexToId(),
-    _inertiaData(inertiaData)
+    _inertiaData(inertiaData),
+    _inertiaName(inertiaName)
 {
     //URDF loading with override inertia data
     RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
-        filename.c_str(), &model, false, &_inertiaData, true)
+        filename.c_str(), &model, false, 
+        &_inertiaData, &_inertiaName, true)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
     }
 
     //Parse and load RBDL model
-    initializeModel(model);
+    initializeModel(model, _inertiaData, _inertiaName);
 }
         
-Model::Model(RBDL::Model& model) :
+Model::Model(RBDL::Model& model,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName) :
     _model(),
     _isAutoUpdate(true),
     _dofIndexToName(),
@@ -81,10 +88,11 @@ Model::Model(RBDL::Model& model) :
     _frameIndexToName(),
     _frameNameToIndex(),
     _frameIndexToId(),
-    _inertiaData()
+    _inertiaData(inertiaData),
+    _inertiaName(inertiaName)
 {
     //Parse and load RBDL model
-    initializeModel(model);
+    initializeModel(model, _inertiaData, _inertiaName);
 }
         
 bool Model::isAutoUpdate() const
@@ -525,6 +533,7 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -598,6 +607,10 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
             for (size_t j=0;j<(size_t)enabled.size();j++) {
                 if (enabled(j) != 0) {
                     H2(index, index2) = H(i, j);
+                    //Add inertial offset on diagonal
+                    if (i == j) {
+                        H2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }
@@ -675,6 +688,7 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -735,6 +749,10 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
             for (size_t j=0;j<sizeAll;j++) {
                 if (enabled(j) != 0) {
                     A2(index, index2) = constraints.H(i, j);
+                    //Add inertia offset on diagonal
+                    if (i == j) {
+                        A2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }
@@ -865,6 +883,7 @@ Eigen::VectorXd Model::impulseContactsPartial(
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXi& enabled,
+    const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
     //Sanity check
@@ -927,6 +946,10 @@ Eigen::VectorXd Model::impulseContactsPartial(
             for (size_t j=0;j<sizeAll;j++) {
                 if (enabled(j) != 0) {
                     H2(index, index2) = constraints.H(i, j);
+                    //Add inertia offset on diagonal
+                    if (i == j) {
+                        H2(index, index2) += inertiaOffset(i);
+                    }
                     index2++;
                 }
             }
@@ -1017,6 +1040,10 @@ const Eigen::MatrixXd& Model::getInertiaData() const
 {
     return _inertiaData;
 }
+const std::map<std::string, size_t>& Model::getInertiaName() const
+{
+    return _inertiaName;
+}
 
 std::string Model::filterJointName(const std::string& name) const
 {
@@ -1040,10 +1067,14 @@ std::string Model::filterFrameName(const std::string& name) const
     return filtered;
 }
         
-void Model::initializeModel(RBDL::Model& model)
+void Model::initializeModel(RBDL::Model& model, 
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName)
 {
     //Assign RBDL model
     _model = model;
+    _inertiaData = inertiaData;
+    _inertiaName = inertiaName;
     //Build name-index joint mapping 
     //and VectorLabel structure
     for (size_t i=1;i<_model.mBodies.size();i++) {
@@ -1062,8 +1093,19 @@ void Model::initializeModel(RBDL::Model& model)
             i += 5;
             continue;
         } else if (virtualDepth > 0) {
+            std::string verbose1 = RBDL::Utils::GetModelHierarchy(_model);
+            std::string verbose2 = RBDL::Utils::GetModelDOFOverview(_model);
             throw std::logic_error(
-                "Model virtual body name not implemented");
+                "Model virtual body name not implemented: name=" 
+                + filteredName + std::string(" depth=") 
+                + std::to_string(virtualDepth)
+                + std::string("\n")
+                + std::string("ModelHierarchy:\n")
+                + verbose1
+                + std::string("\n")
+                + std::string("ModelDOFOverview:\n")
+                + verbose2
+            );
         }
         addDOF(filteredName);
     }
@@ -1087,7 +1129,7 @@ std::string Model::getRBDLBodyName(size_t bodyId,
     unsigned int& virtualDepth) const
 {
     //If this is a virtual body that was added by a multi dof joint
-    if (_model.mBodies[bodyId].mMass < 0.001) {
+    if (_model.mBodies[bodyId].mIsVirtual) {
         //If there is not a unique child we do not know what to do
         if (_model.mu[bodyId].size() != 1) {
             return "";

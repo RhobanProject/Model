@@ -38,6 +38,21 @@ class RandomWalk
             double deltaMean, double inertiaRatio);
 
         /**
+         * State update with uniformly random delta
+         * between detlaLow and deltaUp bounds. 
+         * State is bounds between stateLow and stateUp.
+         * InertiaRatio is between 0.0 and 1.0.
+         * 0.0 is fully random walk and 1.0 is full inertia.
+         * New state is returned.
+         */
+        const Eigen::VectorXd& uniformStepWithBounds(
+            const Eigen::VectorXd& deltaLow,
+            const Eigen::VectorXd& deltaUp,
+            const Eigen::VectorXd& stateLow,
+            const Eigen::VectorXd& stateUp,
+            double inertiaRatio);
+
+        /**
          * Access to internal state and
          * velocity
          */

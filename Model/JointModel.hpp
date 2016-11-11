@@ -23,7 +23,7 @@ class JointModel
          */
         enum JointModelType {
             //No friction, no control torque
-            //(no parameter or state)
+            //(no parameter)
             JointFree,
             //Friction and control torque
             JointActuated,
@@ -34,8 +34,8 @@ class JointModel
          * jont type and name
          */
         JointModel(
-            JointModelType type, 
-            const std::string& name);
+            JointModelType type = JointActuated, 
+            const std::string& name = "");
 
         /**
          * Return the joint type
@@ -51,29 +51,26 @@ class JointModel
          * Get and set internal 
          * model parameters
          */
-        const Eigen::VectorXd& getParameters() const;
+        const Eigen::VectorXd getParameters() const;
         void setParameters(const Eigen::VectorXd& params);
-        
-        /**
-         * Get and set internal joint state
-         */
-        const Eigen::VectorXd& getStates() const;
-        void setStates(const Eigen::VectorXd& states);
 
+        /**
+         * Return internal joint inertia
+         */
+        double getInertia() const;
+        
         /**
          * Compute the torque applied on 
          * the joint by the mechanical friction
          * given current joint position and velocity.
-         * (state less const)
          */
-        double frictionTorque(double pos, double vel) const;
+        double frictionTorque(double vel) const;
 
         /**
          * Compute the torque applied on 
          * the joint by the control algorithm
          * given current joint target position, 
          * current position and velocity.
-         * (state less const)
          */
         double controlTorque(double pos, double vel) const;
 
@@ -86,10 +83,36 @@ class JointModel
             double dt, double goal, double pos, double vel);
 
         /**
+         * Return current delayed goal
+         */
+        double getDelayedGoal() const;
+
+        /**
+         * Return current backlash hidden state
+         */
+        bool getBacklashStateEnabled() const;
+        double getBacklashStatePos() const;
+        double getBacklashStateVel() const;
+
+        /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
         void boundState(double& pos, double& vel);
+
+        /**
+         * Compute the actual torque seen by the
+         * control motor and return ratio between
+         * this torque and control maximum torque bound.
+         * The returnded value is always positive or zero.
+         * If between 0 and 1, the current torque can be
+         * provided by the motor.
+         * Current joint velocity, acceleration and
+         * external applied torque is given.
+         * Backlash model is not used.
+         */
+        double ratioMaxControlTorque(
+            double vel, double acc, double torque) const;
 
     private:
 
@@ -104,21 +127,68 @@ class JointModel
         std::string _name;
 
         /**
+         * Current integrated time in seconds
+         * and target goal history (for lag
+         * implementation)
+         */
+        double _goalTime;
+        std::queue<std::pair<double, double>> _goalHistory;
+
+        /**
+         * Backlash hidden relative 
+         * enable and position state
+         */
+        bool _stateBacklashIsEnabled;
+        double _stateBacklashPosition;
+        double _stateBacklashVelocity;
+
+        /**
          * Model parameters
          */
-        Eigen::VectorXd _parameters;
+        //Friction Stribeck transtition velocity
+        double _paramFrictionVelLimit;
+        //Friction and inertia internal parameters
+        double _paramInertiaIn;
+        double _paramFrictionViscousIn;
+        double _paramFrictionBreakIn;
+        double _paramFrictionCoulombIn;
+        //Friction and inertia external parameters
+        double _paramInertiaOut;
+        double _paramFrictionViscousOut;
+        double _paramFrictionBreakOut;
+        double _paramFrictionCoulombOut;
+        //Electric motor parameters
+        double _paramElectricVoltage;
+        double _paramElectricKe;
+        double _paramElectricResistance;
+        //Control parameters
+        double _paramControlGainP;
+        double _paramControlDiscretization;
+        //All inclusive time lag
+        double _paramControlLag;
+        //Backlash hysteresis parameters
+        double _paramBacklashThresholdDeactivation;
+        double _paramBacklashThresholdActivation;
+        double _paramBacklashRangeMax;
 
         /**
-         * Joint used state
-         * for control method
+         * Compute the friction force for given
+         * velocity and optional given torque.
+         * Internal and/or externzl gearbox friction
+         * is used whenether isInFriction and isOutFriction
+         * are set.
          */
-        Eigen::VectorXd _states;
+        double computeFrictionTorque(
+            double vel, double* torque, 
+            bool isInFriction, bool isOutFriction) const;
 
         /**
-         * Is updateState have already be
-         * called once
+         * Compute the control torque 
+         * (without backlash model) from given
+         * current position and velocity
          */
-        bool _isInitialized;
+        double computeControlTorque(
+            double pos, double vel) const;
 };
 
 }

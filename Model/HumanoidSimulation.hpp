@@ -90,7 +90,9 @@ class HumanoidSimulation
          * Return the vertical force appling 
          * on given cleat name
          */
+        /** TODO
         double getCleatForce(const std::string& name) const;
+        */
 
         /**
          * Assign given joints parameters to all 

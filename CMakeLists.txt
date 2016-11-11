@@ -227,6 +227,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
         testTrunkFootIK
         testForwardSimulation
+        testForwardSimulationCalibration
         testQuinticWalk
         testCameraModel
         testHumanoidSimulation

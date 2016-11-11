@@ -4,6 +4,7 @@
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
 #include "Model/MotorModel.hpp"
+#include "Model/JointModel.hpp"
 
 namespace Leph {
 
@@ -74,6 +75,8 @@ void TrajectoriesDisplay(
     }
     plot.plot("time", "all").render();
     plot.clear();
+    //Joint Model
+    JointModel jointModel;
     //Display Trajectory
     ModelViewer viewer(1200, 900);
     HumanoidFixedModel model(type);
@@ -84,6 +87,7 @@ void TrajectoriesDisplay(
     double sumTorques = 0.0;
     double sumZMP = 0.0;
     double maxZMP = -1.0;
+    double maxTorqueSupportYaw = -1.0;
     double maxVolt = -1.0;
     double waiting = 0.0;
     while (viewer.update()) {
@@ -125,6 +129,8 @@ void TrajectoriesDisplay(
         //Compute CoM
         Eigen::Vector3d com = model.get().centerOfMass("origin");
         com.z() = 0.0;
+        //Retrieve torque on yaw support foot
+        double torqueSupportYaw = torques(model.get().getDOFIndex("base_yaw"));
         //Disable base DOF
         torques(model.get().getDOFIndex("base_x")) = 0.0;
         torques(model.get().getDOFIndex("base_y")) = 0.0;
@@ -178,35 +184,47 @@ void TrajectoriesDisplay(
             vect.append("t", t);
             vect.append("zmp_x", zmp.x());
             vect.append("zmp_y", zmp.y());
+            vect.append("torque_support_yaw", torqueSupportYaw);
             for (const std::string& name : namesLeft) {
+                size_t index = model.get().getDOFIndex(name);
                 vect.append("left_torque:"+name, 
-                    torques(model.get().getDOFIndex(name)));
+                    torques(index));
                 vect.append("left_volt:"+name, 
-                    volts(model.get().getDOFIndex(name)));
+                    volts(index));
                 vect.append("left_q:"+name, 
-                    positions(model.get().getDOFIndex(name)));
+                    positions(index));
                 vect.append("left_dq:"+name, 
-                    dq(model.get().getDOFIndex(name)));
+                    dq(index));
                 vect.append("left_ddq:"+name, 
-                    ddq(model.get().getDOFIndex(name)));
+                    ddq(index));
+                vect.append("left_ratio:"+name, 
+                    jointModel.ratioMaxControlTorque(
+                        dq(index), ddq(index), torques(index)));
             }
             for (const std::string& name : namesRight) {
+                size_t index = model.get().getDOFIndex(name);
                 vect.append("right_torque:"+name, 
-                    torques(model.get().getDOFIndex(name)));
+                    torques(index));
                 vect.append("right_volt:"+name, 
-                    volts(model.get().getDOFIndex(name)));
+                    volts(index));
                 vect.append("right_q:"+name, 
-                    positions(model.get().getDOFIndex(name)));
+                    positions(index));
                 vect.append("right_dq:"+name, 
-                    dq(model.get().getDOFIndex(name)));
+                    dq(index));
                 vect.append("right_ddq:"+name, 
-                    ddq(model.get().getDOFIndex(name)));
+                    ddq(index));
+                vect.append("right_ratio:"+name, 
+                    jointModel.ratioMaxControlTorque(
+                        dq(index), ddq(index), torques(index)));
             }
             plot.add(vect);
             sumTorques += 0.01*torques.norm();
             sumZMP += 0.01*zmp.norm();
             if (maxZMP < 0.0 || maxZMP < zmp.lpNorm<Eigen::Infinity>()) {
                 maxZMP = zmp.lpNorm<Eigen::Infinity>();
+            }
+            if (maxTorqueSupportYaw < 0.0 || maxTorqueSupportYaw < fabs(torqueSupportYaw)) {
+                maxTorqueSupportYaw = fabs(torqueSupportYaw);
             }
             if (maxVolt < 0.0 || maxVolt < volts.lpNorm<Eigen::Infinity>()) {
                 maxVolt = volts.lpNorm<Eigen::Infinity>();
@@ -217,6 +235,7 @@ void TrajectoriesDisplay(
     std::cout << "Mean Torques Norm: " << sumTorques << std::endl;
     std::cout << "Mean ZMP Norm: " << sumZMP << std::endl;
     std::cout << "Max ZMP: " << maxZMP << std::endl;
+    std::cout << "Max TorqueSupportYaw: " << maxTorqueSupportYaw << std::endl;
     std::cout << "Max Volt: " << maxVolt << std::endl;
     //Plot DOF torques and ZMP
     plot.plot("t", "left_torque:*").render();
@@ -230,6 +249,9 @@ void TrajectoriesDisplay(
     plot.plot("t", "left_ddq:*").render();
     plot.plot("t", "right_ddq:*").render();
     plot.plot("t", "zmp_x").plot("t", "zmp_y").render();
+    plot.plot("t", "torque_support_yaw").render();
+    plot.plot("t", "left_ratio:*").render();
+    plot.plot("t", "right_ratio:*").render();
 }
 
 }

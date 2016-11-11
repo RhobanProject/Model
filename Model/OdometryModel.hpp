@@ -21,9 +21,15 @@ class OdometryModel
          */
         enum OdometryModelType {
             CorrectionIdentity,
-            CorrectionLinear,
-            CorrectionLinearWithAzimuth,
-            CorrectionCubic,
+            CorrectionScalarX,
+            CorrectionScalarXY,
+            CorrectionScalarXYZ,
+            CorrectionProportionalXY,
+            CorrectionProportionalXYZ,
+            CorrectionLinearSimpleXY,
+            CorrectionLinearSimpleXYZ,
+            CorrectionLinearFullXY,
+            CorrectionLinearFullXYZ,
         };
 
         /**
@@ -32,15 +38,16 @@ class OdometryModel
         OdometryModel(OdometryModelType type);
 
         /**
-         * Return instance Correctin type
+         * Return instance Correction type
          */
         OdometryModelType getType() const;
 
         /**
-         * Reset to zero integrated state
+         * Reset to zero or given pose integrated state
          * and mark internal data to be re initialized
          */
         void reset();
+        void reset(const Eigen::Vector3d& pose);
 
         /**
          * Update with given input pose state or input Model
@@ -90,6 +97,21 @@ class OdometryModel
             const Eigen::Vector3d& diff,
             Eigen::Vector3d& state) const;
 
+        /**
+         * Correct and return given relative displacement 
+         * [dX,dY,dTheta] using current model parameters.
+         */
+        Eigen::Vector3d correctiveModel(
+            const Eigen::Vector3d& diff) const;
+
+        /**
+         * Return minimum and maximum (indicative)
+         * constrains for current Odometry model
+         * parameters
+         */
+        const Eigen::VectorXd& parameterLowerBounds() const;
+        const Eigen::VectorXd& parameterUpperBounds() const;
+
     private:
 
         /**
@@ -106,9 +128,12 @@ class OdometryModel
 
         /**
          * Odometry parameters depending
-         * on OdometryModelType
+         * on OdometryModelType.
+         * Lower and upper parameter bounds.
          */
         Eigen::VectorXd _odometryParameters;
+        Eigen::VectorXd _odometryLowerBounds;
+        Eigen::VectorXd _odometryUpperBounds;
         
         /**
          * Last seen support foot 
@@ -137,13 +162,6 @@ class OdometryModel
          * update
          */
         Eigen::Vector3d _corrected;
-
-        /**
-         * Correct and return given relative displacement 
-         * [dX,dY,dTheta] using current model parameters.
-         */
-        Eigen::Vector3d correctiveModel(
-            const Eigen::Vector3d& diff) const;
 };
 
 }

@@ -14,7 +14,8 @@ ForwardSimulation::ForwardSimulation(Model& model) :
     _outputTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
     _frictionTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
     _controlTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
-    _inputTorques(Eigen::VectorXd::Zero(_model->sizeDOF()))
+    _inputTorques(Eigen::VectorXd::Zero(_model->sizeDOF())),
+    _inertiaOffsets(Eigen::VectorXd::Zero(_model->sizeDOF()))
 {
     //Init joint models
     for (size_t i=0;i<_model->sizeDOF();i++) {
@@ -133,79 +134,67 @@ void ForwardSimulation::update(double dt,
     for (size_t i=0;i<size;i++) {
         _jointModels[i].updateState(
             dt, _goals(i), _positions(i), _velocities(i));
+        //Retrieve inertia offset
+        if (_jointModels[i].getType() != JointModel::JointFree) {
+            _inertiaOffsets(i) = _jointModels[i].getInertia();
+        }
     }
 
-    //Compute and return the generalized state
-    //derivative from given state
-    //(first vector part is position, second part is
-    //velocity)
+    //Compute the joint accelerations
+    //from current given state
     //Call model forward dynamics
-    auto differential = 
-        [this, &lastVelocities, constraints]
-        (const Eigen::VectorXd& state) -> Eigen::VectorXd 
-    {
-        size_t size = this->_model->sizeDOF();
-        //Compute joint friction and control torque
-        for (size_t i=0;i<size;i++) {
-            if (this->_actives(i) != 0) {
-                //Compute non static control and torque friction
-                this->_frictionTorques(i) = this->_jointModels[i]
-                    .frictionTorque(state(i), state(size+i));
-                this->_controlTorques(i) = this->_jointModels[i]
-                    .controlTorque(state(i), state(size+i));
-                //If a joint has just been activated 
-                //in the last iteration, its velocity is zero.
-                //The friction torque sign could not be computed using
-                //the velocity. For this initial iteration, the current 
-                //friction torque sign is set to counter the applied
-                //external torque (same as for disable to enable condition) 
-                //of last iteration as if it was simulated and not moving.
-                if (lastVelocities(i) == 0.0) { 
-                    this->_frictionTorques(i) = 
-                        (this->_inputTorques(i)+this->_controlTorques(i) 
-                            > 0.0 ? -1.0 : 1.0)
-                        * fabs(this->_frictionTorques(i));
-                }
-                //Sum applied torque on the joint
-                this->_outputTorques(i) = 
-                    this->_frictionTorques(i) + 
-                    this->_controlTorques(i);
-            } else {
-                //No applied torque (not used) if the joint is disabled
-                this->_outputTorques(i) = 0.0;
+    //Compute joint friction and control torque
+    for (size_t i=0;i<size;i++) {
+        if (_actives(i) != 0) {
+            //Compute non static control and torque friction
+            _frictionTorques(i) = _jointModels[i].frictionTorque(
+                _velocities(i));
+            _controlTorques(i) = _jointModels[i].controlTorque(
+                _positions(i), _velocities(i));
+            //If a joint has just been activated 
+            //in the last iteration, its velocity is zero.
+            //The friction torque sign could not be computed using
+            //the velocity. For this initial iteration, the current 
+            //friction torque sign is set to counter the applied
+            //external torque (same as for disable to enable condition) 
+            //of last iteration as if it was simulated and not moving.
+            if (lastVelocities(i) == 0.0) { 
+                _frictionTorques(i) = 
+                    (_inputTorques(i)+_controlTorques(i) 
+                        > 0.0 ? -1.0 : 1.0)
+                    * fabs(_frictionTorques(i));
             }
-        }
-        //Compute partial (with fixed DOF 
-        //for static friction) Forward Dynamics
-        if (constraints == nullptr) {
-            this->_accelerations = this->_model->forwardDynamicsPartial(
-                state.segment(0, size),
-                state.segment(size, size),
-                this->_outputTorques,
-                this->_actives, 
-                RBDLMath::LinearSolverFullPivHouseholderQR);
+            //Sum applied torque on the joint
+            _outputTorques(i) = 
+                _frictionTorques(i) + 
+                _controlTorques(i);
         } else {
-            this->_accelerations = 
-                this->_model->forwardDynamicsContactsPartial(
-                *constraints,
-                state.segment(0, size),
-                state.segment(size, size),
-                this->_outputTorques,
-                this->_actives,
-                RBDLMath::LinearSolverFullPivHouseholderQR);
+            //No applied torque (not used) if the joint is disabled
+            _outputTorques(i) = 0.0;
         }
-        //Build generalized state derivative
-        Eigen::VectorXd diff(2*size);
-        diff.segment(0, size) = state.segment(size, size);
-        diff.segment(size, size) = this->_accelerations;
-        return diff;
-    };
+    }
+    //Compute partial (with fixed DOF 
+    //for static friction) Forward Dynamics
+    if (constraints == nullptr) {
+        _accelerations = _model->forwardDynamicsPartial(
+            _positions,
+            _velocities,
+            _outputTorques,
+            _actives, 
+            _inertiaOffsets,
+            RBDLMath::LinearSolverFullPivHouseholderQR);
+    } else {
+        _accelerations = 
+            _model->forwardDynamicsContactsPartial(
+            *constraints,
+            _positions,
+            _velocities,
+            _outputTorques,
+            _actives,
+            _inertiaOffsets,
+            RBDLMath::LinearSolverFullPivHouseholderQR);
+    }
     
-    //Build generalized state
-    Eigen::VectorXd state(2*size);
-    state.segment(0, size) = _positions;
-    state.segment(size, size) = _velocities;
-
     //Compute next state with 
     //Euler integration.
     //(Runge-Kutta integration cannot be used
@@ -215,48 +204,28 @@ void ForwardSimulation::update(double dt,
     Eigen::VectorXd nextState = RungeKutta4Integration(
         state, dt, differential);
     */
-    Eigen::VectorXd nextState = state + dt*differential(state);
+    Eigen::VectorXd nextVelocities = _velocities + dt*_accelerations;
+    _velocities = 0.5*_velocities + 0.5*nextVelocities;
+    _positions = _positions + dt*_velocities;
 
-    //Retrieve data
-    _positions = nextState.segment(0, size);
-    _velocities = nextState.segment(size, size);
     //Assign model position state
     _model->setDOFVect(_positions);
     
-    //Recompute with Inverse Dynamics 
-    //applied torque on each DOF
-    //(minus because InverseDynamics compute the 
-    //needed torque to produce given acceleration).
-    if (constraints == nullptr) {
-        _inputTorques = - _model->inverseDynamics(
-            _velocities, _accelerations);
-    } else {
-        _inputTorques = - _model->inverseDynamicsContacts(
-            *constraints, _positions, _velocities, _accelerations);
-    }
-
     //Recompute all friction 
     //and control torque
     for (size_t i=0;i<size;i++) {
         _frictionTorques(i) = _jointModels[i]
-            .frictionTorque(_positions(i), _velocities(i));
+            .frictionTorque(_velocities(i));
         _controlTorques(i) = _jointModels[i]
             .controlTorque(_positions(i), _velocities(i));
     }
 
-    //Handle joint activation and static friction
-    bool isOneActivation = false;
+    //Handle joint actives stiction model
     bool isOneDeactivation = false;
+
+    //Active to disabled
+    Eigen::VectorXi saveActives = _actives;
     for (size_t i=0;i<size;i++) {
-        //Compute current friction torque 
-        //in case of static state
-        double staticFrictionCurrent = 
-            fabs(_inputTorques(i) + _controlTorques(i));
-        //Compute friction torque limit at zero velocity (Coulomb cone).
-        //1.01 prevent false numerical activation of joint
-        double staticFrictionLimit = 
-            1.01*fabs(_jointModels[i].frictionTorque(_positions(i), 0.0));
-        //Active to disabled
         if (
             _jointModels[i].getType() != JointModel::JointFree &&
             _actives(i) != 0 &&
@@ -274,6 +243,7 @@ void ForwardSimulation::update(double dt,
                     _velocities,
                     _frictionTorques + _controlTorques,
                     _actives,
+                    _inertiaOffsets,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
             } else {
                 //Constraints
@@ -285,6 +255,7 @@ void ForwardSimulation::update(double dt,
                     _velocities,
                     _frictionTorques + _controlTorques,
                     _actives,
+                    _inertiaOffsets,
                     RBDLMath::LinearSolverFullPivHouseholderQR);
                 constraints->force = tmpSaveForce;
             }
@@ -305,34 +276,52 @@ void ForwardSimulation::update(double dt,
                 _actives(i) = 0;
                 isOneDeactivation = true;
             }
-        //Disabled to active
-        } else if (
-            _jointModels[i].getType() != JointModel::JointFree &&
-            _actives(i) == 0 &&
-            !isOneActivation &&
-            staticFrictionCurrent > staticFrictionLimit
-        ) {
-            //Enable stopped joint due to static friction
-            //when applied high enough torque.
-            _actives(i) = 1;
-            //At must one joint as activated at each iteration
-            //to avoid numerical instalibity of multiple
-            //newly activated joints
-            isOneActivation = true;
-        }
+        } 
     }
+
     //When a DOF is disabled, the velocity is set
     //to zero and if constraints are not empty,
     //the new velocity may break the constraints.
     //An impulsion need to be applied to enforce
     //the constraints with the new velocity and model.
     if (isOneDeactivation && constraints != nullptr) {
-        _velocities = _model->impulseContactsPartial(
-            *constraints,
-            _positions,
-            _velocities,
-            _actives,
-            RBDLMath::LinearSolverFullPivHouseholderQR);
+        computeImpulses(*constraints);
+    }
+    
+    //Recompute with Inverse Dynamics 
+    //applied torque on each DOF
+    //(minus because InverseDynamics compute the 
+    //needed torque to produce given acceleration).
+    if (constraints == nullptr) {
+        _inputTorques = - _model->inverseDynamics(
+            _velocities, _accelerations);
+    } else {
+        _inputTorques = - _model->inverseDynamicsContacts(
+            *constraints, _positions, _velocities, _accelerations);
+    }
+    
+    //Disabled to active
+    for (size_t i=0;i<size;i++) {
+        //Compute current friction torque 
+        //in case of static state
+        double staticFrictionCurrent = 
+            fabs(_inputTorques(i) + _controlTorques(i));
+        //Compute friction torque limit at zero velocity (Coulomb cone).
+        //1.01 prevent false numerical activation of joint
+        double staticFrictionLimit = 
+            1.01*fabs(_jointModels[i].frictionTorque(0.0));
+        if (
+            _jointModels[i].getType() != JointModel::JointFree &&
+            saveActives(i) == 0 &&
+            !isOneDeactivation &&
+            staticFrictionCurrent > staticFrictionLimit
+        ) {
+            //Enable stopped joint due to static friction
+            //when applied high enough torque.
+            _velocities(i) = 0.0;
+            _accelerations(i) = 0.0;
+            _actives(i) = 1;
+        }
     }
 
     //Check numerical validity
@@ -354,6 +343,18 @@ void ForwardSimulation::update(double dt,
     for (size_t i=0;i<size;i++) {
         _jointModels[i].boundState(_positions(i), _velocities(i));
     }
+}
+
+void ForwardSimulation::computeImpulses(
+    RBDL::ConstraintSet& constraints)
+{
+    _velocities = _model->impulseContactsPartial(
+        constraints,
+        _positions,
+        _velocities,
+        _actives,
+        _inertiaOffsets,
+        RBDLMath::LinearSolverFullPivHouseholderQR);
 }
 
 }

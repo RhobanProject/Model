@@ -16,6 +16,16 @@ int main()
             << " index=" << model.getFrameIndex(model.getFrameName(i)) 
             << " id=" << model.frameIndexToBodyId(i) << std::endl;
     }
+
+    std::cout << "Inertia Data:" << std::endl;
+    for (const auto& it : model.getInertiaName()) {
+        std::cout << it.second << " " << it.first << ": ";
+        for (size_t i=0;i<(size_t)model.getInertiaData().cols();i++) {
+            std::cout << model.getInertiaData()(it.second, i) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
     
     for (size_t i=0;i<model.sizeFrame();i++) {
         std::cout << model.getFrameName(i) << ": "

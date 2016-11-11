@@ -39,12 +39,17 @@ class Model
          * file data
          */
         Model(const std::string& filename, 
-            const Eigen::MatrixXd& inertiaData);
+            const Eigen::MatrixXd& inertiaData,
+            const std::map<std::string, size_t>& inertiaName);
 
         /**
-         * Initialize with RBDL model
+         * Initialize with RBDL model.
+         * Given inertia data and name override
+         * model internal data with externaly loaded urdf.
          */
-        Model(RBDL::Model& model);
+        Model(RBDL::Model& model,
+            const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& inertiaName = {});
 
         /**
          * Return current update mode
@@ -287,6 +292,9 @@ class Model
          * torque are given. 
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -295,6 +303,7 @@ class Model
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& torque,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
@@ -323,6 +332,9 @@ class Model
          * torque are given. 
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -332,6 +344,7 @@ class Model
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXd& torque,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
@@ -371,6 +384,9 @@ class Model
          * velocity are given.
          * Only DOF with non zero value in
          * enabled vector are non fixed.
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
          * Eigen linear solver can be choosen.
          * (Re-implement custom RBDL function).
          */
@@ -379,6 +395,7 @@ class Model
             const Eigen::VectorXd& position,
             const Eigen::VectorXd& velocity,
             const Eigen::VectorXi& enabled,
+            const Eigen::VectorXd& inertiaOffset,
             RBDLMath::LinearSolver solver = 
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
@@ -405,16 +422,23 @@ class Model
         /**
          * Return access to inertia data matrix.
          * One line for each body. 
-         * Mass, COM vector (3d), inertia matrix (6d)
+         * Mass, COM vector (3d), inertia matrix (6d).
+         * And mapping body name to row index in 
+         * inertia data matrix
          */
         const Eigen::MatrixXd& getInertiaData() const;
+        const std::map<std::string, size_t>& getInertiaName() const;
 
     protected:
         
         /**
-         * Parse and initialilize RBDL model
+         * Parse and initialilize RBDL model.
+         * Given inertia data and name are used to
+         * assigned the model with externaly loaded urdf.
          */
-        void initializeModel(RBDL::Model& model);
+        void initializeModel(RBDL::Model& model, 
+            const Eigen::MatrixXd& inertiaData,
+            const std::map<std::string, size_t>& inertiaName);
 
     private:
     
@@ -463,8 +487,11 @@ class Model
          * Container of inertia data.
          * One line for each body. 
          * Mass, COM vector (3d), inertia matrix (6d)
+         * And mapping body name to row index in 
+         * inertia data matrix
          */
         Eigen::MatrixXd _inertiaData;
+        std::map<std::string, size_t> _inertiaName;
 
         /**
          * Filter body name to joint and frame name

@@ -53,6 +53,7 @@ class IKWalk
             /**
              * Forward length of each foot step
              * in meters (positive)
+             * (Actual trunk displacement is 2*stepGain)
              */
             double stepGain;
             /**
@@ -66,6 +67,7 @@ class IKWalk
              * 0 does not turn
              * >0 turns left
              * <0 turns right
+             * (Actual trunk rotation is 2*turnGain)
              */
             double turnGain;
             /**
@@ -73,6 +75,7 @@ class IKWalk
              * in meters.
              * >0 goes left
              * <0 goes right
+             * (Actual trunk displacement is 2*lateralGain)
              */
             double lateralGain;
             /**

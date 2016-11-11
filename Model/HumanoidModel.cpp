@@ -6,7 +6,9 @@ namespace Leph {
 HumanoidModel::HumanoidModel(
     RobotType type,
     const std::string& frameRoot,
-    bool isFloatingBase) :
+    bool isFloatingBase,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName) :
     Model(),
     _type(type)
 {
@@ -18,10 +20,24 @@ HumanoidModel::HumanoidModel(
         urdfFile = "grosban.urdf";
     }
 
+    //Check for overriden inertia
+    bool isInertiaOverride = false;
+    Eigen::MatrixXd tmpInertiaData;
+    std::map<std::string, size_t> tmpInertiaName;
+    if (
+        inertiaData.rows() > 0 &&
+        (size_t)inertiaData.rows() == inertiaName.size()
+    ) {
+        isInertiaOverride = true;
+        tmpInertiaData = inertiaData;
+        tmpInertiaName = inertiaName;
+    }
+
     //Load model from URDF file
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
-        urdfFile.c_str(), &modelOld, false)
+        urdfFile.c_str(), &modelOld, false, 
+        &tmpInertiaData, &tmpInertiaName, isInertiaOverride)
     ) {
         std::runtime_error("Model unable to load URDF file");
     }
@@ -40,7 +56,7 @@ HumanoidModel::HumanoidModel(
     RBDL::Model modelNew = 
         Leph::RBDLRootUpdate(modelOld, frameRootId, isFloatingBase);
     //Initialize base model
-    Model::initializeModel(modelNew);
+    Model::initializeModel(modelNew, tmpInertiaData, tmpInertiaName);
 
     //Compute leg segments length
     Eigen::Vector3d hipPt = Model::position(

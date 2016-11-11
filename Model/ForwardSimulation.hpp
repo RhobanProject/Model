@@ -68,6 +68,14 @@ class ForwardSimulation
          */
         void update(double dt, 
             RBDL::ConstraintSet* constraints = nullptr);
+
+        /**
+         * Run impulse calculations and update
+         * the velocities to comply with given
+         * constraints set
+         */
+        void computeImpulses(
+            RBDL::ConstraintSet& constraints);
         
     private:
 
@@ -114,6 +122,12 @@ class ForwardSimulation
         Eigen::VectorXd _frictionTorques;
         Eigen::VectorXd _controlTorques;
         Eigen::VectorXd _inputTorques;
+
+        /**
+         * Joint internal inertia offset added to 
+         * the diagonal of inertia matrix
+         */
+        Eigen::VectorXd _inertiaOffsets;
 };
 
 }
