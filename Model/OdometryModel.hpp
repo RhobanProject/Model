@@ -23,13 +23,19 @@ class OdometryModel
             CorrectionIdentity,
             CorrectionScalarX,
             CorrectionScalarXY,
-            CorrectionScalarXYZ,
+            CorrectionScalarXYA,
             CorrectionProportionalXY,
-            CorrectionProportionalXYZ,
+            CorrectionProportionalXYA,
             CorrectionLinearSimpleXY,
-            CorrectionLinearSimpleXYZ,
+            CorrectionLinearSimpleXYA,
             CorrectionLinearFullXY,
-            CorrectionLinearFullXYZ,
+            CorrectionLinearFullXYA,
+            CorrectionProportionalHistoryXY,
+            CorrectionProportionalHistoryXYA,
+            CorrectionLinearSimpleHistoryXY,
+            CorrectionLinearSimpleHistoryXYA,
+            CorrectionLinearFullHistoryXY,
+            CorrectionLinearFullHistoryXYA,
         };
 
         /**
@@ -99,10 +105,12 @@ class OdometryModel
 
         /**
          * Correct and return given relative displacement 
+         * and last relative displacement 
          * [dX,dY,dTheta] using current model parameters.
          */
         Eigen::Vector3d correctiveModel(
-            const Eigen::Vector3d& diff) const;
+            const Eigen::Vector3d& diff,
+            const Eigen::Vector3d& lastDiff) const;
 
         /**
          * Return minimum and maximum (indicative)
@@ -162,6 +170,13 @@ class OdometryModel
          * update
          */
         Eigen::Vector3d _corrected;
+
+        /**
+         * Robot self displacement at last support
+         * foot swap used to compute models with
+         * history information
+         */
+        Eigen::Vector3d _lastDiff;
 };
 
 }
