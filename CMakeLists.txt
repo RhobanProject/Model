@@ -14,6 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   rbdl_urdfreader
   )
 
+find_package(RhIOServer)
+find_package(RhIOClient)
+find_package(RhAL)
+
 catkin_package(
   INCLUDE_DIRS .
   LIBRARIES model
@@ -24,8 +28,6 @@ catkin_package(
 option(BUILD_LEPH_CODE_TESTS "Build Leph Code Tests" OFF)
 option(BUILD_LEPH_CODE_APPS "Build Leph Code Apps" OFF)
 option(BUILD_LEPH_CODE_VIEWER "Build Leph Code Viewer (SFML)" OFF)
-option(BUILD_LEPH_CODE_RHIO "Build Leph Code with RhIO" OFF)
-option(BUILD_LEPH_CODE_RHAL "Build Leph Code with RhAL" OFF)
 
 #Includes directories lists
 set(LEPHCODE_INCLUDE_DIRECTORIES "")
@@ -39,10 +41,21 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp" )
 #Include SFML (graphic library)
 set(SFML_DIRECTORY "SFML" CACHE STRING "SFML lib directory")
 
-#Include RhAL (Rhoban Abstraction Layer Library) if needed
-if (BUILD_LEPH_CODE_RHAL)
+#Include RhAL (Rhoban Abstraction Layer Library) if found
+if (RhAL_FOUND)
     add_definitions(-DBUILD_RHAL_RHIO_BINDING)
-endif (BUILD_LEPH_CODE_RHAL)
+    include_directories(${RhAL_INCLUDE_DIRS})
+endif (RhAL_FOUND)
+
+#Include RhIOClient (Rhoban Input Output Library) if found
+if (RhIOClient_FOUND)
+    include_directories(${RhIOClient_INCLUDE_DIRS})
+endif (RhIOClient_FOUND)
+
+#Include RhIOServer (Rhoban Input Output Library) if found
+if (RhIOServer_FOUND)
+    include_directories(${RhIOServer_INCLUDE_DIRS})
+endif (RhIOServer_FOUND)
 
 #Enable C++11
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -175,24 +188,26 @@ set(APPS_FILES
 )
 
 #Build App RhIO Viewer 
-if (BUILD_LEPH_CODE_RHIO)
-    deps_add_library("rhoban/rhio:client")
-    deps_add_library("rhobandeps/libzmq")
+if (RhIOClient_FOUND)
     set(APPS_FILES ${APPS_FILES}
         appRhIOViewerModel
         appRhIOViewerRobocup
     )
-endif (BUILD_LEPH_CODE_RHIO)
+endif (RhIOClient_FOUND)
 
 #LephCode linked libraries
 set(CODE_LIBRARIES
     ncurses
     console_bridge 
     ${catkin_LIBRARIES}
-    #urdfdom_world 
-    #urdfdom_model
-    #${DEPS_LIBRARIES}
 )
+
+if (RhIOClient_FOUND)
+  set(CODE_LIBRARIES
+    ${CODE_LIBRARIES}
+    ${RhIOClient_LIBRARIES}
+    )
+endif(RhIOClient_FOUND)
 
 #Add URDF model symbolic link
 execute_process(COMMAND "/bin/bash" "-c" 
@@ -279,9 +294,8 @@ if (BUILD_LEPH_CODE_APPS)
 endif (BUILD_LEPH_CODE_APPS)
 
 #Build App RhAL Motion 
-if (BUILD_LEPH_CODE_RHAL)
-    deps_add_library_custom("rhoban/rhio:server" "APPS_RHAL_LIBRARIES")
-    deps_add_library_custom("rhoban/rhal" "APPS_RHAL_LIBRARIES")
+if (RhAL_FOUND)
+    set(APPS_RHAL_LIBRARIES ${RhAL_LIBRARIES} ${RhIO_SERVER_LIBRARIES})
     set(APPS_RHAL_SOURCES_FILES
         RhAL/RhALUtils
     )
@@ -292,5 +306,5 @@ if (BUILD_LEPH_CODE_RHAL)
         add_executable(${APP} Apps/${APP}.cpp ${APPS_RHAL_SOURCES_FILES})
         target_link_libraries(${APP} model ${APPS_RHAL_LIBRARIES})
     endforeach ()
-endif (BUILD_LEPH_CODE_RHAL)
+endif (RhAL_FOUND)
 
