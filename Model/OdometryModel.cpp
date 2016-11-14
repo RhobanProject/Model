@@ -22,12 +22,12 @@ OdometryModel::OdometryModel(OdometryModelType type) :
     double offsetStepBound = 0.02;
     double offsetLateraBound = 0.02;
     double offsetTurnBound = 0.05;
-    double coefStepLateralBound = 10.0;
-    double coefStepTurnBound = 10.0;
-    double coefLateralStepBound = 10.0;
-    double coefLateralTurnBound = 10.0;
-    double coefTurnStepBound = 10.0;
-    double coefTurnLateralBound = 10.0;
+    double coefStepLateralBound = 1.0;
+    double coefStepTurnBound = 1.0;
+    double coefLateralStepBound = 1.0;
+    double coefLateralTurnBound = 1.0;
+    double coefTurnStepBound = 1.0;
+    double coefTurnLateralBound = 1.0;
     if (_type == CorrectionIdentity) {
         //Dummy correction
         _odometryParameters = Eigen::VectorXd::Zero(0);

@@ -29,16 +29,16 @@ enum OdometryType {
  * Global configuration
  */
 static const unsigned int CMAESMaxIteration = 5000;
-static const unsigned int CMAESLambda = 20;
-static const unsigned int CMAESRestart = 4;
+static const unsigned int CMAESLambda = 10;
+static const unsigned int CMAESRestart = 3;
 static const bool CMAESQuiet = true;
 static const bool CMAESElitism = true;
 static const bool CMAESThreading = true;
 static const unsigned int NumberTries = 100;
-static const double AngularRangeFitness = 10.0*M_PI/180.0;
+static const double AngularRangeFitness = 5.0*M_PI/180.0;
 static const bool IsPrintCSV = true;
 static const bool IsDebug = false;
-static const double AngularErrorCoef = 0.57;
+static const double AngularErrorCoef = 0.57*0.2;
 static const OdometryType TypeOdometry = OdometryOrder;
 static const size_t StartNumberLearnSeqs = 4;
 static const size_t IncrNumberLearnSeqs = 5;
@@ -348,9 +348,7 @@ double odometryModelFitness(
             double finalAngle = odometry.state().z();
             double targetAngle = -data.targetDisplacements[i].z()*2.0*M_PI/12.0;
             double errorAngle = fabs(Leph::AngleDistance(targetAngle, finalAngle));
-            if (tmpDist > 0.10) {
-                error += pow(tmpDist, 2);
-            }
+            error += pow(tmpDist, 2);
             if (
                 data.targetDisplacements[i].z() >= 0.0 && 
                 errorAngle > 2.0*M_PI/12.0
