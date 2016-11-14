@@ -92,7 +92,7 @@ set(SOURCES_FILES
     Model/RBDLClosedLoop.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
-#    Model/HumanoidSimulation.cpp
+    Model/HumanoidSimulation.cpp
     Model/MotorModel.cpp
     Model/JointModel.cpp
     Model/OdometryModel.cpp
@@ -241,8 +241,9 @@ if (BUILD_LEPH_CODE_VIEWER)
         appDynamicTrajectoryOptimizationTorques
         appTrajectoriesViewer
         appTestLegTorques
-        appExperimentKick
-        appExperimentKick2
+        # These applications are not compiling yet
+        #appExperimentKick
+        #appExperimentKick2
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
