@@ -11,13 +11,13 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>Eigen</build_depend>
-  <build_depend>lwpr</build_depend>
-  <build_depend>libgp</build_depend>
-  <build_depend>libcmaes</build_depend>
-  <build_depend>rbdl_urdfreader</build_depend>
-  <build_depend>RhIO</build_depend>
-  <build_depend>RhAL</build_depend>
+  <build_depend>Eigen</build_depend> <!-- rhobandeps/eigen -->
+  <build_depend>lwpr</build_depend> <!-- rhobandeps/lwpr -->
+  <build_depend>libgp</build_depend> <!-- rhobandeps/libgp -->
+  <build_depend>libcmaes</build_depend> <!-- rhobandeps/libcmaes -->
+  <build_depend>rbdl_urdfreader</build_depend> <!-- rhobandeps/rbdl -->
+  <build_depend>RhIO</build_depend> <!-- rhoban/rhio -->
+  <build_depend>RhAL</build_depend> <!-- rhoban/rhal -->
 
   <run_depend>Eigen</run_depend>
   <run_depend>lwpr</run_depend>
