@@ -34,15 +34,15 @@ static const unsigned int CMAESRestart = 3;
 static const bool CMAESQuiet = true;
 static const bool CMAESElitism = true;
 static const bool CMAESThreading = true;
-static const unsigned int NumberTries = 100;
+static const unsigned int NumberTries = 500;
 static const double AngularRangeFitness = 5.0*M_PI/180.0;
 static const bool IsPrintCSV = true;
 static const bool IsDebug = false;
-static const double AngularErrorCoef = 0.57*0.2;
+static const double AngularErrorCoef = 0.57*0.5;
 static const OdometryType TypeOdometry = OdometryOrder;
-static const size_t StartNumberLearnSeqs = 4;
-static const size_t IncrNumberLearnSeqs = 5;
 static const size_t NumberValidationSeqs = 5;
+static const size_t IncrNumberLearnSeqs = 2;
+static size_t StartNumberLearnSeqs = 1;
 
 /**
  * Global random generator
@@ -426,12 +426,28 @@ int main(int argc, char** argv)
     if (argc < 2) {
         std::cout << "./app OdometryLog1 [OdometryLog2] ..." << std::endl;
         std::cout << "./app OdometryLearnLog1 ... NEXT OdometryTestLogX ..." << std::endl;
+        std::cout << "./app RUN MethodName StartCount OdometryLog1 [OdometryLog2] ..." << std::endl;
         return 1;
     }
     bool isMultipleLogSet = false;
+    std::string argMethodName = "";
+    size_t argStartCount = -1;
     std::vector<std::string> filenames1;
     std::vector<std::string> filenames2;
     size_t indexFile = 1;
+    if (std::string(argv[1]) == "RUN") {
+        if (argc < 5) {
+            std::cout << "Error Usage" << std::endl;
+            return 1;
+        }
+        argMethodName = std::string(argv[2]);
+        argStartCount = std::stoi(std::string(argv[3]));
+        std::cerr 
+            << "Special run -- Method=" << argMethodName 
+            << " StartCount=" << argStartCount 
+            << std::endl;
+        indexFile = 4;
+    }
     while (indexFile < (size_t)argc) {
         if (std::string(argv[indexFile]) == "NEXT") {
             indexFile++;
@@ -452,32 +468,32 @@ int main(int argc, char** argv)
     //Load data from logs
     for (size_t i=0;i<filenames1.size();i++) {
         if (isMultipleLogSet) {
-            std::cout << "Loading learn data from " << filenames1[i] << std::endl;
+            std::cerr << "Loading learn data from " << filenames1[i] << std::endl;
         } else {
-            std::cout << "Loading data from " << filenames1[i] << std::endl;
+            std::cerr << "Loading data from " << filenames1[i] << std::endl;
         }
         loadDataFromFile(data1, filenames1[i]);
     }
     for (size_t i=0;i<filenames2.size();i++) {
-        std::cout << "Loading test  data from " << filenames2[i] << std::endl;
+        std::cerr << "Loading test  data from " << filenames2[i] << std::endl;
         loadDataFromFile(data2, filenames2[i]);
     }
     //Verbose loading
     if (isMultipleLogSet) {
-        std::cout << "Loaded learn " << data1.readTrajsPose.size() << " sequences" << std::endl;
+        std::cerr << "Loaded learn " << data1.readTrajsPose.size() << " sequences" << std::endl;
         for (size_t i=0;i<data1.readTrajsPose.size();i++) {
-            std::cout << "Learn Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
+            std::cerr << "Learn Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
                 << "Displacement: " << data1.targetDisplacements[i].transpose() << std::endl;
         }
-        std::cout << "Loaded test " << data2.readTrajsPose.size() << " sequences" << std::endl;
+        std::cerr << "Loaded test " << data2.readTrajsPose.size() << " sequences" << std::endl;
         for (size_t i=0;i<data2.readTrajsPose.size();i++) {
-            std::cout << "Test Seq " << i << " with " << data2.readTrajsPose[i].size() << " points " 
+            std::cerr << "Test Seq " << i << " with " << data2.readTrajsPose[i].size() << " points " 
                 << "Displacement: " << data2.targetDisplacements[i].transpose() << std::endl;
         }
     } else {
-        std::cout << "Loaded " << data1.readTrajsPose.size() << " sequences" << std::endl;
+        std::cerr << "Loaded " << data1.readTrajsPose.size() << " sequences" << std::endl;
         for (size_t i=0;i<data1.readTrajsPose.size();i++) {
-            std::cout << "Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
+            std::cerr << "Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
                 << "Displacement: " << data1.targetDisplacements[i].transpose() << std::endl;
         }
     }
@@ -488,7 +504,7 @@ int main(int argc, char** argv)
         //{"ScalarXY", Leph::OdometryModel::CorrectionScalarXY},
         //{"ScalarXYA", Leph::OdometryModel::CorrectionScalarXYA},
         //{"ProportionalXY", Leph::OdometryModel::CorrectionProportionalXY},
-        //{"ProportionalXYA", Leph::OdometryModel::CorrectionProportionalXYA},
+        {"ProportionalXYA", Leph::OdometryModel::CorrectionProportionalXYA},
         //{"LinearSimpleXY", Leph::OdometryModel::CorrectionLinearSimpleXY},
         {"LinearSimpleXYA", Leph::OdometryModel::CorrectionLinearSimpleXYA},
         //{"LinearFullXY", Leph::OdometryModel::CorrectionLinearFullXY},
@@ -496,10 +512,20 @@ int main(int argc, char** argv)
         //{"ProportionalHistoryXY", Leph::OdometryModel::CorrectionProportionalHistoryXY},
         //{"ProportionalHistoryXYA", Leph::OdometryModel::CorrectionProportionalHistoryXYA},
         //{"LinearSimpleHistoryXY", Leph::OdometryModel::CorrectionLinearSimpleHistoryXY},
-        {"LinearSimpleHistoryXYA", Leph::OdometryModel::CorrectionLinearSimpleHistoryXYA},
+        //{"LinearSimpleHistoryXYA", Leph::OdometryModel::CorrectionLinearSimpleHistoryXYA},
         //{"LinearFullHistoryXY", Leph::OdometryModel::CorrectionLinearFullHistoryXY},
-        {"LinearFullHistoryXYA", Leph::OdometryModel::CorrectionLinearFullHistoryXYA},
+        //{"LinearFullHistoryXYA", Leph::OdometryModel::CorrectionLinearFullHistoryXYA},
     };
+    if (argMethodName != "") {
+        for (size_t i=0;i<models.size();i++) {
+            std::cout << "--- " << models[i].first << std::endl;
+            if (models[i].first != argMethodName) {
+                models[i] = models.back();
+                models.pop_back();
+                i--;
+            }
+        }
+    }
 
     //Define first and last learning 
     //and validation index
@@ -518,6 +544,10 @@ int main(int argc, char** argv)
         learnEndIndex = tmpSize - NumberValidationSeqs - 1;
         testStartIndex = tmpSize - NumberValidationSeqs;
         testEndIndex = tmpSize - 1;
+    }
+    if (argStartCount != (size_t)-1) {
+        StartNumberLearnSeqs = argStartCount-1;
+        learnEndIndex = StartNumberLearnSeqs;
     }
     //Print CSV headers
     if (IsPrintCSV) {
