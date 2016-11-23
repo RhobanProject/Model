@@ -2,6 +2,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Model/HumanoidFixedModel.hpp"
+#include "Plot/Plot.hpp"
 
 int main()
 {
@@ -13,6 +14,7 @@ int main()
     Leph::CameraParameters camParams = {80*M_PI/180.0, 50*M_PI/180.0};
 
     double t = 0.0;
+    Leph::Plot plot;
     while (viewer.update()) {
         t += 0.01;
         //Random trunk position and orientation
@@ -125,7 +127,15 @@ int main()
             std::cout << "ASSERT ERROR PANTILT/PIXEL" << std::endl;
             return 1;
         }
+
+        //Plot head joint position
+        plot.add(Leph::VectorLabel(
+            "head_yaw", model.get().getDOF("head_yaw"),
+            "head_pitch", model.get().getDOF("head_pitch"),
+            "time", t
+        ));
     }
+    plot.plot("time", "all").render();
 
     return 0;
 }
