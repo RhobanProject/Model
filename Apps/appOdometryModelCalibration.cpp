@@ -518,7 +518,6 @@ int main(int argc, char** argv)
     };
     if (argMethodName != "") {
         for (size_t i=0;i<models.size();i++) {
-            std::cout << "--- " << models[i].first << std::endl;
             if (models[i].first != argMethodName) {
                 models[i] = models.back();
                 models.pop_back();
