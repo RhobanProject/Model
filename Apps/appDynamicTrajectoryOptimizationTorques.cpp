@@ -623,7 +623,7 @@ void generateKick()
             if (verbose) {
                 std::cout << "ZMPCost=" << 150.0*data[0] 
                     << " VoltCost=" << 0.2*data[1]
-                    << " TorqueYawCost=" << 3.0*data[2] 
+                    << " TorqueYawCost=" << 2.0*data[2] 
                     << std::endl;
             }
         }
