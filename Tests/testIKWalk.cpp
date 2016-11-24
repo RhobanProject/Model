@@ -6,6 +6,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
+#include "Utils/AxisAngle.h"
 #include "Plot/Plot.hpp"
 
 void testIKWalkOdometry()
@@ -94,6 +95,73 @@ void testIKWalkOdometry()
         ));
     }
     plot.plot("t", "all").render();
+}
+
+void testStaticPose()
+{
+    std::cout << "Mowgly 2016 RoboCup static walk double support pose" << std::endl;
+    
+    //Viewer and model
+    Leph::HumanoidFixedModel model(Leph::SigmabanModel);
+    model.updateBase();
+    
+    //Initialing IKWalk
+    //Mowgly RoboCup 2016 parameters
+    Leph::IKWalk::Parameters params;
+    params.freq = 1.7;
+    params.enabledGain = 1.0;
+    params.supportPhaseRatio = 0.0;
+    params.footYOffset = 0.025;
+    params.stepGain = 0.0;
+    params.riseGain = 0.035;
+    params.turnGain = 0.0;
+    params.lateralGain = 0.0;
+    params.trunkZOffset = 0.02;
+    params.swingGain = 0.01999999955;
+    params.swingRollGain = 0.0;
+    params.swingPhase = 0.25;
+    params.stepUpVel = 5.0;
+    params.stepDownVel = 5.0;
+    params.riseUpVel = 5.0;
+    params.riseDownVel = 5.0;
+    params.swingPause = 0.0;
+    params.swingVel = 4.0;
+    params.trunkXOffset = 0.009999999775;
+    params.trunkYOffset = 0.0;
+    params.trunkPitch = 0.1919862181;
+    params.trunkRoll = 0.0;
+    params.extraLeftX = 0.0;
+    params.extraLeftY = 0.0;
+    params.extraLeftZ = 0.0;
+    params.extraLeftYaw = 0.0;
+    params.extraLeftPitch = 0.0;
+    params.extraLeftRoll = 0.0;
+    params.extraRightX = 0.0;
+    params.extraRightY = 0.0;
+    params.extraRightZ = 0.0;
+    params.extraRightYaw = 0.0;
+    params.extraRightPitch = 0.0;
+    params.extraRightRoll = 0.0;
+    //Run walk generator
+    double phase = 0.0;
+    bool success = Leph::IKWalk::walk(
+        model.get(), params, phase, 0.00);
+    if (!success) {
+        std::cout << "IKWalk inverse kinematics failed" << std::endl;
+        return;
+    }
+    //Contraint the model on the ground
+    model.updateBase();
+
+    //Display pose state
+    std::cout << "TrunkPos:  " << model.get()
+        .position("trunk", "left_foot_tip").transpose() << std::endl;
+    std::cout << "TrunkAxis: " << Leph::MatrixToAxis(model.get()
+        .orientation("trunk", "left_foot_tip").transpose()).transpose() << std::endl;
+    std::cout << "FootPos:  " << model.get()
+        .position("right_foot_tip", "left_foot_tip").transpose() << std::endl;
+    std::cout << "FootAxis: " << Leph::MatrixToAxis(model.get()
+        .orientation("right_foot_tip", "left_foot_tip").transpose()).transpose() << std::endl;
 }
 
 int main()
@@ -226,6 +294,9 @@ int main()
     
     //Test IKWalk Odometry and paramater meanings
     testIKWalkOdometry();
+
+    //Show trunk-foot IK pose
+    testStaticPose();
 
     return 0;
 }
