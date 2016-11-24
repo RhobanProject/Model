@@ -102,6 +102,9 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
+    TrajectoryDefinition/DefaultTrajParameters.cpp
+    TrajectoryDefinition/TrajKick.cpp
+    TrajectoryDefinition/TrajLegLift.cpp
 )
 
 #Tests main files
@@ -149,6 +152,7 @@ set(TESTS_FILES
     testDMP
     testDMPSpline
     testJointModel
+    testTrajectoryParameters
 )
 
 #Applications main files
@@ -159,9 +163,8 @@ set(APPS_FILES
     appOdometryOffline
     appTrajectoriesFitting
     appStatsDynaban
-    appTrajectoriesKickGeneration
     appOdometryModelCalibration
-    appHumanoidSimulationLearning
+    appTrajectoriesGeneration
 )
 
 #Build App RhIO Viewer 
@@ -196,6 +199,7 @@ execute_process(COMMAND "/bin/bash" "-c"
 
 #Viewer (SFML) build option and files
 if (BUILD_LEPH_CODE_VIEWER)
+    add_definitions(-DLEPH_VIEWER_ENABLED)
     set(LEPHCODE_INCLUDE_DIRECTORIES ${LEPHCODE_INCLUDE_DIRECTORIES} ${SFML_DIRECTORY}/include)
     link_directories(${SFML_DIRECTORY}/lib)
     set(SOURCES_FILES ${SOURCES_FILES} 
