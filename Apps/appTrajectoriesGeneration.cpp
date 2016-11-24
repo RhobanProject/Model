@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unistd.h>
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryDefinition/DefaultTrajParameters.h"
@@ -95,8 +96,14 @@ int main(int argc, char** argv)
             + std::to_string(it.second) + std::string("_");
     }
 
-    //Mode verbose
-    std::string filename = outputPrefix + trajName + paramsStr + Leph::currentDate();
+    //Verbose
+    char hostnameStr[100];
+    gethostname(hostnameStr, 100);
+    std::string hostname = hostnameStr;
+    std::string filename = 
+        outputPrefix + trajName + paramsStr +
+        hostname + "_" + Leph::currentDate();
+    std::cout << "Hostname: " << hostname << std::endl;
     std::cout << "Output path: " << filename << std::endl;
     std::cout << "Starting with mode=" << mode << " and dimension=" << initParams.size() << std::endl;
     std::cout << "CMA-ES"
