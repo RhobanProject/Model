@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     for (const auto& it : inputParameters) {
         std::cout << "Custom Parameter: " << it.first << "=" << it.second << std::endl;
         trajParams.set(it.first) = it.second;
-        paramsStr += it.first + std::string("=") 
+        paramsStr += it.first + std::string("_") 
             + std::to_string(it.second) + std::string("_");
     }
 
