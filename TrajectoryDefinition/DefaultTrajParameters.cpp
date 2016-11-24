@@ -28,7 +28,7 @@ TrajectoryParameters DefaultTrajParameters()
     //Single support static position
     parameters.add("static_single_pos_trunk_pos_x", -0.00557785331559037);
     parameters.add("static_single_pos_trunk_pos_y", -0.0115849568418458);
-    parameters.add("static_single_pos_trunk_pos_z", 0.2786133349);
+    parameters.add("static_single_pos_trunk_pos_z", 0.285);
     parameters.add("static_single_pos_trunk_axis_x", -0.672036398746933);
     parameters.add("static_single_pos_trunk_axis_y", 0.0743358280850477);
     parameters.add("static_single_pos_trunk_axis_z", 0.0028323027017884);
