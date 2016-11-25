@@ -89,14 +89,21 @@ void TrajectoriesDisplay(
     double maxZMP = -1.0;
     double maxTorqueSupportYaw = -1.0;
     double maxVolt = -1.0;
+    double minBoundIKDistance = 1000.0;
     double waiting = 0.0;
     while (viewer.update()) {
         Eigen::VectorXd dq;
         Eigen::VectorXd ddq;
+        double boundIKDistance = 0.0;
         bool isIKSuccess = TrajectoriesComputeKinematics(
-            t, traj, model, dq, ddq);
+            t, traj, model, dq, ddq, &boundIKDistance);
+        if (minBoundIKDistance > boundIKDistance) {
+            minBoundIKDistance = boundIKDistance;
+        }
         if (!isIKSuccess) {
-            std::cout << "IK ERROR t=" << t << std::endl;
+            std::cout << "IK ERROR t=" << t 
+                << " boundIKDistance=" << boundIKDistance 
+                << std::endl;
             t += 0.01;
             continue;
         }
@@ -232,6 +239,7 @@ void TrajectoriesDisplay(
         }
     }
     //Display dynamics info
+    std::cout << "Minimum IK Bound Distance: " << minBoundIKDistance << std::endl;
     std::cout << "Mean Torques Norm: " << sumTorques << std::endl;
     std::cout << "Mean ZMP Norm: " << sumZMP << std::endl;
     std::cout << "Max ZMP: " << maxZMP << std::endl;

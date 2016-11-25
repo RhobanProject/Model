@@ -243,7 +243,8 @@ bool HumanoidFixedModel::trunkFootIK(
     const Eigen::Vector3d& trunkPos, 
     const Eigen::Matrix3d& trunkRotation,
     const Eigen::Vector3d& flyingFootPos,
-    const Eigen::Matrix3d& flyingFootRotation)
+    const Eigen::Matrix3d& flyingFootRotation,
+    double* boundIKDistance)
 {
     //Set the new support foot flat on the ground
     setSupportFoot(support);
@@ -259,25 +260,36 @@ bool HumanoidFixedModel::trunkFootIK(
     //for both support foot.
     bool isSuccessLeft = true;
     bool isSuccessRight = true;
+    //Compute distance from IK bound
+    double boundLeft = 0.0;
+    double boundRight = 0.0;
     if (support == LeftSupportFoot) {
         isSuccessLeft = get().legIkLeft(
             "trunk",
             rotationT*(-trunkPos), 
-            trunkRotation);
+            trunkRotation,
+            &boundLeft);
         isSuccessRight = get().legIkRight(
             "left_foot_tip",
             flyingFootPos,
-            flyingFootRotation.transpose());
+            flyingFootRotation.transpose(),
+            &boundRight);
     }
     if (support == RightSupportFoot) {
         isSuccessRight = get().legIkRight(
             "trunk",
             rotationT*(-trunkPos), 
-            trunkRotation);
+            trunkRotation,
+            &boundLeft);
         isSuccessLeft = get().legIkLeft(
             "right_foot_tip",
             flyingFootPos,
-            flyingFootRotation.transpose());
+            flyingFootRotation.transpose(),
+            &boundRight);
+    }
+    //Assign IK bound if asked
+    if (boundIKDistance != nullptr) {
+        *boundIKDistance = std::min(boundLeft, boundRight);
     }
 
     return isSuccessLeft && isSuccessRight;

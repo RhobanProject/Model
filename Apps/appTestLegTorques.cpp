@@ -103,7 +103,7 @@ static bool inverseKinematics(Leph::Model& model,
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
-        legIKTarget, legIKMatrix, result, true, false);
+        legIKTarget, legIKMatrix, result, nullptr, true, false);
 
     //Update degrees of freedom on success
     if (isSucess) {

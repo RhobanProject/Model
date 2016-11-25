@@ -126,7 +126,8 @@ void HumanoidModel::boundingBox(size_t frameIndex,
 
 bool HumanoidModel::legIkLeft(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Matrix3d& rotation)
+    const Eigen::Matrix3d& rotation,
+    double* boundIKDistance)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -143,7 +144,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
-        legIKTarget, legIKMatrix, result);
+        legIKTarget, legIKMatrix, result, boundIKDistance);
 
     //Update degrees of freedom on success
     if (isSucess) {
@@ -155,7 +156,8 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
 }
 bool HumanoidModel::legIkRight(const std::string& frame,
     const Eigen::Vector3d& footPos, 
-    const Eigen::Matrix3d& rotation)
+    const Eigen::Matrix3d& rotation,
+    double* boundIKDistance)
 {
     //LegIK initialization
     LegIK::IK ik(_legHipToKnee, 
@@ -172,7 +174,7 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
-        legIKTarget, legIKMatrix, result);
+        legIKTarget, legIKMatrix, result, boundIKDistance);
 
     //Update degrees of freedom on success
     if (isSucess) {
