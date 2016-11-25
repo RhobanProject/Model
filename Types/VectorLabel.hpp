@@ -348,7 +348,7 @@ class VectorLabel
             for (size_t i=0;i<_indexToLabel->size();i++) {
                 os << "[" << std::left << std::setw(maxDigit) << i << ":" 
                    << std::left << std::setw(maxLength) << _indexToLabel->at(i) << "]" 
-                   << " " << std::setprecision(10) << _eigenVector(i) << std::endl;
+                   << " " << std::setprecision(17) << _eigenVector(i) << std::endl;
             }
         }
 
@@ -363,7 +363,7 @@ class VectorLabel
             }
             os << std::endl;
             for (size_t i=0;i<_indexToLabel->size();i++) {
-                os << std::setprecision(10) << _eigenVector(i) << " ";
+                os << std::setprecision(17) << _eigenVector(i) << " ";
             }
             os << std::endl;
         }

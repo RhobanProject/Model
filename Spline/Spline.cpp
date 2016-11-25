@@ -72,12 +72,12 @@ Leph::Plot Spline::plot(
 void Spline::exportData(std::ostream& os) const
 {
     for (size_t i=0;i<_splines.size();i++) {
-        os << std::setprecision(10) << _splines[i].min << " ";
-        os << std::setprecision(10) << _splines[i].max << " ";
-        os << std::setprecision(10) << 
+        os << std::setprecision(17) << _splines[i].min << " ";
+        os << std::setprecision(17) << _splines[i].max << " ";
+        os << std::setprecision(17) << 
             _splines[i].polynom.getCoefs().size() << " ";
         for (size_t j=0;j<_splines[i].polynom.getCoefs().size();j++) {
-            os << std::setprecision(10) << 
+            os << std::setprecision(17) << 
                 _splines[i].polynom.getCoefs()[j] << " ";
         }
     }

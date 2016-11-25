@@ -405,19 +405,19 @@ void DMPSpline::exportData(std::ostream& os) const
 {
     os << _kernelNum << " ";
     os << _points.size() << " ";
-    os << std::setprecision(10) << _overlap << " ";
-    os << std::setprecision(10) << _maxTimeStep << " ";
+    os << std::setprecision(17) << _overlap << " ";
+    os << std::setprecision(17) << _maxTimeStep << " ";
     for (size_t i=0;i<_points.size();i++) {
-        os << std::setprecision(10) << _points[i].time << " ";
-        os << std::setprecision(10) << _points[i].position << " ";
-        os << std::setprecision(10) << _points[i].velocity << " ";
-        os << std::setprecision(10) << _points[i].acceleration << " ";
+        os << std::setprecision(17) << _points[i].time << " ";
+        os << std::setprecision(17) << _points[i].position << " ";
+        os << std::setprecision(17) << _points[i].velocity << " ";
+        os << std::setprecision(17) << _points[i].acceleration << " ";
     }
     Eigen::VectorXd weights = getKernelWeights();
     Eigen::VectorXd widths = getKernelWidths();
     for (size_t i=0;i<_kernelNum;i++) {
-        os << std::setprecision(10) << widths(i) << " ";
-        os << std::setprecision(10) << weights(i) << " ";
+        os << std::setprecision(17) << widths(i) << " ";
+        os << std::setprecision(17) << weights(i) << " ";
     }
     os << std::endl;
 }
