@@ -1,6 +1,7 @@
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "Utils/FileVector.h"
+#include "Utils/time.h"
 
 namespace Leph {
 
@@ -170,14 +171,25 @@ double TrajectoryGeneration::scoreTrajectory(
         //Compute kinematics
         Eigen::VectorXd dq;
         Eigen::VectorXd ddq;
+        double boundIKDistance = 0.0;
         bool isIKSuccess = TrajectoriesComputeKinematics(
-            t, traj, model, dq, ddq);
+            t, traj, model, dq, ddq, &boundIKDistance);
+        //Cost near IK bound
+        double boundIKThreashold = 1e-4;
+        if (boundIKDistance < boundIKThreashold) {
+            if (verbose) {
+                std::cout 
+                    << "Warning boundIKDistance=" 
+                    << boundIKDistance << std::endl;
+            }
+            cost += 1000.0 
+                + 1000.0*(boundIKThreashold - boundIKDistance);
+        }
         if (!isIKSuccess) {
             if (verbose) {
                 std::cout 
                     << "Error checkIK() cost=" 
-                    << 1000.0 + 1000.0*(traj.max()-t) 
-                    << std::endl;
+                    << 1000.0 << std::endl;
             }
             cost += 1000.0;
             continue;
@@ -259,6 +271,8 @@ void TrajectoryGeneration::runOptimization(
         //Save current best found
         if (_countIteration % 100 == 0) {
             std::cout << "============" 
+                << std::endl;
+            std::cout << "****** Date: " << currentDate() 
                 << std::endl;
             if (filename != "") {
                 _bestTraj.exportData(filename + ".splines");
