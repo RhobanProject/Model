@@ -5,11 +5,14 @@
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidModel.hpp"
 #include "Model/ForwardSimulation.hpp"
-#include "Viewer/ModelViewer.hpp"
-#include "Viewer/ModelDraw.hpp"
 #include "Model/RBDLRootUpdate.h"
 #include "Types/MapSeries.hpp"
+
+#ifdef LEPH_VIEWER_ENABLED
+#include "Viewer/ModelViewer.hpp"
+#include "Viewer/ModelDraw.hpp"
 #include "Plot/Plot.hpp"
+#endif
 
 /**
  * DOF names
@@ -70,12 +73,32 @@ static size_t sizeJointAllParameters;
 /**
  * Global configuration is inertia optimized
  */
-bool isOptimizationInertia = false;
+static bool isOptimizationInertia = false;
 
 /**
- * Global configuration is single Joint Model optimizd
+ * Global configuration is single Joint Model optimized
  */
-bool isOptimizationJoint = false;
+static bool isOptimizationJoint = false;
+
+/**
+ * Global configuration is parameters 
+ * bound to positive
+ */
+static bool isParametersBoundPositive = false;
+
+/**
+ * Global CMA-ES configuration
+ */
+static unsigned int cmaesMaxIterations = 1000;
+static unsigned int cmaesRestarts = 4;
+static unsigned int cmaesLambda = 10;
+static double cmaesSigma = -1.0;
+
+/**
+ * Global configuration is parameters
+ * normalization is disable
+ */
+static bool isParametersNormalization = true;
 
 /**
  * Load and assign default inertia form model
@@ -220,17 +243,21 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         tmpMaxAll(i) = -1.0;
     }
     std::string tmpMaxName = "";
+#ifdef LEPH_VIEWER_ENABLED
     Leph::ModelViewer* viewer = nullptr;
     if (verbose >= 3) {
         viewer = new Leph::ModelViewer(1200, 900);
     }
     Leph::Plot plot;
+#endif
     for (double t=min;t<max;t+=0.01) {
+#ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 3) {
             if (!viewer->update()) {
                 break;
             }
         }
+#endif
         for (const std::string& name : dofsNames) {
             sim.goals()(modelSim.getDOFIndex(name)) = 
                 logs.get("goal:" + name, t);
@@ -257,6 +284,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             }
             index++;
         }
+#ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 2) {
             for (const std::string& name : dofsNames) {
                 double error = 
@@ -275,6 +303,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             Leph::ModelDraw(modelSim, *viewer);
             Leph::ModelDraw(modelRead, *viewer);
         }
+#endif
     }
     
     if (verbose >= 1) {
@@ -285,6 +314,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         std::cout << "MaxAllErrorMean: " << sqrt(tmpMaxAll.mean()) << std::endl;
         std::cout << "MaxAllError: " << (tmpMaxAll.array().sqrt().transpose()) << std::endl;
     }
+#ifdef LEPH_VIEWER_ENABLED
     if (verbose >= 2) {
         plot
             .plot("t", "read:left_ankle_roll")
@@ -330,6 +360,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     if (verbose >= 3) {
         delete viewer;
     }
+#endif
     if (sumError != nullptr) {
         *sumError += tmpSum;
     }
@@ -357,8 +388,15 @@ int main()
 
     //Load data into MapSeries
     std::vector<std::string> filenames = {
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_foot_x_2016-11-29-19-45-36.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-06-50.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-08-47.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-10-44.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-12-32.mapseries",
+        
+        
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-10.mapseries",
-        "../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-35.mapseries",
+        //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-35.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-21.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-50.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/kick/calibration_log_trajectory_2016-11-01-10-45-08.mapseries",
@@ -417,10 +455,15 @@ int main()
     Eigen::VectorXd coef = initParams;
     Eigen::VectorXd coefInv = initParams;
     for (size_t i=0;i<(size_t)coef.size();i++) {
-        if (fabs(coef(i)) < 1e-4) {
-            coef(i) = 1e-4;
+        if (isParametersNormalization) {
+            if (fabs(coef(i)) < 1e-4) {
+                coef(i) = 1.0;
+            }
+            coefInv(i) = 1.0/coef(i);
+        } else {
+            coef(i) = 1.0;
+            coefInv(i) = 1.0;
         }
-        coefInv(i) = 1.0/coef(i);
     }
 
     //Initial verbose
@@ -440,15 +483,17 @@ int main()
     {
         //Check positive parameters
         double cost = 0.0;
-        bool isValide = true;
-        for (size_t i=0;i<(size_t)params.size();i++) {
-            if (i < sizeJointAllParameters && params(i) < 0.0) {
-                cost += 1000.0 - 1000.0*params(i);
-                isValide = false;
+        if (isParametersBoundPositive) {
+            bool isValide = true;
+            for (size_t i=0;i<(size_t)params.size();i++) {
+                if (i < sizeJointAllParameters && params(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i);
+                    isValide = false;
+                }
             }
-        }
-        if (!isValide) {
-            return cost;
+            if (!isValide) {
+                return cost;
+            }
         }
         //Iterate over on all logs
         double sumError = 0.0;
@@ -470,9 +515,9 @@ int main()
         if (countError > 0.0 && maxError > 0.0) {
             return 
                 cost 
-                + 0.2*sqrt(sumError/countError) 
+                + 0.3*sqrt(sumError/countError) 
                 + 0.3*sqrt(maxAllError.mean()) 
-                + 0.5*sqrt(maxError);
+                + 0.4*sqrt(maxError);
         } else {
             return cost;
         }
@@ -523,13 +568,14 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, 
+        cmaesSigma, cmaesLambda);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(50);
-    cmaparams.set_max_iter(100);
+    cmaparams.set_restarts(cmaesRestarts);
+    cmaparams.set_max_iter(cmaesMaxIterations);
     cmaparams.set_ftolerance(1e-5);
     
     //Run optimization
