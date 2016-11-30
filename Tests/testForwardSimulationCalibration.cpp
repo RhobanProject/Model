@@ -84,13 +84,13 @@ static bool isOptimizationJoint = false;
  * Global configuration is parameters 
  * bound to positive
  */
-static bool isParametersBoundPositive = false;
+static bool isParametersBoundPositive = true;
 
 /**
  * Global CMA-ES configuration
  */
-static unsigned int cmaesMaxIterations = 1000;
-static unsigned int cmaesRestarts = 4;
+static unsigned int cmaesMaxIterations = 10000;
+static unsigned int cmaesRestarts = 5;
 static unsigned int cmaesLambda = 10;
 static double cmaesSigma = -1.0;
 

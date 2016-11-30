@@ -74,7 +74,7 @@ const Eigen::VectorXd JointModel::getParameters() const
     } 
     
     //Build parameters vector
-    Eigen::VectorXd parameters(18);
+    Eigen::VectorXd parameters(14);
     parameters(0) = _paramFrictionVelLimit;
     parameters(1) = _paramInertiaIn;
     parameters(2) = _paramFrictionViscousIn;
@@ -84,15 +84,16 @@ const Eigen::VectorXd JointModel::getParameters() const
     parameters(6) = _paramFrictionViscousOut;
     parameters(7) = _paramFrictionBreakOut;
     parameters(8) = _paramFrictionCoulombOut;
-    parameters(9) = _paramElectricVoltage;
-    parameters(10) = _paramElectricKe;
-    parameters(11) = _paramElectricResistance;
-    parameters(12) = _paramControlGainP;
-    parameters(13) = _paramControlDiscretization;
-    parameters(14) = _paramControlLag;
-    parameters(15) = _paramBacklashThresholdDeactivation;
-    parameters(16) = _paramBacklashThresholdActivation;
-    parameters(17) = _paramBacklashRangeMax;
+    parameters(9) = _paramElectricKe;
+    parameters(10) = _paramControlLag;
+    parameters(11) = _paramBacklashThresholdDeactivation;
+    parameters(12) = _paramBacklashThresholdActivation;
+    parameters(13) = _paramBacklashRangeMax;
+    //parameters(9) = _paramElectricVoltage;
+    //parameters(11) = _paramElectricResistance;
+    //parameters(12) = _paramControlGainP;
+    //parameters(13) = _paramControlDiscretization;
+
     return parameters;
 }
 void JointModel::setParameters(const Eigen::VectorXd& parameters)
@@ -110,7 +111,7 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
     }
 
     //Check size
-    if (tmpParams.size() != 18) {
+    if (tmpParams.size() != 14) {
         throw std::logic_error(
             "JointModel invalid parameters size: "
             + std::to_string(tmpParams.size()));
@@ -126,15 +127,15 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
     _paramFrictionViscousOut = tmpParams(6);
     _paramFrictionBreakOut = tmpParams(7);
     _paramFrictionCoulombOut = tmpParams(8);
-    _paramElectricVoltage = tmpParams(9);
-    _paramElectricKe = tmpParams(10);
-    _paramElectricResistance = tmpParams(11);
-    _paramControlGainP = tmpParams(12);
-    _paramControlDiscretization = tmpParams(13);
-    _paramControlLag = tmpParams(14);
-    _paramBacklashThresholdDeactivation = tmpParams(15);
-    _paramBacklashThresholdActivation = tmpParams(16);
-    _paramBacklashRangeMax = tmpParams(17);
+    _paramElectricKe = tmpParams(9);
+    _paramControlLag = tmpParams(10);
+    _paramBacklashThresholdDeactivation = tmpParams(11);
+    _paramBacklashThresholdActivation = tmpParams(12);
+    _paramBacklashRangeMax = tmpParams(13);
+    //_paramElectricVoltage = tmpParams(9);
+    //_paramElectricResistance = tmpParams(11);
+    //_paramControlGainP = tmpParams(12);
+    //_paramControlDiscretization = tmpParams(13);
 }
         
 double JointModel::getInertia() const
