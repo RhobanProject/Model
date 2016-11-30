@@ -175,7 +175,7 @@ double TrajectoryGeneration::scoreTrajectory(
         bool isIKSuccess = TrajectoriesComputeKinematics(
             t, traj, model, dq, ddq, &boundIKDistance);
         //Cost near IK bound
-        double boundIKThreashold = 1e-4;
+        double boundIKThreashold = 1e-3;
         if (boundIKDistance < boundIKThreashold) {
             if (verbose) {
                 std::cout 
