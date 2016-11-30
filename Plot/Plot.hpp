@@ -44,14 +44,35 @@ class Plot
          * Initialization
          */
         Plot() :
+            _database(),
+            _plots2D(),
+            _plots3D(),
+            _multiplotLayoutRow(1),
+            _multiplotLayoutCol(1),
+            _multiplotIndexes(),
             _rangeMinX(1.0),
             _rangeMaxX(0.0),
             _rangeMinY(1.0),
             _rangeMaxY(0.0),
             _rangeMinZ(1.0),
             _rangeMaxZ(0.0),
+            _rangeUniform(false),
             _pipeFd(-1)
         {
+        }
+
+        /**
+         * Add association name -> value to
+         * internal container.
+         */
+        inline void add(
+            const std::map<std::string, double>& list)
+        {
+            VectorLabel vect;
+            for (const auto& it : list) {
+                vect.setOrAppend(it.first, it.second);
+            }
+            _database.push_back(vect);
         }
 
         /**
@@ -107,7 +128,10 @@ class Plot
             const std::string& palette = "")
         {
             for (size_t i=0;i<_plots2D.size();i++) {
-                if (_plots2D[i].xAxis == xAxis && _plots2D[i].yAxis == yAxis) {
+                if (
+                    _plots2D[i].xAxis == xAxis && 
+                    _plots2D[i].yAxis == yAxis
+                ) {
                     _plots2D[i].xAxis = xAxis;
                     _plots2D[i].yAxis = yAxis;
                     _plots2D[i].style = style;
@@ -238,6 +262,7 @@ class Plot
         {
             _rangeMinX = min;
             _rangeMaxX = max;
+            _rangeUniform = false;
 
             return *this;
         }
@@ -245,6 +270,7 @@ class Plot
         {
             _rangeMinY = min;
             _rangeMaxY = max;
+            _rangeUniform = false;
 
             return *this;
         }
@@ -252,6 +278,66 @@ class Plot
         {
             _rangeMinZ = min;
             _rangeMaxZ = max;
+            _rangeUniform = false;
+
+            return *this;
+        }
+
+        /**
+         * Enable uniform scaling
+         */
+        inline Plot& rangeUniform(bool value = true)
+        {
+            _rangeMinX = 1.0;
+            _rangeMaxX = 0.0;
+            _rangeMinY = 1.0;
+            _rangeMaxY = 0.0;
+            _rangeMinZ = 1.0;
+            _rangeMaxZ = 0.0;
+            _rangeUniform = value;
+
+            return *this;
+        }
+
+        /**
+         * Set multiplot layout Row and Col
+         */
+        inline Plot& multiplot(unsigned int row, unsigned int col)
+        {
+            if (_plots3D.size() != 0) {
+                throw std::logic_error(
+                    "Plot 3D plots invalid with multiplot");
+            }
+            _multiplotLayoutRow = row;
+            _multiplotLayoutCol = col;
+
+            return *this;
+        }
+
+        /**
+         * Following plot calls will be plot 
+         * in next multiplot layout
+         */
+        inline Plot& nextPlot()
+        {
+            if (_plots3D.size() != 0) {
+                throw std::logic_error(
+                    "Plot 3D plots invalid with multiplot");
+            }
+            if (_plots2D.size() > 0) {
+                _multiplotIndexes.push_back(_plots2D.size());
+            }
+
+            size_t countAvailabled = 
+                _multiplotLayoutRow * _multiplotLayoutCol;
+            size_t countNeeded = _multiplotIndexes.size() + 1;
+            if (countAvailabled < countNeeded) {
+                if (_multiplotLayoutRow == _multiplotLayoutCol) {
+                    _multiplotLayoutCol++;
+                } else {
+                    _multiplotLayoutRow++;
+                }
+            }
 
             return *this;
         }
@@ -260,7 +346,9 @@ class Plot
          * Render the plot
          * Wait until plot window is closed
          */
-        inline void render(bool waitExit = true, const std::string& exportFile = "")
+        inline void render(
+            bool waitExit = true, 
+            const std::string& exportFile = "")
         {
             if (_plots2D.size() > 0 && _plots3D.size() > 0) {
                 throw std::logic_error("Plot error 2d and 3d request");
@@ -347,6 +435,15 @@ class Plot
         std::vector<Plot3D> _plots3D;
 
         /**
+         * Multiplot row and col layout 
+         * and _multiplotIndexes hold the split 
+         * index in plot2D
+         */
+        unsigned int _multiplotLayoutRow;
+        unsigned int _multiplotLayoutCol;
+        std::vector<size_t> _multiplotIndexes;
+
+        /**
          * Plot x,y,z min,max range
          * If max > min, auto scaling is used
          */
@@ -356,6 +453,11 @@ class Plot
         double _rangeMaxY;
         double _rangeMinZ;
         double _rangeMaxZ;
+
+        /**
+         * If true, uniform scaling is enabled
+         */
+        bool _rangeUniform;
         
         /**
          * Gnuplot pipe file descriptor
@@ -420,184 +522,245 @@ class Plot
          */
         inline std::string generatePlotting()
         {
-            std::string commands;
-            std::string data;
+            std::string commandsSum;
+            commandsSum += "set terminal qt size 1200,800\n";
 
-            commands += "set grid;\n";
-            if (_rangeMinX < _rangeMaxX) {
-                std::ostringstream oss;
-                oss << "set xrange[" << std::setprecision(10) << _rangeMinX;
-                oss << ":" << std::setprecision(10) << _rangeMaxX << "];\n";
-                commands += oss.str();
-            }
-            if (_rangeMinY < _rangeMaxY) {
-                std::ostringstream oss;
-                oss << "set yrange[" << std::setprecision(10) << _rangeMinY;
-                oss << ":" << std::setprecision(10) << _rangeMaxY << "];\n";
-                commands += oss.str();
-            }
-            if (_rangeMinZ < _rangeMaxZ) {
-                std::ostringstream oss;
-                oss << "set zrange[" << std::setprecision(10) << _rangeMinZ;
-                oss << ":" << std::setprecision(10) << _rangeMaxZ << "];\n";
-                commands += oss.str();
+            bool isMultiplot = false;
+            if (
+                _multiplotLayoutRow != 1 || 
+                _multiplotLayoutCol != 1
+            ) {
+                isMultiplot = true;
             }
 
-            //Create commands and data to send to gnuplot
-            if (_plots2D.size() != 0) {
-                commands += "plot ";
-            } else {
-                commands += "splot ";
+            if (isMultiplot) {
+                commandsSum += "set multiplot layout ";
+                commandsSum += std::to_string(_multiplotLayoutRow);
+                commandsSum += ", ";
+                commandsSum += std::to_string(_multiplotLayoutCol);
+                commandsSum += ";\n";
             }
-            
-            bool isFirst = true;
-            for (size_t i=0;i<_plots2D.size();i++) {
-                if (_plots2D[i].style == None) {
-                    continue;
+            int indexSplitMultiplot = -1;
+            while (true) {
+                std::string commands;
+                std::string data;
+                if (indexSplitMultiplot >= (int)_multiplotIndexes.size()) {
+                    break;
                 }
-                bool isPalette = _plots2D[i].palette != "";
-                if (!isFirst) {
-                    commands += ", ";
+                size_t startIndex2D = 0;
+                size_t endIndex2D = _plots2D.size()-1;
+                if (isMultiplot) {
+                    if (indexSplitMultiplot >= 0) {
+                        startIndex2D = _multiplotIndexes[indexSplitMultiplot];
+                    } else {
+                        startIndex2D = 0;
+                    }
+                    if (indexSplitMultiplot < (int)_multiplotIndexes.size()-1) {
+                        endIndex2D = _multiplotIndexes[indexSplitMultiplot+1]-1;
+                    } else {
+                        endIndex2D = _plots2D.size() - 1;
+                    }
+                    indexSplitMultiplot++;
                 }
-                isFirst = false;
-                if (isPalette) {
-                    if (
-                        _plots2D[i].style == ErrorsLines || 
-                        _plots2D[i].style == ErrorsPoints
-                    ) {
+                commands += "set grid;\n";
+                if (_rangeUniform) {
+                    commands += "set size ratio -1;\n";
+                }
+                if (_rangeMinX < _rangeMaxX) {
+                    std::ostringstream oss;
+                    oss << "set xrange[" << std::setprecision(10) << _rangeMinX;
+                    oss << ":" << std::setprecision(10) << _rangeMaxX << "];\n";
+                    commands += oss.str();
+                }
+                if (_rangeMinY < _rangeMaxY) {
+                    std::ostringstream oss;
+                    oss << "set yrange[" << std::setprecision(10) << _rangeMinY;
+                    oss << ":" << std::setprecision(10) << _rangeMaxY << "];\n";
+                    commands += oss.str();
+                }
+                if (_rangeMinZ < _rangeMaxZ) {
+                    std::ostringstream oss;
+                    oss << "set zrange[" << std::setprecision(10) << _rangeMinZ;
+                    oss << ":" << std::setprecision(10) << _rangeMaxZ << "];\n";
+                    commands += oss.str();
+                }
+
+                //Create commands and data to send to gnuplot
+                if (_plots2D.size() != 0) {
+                    commands += "plot ";
+                } else {
+                    commands += "splot ";
+                }
+                
+                bool isFirst = true;
+                for (size_t i=startIndex2D;i<=endIndex2D;i++) {
+                    if (_plots2D[i].style == None) {
+                        continue;
+                    }
+                    bool isPalette = _plots2D[i].palette != "";
+                    if (!isFirst) {
+                        commands += ", ";
+                    }
+                    isFirst = false;
+                    if (isPalette) {
+                        if (
+                            _plots2D[i].style == ErrorsLines || 
+                            _plots2D[i].style == ErrorsPoints
+                        ) {
+                            commands += "'-' using 1:2:3 with ";
+                        } else {
+                            commands += "'-' using 1:2:3 palette with ";
+                        }
+                    } else {
+                        commands += "'-' using 1:2 with ";
+                    }
+                    if (_plots2D[i].style == Points) {
+                        commands += "points";
+                    }
+                    if (_plots2D[i].style == Lines) {
+                        commands += "lines";
+                    }
+                    if (_plots2D[i].style == LinesPoints) {
+                        commands += "linespoints";
+                    }
+                    if (_plots2D[i].style == ErrorsPoints) {
+                        commands += "yerrorpoints";
+                    }
+                    if (_plots2D[i].style == ErrorsLines) {
+                        commands += "yerrorlines";
+                    }
+                    if (isPalette) {
+                        commands += " title '" + _plots2D[i].xAxis 
+                            + " --> " + _plots2D[i].yAxis 
+                            + " // " + _plots2D[i].palette + "' ";
+                    } else {
+                        commands += " title '" + _plots2D[i].xAxis 
+                            + " --> " + _plots2D[i].yAxis + "' ";
+                    }
+                    for (size_t j=0;j<_database.size();j++) {
+                        if (
+                            (_plots2D[i].xAxis != "index" &&
+                            !_database[j].exist(_plots2D[i].xAxis)) || 
+                            !_database[j].exist(_plots2D[i].yAxis) ||
+                            (isPalette && 
+                            _plots2D[i].palette != "index" &&
+                            !_database[j].exist(_plots2D[i].palette))
+                        ) {
+                            continue;
+                        }
+                        std::ostringstream oss;
+                        if (_plots2D[i].xAxis == "index") {
+                            oss << j << " " << std::setprecision(10) 
+                                << _database[j](_plots2D[i].yAxis);
+                        } else {
+                            oss << std::setprecision(10) 
+                                << _database[j](_plots2D[i].xAxis) << " " 
+                                << std::setprecision(10) 
+                                << _database[j](_plots2D[i].yAxis);
+                        }
+                        if (isPalette) {
+                            if (_plots2D[i].palette == "index") {
+                                oss << " " << j;
+                            } else {
+                                oss << " " 
+                                    << std::setprecision(10) 
+                                    << _database[j](_plots2D[i].palette);
+                            }
+                        }
+                        data += oss.str() + "\n";
+                    }
+                    data += "end\n";
+                }
+                for (size_t i=0;i<_plots3D.size();i++) {
+                    if (_plots3D[i].style == None) {
+                        continue;
+                    }
+                    bool isPalette = _plots3D[i].palette != "";
+                    if (!isFirst) {
+                        commands += ", ";
+                    }
+                    isFirst = false;
+                    if (isPalette) {
+                        commands += "'-' using 1:2:3:4 palette with ";
+                    } else {
                         commands += "'-' using 1:2:3 with ";
-                    } else {
-                        commands += "'-' using 1:2:3 palette with ";
                     }
-                } else {
-                    commands += "'-' using 1:2 with ";
-                }
-                if (_plots2D[i].style == Points) {
-                    commands += "points";
-                }
-                if (_plots2D[i].style == Lines) {
-                    commands += "lines";
-                }
-                if (_plots2D[i].style == LinesPoints) {
-                    commands += "linespoints";
-                }
-                if (_plots2D[i].style == ErrorsPoints) {
-                    commands += "yerrorpoints";
-                }
-                if (_plots2D[i].style == ErrorsLines) {
-                    commands += "yerrorlines";
-                }
-                if (isPalette) {
-                    commands += " title '" + _plots2D[i].xAxis 
-                        + " --> " + _plots2D[i].yAxis + " // " + _plots2D[i].palette + "' ";
-                } else {
-                    commands += " title '" + _plots2D[i].xAxis 
-                        + " --> " + _plots2D[i].yAxis + "' ";
-                }
-                for (size_t j=0;j<_database.size();j++) {
-                    if (
-                        (_plots2D[i].xAxis != "index" &&
-                        !_database[j].exist(_plots2D[i].xAxis)) || 
-                        !_database[j].exist(_plots2D[i].yAxis) ||
-                        (isPalette && 
-                        _plots2D[i].palette != "index" &&
-                        !_database[j].exist(_plots2D[i].palette))
-                    ) {
-                        continue;
+                    if (_plots3D[i].style == Points) {
+                        commands += "points";
                     }
-                    std::ostringstream oss;
-                    if (_plots2D[i].xAxis == "index") {
-                        oss << j << " " << std::setprecision(10) << _database[j](_plots2D[i].yAxis);
-                    } else {
-                        oss << std::setprecision(10) << _database[j](_plots2D[i].xAxis) << " " 
-                            << std::setprecision(10) << _database[j](_plots2D[i].yAxis);
+                    if (_plots3D[i].style == Lines) {
+                        commands += "lines";
+                    }
+                    if (_plots3D[i].style == LinesPoints) {
+                        commands += "linespoints";
                     }
                     if (isPalette) {
-                        if (_plots2D[i].palette == "index") {
-                            oss << " " << j;
-                        } else {
-                            oss << " " << std::setprecision(10) << _database[j](_plots2D[i].palette);
+                        commands += " title '" + _plots3D[i].xAxis 
+                            + "," + _plots3D[i].yAxis 
+                            + " --> " + _plots3D[i].zAxis 
+                            + " // " + _plots3D[i].palette + "' ";
+                    } else {
+                        commands += " title '" + _plots3D[i].xAxis 
+                            + "," + _plots3D[i].yAxis 
+                            + " --> " + _plots3D[i].zAxis + "' ";
+                    }
+                    for (size_t j=0;j<_database.size();j++) {
+                        if (
+                            (_plots3D[i].xAxis != "index" &&
+                            !_database[j].exist(_plots3D[i].xAxis)) || 
+                            (_plots3D[i].yAxis != "index" &&
+                            !_database[j].exist(_plots3D[i].yAxis)) || 
+                            (_plots3D[i].zAxis != "ZERO" &&
+                            !_database[j].exist(_plots3D[i].zAxis)) ||
+                            (isPalette && 
+                            _plots3D[i].palette != "index" &&
+                            !_database[j].exist(_plots3D[i].palette))
+                        ) {
+                            continue;
                         }
-                    }
-                    data += oss.str() + "\n";
-                }
-                data += "end\n";
-            }
-            for (size_t i=0;i<_plots3D.size();i++) {
-                if (_plots3D[i].style == None) {
-                    continue;
-                }
-                bool isPalette = _plots3D[i].palette != "";
-                if (!isFirst) {
-                    commands += ", ";
-                }
-                isFirst = false;
-                if (isPalette) {
-                    commands += "'-' using 1:2:3:4 palette with ";
-                } else {
-                    commands += "'-' using 1:2:3 with ";
-                }
-                if (_plots3D[i].style == Points) {
-                    commands += "points";
-                }
-                if (_plots3D[i].style == Lines) {
-                    commands += "lines";
-                }
-                if (_plots3D[i].style == LinesPoints) {
-                    commands += "linespoints";
-                }
-                if (isPalette) {
-                    commands += " title '" + _plots3D[i].xAxis + "," + _plots3D[i].yAxis 
-                        + " --> " + _plots3D[i].zAxis + " // " + _plots3D[i].palette + "' ";
-                } else {
-                    commands += " title '" + _plots3D[i].xAxis + "," + _plots3D[i].yAxis 
-                        + " --> " + _plots3D[i].zAxis + "' ";
-                }
-                for (size_t j=0;j<_database.size();j++) {
-                    if (
-                        (_plots3D[i].xAxis != "index" &&
-                        !_database[j].exist(_plots3D[i].xAxis)) || 
-                        (_plots3D[i].yAxis != "index" &&
-                        !_database[j].exist(_plots3D[i].yAxis)) || 
-                        (_plots3D[i].zAxis != "ZERO" &&
-                        !_database[j].exist(_plots3D[i].zAxis)) ||
-                        (isPalette && 
-                        _plots3D[i].palette != "index" &&
-                        !_database[j].exist(_plots3D[i].palette))
-                    ) {
-                        continue;
-                    }
-                    std::ostringstream oss;
-                    if (_plots3D[i].xAxis == "index") {
-                        oss << j << " ";
-                    } else {
-                        oss << std::setprecision(10) << _database[j](_plots3D[i].xAxis) << " ";
-                    }
-                    if (_plots3D[i].yAxis == "index") {
-                        oss << j << " ";
-                    } else {
-                        oss << std::setprecision(10) << _database[j](_plots3D[i].yAxis) << " ";
-                    }
-                    if (_plots3D[i].zAxis == "ZERO") {
-                        oss << "0.0";
-                    } else {
-                        oss << std::setprecision(10) << _database[j](_plots3D[i].zAxis);
-                    }
-                    if (isPalette) {
-                        if (_plots3D[i].palette == "index") {
-                            oss << " " << j;
+                        std::ostringstream oss;
+                        if (_plots3D[i].xAxis == "index") {
+                            oss << j << " ";
                         } else {
-                            oss << " " << std::setprecision(10) << _database[j](_plots3D[i].palette);
+                            oss << std::setprecision(10) 
+                                << _database[j](_plots3D[i].xAxis) << " ";
                         }
+                        if (_plots3D[i].yAxis == "index") {
+                            oss << j << " ";
+                        } else {
+                            oss << std::setprecision(10) 
+                                << _database[j](_plots3D[i].yAxis) << " ";
+                        }
+                        if (_plots3D[i].zAxis == "ZERO") {
+                            oss << "0.0";
+                        } else {
+                            oss << std::setprecision(10) 
+                                << _database[j](_plots3D[i].zAxis);
+                        }
+                        if (isPalette) {
+                            if (_plots3D[i].palette == "index") {
+                                oss << " " << j;
+                            } else {
+                                oss << " " << std::setprecision(10) 
+                                    << _database[j](_plots3D[i].palette);
+                            }
+                        }
+                        data += oss.str() + "\n";
                     }
-                    data += oss.str() + "\n";
+                    data += "end\n";
                 }
-                data += "end\n";
+                commands += ";\n";
+                commandsSum += commands + data;
+                if (!isMultiplot) {
+                    break;
+                }
             }
-            commands += ";\n";
-            data += "pause mouse close;\nquit;\nquit;\n";
+            if (isMultiplot) {
+                commandsSum += "unset multiplot;\n";
+            }
+            commandsSum += "pause mouse close;\nquit;\nquit;\n";
 
-            return commands + data;
+            return commandsSum;
         }
 };
 
