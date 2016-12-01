@@ -47,6 +47,8 @@ static std::vector<std::string> namesFrameInertia = {
     "trunk",
     "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
     "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -55,6 +57,8 @@ static std::vector<std::string> namesFrameInertia = {
 static std::vector<std::string> namesDOFJoint = {
     "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
     "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -73,12 +77,12 @@ static size_t sizeJointAllParameters;
 /**
  * Global configuration is inertia optimized
  */
-static bool isOptimizationInertia = false;
+static bool isOptimizationInertia = true;
 
 /**
  * Global configuration is single Joint Model optimized
  */
-static bool isOptimizationJoint = false;
+static bool isOptimizationJoint = true;
 
 /**
  * Global configuration is parameters 
@@ -428,6 +432,7 @@ int main()
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
     sizeJointAllParameters = sizeJointParameters;
+    //initParams << 1.664085472, 0.001727673131, 0.241226847, 0.8914880638, 0.2891766201, 0.002720668909, 0.08556473409, 0.5396792463, 0.07336434386, 1.545678812, 0.01085257716, 0.007822240103, 0.05072038722, 0.07535238513;
 
     if (isOptimizationJoint) {
         //Assign initial joint model parameters
@@ -436,7 +441,7 @@ int main()
         initParams.conservativeResize(sizeJointAllParameters);
         for (const std::string& name : namesDOFJoint) {
             initParams.segment(sizeJointParameters + index*sizeJointParameters, sizeJointParameters) = 
-                tmpJoint.getParameters();
+                initParams.segment(0, sizeJointParameters);
             index++;
         }
     }
@@ -576,7 +581,6 @@ int main()
     cmaparams.set_elitism(true);
     cmaparams.set_restarts(cmaesRestarts);
     cmaparams.set_max_iter(cmaesMaxIterations);
-    cmaparams.set_ftolerance(1e-5);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
@@ -585,13 +589,13 @@ int main()
     //Retrieve best Trajectories and score
     bestParams = cmasols.get_best_seen_candidate().get_x_dvec();
     bestScore = cmasols.get_best_seen_candidate().get_fvalue();
-    std::cout << "BestScore: " << bestScore << std::endl;
-    std::cout << "BestParams: " << (coef.array() * bestParams.array()).transpose() << std::endl;
     
     //Final verbose
     for (size_t i=0;i<filenames.size();i++) {
         scoreFitness(filenames[i], coef.array() * bestParams.array(), 3);
     }
+    std::cout << "BestParams: " << (coef.array() * bestParams.array()).transpose() << std::endl;
+    std::cout << "BestScore: " << bestScore << std::endl;
 
     return 0;
 }
