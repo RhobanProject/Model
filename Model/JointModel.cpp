@@ -74,7 +74,7 @@ const Eigen::VectorXd JointModel::getParameters() const
     } 
     
     //Build parameters vector
-    Eigen::VectorXd parameters(14);
+    Eigen::VectorXd parameters(18);
     parameters(0) = _paramFrictionVelLimit;
     parameters(1) = _paramInertiaIn;
     parameters(2) = _paramFrictionViscousIn;
@@ -89,10 +89,10 @@ const Eigen::VectorXd JointModel::getParameters() const
     parameters(11) = _paramBacklashThresholdDeactivation;
     parameters(12) = _paramBacklashThresholdActivation;
     parameters(13) = _paramBacklashRangeMax;
-    //parameters(9) = _paramElectricVoltage;
-    //parameters(11) = _paramElectricResistance;
-    //parameters(12) = _paramControlGainP;
-    //parameters(13) = _paramControlDiscretization;
+    parameters(14) = _paramElectricVoltage;
+    parameters(15) = _paramElectricResistance;
+    parameters(16) = _paramControlGainP;
+    parameters(17) = _paramControlDiscretization;
 
     return parameters;
 }
@@ -111,7 +111,7 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
     }
 
     //Check size
-    if (tmpParams.size() != 14) {
+    if (tmpParams.size() != 18) {
         throw std::logic_error(
             "JointModel invalid parameters size: "
             + std::to_string(tmpParams.size()));
@@ -132,10 +132,10 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
     _paramBacklashThresholdDeactivation = tmpParams(11);
     _paramBacklashThresholdActivation = tmpParams(12);
     _paramBacklashRangeMax = tmpParams(13);
-    //_paramElectricVoltage = tmpParams(9);
-    //_paramElectricResistance = tmpParams(11);
-    //_paramControlGainP = tmpParams(12);
-    //_paramControlDiscretization = tmpParams(13);
+    _paramElectricVoltage = tmpParams(14);
+    _paramElectricResistance = tmpParams(15);
+    _paramControlGainP = tmpParams(16);
+    _paramControlDiscretization = tmpParams(17);
 }
         
 double JointModel::getInertia() const

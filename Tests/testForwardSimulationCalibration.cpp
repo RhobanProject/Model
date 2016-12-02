@@ -86,12 +86,12 @@ static size_t sizeJointAllParameters;
 /**
  * Global configuration is inertia optimized
  */
-static bool isOptimizationInertia = true;
+static bool isOptimizationInertia = false;
 
 /**
  * Global configuration is single Joint Model optimized
  */
-static bool isOptimizationJoint = true;
+static bool isOptimizationJoint = false;
 
 /**
  * Global configuration is parameters 
@@ -263,7 +263,13 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     }
     Leph::Plot plot;
 #endif
-    for (double t=min;t<max;t+=0.01) {
+    double incrStep = 0.01;
+    int incrLoop = 10;
+    if (verbose) {
+        incrStep = 0.001;
+        incrLoop = 1;
+    }
+    for (double t=min;t<max;t+=incrStep) {
 #ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 3) {
             if (!viewer->update()) {
@@ -276,8 +282,9 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
                 logs.get("goal:" + name, t);
             modelRead.setDOF(name, logs.get("read:" + name, t));
         }
-        for (int k=0;k<10;k++) {
-            sim.update(0.001, &constraints);
+        for (int k=0;k<incrLoop;k++) {
+            sim.update(0.001);
+            //sim.update(0.001, &constraints);
         }
         Leph::VectorLabel vect;
         size_t index = 0;
@@ -329,8 +336,8 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             plot.add(vect);
         }
         if (verbose >= 3) {
-            Leph::ModelDraw(modelSim, *viewer);
-            Leph::ModelDraw(modelRead, *viewer);
+            Leph::ModelDraw(modelSim, *viewer, 1.0);
+            Leph::ModelDraw(modelRead, *viewer, 0.5);
         }
 #endif
     }
@@ -544,9 +551,12 @@ int main()
         if (countError > 0.0 && maxError > 0.0) {
             return 
                 cost 
-                + 0.3*sqrt(sumError/countError) 
-                + 0.3*sqrt(maxAllError.mean()) 
-                + 0.4*sqrt(maxError);
+                + 1.0*(sumError/countError) 
+                ;/*
+                + 0.6*sqrt(sumError/countError) 
+                + 0.2*sqrt(maxAllError.mean()) 
+                + 0.2*sqrt(maxError);
+                */
         } else {
             return cost;
         }
