@@ -7,6 +7,7 @@
 #include "Model/ForwardSimulation.hpp"
 #include "Model/RBDLRootUpdate.h"
 #include "Types/MapSeries.hpp"
+#include "Utils/Angle.h"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "Viewer/ModelViewer.hpp"
@@ -35,9 +36,17 @@ static std::vector<std::string> basesNames = {
  * Names of frame used for fitness error evaluation
  */
 static std::vector<std::string> namesFrameFitness = {
+    /*
     "trunk", 
     "right_foot_tip", 
     "camera",
+    */
+};
+static std::vector<std::string> namesDOFFitness = {
+    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -242,8 +251,8 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     double tmpCount = 0.0;
     double tmpSum = 0.0;
     double tmpMaxTime = 0.0;
-    Eigen::VectorXd tmpMaxAll(namesFrameFitness.size());
-    for (size_t i=0;i<namesFrameFitness.size();i++) {
+    Eigen::VectorXd tmpMaxAll(namesFrameFitness.size()+namesDOFJoint.size());
+    for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
         tmpMaxAll(i) = -1.0;
     }
     std::string tmpMaxName = "";
@@ -276,6 +285,22 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             Eigen::Vector3d posCartSim = modelSim.position(name, "left_foot_tip");
             Eigen::Vector3d posCartRead = modelRead.position(name, "left_foot_tip");
             double error = (posCartSim-posCartRead).squaredNorm();
+            tmpSum += error;
+            tmpCount += 1.0;
+            if (tmpMax < 0.0 || tmpMax < error) {
+                tmpMax = error;
+                tmpMaxTime = t;
+                tmpMaxName = name;
+            }
+            if (tmpMaxAll(index) < 0.0 || tmpMaxAll(index) < error) {
+                tmpMaxAll(index) = error;
+            }
+            index++;
+        }
+        for (const std::string& name : namesDOFFitness) {
+            double error = pow(
+                180.0/M_PI*Leph::AngleDistance(modelSim.getDOF(name), modelRead.getDOF(name)), 
+                2);  
             tmpSum += error;
             tmpCount += 1.0;
             if (tmpMax < 0.0 || tmpMax < error) {
@@ -375,7 +400,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         *maxError = tmpMax;
     }
     if (maxAllError != nullptr) {
-        for (size_t i=0;i<namesFrameFitness.size();i++) {
+        for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
             if (tmpMaxAll(i) > maxAllError->operator()(i)) {
                 maxAllError->operator()(i) = tmpMaxAll(i);
             }
@@ -432,7 +457,6 @@ int main()
     Eigen::VectorXd initParams = tmpJoint.getParameters();
     sizeJointParameters = initParams.size();
     sizeJointAllParameters = sizeJointParameters;
-    //initParams << 1.664085472, 0.001727673131, 0.241226847, 0.8914880638, 0.2891766201, 0.002720668909, 0.08556473409, 0.5396792463, 0.07336434386, 1.545678812, 0.01085257716, 0.007822240103, 0.05072038722, 0.07535238513;
 
     if (isOptimizationJoint) {
         //Assign initial joint model parameters
@@ -504,8 +528,8 @@ int main()
         double sumError = 0.0;
         double countError = 0.0;
         double maxError = -1.0;
-        Eigen::VectorXd maxAllError(namesFrameFitness.size());
-        for (size_t i=0;i<namesFrameFitness.size();i++) {
+        Eigen::VectorXd maxAllError(namesFrameFitness.size()+namesDOFFitness.size());
+        for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
             maxAllError(i) = -1.0;
         }
         for (size_t i=0;i<filenames.size();i++) {
