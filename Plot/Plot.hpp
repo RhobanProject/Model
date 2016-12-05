@@ -396,6 +396,16 @@ class Plot
         {
             _plots2D.clear();
             _plots3D.clear();
+            _multiplotLayoutRow = 1;
+            _multiplotLayoutCol = 1;
+            _multiplotIndexes.clear();
+            _rangeMinX = 1.0;
+            _rangeMaxX = 0.0;
+            _rangeMinY = 1.0;
+            _rangeMaxY = 0.0;
+            _rangeMinZ = 1.0;
+            _rangeMaxZ = 0.0;
+            _rangeUniform = false;
         }
         inline void clear()
         {
