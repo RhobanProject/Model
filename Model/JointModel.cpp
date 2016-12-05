@@ -12,10 +12,13 @@ JointModel::JointModel(
     _name(name),
     _goalTime(0.0),
     _goalHistory(),
+    _isInitialized(false),
     //Backlash initial state
     _stateBacklashIsEnabled(true),
     _stateBacklashPosition(0.0),
     _stateBacklashVelocity(0.0),
+    //Firmware coeficients
+    _coefAnglePosToTension((4096.0/(2.0*M_PI))*(12.0/3000.0)),
     //Default parameters value
     //Friction velocity limit
     _paramFrictionVelLimit(0.2),
@@ -55,6 +58,27 @@ JointModel::JointModel(
         throw std::logic_error(
             "JointModel invalid joint type");
     }
+
+    /*
+    _paramFrictionVelLimit = 0.2914428092;
+    _paramFrictionViscousOut = 0.003099660986;
+    _paramFrictionBreakOut = 0.0711517838;
+    _paramFrictionCoulombOut = 0.02171844766;
+    _paramInertiaOut = 0.0007936561532;
+    _paramControlLag = 0.03300551425;
+    _paramFrictionViscousIn = 0.1242307908;
+    _paramFrictionBreakIn = 0.1838766208;
+    _paramFrictionCoulombIn = 0.07522603114;
+    _paramInertiaIn = 0.005212544434;
+    _paramBacklashRangeMax = 0.006733195882;
+    _paramBacklashThresholdDeactivation = 0.0004490002377;
+    _paramBacklashThresholdActivation = 0.006874491195;
+    _paramElectricKe = 1.951435691;
+    _paramElectricVoltage = 12.65527041;
+    _paramElectricResistance = 3.098613714;
+    _paramControlGainP = 39.32076467;
+    _paramControlDiscretization = 2048.0;
+    */
 }
         
 JointModel::JointModelType JointModel::getType() const
@@ -76,19 +100,19 @@ const Eigen::VectorXd JointModel::getParameters() const
     //Build parameters vector
     Eigen::VectorXd parameters(18);
     parameters(0) = _paramFrictionVelLimit;
-    parameters(1) = _paramInertiaIn;
-    parameters(2) = _paramFrictionViscousIn;
-    parameters(3) = _paramFrictionBreakIn;
-    parameters(4) = _paramFrictionCoulombIn;
-    parameters(5) = _paramInertiaOut;
-    parameters(6) = _paramFrictionViscousOut;
-    parameters(7) = _paramFrictionBreakOut;
-    parameters(8) = _paramFrictionCoulombOut;
-    parameters(9) = _paramElectricKe;
-    parameters(10) = _paramControlLag;
+    parameters(1) = _paramFrictionViscousOut;
+    parameters(2) = _paramFrictionBreakOut;
+    parameters(3) = _paramFrictionCoulombOut;
+    parameters(4) = _paramInertiaOut;
+    parameters(5) = _paramControlLag;
+    parameters(6) = _paramFrictionViscousIn;
+    parameters(7) = _paramFrictionBreakIn;
+    parameters(8) = _paramFrictionCoulombIn;
+    parameters(9) = _paramInertiaIn;
+    parameters(10) = _paramBacklashRangeMax;
     parameters(11) = _paramBacklashThresholdDeactivation;
     parameters(12) = _paramBacklashThresholdActivation;
-    parameters(13) = _paramBacklashRangeMax;
+    parameters(13) = _paramElectricKe;
     parameters(14) = _paramElectricVoltage;
     parameters(15) = _paramElectricResistance;
     parameters(16) = _paramControlGainP;
@@ -119,19 +143,19 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
 
     //Assign parameters
     _paramFrictionVelLimit = tmpParams(0);
-    _paramInertiaIn = tmpParams(1);
-    _paramFrictionViscousIn = tmpParams(2);
-    _paramFrictionBreakIn = tmpParams(3);
-    _paramFrictionCoulombIn = tmpParams(4);
-    _paramInertiaOut = tmpParams(5);
-    _paramFrictionViscousOut = tmpParams(6);
-    _paramFrictionBreakOut = tmpParams(7);
-    _paramFrictionCoulombOut = tmpParams(8);
-    _paramElectricKe = tmpParams(9);
-    _paramControlLag = tmpParams(10);
+    _paramFrictionViscousOut = tmpParams(1);
+    _paramFrictionBreakOut = tmpParams(2);
+    _paramFrictionCoulombOut = tmpParams(3);
+    _paramInertiaOut = tmpParams(4);
+    _paramControlLag = tmpParams(5);
+    _paramFrictionViscousIn = tmpParams(6);
+    _paramFrictionBreakIn = tmpParams(7);
+    _paramFrictionCoulombIn = tmpParams(8);
+    _paramInertiaIn = tmpParams(9);
+    _paramBacklashRangeMax = tmpParams(10);
     _paramBacklashThresholdDeactivation = tmpParams(11);
     _paramBacklashThresholdActivation = tmpParams(12);
-    _paramBacklashRangeMax = tmpParams(13);
+    _paramElectricKe = tmpParams(13);
     _paramElectricVoltage = tmpParams(14);
     _paramElectricResistance = tmpParams(15);
     _paramControlGainP = tmpParams(16);
@@ -184,6 +208,14 @@ void JointModel::updateState(
 {
     if (_type != JointActuated) {
         return;
+    }
+
+    //Hidden state initialization
+    if (!_isInitialized) {
+        _stateBacklashIsEnabled = true;
+        _stateBacklashPosition = pos;
+        _stateBacklashVelocity = vel;
+        _isInitialized = true;
     }
 
     //Append given goal
@@ -259,7 +291,7 @@ double JointModel::getBacklashStateVel() const
 {
     return _stateBacklashVelocity;
 }
-
+        
 void JointModel::boundState(double& pos, double& vel)
 {
     //Check numerical instability
@@ -276,66 +308,56 @@ void JointModel::boundState(double& pos, double& vel)
     }
 }
 
-double JointModel::ratioMaxControlTorque(
-    double vel, double acc, double torque) const
+double JointModel::computeElectricTension(
+    double velGoal,
+    double accGoal,
+    double torqueGoal) const
 {
-    if (_type != JointActuated) {
-        return 0.0;
+    //Compute friction torque 
+    //(backlask is not considered)
+    double frictionTorque = computeFrictionTorque(
+        velGoal, &torqueGoal, true, true);
+
+    //Compute torque from gears inertia
+    //(backlask is not considered)
+    double inertiaTorque = accGoal*(_paramInertiaIn + _paramInertiaOut);
+
+    //Compute internal torque seen by the motor
+    //to produce expected motion
+    double torqueInternalGoal = 
+        torqueGoal - frictionTorque + inertiaTorque;
+
+    //Compute expected electric tension to produce
+    //needed torque at motor output
+    double tensionGoal = 
+        torqueInternalGoal*_paramElectricResistance/_paramElectricKe
+        + velGoal*_paramElectricResistance;
+
+    return tensionGoal;
+}
+        
+double JointModel::computeFeedForward(
+    double velGoal,
+    double accGoal,
+    double torqueGoal) const
+{
+    //Compute expected motor tension
+    double tensionGoal = computeElectricTension(
+        velGoal, accGoal, torqueGoal);
+
+    //Bound tension to controller capability
+    if (tensionGoal > _paramElectricVoltage) {
+        tensionGoal = _paramElectricVoltage;
+    }
+    if (tensionGoal < -_paramElectricVoltage) {
+        tensionGoal = -_paramElectricVoltage;
     }
 
-    //Compute current friction without backlash model
-    double friction = computeFrictionTorque(
-        vel, nullptr, true, true);
-    if (fabs(vel) < 1e-6) {
-        friction = 0.0;
-    }
+    //Compute angular offset from tension
+    double angularOffset = 
+        tensionGoal/(_paramControlGainP*_coefAnglePosToTension);
 
-    //Compute the torque seens by the motor
-    double motorTorque = 
-        torque 
-        + acc*(_paramInertiaIn + _paramInertiaOut) 
-        - friction;
-    if (fabs(motorTorque) < 1e-6) {
-        return 0.0;
-    }
-
-    //Compute min or max control torque
-    double boundMin = 0.0;
-    double boundMax = 0.0;
-    if (vel >= 0.0) {
-        boundMax = 
-            _paramElectricVoltage*_paramElectricKe/_paramElectricResistance 
-            - vel/_paramElectricResistance;
-        boundMin = 
-            -_paramElectricVoltage*_paramElectricKe/_paramElectricResistance;
-    } else {
-        boundMax = 
-            _paramElectricVoltage*_paramElectricKe/_paramElectricResistance;
-        boundMin = 
-            -_paramElectricVoltage*_paramElectricKe/_paramElectricResistance 
-            - vel/_paramElectricResistance;
-    }
-    if (boundMax < 0.0) {
-        boundMax = 0.0;
-    }
-    if (boundMin > 0.0) {
-        boundMin = 0.0;
-    }
-
-    //Compute ratio
-    if (motorTorque >= 0.0) {
-        if (boundMax > 1e-6) {
-            return motorTorque/boundMax;
-        } else {
-            return 10.0;
-        }
-    } else {
-        if (boundMin < -1e-6) {
-            return motorTorque/boundMin;
-        } else {
-            return 10.0;
-        }
-    }
+    return angularOffset;
 }
 
 double JointModel::computeFrictionTorque(
@@ -391,8 +413,7 @@ double JointModel::computeControlTorque(
     //Compute current tension with
     //proportional controler
     double error = AngleDistance(discretizedPos, delayedGoal);
-    double tension = _paramControlGainP*error
-        *(4096.0/(2.0*M_PI))*(12.0/3000.0);
+    double tension = _paramControlGainP*error*_coefAnglePosToTension;
 
     //Bound to available voltage
     if (tension > _paramElectricVoltage) {
@@ -404,7 +425,7 @@ double JointModel::computeControlTorque(
     //Compute applied electrical torque
     double torque = 
         tension*_paramElectricKe/_paramElectricResistance 
-        - vel/_paramElectricResistance;
+        - vel*pow(_paramElectricKe, 2)/_paramElectricResistance;
     
     return torque;
 }

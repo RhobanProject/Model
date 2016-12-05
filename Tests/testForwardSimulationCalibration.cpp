@@ -5,6 +5,7 @@
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidModel.hpp"
 #include "Model/ForwardSimulation.hpp"
+#include "Model/JointModel.hpp"
 #include "Model/RBDLRootUpdate.h"
 #include "Types/MapSeries.hpp"
 #include "Utils/Angle.h"
@@ -265,10 +266,6 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
 #endif
     double incrStep = 0.01;
     int incrLoop = 10;
-    if (verbose) {
-        incrStep = 0.001;
-        incrLoop = 1;
-    }
     for (double t=min;t<max;t+=incrStep) {
 #ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 3) {
@@ -323,15 +320,10 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
 #ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 2) {
             for (const std::string& name : dofsNames) {
-                double error = 
-                    sim.positions()(modelSim.getDOFIndex(name)) 
-                    - logs.get("read:" + name, t);
-                error = pow(error*180.0/M_PI, 2);
                 vect.setOrAppend("t", t);
-                vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
-                vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
-                vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
-                vect.setOrAppend("error:" + name, error);
+                vect.setOrAppend("read:" + name, 180.0/M_PI*logs.get("read:" + name, t));
+                vect.setOrAppend("goal:" + name, 180.0/M_PI*logs.get("goal:" + name, t));
+                vect.setOrAppend("sim:" + name, 180.0/M_PI*sim.positions()(modelSim.getDOFIndex(name)));
             }
             plot.add(vect);
         }
@@ -354,42 +346,42 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     if (verbose >= 2) {
         plot
             .plot("t", "read:left_ankle_roll")
-            .plot("t", "read:left_ankle_pitch")
-            .plot("t", "read:left_knee")
-            .plot("t", "read:left_hip_pitch")
-            .plot("t", "read:left_hip_roll")
-            .plot("t", "read:left_hip_yaw")
             .plot("t", "goal:left_ankle_roll")
-            .plot("t", "goal:left_ankle_pitch")
-            .plot("t", "goal:left_knee")
-            .plot("t", "goal:left_hip_pitch")
-            .plot("t", "goal:left_hip_roll")
-            .plot("t", "goal:left_hip_yaw")
             .plot("t", "sim:left_ankle_roll")
+            .plot("t", "read:left_ankle_pitch")
+            .plot("t", "goal:left_ankle_pitch")
             .plot("t", "sim:left_ankle_pitch")
+            .plot("t", "read:left_knee")
+            .plot("t", "goal:left_knee")
             .plot("t", "sim:left_knee")
+            .plot("t", "read:left_hip_pitch")
+            .plot("t", "goal:left_hip_pitch")
             .plot("t", "sim:left_hip_pitch")
+            .plot("t", "read:left_hip_roll")
+            .plot("t", "goal:left_hip_roll")
             .plot("t", "sim:left_hip_roll")
+            .plot("t", "read:left_hip_yaw")
+            .plot("t", "goal:left_hip_yaw")
             .plot("t", "sim:left_hip_yaw")
             .render();
         plot
             .plot("t", "read:right_ankle_roll")
-            .plot("t", "read:right_ankle_pitch")
-            .plot("t", "read:right_knee")
-            .plot("t", "read:right_hip_pitch")
-            .plot("t", "read:right_hip_roll")
-            .plot("t", "read:right_hip_yaw")
             .plot("t", "goal:right_ankle_roll")
-            .plot("t", "goal:right_ankle_pitch")
-            .plot("t", "goal:right_knee")
-            .plot("t", "goal:right_hip_pitch")
-            .plot("t", "goal:right_hip_roll")
-            .plot("t", "goal:right_hip_yaw")
             .plot("t", "sim:right_ankle_roll")
+            .plot("t", "read:right_ankle_pitch")
+            .plot("t", "goal:right_ankle_pitch")
             .plot("t", "sim:right_ankle_pitch")
+            .plot("t", "read:right_knee")
+            .plot("t", "goal:right_knee")
             .plot("t", "sim:right_knee")
+            .plot("t", "read:right_hip_pitch")
+            .plot("t", "goal:right_hip_pitch")
             .plot("t", "sim:right_hip_pitch")
+            .plot("t", "read:right_hip_roll")
+            .plot("t", "goal:right_hip_roll")
             .plot("t", "sim:right_hip_roll")
+            .plot("t", "read:right_hip_yaw")
+            .plot("t", "goal:right_hip_yaw")
             .plot("t", "sim:right_hip_yaw")
             .render();
     }
@@ -428,7 +420,7 @@ int main()
         "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-06-50.mapseries",
         "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-08-47.mapseries",
         "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-10-44.mapseries",
-        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-12-32.mapseries",
+        //"../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-12-32.mapseries",
         
         
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-10.mapseries",
@@ -551,12 +543,9 @@ int main()
         if (countError > 0.0 && maxError > 0.0) {
             return 
                 cost 
-                + 1.0*(sumError/countError) 
-                ;/*
-                + 0.6*sqrt(sumError/countError) 
-                + 0.2*sqrt(maxAllError.mean()) 
-                + 0.2*sqrt(maxError);
-                */
+                + 0.6*(sumError/countError) 
+                + 0.2*(maxAllError.mean()) 
+                + 0.2*(maxError);
         } else {
             return cost;
         }
@@ -615,6 +604,7 @@ int main()
     cmaparams.set_elitism(true);
     cmaparams.set_restarts(cmaesRestarts);
     cmaparams.set_max_iter(cmaesMaxIterations);
+    cmaparams.set_ftolerance(1e-9);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
