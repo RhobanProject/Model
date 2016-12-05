@@ -78,27 +78,33 @@ class ModelViewer
         /**
          * Draw mass
          * Orientation is the transform rotation matrix 
-         * from local coordinates to base
+         * from local coordinates to base.
+         * Color is a fading color coeficient.
          */
         void drawMass(
             const Eigen::Vector3d& center,
-            const Eigen::Matrix3d& orientation);
+            const Eigen::Matrix3d& orientation,
+            double color = 1.0);
         
         /**
          * Draw joint
          * Orientation is the transform rotation matrix 
-         * from local coordinates to base
+         * from local coordinates to base.
+         * Color is a fading color coeficient.
          */
         void drawJoint(
             const Eigen::Vector3d& center, 
-            const Eigen::Matrix3d& orientation);
+            const Eigen::Matrix3d& orientation,
+            double color = 1.0);
 
         /**
          * Draw a link between given two points
+         * Color is a fading color coeficient.
          */
         void drawLink(
             const Eigen::Vector3d& pt1,
-            const Eigen::Vector3d& pt2);
+            const Eigen::Vector3d& pt2,
+            double color = 1.0);
 
         /**
          * Draw a wireframe box with given x,y,z half size at

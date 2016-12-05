@@ -2,7 +2,7 @@
 
 namespace Leph {
 
-void ModelDraw(Model& model, ModelViewer& viewer)
+void ModelDraw(Model& model, ModelViewer& viewer, double color)
 {
     const RBDL::Model& rbdlModel = model.getRBDLModel();
     size_t originIndex = model.getFrameIndex("origin");
@@ -28,7 +28,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
 
     //Draw center of mass
     viewer.drawMass(model.centerOfMass("origin"), 
-        RBDLMath::Matrix3d::Identity());
+        RBDLMath::Matrix3d::Identity(), color);
 
     for (size_t i=0;i<rbdlModel.mBodies.size();i++) {
         //Virtual moby used for multi DOF are skipped
@@ -40,7 +40,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         Eigen::Vector3d com = rbdlModel.mBodies[i].mCenterOfMass;
         Eigen::Vector3d pos = model.position(bodyIndex, originIndex, com);
         Eigen::Matrix3d mat = model.orientation(bodyIndex, originIndex);
-        viewer.drawMass(pos, mat);
+        viewer.drawMass(pos, mat, color);
         Eigen::Vector3d center = model.position(bodyIndex, originIndex);
         //Draw RBDL joints if parent body is non virtual
         if (rbdlModel.mBodies[rbdlModel.lambda[i]].mMass > 0.0001) {
@@ -61,15 +61,15 @@ void ModelDraw(Model& model, ModelViewer& viewer)
             }
             transformAxis.transposeInPlace();
             transformAxis *= mat;
-            viewer.drawJoint(center, transformAxis);
+            viewer.drawJoint(center, transformAxis, color);
         }
         //Draw link between body origin and center of mass
-        viewer.drawLink(center, pos);
+        viewer.drawLink(center, pos, color);
         //Draw link between body center of mass and its children origin
         for (size_t j=0;j<rbdlModel.mu[i].size();j++) {
             size_t childIndex = model.bodyIdToFrameIndex(rbdlModel.mu[i][j]);
             Eigen::Vector3d centerChild = model.position(childIndex, originIndex);
-            viewer.drawLink(pos, centerChild);
+            viewer.drawLink(pos, centerChild, color);
         }
     }
 
@@ -82,7 +82,7 @@ void ModelDraw(Model& model, ModelViewer& viewer)
         Eigen::Vector3d com = rbdlModel.mBodies[parentId].mCenterOfMass;
         Eigen::Vector3d pos = model.position(parentIndex, originIndex, com);
         Eigen::Vector3d center = model.position(bodyIndex, originIndex);
-        viewer.drawLink(pos, center);
+        viewer.drawLink(pos, center, color);
     }
 }
 
@@ -111,15 +111,15 @@ void CameraDraw(
     model.cameraViewVectorToWorld(model.cameraPixelToViewVector(
         params, Eigen::Vector2d( 0.0,  0.0)), 
         groundPos5);
-    viewer.drawLink(model.position("camera", "origin"), groundPos1);
-    viewer.drawLink(model.position("camera", "origin"), groundPos2);
-    viewer.drawLink(model.position("camera", "origin"), groundPos3);
-    viewer.drawLink(model.position("camera", "origin"), groundPos4);
-    viewer.drawLink(model.position("camera", "origin"), groundPos5);
-    viewer.drawLink(groundPos1, groundPos2);
-    viewer.drawLink(groundPos2, groundPos3);
-    viewer.drawLink(groundPos3, groundPos4);
-    viewer.drawLink(groundPos4, groundPos1);
+    viewer.drawLink(model.position("camera", "origin"), groundPos1, 1.0);
+    viewer.drawLink(model.position("camera", "origin"), groundPos2, 1.0);
+    viewer.drawLink(model.position("camera", "origin"), groundPos3, 1.0);
+    viewer.drawLink(model.position("camera", "origin"), groundPos4, 1.0);
+    viewer.drawLink(model.position("camera", "origin"), groundPos5, 1.0);
+    viewer.drawLink(groundPos1, groundPos2, 1.0);
+    viewer.drawLink(groundPos2, groundPos3, 1.0);
+    viewer.drawLink(groundPos3, groundPos4, 1.0);
+    viewer.drawLink(groundPos4, groundPos1, 1.0);
 }
 
 void FieldDraw(
@@ -178,14 +178,14 @@ void CleatsDraw(
     };
     for (const std::string& name : names) {
         Eigen::Vector3d pos = simulation.model().position(name, "origin");
-        Eigen::Vector3d force = simulation.getCleatForce(name);
-        if (force.z() >= 0.0) {
+        double force = simulation.getCleatForce(name);
+        if (force >= 0.0) {
             viewer.drawCylinder(
-                pos, 0.002, 0.01*force.z(), 1.0, 1.0, 1.0);
+                pos, 0.002, 0.01*force, 1.0, 1.0, 1.0);
         } else {
             viewer.drawCylinder(
-                pos + Eigen::Vector3d(0.0, 0.0, 0.01*force.z()), 
-                0.002, -0.01*force.z(), 1.0, 0.0, 0.0);
+                pos + Eigen::Vector3d(0.0, 0.0, 0.01*force), 
+                0.002, -0.01*force, 1.0, 0.0, 0.0);
         }
     }
 }
