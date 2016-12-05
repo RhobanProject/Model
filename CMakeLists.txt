@@ -225,6 +225,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testQuinticWalk
         testCameraModel
         testHumanoidSimulation
+        testFeedForward
     )
     set(APPS_FILES ${APPS_FILES}
         appViewerModelSplines
