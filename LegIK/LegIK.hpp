@@ -4,7 +4,7 @@
 /*****************************************************************************/
 #include <vector>
 #include <string>
-#include <math.h>
+#include <cmath>
 
 #define IKDEBUG(command)  
 #define IKMSG(command) command
@@ -64,13 +64,27 @@ class Position {
  * the leg is pointing forward. Usefull for 6DOF
  * arm when target point is imposing the orientation
  * of the plane P.
+ * If not null, boundIKDistance is a signed "distance" 
+ * from kinematics bound. If positive, the IK is valid.
+ * If negative, the IK is out of bounds.
+ * (Computed from condition threasholds).
  */
 class IK {
-  double L[3];
- public:
-  IK(double L0, double L1, double L2);
-  bool compute(Vector3D C, Frame3D orientation, Position & result, 
-    bool inverseKnee = false, bool forceForward = true);
+    private:
+
+        double L[3];
+
+    public:
+
+        IK(double L0, double L1, double L2);
+
+        bool compute(
+            Vector3D C, 
+            Frame3D orientation, 
+            Position & result, 
+            double* boundIKDistance = nullptr,
+            bool inverseKnee = false, 
+            bool forceForward = true);
 };
 
 /*****************************************************************************/

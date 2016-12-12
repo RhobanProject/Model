@@ -261,43 +261,46 @@ void ModelViewer::drawFrame(
 }
         
 void ModelViewer::drawMass(const Eigen::Vector3d& center,
-    const Eigen::Matrix3d& orientation)
+    const Eigen::Matrix3d& orientation,
+    double color)
 {
     glPushMatrix();
         glTranslated(center.x(), center.y(), center.z());
         applyRotation(orientation.transpose());
         glScaled(frameLength/4.0, frameLength/4.0, frameLength/4.0);
-        drawCube(0.6, 0.3, 0.3);
+        drawCube(0.6*color, 0.3*color, 0.3*color);
     glPopMatrix();
 }
         
 void ModelViewer::drawJoint(
     const Eigen::Vector3d& center, 
-    const Eigen::Matrix3d& orientation)
+    const Eigen::Matrix3d& orientation,
+    double color)
 {
     glPushMatrix();
         glTranslated(center.x(), center.y(), center.z());
         applyRotation(orientation.transpose());
         glLineWidth(frameThickness);
         glBegin(GL_LINES);
-            glColor3f(0.3, 0.3, 0.6);
+            glColor3f(0.3*color, 0.3*color, 0.6*color);
             glVertex3f(-2.0*frameLength, 0.0, 0.0);
             glVertex3f(2.0*frameLength, 0.0, 0.0);
         glEnd();
         glLineWidth(20.0*frameThickness);
         glBegin(GL_LINES);
-            glColor3f(0.6, 0.6, 0.8);
+            glColor3f(0.6*color, 0.6*color, 0.8*color);
             glVertex3f(0.0, 0.0, 0.0);
             glVertex3f(1.5*frameLength, 0.0, 0.0);
         glEnd();
         glScaled(3.0*frameLength/4.0, frameLength/6.0, frameLength/6.0);
-        drawCube(0.3, 0.3, 0.6);
+        drawCube(0.3*color, 0.3*color, 0.6*color);
     glPopMatrix();
 }
         
 void ModelViewer::drawLink(
     const Eigen::Vector3d& pt1,
-    const Eigen::Vector3d& pt2)
+    const Eigen::Vector3d& pt2,
+    double color)
 {
     double dist = (pt1-pt2).norm();
     Eigen::Vector3d vect = pt2 - pt1;
@@ -318,7 +321,7 @@ void ModelViewer::drawLink(
         applyRotation(transform);
         glScaled(dist/2.0, frameLength/10.0, frameLength/10.0);
         glTranslated(1.0, 0.0, 0.0);
-        drawCube(0.3, 0.6, 0.3);
+        drawCube(0.3*color, 0.6*color, 0.3*color);
     glPopMatrix();
 }
 

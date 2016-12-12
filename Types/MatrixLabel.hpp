@@ -90,7 +90,7 @@ class MatrixLabel
             //Write data
             for (size_t i=_indexBegin;i<=_indexEnd;i++) {
                 for (size_t j=0;j<_container->front().size();j++) {
-                    logFile << std::setprecision(10) << _container->at(i)(j) << " ";
+                    logFile << std::setprecision(17) << _container->at(i)(j) << " ";
                 }
                 logFile << std::endl;
             }

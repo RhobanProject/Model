@@ -352,8 +352,8 @@ class MapSeries
                 file << "#" << it.first << std::endl;
                 for (size_t i=0;i<it.second.size();i++) {
                     file 
-                        << std::setprecision(10) << it.second[i].time << " " 
-                        << std::setprecision(10) << it.second[i].value 
+                        << std::setprecision(17) << it.second[i].time << " " 
+                        << std::setprecision(17) << it.second[i].value 
                         << std::endl;
                 }
             }

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <random>
 #include "Spline/FittedSpline.hpp"
 #include "Types/MatrixLabel.hpp"
 #include "Plot/Plot.hpp"

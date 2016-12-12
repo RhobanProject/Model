@@ -17,7 +17,7 @@ void WriteVector(
     }
     file << vect.size();
     for (size_t i=0;i<(size_t)vect.size();i++) {
-        file << " " << std::setprecision(15) << vect(i);
+        file << " " << std::setprecision(17) << vect(i);
     }
     file << std::endl;
     file.close();

@@ -78,13 +78,18 @@ class HumanoidModel : public Model
          * implementation.
          * True is returned if angles are updated and inverse
          * kinematics is sucessful, else false is returned.
+         * If not null, boundIKDistance is a signed "distance" 
+         * from kinematics bound. If positive, the IK is valid.
+         * If negative, the IK is out of bounds.
          */
         bool legIkLeft(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity());
+            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity(),
+            double* boundIKDistance = nullptr);
         bool legIkRight(const std::string& frame,
             const Eigen::Vector3d& footPos, 
-            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity());
+            const Eigen::Matrix3d& rotation = Eigen::Matrix3d::Identity(),
+            double* boundIKDistance = nullptr);
 
         /**
          * Return the initial vertical distance

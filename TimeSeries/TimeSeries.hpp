@@ -363,8 +363,8 @@ class TimeSeries : public MetaSeries
             _isFutureMode = false;
             os << _name << " ";
             for (int i=size()-1;i>=0;i--) {
-                os << std::setprecision(10) << at(i).time << " " 
-                   << std::setprecision(10) << at(i).value << " ";
+                os << std::setprecision(17) << at(i).time << " " 
+                   << std::setprecision(17) << at(i).value << " ";
             }
             os << std::endl;
             _isFutureMode = state;

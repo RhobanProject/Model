@@ -1,4 +1,5 @@
 #include <iostream>
+#include <random>
 #include <lwpr_eigen.hpp>
 #include "Utils/LWPRUtils.h"
 #include "Plot/Plot.hpp"

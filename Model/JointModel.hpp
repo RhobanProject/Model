@@ -101,18 +101,29 @@ class JointModel
         void boundState(double& pos, double& vel);
 
         /**
-         * Compute the actual torque seen by the
-         * control motor and return ratio between
-         * this torque and control maximum torque bound.
-         * The returnded value is always positive or zero.
-         * If between 0 and 1, the current torque can be
-         * provided by the motor.
-         * Current joint velocity, acceleration and
-         * external applied torque is given.
-         * Backlash model is not used.
+         * Compute and return electric tension
+         * expected to be produced by the motor 
+         * while following given velocity, 
+         * acceleration and external torque.
          */
-        double ratioMaxControlTorque(
-            double vel, double acc, double torque) const;
+        double computeElectricTension(
+            double velGoal,
+            double accGoal,
+            double torqueGoal) const;
+
+        /**
+         * Compute and return the target position offset
+         * to be added to goal position to follow a given
+         * trajectories.
+         * Velocity and acceleration 
+         * to follow are given.
+         * External torque to follow (computed through
+         * inverse dynamics) ais given.
+         */
+        double computeFeedForward(
+            double velGoal,
+            double accGoal,
+            double torqueGoal) const;
 
     private:
 
@@ -135,12 +146,26 @@ class JointModel
         std::queue<std::pair<double, double>> _goalHistory;
 
         /**
+         * Is backlash state initialized.
+         * Hidden states are initialized in first 
+         * updateState() call.
+         */
+        bool _isInitialized;
+
+        /**
          * Backlash hidden relative 
          * enable and position state
          */
         bool _stateBacklashIsEnabled;
         double _stateBacklashPosition;
         double _stateBacklashVelocity;
+
+        /**
+         * Firmware related coeficent
+         * from angular position error
+         * to electric tension
+         */
+        double _coefAnglePosToTension;
 
         /**
          * Model parameters
@@ -174,7 +199,7 @@ class JointModel
         /**
          * Compute the friction force for given
          * velocity and optional given torque.
-         * Internal and/or externzl gearbox friction
+         * Internal and/or external gearbox friction
          * is used whenether isInFriction and isOutFriction
          * are set.
          */

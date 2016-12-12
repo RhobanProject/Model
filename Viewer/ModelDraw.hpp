@@ -12,8 +12,11 @@ namespace Leph {
  * ModelDraw
  *
  * Draw the given Model with given ModelViewer
+ * and with optional color coeficient
  */
-void ModelDraw(Model& model, ModelViewer& viewer);
+void ModelDraw(
+    Model& model, ModelViewer& viewer, 
+    double color = 1.0);
 
 /**
  * CameraDraw

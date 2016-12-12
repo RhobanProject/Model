@@ -126,13 +126,17 @@ class HumanoidFixedModel
          * Support foot is set flat on the ground.
          * False is returned if the inverse 
          * kinematics fails.
+         * If not null, boundIKDistance is a signed "distance" 
+         * from kinematics bound. If positive, the IK is valid.
+         * If negative, the IK is out of bounds.
          */
         bool trunkFootIK(
             SupportFoot support,
             const Eigen::Vector3d& trunkPos, 
             const Eigen::Matrix3d& trunkRotation,
             const Eigen::Vector3d& flyingFootPos,
-            const Eigen::Matrix3d& flyingFootRotation);
+            const Eigen::Matrix3d& flyingFootRotation,
+            double* boundIKDistance = nullptr);
 
         /**
          * Compute and return all degrees of

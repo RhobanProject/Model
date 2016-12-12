@@ -117,7 +117,8 @@ void TrajectoriesSupportFootState(
 bool TrajectoriesComputeKinematics(
     double t, const Trajectories& traj,
     HumanoidFixedModel& model, 
-    Eigen::VectorXd& dq, Eigen::VectorXd& ddq)
+    Eigen::VectorXd& dq, Eigen::VectorXd& ddq,
+    double* boundIKDistance)
 {
     //Compute Cartesian target
     Eigen::Vector3d trunkPos;
@@ -148,7 +149,8 @@ bool TrajectoriesComputeKinematics(
         trunkPos,
         AxisToMatrix(trunkAxis),
         footPos,
-        AxisToMatrix(footAxis));
+        AxisToMatrix(footAxis),
+        boundIKDistance);
     if (!isSuccess) {
         return false;
     }

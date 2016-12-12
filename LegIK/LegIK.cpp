@@ -1,9 +1,10 @@
 /*****************************************************************************/
-#include "LegIK/LegIK.hpp"
-#include <math.h>
+#include <cmath>
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include "LegIK/LegIK.hpp"
+
 using namespace std;
 
 #define DEG2RAD(x) ((x) * M_PI / 180.0)
@@ -159,105 +160,134 @@ Position::Position(double theta0, double theta1, double theta2,
 /*****************************************************************************/
 
 IK::IK(double L0, double L1, double L2) {
-  L[0] = L0; L[1] = L1; L[2] = L2;
+    L[0] = L0; L[1] = L1; L[2] = L2;
 }
 
-bool IK::compute(Vector3D C, Frame3D orientation, Position & result,
-  bool inverseKnee, bool forceForward) {
-  if (is_zero(L[0]) || is_zero(L[1]))
-    return false;
+bool IK::compute(
+    Vector3D C, 
+    Frame3D orientation, 
+    Position & result,
+    double* boundIKDistance,
+    bool inverseKnee, 
+    bool forceForward) 
+{
+    if (boundIKDistance != nullptr) {
+        *boundIKDistance = std::fabs(L[0]);
+        *boundIKDistance = 
+            std::min(*boundIKDistance, std::fabs(L[1]));
+    }
+    if (is_zero(L[0]) || is_zero(L[1])) {
+        return false;
+    }
 
-  Vector3D e1(1,0,0), e2(0,1,0), e3(0,0,1);
+    Vector3D e1(1,0,0), e2(0,1,0), e3(0,0,1);
 
-  /* step 1 : calcul de B */
-  Vector3D B = C + L[2] * orientation[2];  
-  double B_len = B.length();
-  if (B[2] >= 0 || is_zero(B_len)) return false;
-  IKDEBUG(printf("  step 1 ok.\n"));
+    /* step 1 : calcul de B */
+    Vector3D B = C + L[2] * orientation[2];  
+    double B_len = B.length();
 
-  /* step 2 : calcul de phi */
-  Vector3D phi;
-  if (!is_zero(orientation[0][2])) {
-    double a_pp = 1.0;
-    double b_pp = -B[2] / orientation[0][2];
-    phi = (a_pp * B) + (b_pp * orientation[0]);
-    phi.normalize();
-  } 
-  else {
-    phi = orientation[0]; 
-    phi.normalize(); 
-  }
+    if (boundIKDistance != nullptr) {
+        *boundIKDistance = 
+            std::min(*boundIKDistance, std::fabs(B_len));
+        *boundIKDistance = 
+            std::min(*boundIKDistance, -B[2]);
+    }
+    if (B[2] >= 0 || is_zero(B_len)) {
+        return false;
+    }
 
-  /* phi est orienté vers l'avant ou sur la gauche */
-  double phi_e1 = scalar_prod(phi, e1);
-  if (
-    forceForward && 
-    !(phi_e1 > 0 || (is_zero(phi_e1) && scalar_prod(phi, e2) >= 0))
-  ) {
-    phi = -1.0 * phi;
-  }
-  IKDEBUG(printf("  step 2 ok.\n"));
+    /* step 2 : calcul de phi */
+    Vector3D phi;
+    if (!is_zero(orientation[0][2])) {
+        double a_pp = 1.0;
+        double b_pp = -B[2] / orientation[0][2];
+        phi = (a_pp * B) + (b_pp * orientation[0]);
+        phi.normalize();
+    } 
+    else {
+        phi = orientation[0]; 
+        phi.normalize(); 
+    }
 
-  /* step 3 : calcul de \theta_0 */
-  result.theta[0] = atan2(phi[1], phi[0]);
-  IKDEBUG(printf("  step 3 ok.\n"));
+    /* phi est orienté vers l'avant ou sur la gauche */
+    double phi_e1 = scalar_prod(phi, e1);
+    if (
+        forceForward && 
+        !(phi_e1 > 0 || (is_zero(phi_e1) && scalar_prod(phi, e2) >= 0))
+    ) {
+        phi = -1.0 * phi;
+    }
 
-  /* step 4 : calcul de G */
-  Vector3D G = scalar_prod(B,phi) * phi;
-  IKDEBUG(printf("  step 4 ok.\n"));
+    /* step 3 : calcul de \theta_0 */
+    result.theta[0] = atan2(phi[1], phi[0]);
 
-  /* step 5 : calcul de \theta_1 */
-  Vector3D zeta = -1.0 * vect_prod(phi, e3);
-  result.theta[1] = atan2(scalar_prod(B-G, zeta), -B[2]);
-  IKDEBUG(printf("  step 5 ok.\n"));
+    /* step 4 : calcul de G */
+    Vector3D G = scalar_prod(B,phi) * phi;
 
-  /* step 6 : calcul de \theta_3 */
-  double q = (L[0]*L[0] + L[1]*L[1] - B_len*B_len) / (2 * L[0] * L[1]);
-  if (q < (-1.0 - ik_global_epsilon) || q > (1.0 + ik_global_epsilon)) return false;
-  bound(-1.0, 1.0, q);
-  if (inverseKnee) result.theta[3] = acos(q) - M_PI;
-  else result.theta[3] = M_PI - acos(q);
-  IKDEBUG(printf("  step 6 ok.\n"));
+    /* step 5 : calcul de \theta_1 */
+    Vector3D zeta = -1.0 * vect_prod(phi, e3);
+    result.theta[1] = atan2(scalar_prod(B-G, zeta), -B[2]);
 
-  /* step 7 : calcul de \omega */
-  Vector3D omega(-sin(result.theta[0])*sin(result.theta[1]),
-		 cos(result.theta[0])*sin(result.theta[1]),
-		 -cos(result.theta[1]));
-  IKDEBUG(printf("  step 7 ok.\n"));
+    /* step 6 : calcul de \theta_3 */
+    double q = (L[0]*L[0] + L[1]*L[1] - B_len*B_len) / (2 * L[0] * L[1]);
+    if (boundIKDistance != nullptr) {
+        *boundIKDistance = 
+            std::min(*boundIKDistance, 1.0-std::fabs(q));
+    }
+    if (q < (-1.0 - ik_global_epsilon) || q > (1.0 + ik_global_epsilon)) {
+        return false;
+    }
 
-  /* step 8 : calcul de alpha */
-  q = scalar_prod(B,omega) / B_len;
-  bound(-1.0, 1.0, q); /* on a toujours |q| <= 1 */
-  double alpha = sign(scalar_prod(vect_prod(B, omega), zeta)) * acos(q); 
-  IKDEBUG(printf("  step 8 ok.\n"));
+    bound(-1.0, 1.0, q);
+    if (inverseKnee) {
+        result.theta[3] = acos(q) - M_PI;
+    } else {
+        result.theta[3] = M_PI - acos(q);
+    }
 
-  /* step 9 : calcul de l'angle (A \Omega B) */
-  q = (L[0]*L[0] + B_len*B_len - L[1]*L[1]) / (2 * L[0] * B_len);
-  if (q < (-1.0 - ik_global_epsilon) || q > (1.0 + ik_global_epsilon)) return false;
-  bound(-1.0, 1.0, q);
-  double A_omega_B = acos(q);
-  IKDEBUG(printf("  step 9 ok.\n"));
+    /* step 7 : calcul de \omega */
+    Vector3D omega(-sin(result.theta[0])*sin(result.theta[1]),
+        cos(result.theta[0])*sin(result.theta[1]),
+        -cos(result.theta[1]));
 
-  /* step 10 : calcul de theta_2 */
-  if (inverseKnee) result.theta[2] = alpha - A_omega_B;
-  else result.theta[2] = alpha + A_omega_B;
-  IKDEBUG(printf("  step 10 ok.\n"));
-  
-  /* step 11 : calcul de theta_4 */
-  q = scalar_prod(phi, orientation[0]);
-  bound(-1.0, 1.0, q);
-  double beta = -sign(scalar_prod(vect_prod(phi, orientation[0]), zeta)) * acos(q);
-  result.theta[4] = beta + result.theta[3] - result.theta[2];
-  IKDEBUG(printf("  step 11 ok.\n"));
+    /* step 8 : calcul de alpha */
+    q = scalar_prod(B,omega) / B_len;
+    bound(-1.0, 1.0, q); /* on a toujours |q| <= 1 */
+    double alpha = sign(scalar_prod(vect_prod(B, omega), zeta)) * acos(q); 
 
-  /* step 12 : calcul de theta_5 */
-  Vector3D tau = vect_prod(phi, omega);
-  q = scalar_prod(tau, orientation[1]);
-  bound(-1.0, 1.0, q);
-  result.theta[5] = sign(scalar_prod(vect_prod(tau, orientation[1]), orientation[0])) * acos(q);
-  IKDEBUG(printf("  step 12 ok.\n"));
+    /* step 9 : calcul de l'angle (A \Omega B) */
+    q = (L[0]*L[0] + B_len*B_len - L[1]*L[1]) / (2 * L[0] * B_len);
+    if (boundIKDistance != nullptr) {
+        *boundIKDistance = 
+            std::min(*boundIKDistance, 1.0-std::fabs(q));
+    }
+    if (q < (-1.0 - ik_global_epsilon) || q > (1.0 + ik_global_epsilon)) {
+        return false;
+    }
 
-  return true;
+    bound(-1.0, 1.0, q);
+    double A_omega_B = acos(q);
+
+    /* step 10 : calcul de theta_2 */
+    if (inverseKnee) {
+        result.theta[2] = alpha - A_omega_B;
+    } else {
+        result.theta[2] = alpha + A_omega_B;
+    }
+
+    /* step 11 : calcul de theta_4 */
+    q = scalar_prod(phi, orientation[0]);
+    bound(-1.0, 1.0, q);
+    double beta = -sign(scalar_prod(vect_prod(phi, orientation[0]), zeta)) * acos(q);
+    result.theta[4] = beta + result.theta[3] - result.theta[2];
+
+    /* step 12 : calcul de theta_5 */
+    Vector3D tau = vect_prod(phi, omega);
+    q = scalar_prod(tau, orientation[1]);
+    bound(-1.0, 1.0, q);
+    result.theta[5] = sign(scalar_prod(vect_prod(tau, orientation[1]), orientation[0])) * acos(q);
+
+    return true;
 }
 
 /*****************************************************************************/

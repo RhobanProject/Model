@@ -5,11 +5,16 @@
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidModel.hpp"
 #include "Model/ForwardSimulation.hpp"
-#include "Viewer/ModelViewer.hpp"
-#include "Viewer/ModelDraw.hpp"
+#include "Model/JointModel.hpp"
 #include "Model/RBDLRootUpdate.h"
 #include "Types/MapSeries.hpp"
+#include "Utils/Angle.h"
+
+#ifdef LEPH_VIEWER_ENABLED
+#include "Viewer/ModelViewer.hpp"
+#include "Viewer/ModelDraw.hpp"
 #include "Plot/Plot.hpp"
+#endif
 
 /**
  * DOF names
@@ -32,9 +37,17 @@ static std::vector<std::string> basesNames = {
  * Names of frame used for fitness error evaluation
  */
 static std::vector<std::string> namesFrameFitness = {
+    /*
     "trunk", 
     "right_foot_tip", 
     "camera",
+    */
+};
+static std::vector<std::string> namesDOFFitness = {
+    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -44,6 +57,8 @@ static std::vector<std::string> namesFrameInertia = {
     "trunk",
     "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
     "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -52,6 +67,8 @@ static std::vector<std::string> namesFrameInertia = {
 static std::vector<std::string> namesDOFJoint = {
     "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
     "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
 };
 
 /**
@@ -70,12 +87,32 @@ static size_t sizeJointAllParameters;
 /**
  * Global configuration is inertia optimized
  */
-bool isOptimizationInertia = false;
+static bool isOptimizationInertia = false;
 
 /**
- * Global configuration is single Joint Model optimizd
+ * Global configuration is single Joint Model optimized
  */
-bool isOptimizationJoint = false;
+static bool isOptimizationJoint = false;
+
+/**
+ * Global configuration is parameters 
+ * bound to positive
+ */
+static bool isParametersBoundPositive = true;
+
+/**
+ * Global CMA-ES configuration
+ */
+static unsigned int cmaesMaxIterations = 10000;
+static unsigned int cmaesRestarts = 5;
+static unsigned int cmaesLambda = 10;
+static double cmaesSigma = -1.0;
+
+/**
+ * Global configuration is parameters
+ * normalization is disable
+ */
+static bool isParametersNormalization = true;
 
 /**
  * Load and assign default inertia form model
@@ -215,29 +252,36 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     double tmpCount = 0.0;
     double tmpSum = 0.0;
     double tmpMaxTime = 0.0;
-    Eigen::VectorXd tmpMaxAll(namesFrameFitness.size());
-    for (size_t i=0;i<namesFrameFitness.size();i++) {
+    Eigen::VectorXd tmpMaxAll(namesFrameFitness.size()+namesDOFJoint.size());
+    for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
         tmpMaxAll(i) = -1.0;
     }
     std::string tmpMaxName = "";
+#ifdef LEPH_VIEWER_ENABLED
     Leph::ModelViewer* viewer = nullptr;
     if (verbose >= 3) {
         viewer = new Leph::ModelViewer(1200, 900);
     }
     Leph::Plot plot;
-    for (double t=min;t<max;t+=0.01) {
+#endif
+    double incrStep = 0.01;
+    int incrLoop = 10;
+    for (double t=min;t<max;t+=incrStep) {
+#ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 3) {
             if (!viewer->update()) {
                 break;
             }
         }
+#endif
         for (const std::string& name : dofsNames) {
             sim.goals()(modelSim.getDOFIndex(name)) = 
                 logs.get("goal:" + name, t);
             modelRead.setDOF(name, logs.get("read:" + name, t));
         }
-        for (int k=0;k<10;k++) {
-            sim.update(0.001, &constraints);
+        for (int k=0;k<incrLoop;k++) {
+            sim.update(0.001);
+            //sim.update(0.001, &constraints);
         }
         Leph::VectorLabel vect;
         size_t index = 0;
@@ -257,24 +301,37 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             }
             index++;
         }
+        for (const std::string& name : namesDOFFitness) {
+            double error = pow(
+                180.0/M_PI*Leph::AngleDistance(modelSim.getDOF(name), modelRead.getDOF(name)), 
+                2);  
+            tmpSum += error;
+            tmpCount += 1.0;
+            if (tmpMax < 0.0 || tmpMax < error) {
+                tmpMax = error;
+                tmpMaxTime = t;
+                tmpMaxName = name;
+            }
+            if (tmpMaxAll(index) < 0.0 || tmpMaxAll(index) < error) {
+                tmpMaxAll(index) = error;
+            }
+            index++;
+        }
+#ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 2) {
             for (const std::string& name : dofsNames) {
-                double error = 
-                    sim.positions()(modelSim.getDOFIndex(name)) 
-                    - logs.get("read:" + name, t);
-                error = pow(error*180.0/M_PI, 2);
                 vect.setOrAppend("t", t);
-                vect.setOrAppend("read:" + name, logs.get("read:" + name, t));
-                vect.setOrAppend("goal:" + name, logs.get("goal:" + name, t));
-                vect.setOrAppend("sim:" + name, sim.positions()(modelSim.getDOFIndex(name)));
-                vect.setOrAppend("error:" + name, error);
+                vect.setOrAppend("read:" + name, 180.0/M_PI*logs.get("read:" + name, t));
+                vect.setOrAppend("goal:" + name, 180.0/M_PI*logs.get("goal:" + name, t));
+                vect.setOrAppend("sim:" + name, 180.0/M_PI*sim.positions()(modelSim.getDOFIndex(name)));
             }
             plot.add(vect);
         }
         if (verbose >= 3) {
-            Leph::ModelDraw(modelSim, *viewer);
-            Leph::ModelDraw(modelRead, *viewer);
+            Leph::ModelDraw(modelSim, *viewer, 1.0);
+            Leph::ModelDraw(modelRead, *viewer, 0.5);
         }
+#endif
     }
     
     if (verbose >= 1) {
@@ -285,51 +342,53 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         std::cout << "MaxAllErrorMean: " << sqrt(tmpMaxAll.mean()) << std::endl;
         std::cout << "MaxAllError: " << (tmpMaxAll.array().sqrt().transpose()) << std::endl;
     }
+#ifdef LEPH_VIEWER_ENABLED
     if (verbose >= 2) {
         plot
             .plot("t", "read:left_ankle_roll")
-            .plot("t", "read:left_ankle_pitch")
-            .plot("t", "read:left_knee")
-            .plot("t", "read:left_hip_pitch")
-            .plot("t", "read:left_hip_roll")
-            .plot("t", "read:left_hip_yaw")
             .plot("t", "goal:left_ankle_roll")
-            .plot("t", "goal:left_ankle_pitch")
-            .plot("t", "goal:left_knee")
-            .plot("t", "goal:left_hip_pitch")
-            .plot("t", "goal:left_hip_roll")
-            .plot("t", "goal:left_hip_yaw")
             .plot("t", "sim:left_ankle_roll")
+            .plot("t", "read:left_ankle_pitch")
+            .plot("t", "goal:left_ankle_pitch")
             .plot("t", "sim:left_ankle_pitch")
+            .plot("t", "read:left_knee")
+            .plot("t", "goal:left_knee")
             .plot("t", "sim:left_knee")
+            .plot("t", "read:left_hip_pitch")
+            .plot("t", "goal:left_hip_pitch")
             .plot("t", "sim:left_hip_pitch")
+            .plot("t", "read:left_hip_roll")
+            .plot("t", "goal:left_hip_roll")
             .plot("t", "sim:left_hip_roll")
+            .plot("t", "read:left_hip_yaw")
+            .plot("t", "goal:left_hip_yaw")
             .plot("t", "sim:left_hip_yaw")
             .render();
         plot
             .plot("t", "read:right_ankle_roll")
-            .plot("t", "read:right_ankle_pitch")
-            .plot("t", "read:right_knee")
-            .plot("t", "read:right_hip_pitch")
-            .plot("t", "read:right_hip_roll")
-            .plot("t", "read:right_hip_yaw")
             .plot("t", "goal:right_ankle_roll")
-            .plot("t", "goal:right_ankle_pitch")
-            .plot("t", "goal:right_knee")
-            .plot("t", "goal:right_hip_pitch")
-            .plot("t", "goal:right_hip_roll")
-            .plot("t", "goal:right_hip_yaw")
             .plot("t", "sim:right_ankle_roll")
+            .plot("t", "read:right_ankle_pitch")
+            .plot("t", "goal:right_ankle_pitch")
             .plot("t", "sim:right_ankle_pitch")
+            .plot("t", "read:right_knee")
+            .plot("t", "goal:right_knee")
             .plot("t", "sim:right_knee")
+            .plot("t", "read:right_hip_pitch")
+            .plot("t", "goal:right_hip_pitch")
             .plot("t", "sim:right_hip_pitch")
+            .plot("t", "read:right_hip_roll")
+            .plot("t", "goal:right_hip_roll")
             .plot("t", "sim:right_hip_roll")
+            .plot("t", "read:right_hip_yaw")
+            .plot("t", "goal:right_hip_yaw")
             .plot("t", "sim:right_hip_yaw")
             .render();
     }
     if (verbose >= 3) {
         delete viewer;
     }
+#endif
     if (sumError != nullptr) {
         *sumError += tmpSum;
     }
@@ -340,7 +399,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         *maxError = tmpMax;
     }
     if (maxAllError != nullptr) {
-        for (size_t i=0;i<namesFrameFitness.size();i++) {
+        for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
             if (tmpMaxAll(i) > maxAllError->operator()(i)) {
                 maxAllError->operator()(i) = tmpMaxAll(i);
             }
@@ -357,8 +416,15 @@ int main()
 
     //Load data into MapSeries
     std::vector<std::string> filenames = {
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_foot_x_2016-11-29-19-45-36.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-06-50.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-08-47.mapseries",
+        "../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-10-44.mapseries",
+        //"../../These/Data/logs-2016-11-29_model_calibration/calibration_log_trajectory_2016-11-29-20-12-32.mapseries",
+        
+        
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-10.mapseries",
-        "../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-35.mapseries",
+        //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-35.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-21.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/backlash/calibration_log_foot_x_2016-11-02-11-37-50.mapseries",
         //"../../These/Data/logs-2016-10-30_model_calibration/kick/calibration_log_trajectory_2016-11-01-10-45-08.mapseries",
@@ -398,7 +464,7 @@ int main()
         initParams.conservativeResize(sizeJointAllParameters);
         for (const std::string& name : namesDOFJoint) {
             initParams.segment(sizeJointParameters + index*sizeJointParameters, sizeJointParameters) = 
-                tmpJoint.getParameters();
+                initParams.segment(0, sizeJointParameters);
             index++;
         }
     }
@@ -417,10 +483,15 @@ int main()
     Eigen::VectorXd coef = initParams;
     Eigen::VectorXd coefInv = initParams;
     for (size_t i=0;i<(size_t)coef.size();i++) {
-        if (fabs(coef(i)) < 1e-4) {
-            coef(i) = 1e-4;
+        if (isParametersNormalization) {
+            if (fabs(coef(i)) < 1e-4) {
+                coef(i) = 1.0;
+            }
+            coefInv(i) = 1.0/coef(i);
+        } else {
+            coef(i) = 1.0;
+            coefInv(i) = 1.0;
         }
-        coefInv(i) = 1.0/coef(i);
     }
 
     //Initial verbose
@@ -440,22 +511,24 @@ int main()
     {
         //Check positive parameters
         double cost = 0.0;
-        bool isValide = true;
-        for (size_t i=0;i<(size_t)params.size();i++) {
-            if (i < sizeJointAllParameters && params(i) < 0.0) {
-                cost += 1000.0 - 1000.0*params(i);
-                isValide = false;
+        if (isParametersBoundPositive) {
+            bool isValide = true;
+            for (size_t i=0;i<(size_t)params.size();i++) {
+                if (i < sizeJointAllParameters && params(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i);
+                    isValide = false;
+                }
             }
-        }
-        if (!isValide) {
-            return cost;
+            if (!isValide) {
+                return cost;
+            }
         }
         //Iterate over on all logs
         double sumError = 0.0;
         double countError = 0.0;
         double maxError = -1.0;
-        Eigen::VectorXd maxAllError(namesFrameFitness.size());
-        for (size_t i=0;i<namesFrameFitness.size();i++) {
+        Eigen::VectorXd maxAllError(namesFrameFitness.size()+namesDOFFitness.size());
+        for (size_t i=0;i<namesFrameFitness.size()+namesDOFFitness.size();i++) {
             maxAllError(i) = -1.0;
         }
         for (size_t i=0;i<filenames.size();i++) {
@@ -470,9 +543,9 @@ int main()
         if (countError > 0.0 && maxError > 0.0) {
             return 
                 cost 
-                + 0.2*sqrt(sumError/countError) 
-                + 0.3*sqrt(maxAllError.mean()) 
-                + 0.5*sqrt(maxError);
+                + 0.6*(sumError/countError) 
+                + 0.2*(maxAllError.mean()) 
+                + 0.2*(maxError);
         } else {
             return cost;
         }
@@ -523,14 +596,15 @@ int main()
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 0.5, 10);
+    libcmaes::CMAParameters<> cmaparams(initParams, 
+        cmaesSigma, cmaesLambda);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
     cmaparams.set_elitism(true);
-    cmaparams.set_restarts(50);
-    cmaparams.set_max_iter(100);
-    cmaparams.set_ftolerance(1e-5);
+    cmaparams.set_restarts(cmaesRestarts);
+    cmaparams.set_max_iter(cmaesMaxIterations);
+    cmaparams.set_ftolerance(1e-9);
     
     //Run optimization
     libcmaes::CMASolutions cmasols = 
@@ -539,13 +613,13 @@ int main()
     //Retrieve best Trajectories and score
     bestParams = cmasols.get_best_seen_candidate().get_x_dvec();
     bestScore = cmasols.get_best_seen_candidate().get_fvalue();
-    std::cout << "BestScore: " << bestScore << std::endl;
-    std::cout << "BestParams: " << (coef.array() * bestParams.array()).transpose() << std::endl;
     
     //Final verbose
     for (size_t i=0;i<filenames.size();i++) {
         scoreFitness(filenames[i], coef.array() * bestParams.array(), 3);
     }
+    std::cout << "BestParams: " << (coef.array() * bestParams.array()).transpose() << std::endl;
+    std::cout << "BestScore: " << bestScore << std::endl;
 
     return 0;
 }

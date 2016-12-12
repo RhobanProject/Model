@@ -56,11 +56,15 @@ void TrajectoriesSupportFootState(
  * The DOF velocities and accelerations are assign
  * to given vector dq and ddq.
  * False is returned if inverse kinematics fails.
+ * If not null, boundIKDistance is a signed "distance" 
+ * from kinematics bound. If positive, the IK is valid.
+ * If negative, the IK is out of bounds.
  */
 bool TrajectoriesComputeKinematics(
     double t, const Trajectories& traj,
     HumanoidFixedModel& model, 
-    Eigen::VectorXd& dq, Eigen::VectorXd& ddq);
+    Eigen::VectorXd& dq, Eigen::VectorXd& ddq,
+    double* boundIKDistance = nullptr);
 
 /**
  * Default Cartesian state check function.

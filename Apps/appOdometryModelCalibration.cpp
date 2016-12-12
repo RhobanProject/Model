@@ -14,19 +14,35 @@
 #include "Utils/Angle.h"
 
 /**
+ * Odometry computation type
+ */
+enum OdometryType {
+    //No model. Use walk order as input
+    OdometryOrder,
+    //Use goal model state as input
+    OdometryGoal,
+    //Use read model state as input
+    OdometryRead,
+};
+
+/**
  * Global configuration
  */
 static const unsigned int CMAESMaxIteration = 5000;
-static const unsigned int CMAESLambda = 20;
-static const unsigned int CMAESRestart = 4;
+static const unsigned int CMAESLambda = 10;
+static const unsigned int CMAESRestart = 3;
 static const bool CMAESQuiet = true;
 static const bool CMAESElitism = true;
 static const bool CMAESThreading = true;
-static const unsigned int NumberTries = 10;
-static const double AngularRangeFitness = 10.0*M_PI/180.0;
+static const unsigned int NumberTries = 500;
+static const double AngularRangeFitness = 5.0*M_PI/180.0;
 static const bool IsPrintCSV = true;
 static const bool IsDebug = false;
-static const double AngularErrorCoef = 0.57;
+static const double AngularErrorCoef = 0.57*0.5;
+static const OdometryType TypeOdometry = OdometryOrder;
+static const size_t NumberValidationSeqs = 5;
+static const size_t IncrNumberLearnSeqs = 2;
+static size_t StartNumberLearnSeqs = 1;
 
 /**
  * Global random generator
@@ -45,18 +61,6 @@ struct OdometryData {
     std::vector<std::vector<Eigen::Vector4d>> walkTrajsOrder;
     std::vector<std::vector<double>> walkTrajsPhase;
     std::vector<Eigen::Vector3d> targetDisplacements;
-};
-
-/**
- * Odometry computation type
- */
-enum OdometryType {
-    //No model. Use walk order as input
-    OdometryOrder,
-    //Use goal model state as input
-    OdometryGoal,
-    //Use read model state as input
-    OdometryRead,
 };
 
 /**
@@ -344,9 +348,7 @@ double odometryModelFitness(
             double finalAngle = odometry.state().z();
             double targetAngle = -data.targetDisplacements[i].z()*2.0*M_PI/12.0;
             double errorAngle = fabs(Leph::AngleDistance(targetAngle, finalAngle));
-            if (tmpDist > 0.10) {
-                error += pow(tmpDist, 2);
-            }
+            error += pow(tmpDist, 2);
             if (
                 data.targetDisplacements[i].z() >= 0.0 && 
                 errorAngle > 2.0*M_PI/12.0
@@ -372,8 +374,7 @@ double odometryModelFitness(
  * Return default parameters for given model
  */
 Eigen::VectorXd defaultParameters(
-    Leph::OdometryModel::OdometryModelType model, 
-    size_t indexStart, size_t indexEnd)
+    Leph::OdometryModel::OdometryModelType model)
 {
     Leph::OdometryModel odometry(model);
     return odometry.parameters();
@@ -399,7 +400,7 @@ Eigen::VectorXd odometryModelOptimization(
         };
 
     //Initial parameters
-    Eigen::VectorXd initParams = defaultParameters(model, indexStart, indexEnd);
+    Eigen::VectorXd initParams = defaultParameters(model);
     //CMAES initialization
     libcmaes::CMAParameters<> cmaparams(
         initParams, -1.0, CMAESLambda);
@@ -424,73 +425,224 @@ int main(int argc, char** argv)
     //Parse arguments
     if (argc < 2) {
         std::cout << "./app OdometryLog1 [OdometryLog2] ..." << std::endl;
+        std::cout << "./app OdometryLearnLog1 ... NEXT OdometryTestLogX ..." << std::endl;
+        std::cout << "./app RUN MethodName StartCount OdometryLog1 [OdometryLog2] ..." << std::endl;
         return 1;
     }
-    std::vector<std::string> filenames;
-    for (size_t i=1;i<(size_t)argc;i++) {
-        filenames.push_back(argv[i]);
+    bool isMultipleLogSet = false;
+    std::string argMethodName = "";
+    size_t argStartCount = -1;
+    std::vector<std::string> filenames1;
+    std::vector<std::string> filenames2;
+    size_t indexFile = 1;
+    if (std::string(argv[1]) == "RUN") {
+        if (argc < 5) {
+            std::cout << "Error Usage" << std::endl;
+            return 1;
+        }
+        argMethodName = std::string(argv[2]);
+        argStartCount = std::stoi(std::string(argv[3]));
+        std::cerr 
+            << "Special run -- Method=" << argMethodName 
+            << " StartCount=" << argStartCount 
+            << std::endl;
+        indexFile = 4;
+    }
+    while (indexFile < (size_t)argc) {
+        if (std::string(argv[indexFile]) == "NEXT") {
+            indexFile++;
+            break;
+        } else {
+            filenames1.push_back(argv[indexFile]);
+        }
+        indexFile++;
+    }
+    for (size_t i=indexFile;i<(size_t)argc;i++) {
+        isMultipleLogSet = true;
+        filenames2.push_back(argv[i]);
     }
 
     //Initialize data structure
-    OdometryData data;
+    OdometryData data1;
+    OdometryData data2;
     //Load data from logs
-    for (size_t i=0;i<filenames.size();i++) {
-        std::cout << "Loading data from " << filenames[i] << std::endl;
-        loadDataFromFile(data, filenames[i]);
+    for (size_t i=0;i<filenames1.size();i++) {
+        if (isMultipleLogSet) {
+            std::cerr << "Loading learn data from " << filenames1[i] << std::endl;
+        } else {
+            std::cerr << "Loading data from " << filenames1[i] << std::endl;
+        }
+        loadDataFromFile(data1, filenames1[i]);
     }
-    //Verbose
-    std::cout << "Loaded " << data.readTrajsPose.size() << " sequences" << std::endl;
-    for (size_t i=0;i<data.readTrajsPose.size();i++) {
-        std::cout << "Seq " << i << " with " << data.readTrajsPose[i].size() << " points " 
-            << "Displacement: " << data.targetDisplacements[i].transpose() << std::endl;
+    for (size_t i=0;i<filenames2.size();i++) {
+        std::cerr << "Loading test  data from " << filenames2[i] << std::endl;
+        loadDataFromFile(data2, filenames2[i]);
+    }
+    //Verbose loading
+    if (isMultipleLogSet) {
+        std::cerr << "Loaded learn " << data1.readTrajsPose.size() << " sequences" << std::endl;
+        for (size_t i=0;i<data1.readTrajsPose.size();i++) {
+            std::cerr << "Learn Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
+                << "Displacement: " << data1.targetDisplacements[i].transpose() << std::endl;
+        }
+        std::cerr << "Loaded test " << data2.readTrajsPose.size() << " sequences" << std::endl;
+        for (size_t i=0;i<data2.readTrajsPose.size();i++) {
+            std::cerr << "Test Seq " << i << " with " << data2.readTrajsPose[i].size() << " points " 
+                << "Displacement: " << data2.targetDisplacements[i].transpose() << std::endl;
+        }
+    } else {
+        std::cerr << "Loaded " << data1.readTrajsPose.size() << " sequences" << std::endl;
+        for (size_t i=0;i<data1.readTrajsPose.size();i++) {
+            std::cerr << "Seq " << i << " with " << data1.readTrajsPose[i].size() << " points " 
+                << "Displacement: " << data1.targetDisplacements[i].transpose() << std::endl;
+        }
     }
     
-    const OdometryType TypeOdometry = OdometryOrder;
-    size_t sizeSequence = data.readTrajsPose.size();
-    size_t maxSizeLearning = 3*sizeSequence/4;
+    //Experimented Odometry models
     std::vector<std::pair<std::string,Leph::OdometryModel::OdometryModelType>> models = {
-        {"ScalarX", Leph::OdometryModel::CorrectionScalarX},
-        {"ScalarXY", Leph::OdometryModel::CorrectionScalarXY},
-        {"ScalarXYZ", Leph::OdometryModel::CorrectionScalarXYZ},
-        {"ProportionalXY", Leph::OdometryModel::CorrectionProportionalXY},
-        {"ProportionalXYZ", Leph::OdometryModel::CorrectionProportionalXYZ},
-        {"LinearSimpleXY", Leph::OdometryModel::CorrectionLinearSimpleXY},
-        {"LinearSimpleXYZ", Leph::OdometryModel::CorrectionLinearSimpleXYZ},
-        {"LinearFullXY", Leph::OdometryModel::CorrectionLinearFullXY},
-        {"LinearFullXYZ", Leph::OdometryModel::CorrectionLinearFullXYZ},
+        //{"ScalarX", Leph::OdometryModel::CorrectionScalarX},
+        //{"ScalarXY", Leph::OdometryModel::CorrectionScalarXY},
+        //{"ScalarXYA", Leph::OdometryModel::CorrectionScalarXYA},
+        //{"ProportionalXY", Leph::OdometryModel::CorrectionProportionalXY},
+        {"ProportionalXYA", Leph::OdometryModel::CorrectionProportionalXYA},
+        //{"LinearSimpleXY", Leph::OdometryModel::CorrectionLinearSimpleXY},
+        {"LinearSimpleXYA", Leph::OdometryModel::CorrectionLinearSimpleXYA},
+        //{"LinearFullXY", Leph::OdometryModel::CorrectionLinearFullXY},
+        {"LinearFullXYA", Leph::OdometryModel::CorrectionLinearFullXYA},
+        //{"ProportionalHistoryXY", Leph::OdometryModel::CorrectionProportionalHistoryXY},
+        //{"ProportionalHistoryXYA", Leph::OdometryModel::CorrectionProportionalHistoryXYA},
+        //{"LinearSimpleHistoryXY", Leph::OdometryModel::CorrectionLinearSimpleHistoryXY},
+        //{"LinearSimpleHistoryXYA", Leph::OdometryModel::CorrectionLinearSimpleHistoryXYA},
+        //{"LinearFullHistoryXY", Leph::OdometryModel::CorrectionLinearFullHistoryXY},
+        //{"LinearFullHistoryXYA", Leph::OdometryModel::CorrectionLinearFullHistoryXYA},
     };
+    if (argMethodName != "") {
+        for (size_t i=0;i<models.size();i++) {
+            if (models[i].first != argMethodName) {
+                models[i] = models.back();
+                models.pop_back();
+                i--;
+            }
+        }
+    }
 
+    //Define first and last learning 
+    //and validation index
+    size_t learnStartIndex;
+    size_t learnEndIndex;
+    size_t testStartIndex;
+    size_t testEndIndex;
+    if (isMultipleLogSet) {
+        learnStartIndex = 0;
+        learnEndIndex = data1.readTrajsPose.size() - 1;
+        testStartIndex = 0;
+        testEndIndex = data2.readTrajsPose.size() - 1;
+    } else {
+        size_t tmpSize = data1.readTrajsPose.size();
+        learnStartIndex = 0;
+        learnEndIndex = tmpSize - NumberValidationSeqs - 1;
+        testStartIndex = tmpSize - NumberValidationSeqs;
+        testEndIndex = tmpSize - 1;
+    }
+    if (argStartCount != (size_t)-1) {
+        StartNumberLearnSeqs = argStartCount-1;
+        learnEndIndex = StartNumberLearnSeqs;
+    }
+    //Print CSV headers
+    if (IsPrintCSV) {
+        std::cout << 
+            "OdometryModelName,CountLearn,CountTest,Try,RESULTS,InitLearn,Learn,InitTest,Test" 
+            << std::endl;
+        std::cout << 
+            "OdometryModelName,CountLearn,CountTest,Try,TEST,Index,InitTest,Test" 
+            << std::endl;
+        std::cout << 
+            "OdometryModelName,CountLearn,CountTest,Try,PARAMS,SizeParams,..." 
+            << std::endl;
+    }
+    //Loop over odometry models
     for (const auto& it : models) {
-        for (size_t i=1;i<=maxSizeLearning;i+=1) {
+        //Loop over the number of sequences used to learn
+        for (size_t i=StartNumberLearnSeqs;i<=learnEndIndex;i+=IncrNumberLearnSeqs) {
+            //Loop over many tries
             for (size_t k=0;k<NumberTries;k++) {
-                shuffleData(data);
-                Eigen::VectorXd initParams = defaultParameters(it.second, 0, i);
+                //Randomize the data
+                shuffleData(data1);
+                shuffleData(data2);
+                OdometryData* dataLearn = nullptr;
+                OdometryData* dataTest = nullptr;
+                if (isMultipleLogSet) {
+                    dataLearn = &data1;
+                    dataTest = &data2;
+                } else {
+                    dataLearn = &data1;
+                    dataTest = &data1;
+                }
+                //Retrieve identity initial parameters
+                Eigen::VectorXd initParams = defaultParameters(it.second);
+                //Optimize model parameters on data learning set
                 Eigen::VectorXd bestParams = odometryModelOptimization(
-                    data, TypeOdometry, it.second, 0, i);
+                    *dataLearn, TypeOdometry, it.second, learnStartIndex, i);
+                //Compute RMSE score on learning and validation set
                 double scoreInitialLearning = odometryModelFitness(
-                    data, TypeOdometry, it.second, initParams, 0, i, true);
+                    *dataLearn, TypeOdometry, it.second, initParams, learnStartIndex, i, true);
                 double scoreLearning = odometryModelFitness(
-                    data, TypeOdometry, it.second, bestParams, 0, i, true);
+                    *dataLearn, TypeOdometry, it.second, bestParams, learnStartIndex, i, true);
                 double scoreInitialValidation = odometryModelFitness(
-                    data, TypeOdometry, it.second, initParams, i+1, sizeSequence-1, false);
+                    *dataTest, TypeOdometry, it.second, initParams, testStartIndex, testEndIndex, false);
                 double scoreValidation = odometryModelFitness(
-                    data, TypeOdometry, it.second, bestParams, i+1, sizeSequence-1, false);
+                    *dataTest, TypeOdometry, it.second, bestParams, testStartIndex, testEndIndex, false);
+                //Print CSV
                 if (IsPrintCSV) {
+                    //Print summary
                     std::cout 
                         << it.first
-                        << "," << (i+1)
-                        << "," << (sizeSequence-1-i)
+                        << "," << i-learnStartIndex+1
+                        << "," << testEndIndex-testStartIndex+1
                         << "," << k
+                        << ",RESULTS"
                         << "," << scoreInitialLearning
                         << "," << scoreLearning
                         << "," << scoreInitialValidation
                         << "," << scoreValidation
                         << std::endl;
-                } else {
+                    //Evaluate each validation sequence independendly
+                    //without computing the RMSE
+                    for (size_t j=testStartIndex;j<=testEndIndex;j++) {
+                        double scoreInitialValidationSingle = odometryModelFitness(
+                            *dataTest, TypeOdometry, it.second, initParams, j, j, false);
+                        double scoreValidationSingle = odometryModelFitness(
+                            *dataTest, TypeOdometry, it.second, bestParams, j, j, false);
+                        std::cout
+                            << it.first
+                            << "," << i-learnStartIndex+1
+                            << "," << testEndIndex-testStartIndex+1
+                            << "," << k
+                            << ",TEST"
+                            << "," << j-testStartIndex+1
+                            << "," << scoreInitialValidationSingle 
+                            << "," << scoreValidationSingle 
+                            << std::endl;
+                    }
+                    //Print best found parameters
                     std::cout 
                         << it.first
-                        << " nbLearn=" << (i+1)
-                        << " nbTest=" << (sizeSequence-1-i)
+                        << "," << i-learnStartIndex+1
+                        << "," << testEndIndex-testStartIndex+1
+                        << "," << k
+                        << ",PARAMS"
+                        << "," << bestParams.size();
+                    for (size_t j=0;j<(size_t)bestParams.size();j++) {
+                        std::cout << ",";
+                        std::cout << bestParams(j);
+                    }
+                    std::cout << std::endl;
+                } else {
+                    //Print textual summary
+                    std::cout 
+                        << it.first
+                        << " nbLearn=" << i-learnStartIndex+1
+                        << " nbTest=" << testEndIndex-testStartIndex+1
                         << " try=" << k
                         << " initLearn=" << scoreInitialLearning
                         << " learn=" << scoreLearning
@@ -498,15 +650,16 @@ int main(int argc, char** argv)
                         << " test=" << scoreValidation
                         << " dim=" << bestParams.size()
                         << " " << (scoreInitialValidation > scoreValidation ? "" : "!!!")
-                        << " Params:" << bestParams.transpose()
+                        << " Params:" << std::endl << bestParams
                         << std::endl;
                 }
+                //Show trajectory of validation set
                 if (IsDebug) {
-                    for (size_t j=maxSizeLearning+1;j<=sizeSequence-1;j++) {
-                        displaySequence(data, j);
+                    for (size_t j=testStartIndex;j<=testEndIndex;j++) {
+                        displaySequence(*dataTest, j);
                         Leph::Plot plot;
                         odometryModelFitness(
-                            data, TypeOdometry, it.second, bestParams, j, j, false, &plot);
+                            *dataTest, TypeOdometry, it.second, bestParams, j, j, false, &plot);
                         plot
                             .plot("odometry_x", "odometry_y", Leph::Plot::LinesPoints, "index")
                             .plot("identityRead_x", "identityRead_y")
