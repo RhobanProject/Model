@@ -153,6 +153,7 @@ set(TESTS_FILES
     testDMPSpline
     testJointModel
     testTrajectoryParameters
+    testForwardSimulationCalibration
 )
 
 #Applications main files
@@ -165,6 +166,7 @@ set(APPS_FILES
     appStatsDynaban
     appOdometryModelCalibration
     appTrajectoriesGeneration
+    appTrajectoriesCorrection
 )
 
 #Build App RhIO Viewer 
@@ -221,7 +223,6 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
         testTrunkFootIK
         testForwardSimulation
-        testForwardSimulationCalibration
         testQuinticWalk
         testCameraModel
         testHumanoidSimulation
