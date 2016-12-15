@@ -671,6 +671,16 @@ int main(int argc, char** argv)
             }
         } catch (const std::runtime_error& e) {
             cost += 10000.0;
+        } catch (const std::logic_error& e) {
+            //Catch exception only for unbounded angle
+            if (
+                std::string(e.what()).find("AxisAngle unbounded angle") 
+                == std::string::npos
+            ) {
+                throw;
+            } else {
+                cost += 10000.0;
+            }
         }
         return cost;
     };
