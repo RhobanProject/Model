@@ -6,6 +6,7 @@
 #include "Model/HumanoidModel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Model/JointModel.hpp"
+#include "Model/ForwardSimulation.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Utils/AxisAngle.h"
 
@@ -347,12 +348,14 @@ static double scoreTrajectories(
                 errorMaxAll(index) = error;
             }
             index++;
+#ifdef LEPH_VIEWER_ENABLED
             plot.add({
                 "t", t,
                 "goal:"+name, 180.0/M_PI*modelGoal.get().getDOF(name),
                 "feed:"+name, 180.0/M_PI*modelFeed.get().getDOF(name),
                 "sim:"+name, 180.0/M_PI*modelSim.getDOF(name),
             });
+#endif
         }
 
 #ifdef LEPH_VIEWER_ENABLED
@@ -518,11 +521,13 @@ static double scoreFitting(
                 errorMaxAll(index) = error;
             }
             index++;
+#ifdef LEPH_VIEWER_ENABLED
             plot.add({
                 "t", t,
                 "goal:"+name, 180.0/M_PI*modelGoal.get().getDOF(name),
                 "feed:"+name, 180.0/M_PI*modelFeed.get().getDOF(name),
             });
+#endif
         }
 
 #ifdef LEPH_VIEWER_ENABLED
