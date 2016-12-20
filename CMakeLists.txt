@@ -166,6 +166,7 @@ set(APPS_FILES
     appOdometryModelCalibration
     appTrajectoriesGeneration
     appTrajectoriesCorrection
+    appFeedForwardLogsComparison
 )
 
 #Build App RhIO Viewer 
