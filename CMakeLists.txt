@@ -238,6 +238,10 @@ if (BUILD_LEPH_CODE_VIEWER)
         appTestLegTorques
         appExperimentKick
         appExperimentKick2
+        appTestZMPControl
+        appMapSeriesLogsViewer
+        appDMPTrajectoryOptimization
+        appTrajectoriesKickGeneration
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
