@@ -36,9 +36,11 @@ static void assignModelState(Leph::HumanoidFixedPressureModel& model, const Leph
     }
     */
     //Set IMU data for motors real model state
-    model.setOrientation(
-        log("sensor:pitch"), 
-        log("sensor:roll"));
+    model.setOrientation( 
+        Eigen::AngleAxisd(log("sensor:roll"), Eigen::Vector3d::UnitX()).toRotationMatrix() *
+        Eigen::AngleAxisd(log("sensor:pitch"), Eigen::Vector3d::UnitY()).toRotationMatrix(),
+        false
+    );
 }
 
 /**
@@ -219,7 +221,7 @@ int main()
     
     //Test optimization TODO TODO TODO TODO
     Leph::LWPRInputsOptimization optim(0.5, 5);
-    optim.setOuput("deltagoal:left_hip_pitch");
+    optim.setOuput("goal:left_hip_pitch");
     std::vector<std::string> inputs;
     for (auto& str : logsRandom[20].labels()) {
         if (
@@ -230,9 +232,12 @@ int main()
             str.first.find("sensor:acc") == std::string::npos &&
             str.first.find("target:") == std::string::npos &&
             str.first.find("rate:") == std::string::npos &&
+            str.first.find("error:") == std::string::npos &&
+            str.first.find("pressure:") == std::string::npos &&
             str.first.find("time:") == std::string::npos &&
             str.first.find("state") == std::string::npos &&
             str.first.find("deltagoal:") == std::string::npos &&
+            str.first.find("deltapos:") == std::string::npos &&
             str.first.find("sensor:gyro") == std::string::npos
         ) {
             inputs.push_back(str.first);
