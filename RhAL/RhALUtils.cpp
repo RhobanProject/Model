@@ -1,4 +1,5 @@
 #include "RhAL/RhALUtils.h"
+#include "Model/NamesModel.h"
 
 namespace Leph {
 
@@ -109,20 +110,10 @@ void RhALAppendLog(
     MapSeries& map,
     RhAL::StandardManager& manager)
 {
-    //DOF names
-    std::vector<std::string> names = {
-        "head_pitch", "head_yaw",
-        "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-        "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
-        "left_knee", "left_ankle_pitch", "left_ankle_roll",
-        "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
-        "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
-        "right_knee", "right_ankle_pitch", "right_ankle_roll",
-    };
     //Current time
     double time = RhAL::duration_float(RhAL::getTimePoint());
     //Log goal position
-    for (const std::string& name : names) {
+    for (const std::string& name : Leph::NamesDOF) {
         map.append(
             "goal:" + name, 
             time, 
@@ -131,7 +122,7 @@ void RhALAppendLog(
                 .goalPosition().getWrittenValue()));
     }
     //Log position
-    for (const std::string& name : names) {
+    for (const std::string& name : Leph::NamesDOF) {
         RhAL::ReadValueFloat value = manager.dev<RhAL::DXL>(name)
             .position().readValue();
         if (!value.isError) {

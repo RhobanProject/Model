@@ -3,8 +3,8 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/Scheduling.hpp"
-#include "Model/MotorModel.hpp"
 #include "Model/JointModel.hpp"
+#include "Model/NamesModel.h"
 
 namespace Leph {
 
@@ -145,15 +145,6 @@ void TrajectoriesDisplay(
         torques(model.get().getDOFIndex("base_yaw")) = 0.0;
         torques(model.get().getDOFIndex("base_pitch")) = 0.0;
         torques(model.get().getDOFIndex("base_roll")) = 0.0;
-        //Compute voltage
-        Eigen::VectorXd volts = MotorModel::voltage(dq, torques);
-        //Disable base DOF
-        volts(model.get().getDOFIndex("base_x")) = 0.0;
-        volts(model.get().getDOFIndex("base_y")) = 0.0;
-        volts(model.get().getDOFIndex("base_z")) = 0.0;
-        volts(model.get().getDOFIndex("base_yaw")) = 0.0;
-        volts(model.get().getDOFIndex("base_pitch")) = 0.0;
-        volts(model.get().getDOFIndex("base_roll")) = 0.0;
         //Display ZMP and trunk/foot trajectory
         viewer.addTrackedPoint(
             com, ModelViewer::Red);
@@ -179,50 +170,48 @@ void TrajectoriesDisplay(
             }
         }
         if (!isLoop) {
-            std::vector<std::string> namesLeft = {
-                "left_hip_yaw", "left_hip_roll", "left_hip_pitch",
-                "left_knee", "left_ankle_pitch", "left_ankle_roll",
-            };
-            std::vector<std::string> namesRight = {
-                "right_hip_yaw", "right_hip_roll", "right_hip_pitch",
-                "right_knee", "right_ankle_pitch", "right_ankle_roll",
-            };
             Leph::VectorLabel vect;
             vect.append("t", t);
             vect.append("zmp_x", zmp.x());
             vect.append("zmp_y", zmp.y());
             vect.append("torque_support_yaw", torqueSupportYaw);
-            for (const std::string& name : namesLeft) {
+            for (const std::string& name : Leph::NamesDOFLegLeft) {
                 size_t index = model.get().getDOFIndex(name);
+                //Compute voltage
+                double volt = jointModel.computeElectricTension(
+                    dq(index), ddq(index), torques(index));
+                if (maxVolt < 0.0 || maxVolt < volt) {
+                    maxVolt = volt;
+                }
+                //Plot
                 vect.append("left_torque:"+name, 
                     torques(index));
-                vect.append("left_volt:"+name, 
-                    volts(index));
+                vect.append("left_volt:"+name, volt);
                 vect.append("left_q:"+name, 
                     positions(index));
                 vect.append("left_dq:"+name, 
                     dq(index));
                 vect.append("left_ddq:"+name, 
                     ddq(index));
-                vect.append("left_ratio:"+name, 
-                    jointModel.ratioMaxControlTorque(
-                        dq(index), ddq(index), torques(index)));
             }
-            for (const std::string& name : namesRight) {
+            for (const std::string& name : Leph::NamesDOFLegRight) {
                 size_t index = model.get().getDOFIndex(name);
+                //Compute voltage
+                double volt = jointModel.computeElectricTension(
+                    dq(index), ddq(index), torques(index));
+                if (maxVolt < 0.0 || maxVolt < volt) {
+                    maxVolt = volt;
+                }
+                //Plot
                 vect.append("right_torque:"+name, 
                     torques(index));
-                vect.append("right_volt:"+name, 
-                    volts(index));
+                vect.append("right_volt:"+name, volt);
                 vect.append("right_q:"+name, 
                     positions(index));
                 vect.append("right_dq:"+name, 
                     dq(index));
                 vect.append("right_ddq:"+name, 
                     ddq(index));
-                vect.append("right_ratio:"+name, 
-                    jointModel.ratioMaxControlTorque(
-                        dq(index), ddq(index), torques(index)));
             }
             plot.add(vect);
             sumTorques += 0.01*torques.norm();
@@ -232,9 +221,6 @@ void TrajectoriesDisplay(
             }
             if (maxTorqueSupportYaw < 0.0 || maxTorqueSupportYaw < fabs(torqueSupportYaw)) {
                 maxTorqueSupportYaw = fabs(torqueSupportYaw);
-            }
-            if (maxVolt < 0.0 || maxVolt < volts.lpNorm<Eigen::Infinity>()) {
-                maxVolt = volts.lpNorm<Eigen::Infinity>();
             }
         }
     }
@@ -258,8 +244,6 @@ void TrajectoriesDisplay(
     plot.plot("t", "right_ddq:*").render();
     plot.plot("t", "zmp_x").plot("t", "zmp_y").render();
     plot.plot("t", "torque_support_yaw").render();
-    plot.plot("t", "left_ratio:*").render();
-    plot.plot("t", "right_ratio:*").render();
 }
 
 }

@@ -59,7 +59,6 @@ JointModel::JointModel(
             "JointModel invalid joint type");
     }
 
-    /*
     _paramFrictionVelLimit = 0.2914428092;
     _paramFrictionViscousOut = 0.003099660986;
     _paramFrictionBreakOut = 0.0711517838;
@@ -78,7 +77,6 @@ JointModel::JointModel(
     _paramElectricResistance = 3.098613714;
     _paramControlGainP = 39.32076467;
     _paramControlDiscretization = 2048.0;
-    */
 }
         
 JointModel::JointModelType JointModel::getType() const
@@ -173,6 +171,11 @@ double JointModel::getInertia() const
     } else {
         return _paramInertiaIn + _paramInertiaOut;
     }
+}
+        
+double JointModel::getMaxVoltage() const
+{
+    return _paramElectricVoltage;
 }
 
 double JointModel::frictionTorque(double vel) const

@@ -6,13 +6,17 @@
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
-#include "Model/MotorModel.hpp"
+#include "Model/JointModel.hpp"
+#include "Model/NamesModel.h"
 #include "Utils/FileVector.h"
 
 int main()
 {
     //Initialize the generator
     Leph::TrajectoryGeneration generator(Leph::SigmabanModel);
+
+    //Joint Model
+    Leph::JointModel jointModel;
     
     //Initial trajectory parameters
     generator.setInitialParameters([]() -> Eigen::VectorXd {
@@ -269,7 +273,7 @@ int main()
     generator.setCheckStateFunc(Leph::DefaultCheckState);
     generator.setCheckDOFFunc(Leph::DefaultCheckDOF);
     //Set trajectory scoring function
-    generator.setScoreFunc([](
+    generator.setScoreFunc([&jointModel](
         double t,
         Leph::HumanoidFixedModel& model,
         const Eigen::VectorXd& torques,
@@ -295,14 +299,20 @@ int main()
         tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
         cost += 0.05*tmpTorques.norm();
         
-        //Maximum voltage
-        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
         if (data.size() == 0) {
             data.push_back(0.0);
             data.push_back(0.0);
         }
-        if (data[0] < volts.lpNorm<Eigen::Infinity>()) {
-            data[0] = volts.lpNorm<Eigen::Infinity>();
+
+        //Maximum voltage
+        for (const std::string& name : Leph::NamesDOF) {
+            size_t index = model.get().getDOFIndex(name);
+            double volt = jointModel.computeElectricTension(
+                dq(index), ddq(index), torques(index));
+            //Maximum voltage
+            if (data[0] < volt) {
+                data[0] = volt;
+            }
         }
         
         //Maximum ZMP
@@ -317,7 +327,7 @@ int main()
 
         return cost;
     });
-    generator.setEndScoreFunc([](
+    generator.setEndScoreFunc([&jointModel](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj,
         double score,
@@ -328,7 +338,7 @@ int main()
         (void)score;
         (void)verbose;
         double cost = 0.0;
-        if (data[0] > Leph::MotorModel::maxVoltage()) {
+        if (data[0] > jointModel.getMaxVoltage()) {
             cost += 5.0 + 5.0*data[0];
         } 
         if (data[1] > 0.02) {

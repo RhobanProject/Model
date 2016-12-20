@@ -1,7 +1,7 @@
 #include "TrajectoryDefinition/TrajLegLift.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
-
-#include "Model/MotorModel.hpp"
+#include "Model/JointModel.hpp"
+#include "Model/NamesModel.h"
 
 namespace Leph {
 

@@ -58,6 +58,11 @@ class JointModel
          * Return internal joint inertia
          */
         double getInertia() const;
+
+        /**
+         * Return maximum available voltage
+         */
+        double getMaxVoltage() const;
         
         /**
          * Compute the torque applied on 

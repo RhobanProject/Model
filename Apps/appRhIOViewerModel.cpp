@@ -7,6 +7,7 @@
 #include "Utils/Scheduling.hpp"
 #include "RhIO.hpp"
 #include "RhIOClient.hpp"
+#include "Model/NamesModel.h"
 
 int main(int argc, char** argv)
 {
@@ -74,24 +75,12 @@ int main(int argc, char** argv)
     double pressureRightWeight;
     double pressureRightX;
     double pressureRightY;
-    std::vector<std::string> servosNames = {
-        "head_pitch", "head_yaw", 
-        "left_ankle_pitch", "left_ankle_roll", 
-        "left_knee",
-        "left_hip_pitch", "left_hip_roll", "left_hip_yaw",
-        "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-        "right_ankle_pitch", "right_ankle_roll", 
-        "right_knee",
-        "right_hip_pitch", "right_hip_roll", "right_hip_yaw",
-        "right_shoulder_pitch", "right_shoulder_roll", "right_elbow"
-    };
     //Setting streaming handler
     clientSub.setHandlerFloat(
         [&mutexVar, &mutexModel, &model, &prefix,
         &yaw, &pitch, &roll,
         &pressureLeftWeight, &pressureLeftX, &pressureLeftY,
-        &pressureRightWeight, &pressureRightX, &pressureRightY,
-        &servosNames]
+        &pressureRightWeight, &pressureRightX, &pressureRightY]
         (const std::string name, int64_t timestamp, double val) 
     {
         (void)timestamp;
@@ -107,14 +96,14 @@ int main(int argc, char** argv)
             std::lock_guard<std::mutex> lock(mutexVar);
             roll = val*M_PI/180.0;
         }
-        for (size_t i=0;i<servosNames.size();i++) {
-            if (name == "lowlevel/" + servosNames[i] + "/position") {
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
+            if (name == "lowlevel/" + Leph::NamesDOF[i] + "/position") {
                 std::lock_guard<std::mutex> lock(mutexModel);
-                model.get().setDOF(servosNames[i], val*M_PI/180.0);
+                model.get().setDOF(Leph::NamesDOF[i], val*M_PI/180.0);
             }
-            if (name == "lowlevel/" + servosNames[i] + "/goalPosition") {
+            if (name == "lowlevel/" + Leph::NamesDOF[i] + "/goalPosition") {
                 std::lock_guard<std::mutex> lock(mutexModel);
-                model.get().setDOF(servosNames[i], val*M_PI/180.0);
+                model.get().setDOF(Leph::NamesDOF[i], val*M_PI/180.0);
             }
         }
         if (name == "lowlevel/left_pressure/weight") {
@@ -141,10 +130,10 @@ int main(int argc, char** argv)
             std::lock_guard<std::mutex> lock(mutexVar);
             pressureRightY = val;
         }
-        for (size_t i=0;i<servosNames.size();i++) {
-            if (name == prefix + servosNames[i]) {
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
+            if (name == prefix + Leph::NamesDOF[i]) {
                 std::lock_guard<std::mutex> lock(mutexModel);
-                model.get().setDOF(servosNames[i], val);
+                model.get().setDOF(Leph::NamesDOF[i], val);
             }
         }
         if (name == prefix + "base_x") {
@@ -186,13 +175,13 @@ int main(int argc, char** argv)
         clientReq.enableStreamingValue("lowlevel/imu/yaw");
         clientReq.enableStreamingValue("lowlevel/imu/pitch");
         clientReq.enableStreamingValue("lowlevel/imu/roll");
-        for (size_t i=0;i<servosNames.size();i++) {
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
             if (isGoal) {
                 clientReq.enableStreamingValue(
-                    "lowlevel/" + servosNames[i] + "/goalPosition");
+                    "lowlevel/" + Leph::NamesDOF[i] + "/goalPosition");
             } else {
                 clientReq.enableStreamingValue(
-                    "lowlevel/" + servosNames[i] + "/position");
+                    "lowlevel/" + Leph::NamesDOF[i] + "/position");
             }
         }
         clientReq.enableStreamingValue("lowlevel/left_pressure/weight");
@@ -202,8 +191,8 @@ int main(int argc, char** argv)
         clientReq.enableStreamingValue("lowlevel/right_pressure/x");
         clientReq.enableStreamingValue("lowlevel/right_pressure/y");
     } else {
-        for (size_t i=0;i<servosNames.size();i++) {
-            clientReq.enableStreamingValue(prefix + servosNames[i]);
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
+            clientReq.enableStreamingValue(prefix + Leph::NamesDOF[i]);
         }
         clientReq.enableStreamingValue(prefix + "base_x");
         clientReq.enableStreamingValue(prefix + "base_y");
@@ -279,13 +268,13 @@ int main(int argc, char** argv)
         clientReq.disableStreamingValue("lowlevel/imu/yaw");
         clientReq.disableStreamingValue("lowlevel/imu/pitch");
         clientReq.disableStreamingValue("lowlevel/imu/roll");
-        for (size_t i=0;i<servosNames.size();i++) {
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
             if (isGoal) {
                 clientReq.disableStreamingValue(
-                    "lowlevel/" + servosNames[i] + "/goalPosition");
+                    "lowlevel/" + Leph::NamesDOF[i] + "/goalPosition");
             } else {
                 clientReq.disableStreamingValue(
-                    "lowlevel/" + servosNames[i] + "/position");
+                    "lowlevel/" + Leph::NamesDOF[i] + "/position");
             }
         }
         clientReq.disableStreamingValue("lowlevel/left_pressure/weight");
@@ -295,8 +284,8 @@ int main(int argc, char** argv)
         clientReq.disableStreamingValue("lowlevel/right_pressure/x");
         clientReq.disableStreamingValue("lowlevel/right_pressure/y");
     } else {
-        for (size_t i=0;i<servosNames.size();i++) {
-            clientReq.disableStreamingValue(prefix + servosNames[i]);
+        for (size_t i=0;i<Leph::NamesDOF.size();i++) {
+            clientReq.disableStreamingValue(prefix + Leph::NamesDOF[i]);
         }
         clientReq.disableStreamingValue(prefix + "base_x");
         clientReq.disableStreamingValue(prefix + "base_y");

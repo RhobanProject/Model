@@ -10,23 +10,7 @@
 #include "Utils/Scheduling.hpp"
 #include "RhIO.hpp"
 #include "RhIOClient.hpp"
-
-/**
- * Global DOF names container
- */
-std::vector<std::string> DofsNames = {
-    "base_x", "base_y", "base_z",
-    "base_yaw", "base_pitch", "base_roll", 
-    "head_pitch", "head_yaw", 
-    "left_ankle_pitch", "left_ankle_roll", 
-    "left_knee",
-    "left_hip_pitch", "left_hip_roll", "left_hip_yaw",
-    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-    "right_ankle_pitch", "right_ankle_roll", 
-    "right_knee",
-    "right_hip_pitch", "right_hip_roll", "right_hip_yaw",
-    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow"
-};
+#include "Model/NamesModel.h"
 
 /**
  * Print usage info and exit
@@ -101,10 +85,10 @@ int main(int argc, char** argv)
 
     //List all requested values from RhIO
     std::map<std::string, std::function<void(double)>> streamedValues;
-    for (size_t i=0;i<DofsNames.size();i++) {
-        streamedValues[prefix + DofsNames[i]] = [&mutexModel, &model, i](double val) {
+    for (size_t i=0;i<Leph::NamesDOFAll.size();i++) {
+        streamedValues[prefix + Leph::NamesDOFAll[i]] = [&mutexModel, &model, i](double val) {
             std::lock_guard<std::mutex> lock(mutexModel);
-            model.get().setDOF(DofsNames[i], val);
+            model.get().setDOF(Leph::NamesDOFAll[i], val);
         };
     }
     streamedValues["moves/walk/walkStep"] = [&mutexVar, &walkStep](double val) {

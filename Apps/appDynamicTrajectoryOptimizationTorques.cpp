@@ -7,7 +7,8 @@
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
-#include "Model/MotorModel.hpp"
+#include "Model/JointModel.hpp"
+#include "Model/NamesModel.h"
 
 /**
  * Ending precompute optimal state
@@ -583,10 +584,15 @@ void generateKick()
         cost += 0.01*tmpTorques.norm();
         
         //Voltage
-        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
-        //Maximum voltage
-        if (data[1] < volts.lpNorm<Eigen::Infinity>()) {
-            data[1] = volts.lpNorm<Eigen::Infinity>();
+        Leph::JointModel jointModel;
+        for (const std::string& name : Leph::NamesDOF) {
+            size_t index = model.get().getDOFIndex(name);
+            double volt = jointModel.computeElectricTension(
+                dq(index), ddq(index), torques(index));
+            //Maximum voltage
+            if (data[1] < volt) {
+                data[1] = volt;
+            }
         }
 
         return cost;
@@ -1392,15 +1398,17 @@ void generateWalk()
         }
 
         //Voltage
-        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
-        cost += 0.01*(1.0/Leph::MotorModel::maxVoltage())*volts.norm();
-        //Maximum voltage
-        if (volts.lpNorm<Eigen::Infinity>() > 0.75*Leph::MotorModel::maxVoltage()) {
-            //cost += 10.0 + 10.0*volts.lpNorm<Eigen::Infinity>();
-            //TODO
-        }
-        if (data[1] < volts.lpNorm<Eigen::Infinity>()) {
-            data[1] = volts.lpNorm<Eigen::Infinity>();
+        Leph::JointModel jointModel;
+        for (const std::string& name : Leph::NamesDOF) {
+            size_t index = model.get().getDOFIndex(name);
+            double volt = jointModel.computeElectricTension(
+                dq(index), ddq(index), torques(index));
+            cost += 0.01*(1.0/jointModel.getMaxVoltage())
+                *volt/((double)Leph::NamesDOF.size());
+            //Maximum voltage
+            if (data[1] < volt) {
+                data[1] = volt;
+            }
         }
 
         return cost;

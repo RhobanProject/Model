@@ -9,6 +9,7 @@
 #include "Model/ForwardSimulation.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Utils/AxisAngle.h"
+#include "Model/NamesModel.h"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "Viewer/ModelViewer.hpp"
@@ -27,20 +28,7 @@ static double cmaesSigma = -1.0;
 /**
  * Number of splines points
  */
-static unsigned int numberOptimizationPoints = 5;
-
-/**
- * DOF names
- */
-static std::vector<std::string> dofsNames = {
-    "head_pitch", "head_yaw",
-    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
-    "left_knee", "left_ankle_pitch", "left_ankle_roll",
-    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
-    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
-    "right_knee", "right_ankle_pitch", "right_ankle_roll",
-};
+static unsigned int numberOptimizationPoints = 10;
 
 /**
  * Cart names optimized
@@ -234,8 +222,8 @@ static double scoreTrajectories(
     double errorCount = 0.0;
     double errorSum = 0.0;
     double errorMaxTime = 0.0;
-    Eigen::VectorXd errorMaxAll(dofsNames.size());
-    for (size_t i=0;i<dofsNames.size();i++) {
+    Eigen::VectorXd errorMaxAll(Leph::NamesDOF.size());
+    for (size_t i=0;i<Leph::NamesDOF.size();i++) {
         errorMaxAll(i) = -1.0;
     }
     std::string errorMaxName = "";
@@ -311,7 +299,7 @@ static double scoreTrajectories(
         //Initialization
         if (isInit) {
             isInit = false;
-            for (const std::string& name : dofsNames) {
+            for (const std::string& name : Leph::NamesDOF) {
                 sim.positions()(modelSim.getDOFIndex(name)) = 
                     modelFeed.get().getDOF(name);
                 sim.goals()(modelSim.getDOFIndex(name)) = 
@@ -321,7 +309,7 @@ static double scoreTrajectories(
         }
         
         //Assign goal to simulation
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             sim.goals()(modelSim.getDOFIndex(name)) = 
                 modelFeed.get().getDOF(name);
             
@@ -334,7 +322,7 @@ static double scoreTrajectories(
 
         //Compute error
         size_t index = 0;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             double error = pow(180.0/M_PI
                 *(modelGoal.get().getDOF(name) - modelSim.getDOF(name)), 2);
             errorSum += error;
@@ -379,7 +367,7 @@ static double scoreTrajectories(
 #ifdef LEPH_VIEWER_ENABLED
     if (verboseLevel >= 2) {
         delete viewer;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             plot
                 .plot("t", "goal:" + name)
                 .plot("t", "feed:" + name)
@@ -426,8 +414,8 @@ static double scoreFitting(
     double errorCount = 0.0;
     double errorSum = 0.0;
     double errorMaxTime = 0.0;
-    Eigen::VectorXd errorMaxAll(dofsNames.size());
-    for (size_t i=0;i<dofsNames.size();i++) {
+    Eigen::VectorXd errorMaxAll(Leph::NamesDOF.size());
+    for (size_t i=0;i<Leph::NamesDOF.size();i++) {
         errorMaxAll(i) = -1.0;
     }
     std::string errorMaxName = "";
@@ -489,7 +477,7 @@ static double scoreFitting(
 
         //Compute feed forward
         Leph::JointModel jointModel;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             if (
                 name.find("shoulder") != std::string::npos ||
                 name.find("head") != std::string::npos ||
@@ -506,7 +494,7 @@ static double scoreFitting(
         }
         
         size_t index = 0;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             //Compute error
             double error = pow(180.0/M_PI
                 *(modelGoal.get().getDOF(name) - modelFeed.get().getDOF(name)), 2);
@@ -550,7 +538,7 @@ static double scoreFitting(
 #ifdef LEPH_VIEWER_ENABLED
     if (verboseLevel >= 2) {
         delete viewer;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             plot
                 .plot("t", "goal:" + name)
                 .plot("t", "feed:" + name)
