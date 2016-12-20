@@ -1,5 +1,5 @@
-#ifndef LEPH_TRAJKICK_HPP
-#define LEPH_TRAJKICK_HPP
+#ifndef LEPH_TRAJKICKSINGLE_HPP
+#define LEPH_TRAJKICKSINGLE_HPP
 
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
@@ -7,12 +7,12 @@
 namespace Leph {
 
 /**
- * TrajKick
+ * TrajKickSingle
  *
- * Template for kick
- * trajectory generation
+ * Template for single support 
+ * kick trajectory generation
  */
-class TrajKick
+class TrajKickSingle
 {
     public:
 

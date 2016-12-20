@@ -102,7 +102,7 @@ set(SOURCES_FILES
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
     TrajectoryDefinition/DefaultTrajParameters.cpp
-    TrajectoryDefinition/TrajKick.cpp
+    TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajLegLift.cpp
 )
 

@@ -6,7 +6,7 @@
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryDefinition/DefaultTrajParameters.h"
 #include "Utils/FileVector.h"
-#include "TrajectoryDefinition/TrajKick.hpp"
+#include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
 
 #ifdef LEPH_VIEWER_ENABLED
@@ -66,14 +66,14 @@ int main(int argc, char** argv)
     Leph::TrajectoryGeneration generator(Leph::SigmabanModel);
     Eigen::VectorXd initParams;
     //Load trajectory template
-    if (trajName == "kick") {
-        initParams = Leph::TrajKick::initialParameters(trajParams);
-        generator.setTrajectoryGenerationFunc(Leph::TrajKick::funcGeneration(trajParams));
-        generator.setCheckParametersFunc(Leph::TrajKick::funcCheckParams(trajParams));
-        generator.setCheckStateFunc(Leph::TrajKick::funcCheckState(trajParams));
-        generator.setCheckDOFFunc(Leph::TrajKick::funcCheckDOF(trajParams));
-        generator.setScoreFunc(Leph::TrajKick::funcScore(trajParams));
-        generator.setEndScoreFunc(Leph::TrajKick::funcEndScore(trajParams));
+    if (trajName == "kicksingle") {
+        initParams = Leph::TrajKickSingle::initialParameters(trajParams);
+        generator.setTrajectoryGenerationFunc(Leph::TrajKickSingle::funcGeneration(trajParams));
+        generator.setCheckParametersFunc(Leph::TrajKickSingle::funcCheckParams(trajParams));
+        generator.setCheckStateFunc(Leph::TrajKickSingle::funcCheckState(trajParams));
+        generator.setCheckDOFFunc(Leph::TrajKickSingle::funcCheckDOF(trajParams));
+        generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
+        generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
     } else if (trajName == "leglift") {
         initParams = Leph::TrajLegLift::initialParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajLegLift::funcGeneration(trajParams));

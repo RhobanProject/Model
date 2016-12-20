@@ -1,11 +1,11 @@
-#include "TrajectoryDefinition/TrajKick.hpp"
+#include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Model/JointModel.hpp"
 #include "Model/NamesModel.h"
 
 namespace Leph {
 
-Eigen::VectorXd TrajKick::initialParameters(
+Eigen::VectorXd TrajKickSingle::initialParameters(
     TrajectoryParameters& trajParams)
 {
     //Total time length
@@ -120,7 +120,7 @@ Eigen::VectorXd TrajKick::initialParameters(
     return trajParams.buildVector();
 }
 
-TrajectoryGeneration::GenerationFunc TrajKick::funcGeneration(
+TrajectoryGeneration::GenerationFunc TrajKickSingle::funcGeneration(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](const Eigen::VectorXd& params) -> Leph::Trajectories {
@@ -160,7 +160,7 @@ TrajectoryGeneration::GenerationFunc TrajKick::funcGeneration(
     };
 }
 
-TrajectoryGeneration::CheckParamsFunc TrajKick::funcCheckParams(
+TrajectoryGeneration::CheckParamsFunc TrajKickSingle::funcCheckParams(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](const Eigen::VectorXd& params) -> double {
@@ -197,19 +197,19 @@ TrajectoryGeneration::CheckParamsFunc TrajKick::funcCheckParams(
     };
 }
 
-TrajectoryGeneration::CheckStateFunc TrajKick::funcCheckState(
+TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
     const TrajectoryParameters& trajParams)
 {
     return Leph::DefaultCheckState;
 }
 
-TrajectoryGeneration::CheckDOFFunc TrajKick::funcCheckDOF(
+TrajectoryGeneration::CheckDOFFunc TrajKickSingle::funcCheckDOF(
     const TrajectoryParameters& trajParams)
 {
     return Leph::DefaultCheckDOF;
 }
 
-TrajectoryGeneration::ScoreFunc TrajKick::funcScore(
+TrajectoryGeneration::ScoreFunc TrajKickSingle::funcScore(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](
@@ -277,7 +277,7 @@ TrajectoryGeneration::ScoreFunc TrajKick::funcScore(
     };
 }
 
-TrajectoryGeneration::EndScoreFunc TrajKick::funcEndScore(
+TrajectoryGeneration::EndScoreFunc TrajKickSingle::funcEndScore(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](
