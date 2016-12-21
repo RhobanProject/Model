@@ -125,6 +125,103 @@ class TrajectoryParameters
         }
 
         /**
+         * Build and return the vector of 
+         * normalization coefficients.
+         * Independent of current parameter values.
+         * All coefficients are non zero.
+         */
+        inline Eigen::VectorXd buildNormalizationCoefs() const
+        {
+            //Build and assign the vector
+            Eigen::VectorXd coefs = 
+                Eigen::VectorXd::Ones(_countOptimized);
+            for (const auto& it : _container) {
+                if (it.second.isOptimized) {
+                    if (
+                        it.first.find("time_ratio") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 1.0;
+                    } else if (
+                        it.first.find("time_length") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 3.0;
+                    } else if (
+                        it.first.find("pos_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.28;
+                    } else if (
+                        it.first.find("pos_trunk_pos_x") != std::string::npos ||
+                        it.first.find("pos_trunk_pos_y") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.01;
+                    } else if (
+                        it.first.find("vel_trunk_pos_x") != std::string::npos ||
+                        it.first.find("vel_trunk_pos_y") != std::string::npos ||
+                        it.first.find("vel_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.05;
+                    } else if (
+                        it.first.find("acc_trunk_pos_x") != std::string::npos ||
+                        it.first.find("acc_trunk_pos_y") != std::string::npos ||
+                        it.first.find("acc_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 2.0;
+                    } else if (
+                        it.first.find("pos_trunk_axis_x") != std::string::npos ||
+                        it.first.find("pos_trunk_axis_y") != std::string::npos ||
+                        it.first.find("pos_trunk_axis_z") != std::string::npos ||
+                        it.first.find("pos_foot_axis_x") != std::string::npos ||
+                        it.first.find("pos_foot_axis_y") != std::string::npos ||
+                        it.first.find("pos_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 1.0;
+                    } else if (
+                        it.first.find("vel_trunk_axis_x") != std::string::npos ||
+                        it.first.find("vel_trunk_axis_y") != std::string::npos ||
+                        it.first.find("vel_trunk_axis_z") != std::string::npos ||
+                        it.first.find("vel_foot_axis_x") != std::string::npos ||
+                        it.first.find("vel_foot_axis_y") != std::string::npos ||
+                        it.first.find("vel_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 3.0;
+                    } else if (
+                        it.first.find("acc_trunk_axis_x") != std::string::npos ||
+                        it.first.find("acc_trunk_axis_y") != std::string::npos ||
+                        it.first.find("acc_trunk_axis_z") != std::string::npos ||
+                        it.first.find("acc_foot_axis_x") != std::string::npos ||
+                        it.first.find("acc_foot_axis_y") != std::string::npos ||
+                        it.first.find("acc_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 30.0;
+                    } else if (
+                        it.first.find("pos_foot_pos_x") != std::string::npos ||
+                        it.first.find("pos_foot_pos_y") != std::string::npos ||
+                        it.first.find("pos_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.1;
+                    } else if (
+                        it.first.find("vel_foot_pos_x") != std::string::npos ||
+                        it.first.find("vel_foot_pos_y") != std::string::npos ||
+                        it.first.find("vel_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 2.0;
+                    } else if (
+                        it.first.find("acc_foot_pos_x") != std::string::npos ||
+                        it.first.find("acc_foot_pos_y") != std::string::npos ||
+                        it.first.find("acc_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 10.0;
+                    } else {
+                        //Default coeficient
+                        coefs(it.second.index) = 1.0;
+                    }
+                }
+            }
+
+            return coefs;
+        }
+
+        /**
          * Retrieve the given parameter name either
          * from unoptimized value of from given
          * parameters vector

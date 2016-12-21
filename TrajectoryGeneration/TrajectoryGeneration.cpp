@@ -8,6 +8,7 @@ namespace Leph {
 TrajectoryGeneration::TrajectoryGeneration(RobotType type) :
     _type(type),
     _initialParameters(),
+    _normCoefs(),
     _generateFunc(),
     _checkParamsFunc(),
     _checkStateFunc(),
@@ -26,7 +27,18 @@ void TrajectoryGeneration::setInitialParameters(
 {
     _initialParameters = params;
 }
-        
+
+void TrajectoryGeneration::setNormalizationCoefs(
+    const Eigen::VectorXd& normCoefs)
+{
+    if (normCoefs.size() != _initialParameters.size()) {
+        throw std::logic_error(
+            "TrajectoryGeneration invalid norm coefs size: "
+            + std::to_string(normCoefs.size()));
+    }
+    _normCoefs = normCoefs;
+}
+ 
 void TrajectoryGeneration::setTrajectoryGenerationFunc(
     GenerationFunc func)
 {
@@ -67,6 +79,15 @@ Eigen::VectorXd TrajectoryGeneration::initialParameters() const
 {
     return _initialParameters;
 }
+
+Eigen::VectorXd TrajectoryGeneration::normalizationCoefs() const
+{
+    if (_normCoefs.size() == 0) {
+        return Eigen::VectorXd::Ones(_initialParameters.size());
+    } else {
+        return _normCoefs;
+    }
+}        
         
 Trajectories TrajectoryGeneration::generateTrajectory(
     const Eigen::VectorXd& params) const
@@ -80,18 +101,22 @@ double TrajectoryGeneration::checkParameters(
     return _checkParamsFunc(params);
 }
 double TrajectoryGeneration::checkState(
+    const Eigen::VectorXd& params,
+    double t,
     const Eigen::Vector3d& trunkPos,
     const Eigen::Vector3d& trunkAxis,
     const Eigen::Vector3d& footPos,
     const Eigen::Vector3d& footAxis) const
 {
-    return _checkStateFunc(
+    return _checkStateFunc(params, t, 
         trunkPos, trunkAxis, footPos, footAxis);
 }
 double TrajectoryGeneration::checkDOF(
+    const Eigen::VectorXd& params,
+    double t,
     const HumanoidFixedModel& model) const
 {
-    return _checkDOFFunc(model);
+    return _checkDOFFunc(params, t, model);
 }
         
 double TrajectoryGeneration::score(
@@ -156,7 +181,7 @@ double TrajectoryGeneration::scoreTrajectory(
         TrajectoriesTrunkFootPos(t, traj,
             trunkPos, trunkAxis,
             footPos, footAxis);
-        double costState = checkState(
+        double costState = checkState(params, t, 
             trunkPos, trunkAxis, footPos, footAxis);
         if (costState > 0.0) {
             if (verbose) {
@@ -175,15 +200,15 @@ double TrajectoryGeneration::scoreTrajectory(
         bool isIKSuccess = TrajectoriesComputeKinematics(
             t, traj, model, dq, ddq, &boundIKDistance);
         //Cost near IK bound
-        double boundIKThreashold = 1e-3;
-        if (boundIKDistance < boundIKThreashold) {
+        double boundIKThreshold = 1e-2;
+        if (boundIKDistance < boundIKThreshold) {
             if (verbose) {
                 std::cout 
                     << "Warning boundIKDistance=" 
                     << boundIKDistance << std::endl;
             }
             cost += 1000.0 
-                + 1000.0*(boundIKThreashold - boundIKDistance);
+                + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         if (!isIKSuccess) {
             if (verbose) {
@@ -195,7 +220,7 @@ double TrajectoryGeneration::scoreTrajectory(
             continue;
         }
         //Check Joit DOF
-        double costDOF = checkDOF(model);
+        double costDOF = checkDOF(params, t, model);
         if (costDOF > 0.0) {
             if (verbose) {
                 std::cout 
@@ -243,24 +268,31 @@ void TrajectoryGeneration::runOptimization(
     unsigned int populationSize,
     double lambda)
 {
+    //Retrieve initial parameters
+    Eigen::VectorXd initParams = initialParameters();
+    //Retrieve normalization coefficients
+    const Eigen::VectorXd normCoef = normalizationCoefs();
     //Initialization
     _countIteration = 1;
     _bestScore = -1.0;
+
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [this](const Eigen::VectorXd& params) 
+        [this, &normCoef](const Eigen::VectorXd& params) 
     {
-        return this->scoreTrajectory(params);
+        return this->scoreTrajectory(
+            params.array() * normCoef.array());
     };
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [this, &filename](const libcmaes::CMAParameters<>& cmaparams, 
+        [this, &filename, &normCoef](const libcmaes::CMAParameters<>& cmaparams, 
             const libcmaes::CMASolutions& cmasols)
     {
         //Retrieve best Trajectories and score
         Eigen::VectorXd params = 
-            cmasols.get_best_seen_candidate().get_x_dvec();
+            cmasols.get_best_seen_candidate().get_x_dvec().array()
+            * normCoef.array();
         double score = 
             cmasols.get_best_seen_candidate().get_fvalue();
         if (_bestScore < 0.0 || _bestScore > score) {
@@ -304,9 +336,7 @@ void TrajectoryGeneration::runOptimization(
             ::_defaultPFunc(cmaparams, cmasols);
     };
 
-
-    Eigen::VectorXd initParams = initialParameters();
-
+    //Show initial info
     double initScore = scoreTrajectory(initParams, true);
     std::cout << "============" << std::endl;
     std::cout << "Init Score: " << initScore << std::endl;
@@ -315,7 +345,8 @@ void TrajectoryGeneration::runOptimization(
 
     //CMAES initialization
     libcmaes::CMAParameters<> cmaparams(
-        initParams, lambda, populationSize);
+        initParams.array() / normCoef.array(), 
+        lambda, populationSize);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
@@ -326,9 +357,11 @@ void TrajectoryGeneration::runOptimization(
     //Run optimization
     libcmaes::CMASolutions cmasols = 
         libcmaes::cmaes<>(fitness, cmaparams, progress);
+
     //Retrieve best Trajectories and score
     Eigen::VectorXd params = 
-        cmasols.get_best_seen_candidate().get_x_dvec();
+        cmasols.get_best_seen_candidate().get_x_dvec().array()
+        * normCoef.array();
     double score = 
         cmasols.get_best_seen_candidate().get_fvalue();
     _bestParams = params;

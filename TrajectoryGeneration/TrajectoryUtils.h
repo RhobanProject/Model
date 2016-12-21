@@ -69,10 +69,12 @@ bool TrajectoriesComputeKinematics(
 /**
  * Default Cartesian state check function.
  * Return positive cost value
- * if given Cartesian state are outside
+ * if given time and Cartesian state are outside
  * standard valid range
  */
 double DefaultCheckState(
+    const Eigen::VectorXd& params,
+    double t,
     const Eigen::Vector3d& trunkPos,
     const Eigen::Vector3d& trunkAxis,
     const Eigen::Vector3d& footPos,
@@ -81,10 +83,12 @@ double DefaultCheckState(
 /**
  * Default Joint DOF check function.
  * Return positive cost value if
- * Joint DOF of given Model are outside
+ * time and joint DOF of given Model are outside
  * standard valid range
  */
 double DefaultCheckDOF(
+    const Eigen::VectorXd& params,
+    double t,
     const HumanoidFixedModel& model);
 
 }

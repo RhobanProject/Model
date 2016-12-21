@@ -75,6 +75,19 @@ void TrajectoriesDisplay(
     }
     plot.plot("time", "all").render();
     plot.clear();
+    for (double t=traj.min();t<=traj.max();t+=0.01) {
+        plot.add(VectorLabel(
+            "time", t,
+            "foot_axis_x", traj.get("foot_axis_x").pos(t),
+            "foot_axis_y", traj.get("foot_axis_y").pos(t),
+            "foot_axis_z", traj.get("foot_axis_z").pos(t),
+            "foot_axis_x_vel", traj.get("foot_axis_x").vel(t),
+            "foot_axis_y_vel", traj.get("foot_axis_y").vel(t),
+            "foot_axis_z_vel", traj.get("foot_axis_z").vel(t)
+        ));
+    }
+    plot.plot("time", "all").render();
+    plot.clear();
     //Joint Model
     JointModel jointModel;
     //Display Trajectory
@@ -225,6 +238,7 @@ void TrajectoriesDisplay(
         }
     }
     //Display dynamics info
+    std::cout << "Time length: " << traj.max() - traj.min() << std::endl;
     std::cout << "Minimum IK Bound Distance: " << minBoundIKDistance << std::endl;
     std::cout << "Mean Torques Norm: " << sumTorques << std::endl;
     std::cout << "Mean ZMP Norm: " << sumZMP << std::endl;

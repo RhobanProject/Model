@@ -287,9 +287,9 @@ static double scoreTrajectories(
             Leph::AxisToMatrix(footAxisFeed),
             &boundIKDistance);
         //Cost near IK bound
-        double boundIKThreashold = 1e-3;
-        if (boundIKDistance < boundIKThreashold) {
-            return 1000.0 + 1000.0*(boundIKThreashold - boundIKDistance);
+        double boundIKThreshold = 1e-2;
+        if (boundIKDistance < boundIKThreshold) {
+            return 1000.0 + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         //IK Error
         if (!isSuccessFeed) {
@@ -466,9 +466,9 @@ static double scoreFitting(
             Leph::AxisToMatrix(footAxisFeed),
             &boundIKDistance);
         //Cost near IK bound
-        double boundIKThreashold = 1e-3;
-        if (boundIKDistance < boundIKThreashold) {
-            return 1000.0 + 1000.0*(boundIKThreashold - boundIKDistance);
+        double boundIKThreshold = 1e-2;
+        if (boundIKDistance < boundIKThreshold) {
+            return 1000.0 + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         //IK Error
         if (!isSuccessFeed) {

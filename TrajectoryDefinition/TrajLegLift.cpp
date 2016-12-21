@@ -5,7 +5,7 @@
 
 namespace Leph {
 
-Eigen::VectorXd TrajLegLift::initialParameters(
+void TrajLegLift::initializeParameters(
     TrajectoryParameters& trajParams)
 {
     //Total time length
@@ -116,8 +116,6 @@ Eigen::VectorXd TrajLegLift::initialParameters(
     trajParams.set("middle2_acc_foot_pos_x",   true)  = 0.0;
     trajParams.set("middle2_acc_foot_pos_y",   true)  = 0.0;
     trajParams.set("middle2_acc_foot_pos_z",   true)  = 0.0;
-
-    return trajParams.buildVector();
 }
 
 TrajectoryGeneration::GenerationFunc TrajLegLift::funcGeneration(

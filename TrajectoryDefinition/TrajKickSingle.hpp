@@ -16,7 +16,7 @@ class TrajKickSingle
 {
     public:
 
-        static Eigen::VectorXd initialParameters(
+        static void initializeParameters(
             TrajectoryParameters& trajParams);
 
         static TrajectoryGeneration::GenerationFunc funcGeneration(

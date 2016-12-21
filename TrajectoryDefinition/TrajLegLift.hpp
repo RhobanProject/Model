@@ -16,7 +16,7 @@ class TrajLegLift
 {
     public:
 
-        static Eigen::VectorXd initialParameters(
+        static void initializeParameters(
             TrajectoryParameters& trajParams);
         static TrajectoryGeneration::GenerationFunc funcGeneration(
             const TrajectoryParameters& trajParams);

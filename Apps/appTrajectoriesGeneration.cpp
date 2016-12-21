@@ -20,7 +20,7 @@ int main(int argc, char** argv)
         std::cout << "Usage: ./app RUN trajectoryName outputPrefix [paramName=value] ..." << std::endl;
         std::cout << "Usage: ./app SEED trajectoryName outputPrefix restartParameters [paramName=value] ..." << std::endl;
         std::cout << "Available trajectories:" << std::endl;
-        std::cout << "-- kick" << std::endl;
+        std::cout << "-- kicksingle" << std::endl;
         std::cout << "-- leglift" << std::endl;
         return 1;
     }
@@ -64,10 +64,9 @@ int main(int argc, char** argv)
 
     //Initialize the generator
     Leph::TrajectoryGeneration generator(Leph::SigmabanModel);
-    Eigen::VectorXd initParams;
     //Load trajectory template
     if (trajName == "kicksingle") {
-        initParams = Leph::TrajKickSingle::initialParameters(trajParams);
+        Leph::TrajKickSingle::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickSingle::funcGeneration(trajParams));
         generator.setCheckParametersFunc(Leph::TrajKickSingle::funcCheckParams(trajParams));
         generator.setCheckStateFunc(Leph::TrajKickSingle::funcCheckState(trajParams));
@@ -75,7 +74,7 @@ int main(int argc, char** argv)
         generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
     } else if (trajName == "leglift") {
-        initParams = Leph::TrajLegLift::initialParameters(trajParams);
+        Leph::TrajLegLift::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajLegLift::funcGeneration(trajParams));
         generator.setCheckParametersFunc(Leph::TrajLegLift::funcCheckParams(trajParams));
         generator.setCheckStateFunc(Leph::TrajLegLift::funcCheckState(trajParams));
@@ -86,6 +85,11 @@ int main(int argc, char** argv)
         std::cout << "Invalid trajectory name: " << trajName << std::endl;
         return 1;
     }
+
+    //Build initial parameters
+    Eigen::VectorXd initParams = trajParams.buildVector();
+    //Build normalization coefficents
+    Eigen::VectorXd normCoefs = trajParams.buildNormalizationCoefs();
     
     //Insert inputs parameters to trajectory parameter
     std::string paramsStr = "_";
@@ -128,6 +132,8 @@ int main(int argc, char** argv)
 
     //Set initial parameters
     generator.setInitialParameters(initParams);
+    //Set normalization coefficients
+    generator.setNormalizationCoefs(normCoefs);
     
 #ifdef LEPH_VIEWER_ENABLED
     //Display initial trajectory

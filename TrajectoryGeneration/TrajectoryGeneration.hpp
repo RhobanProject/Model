@@ -31,12 +31,16 @@ class TrajectoryGeneration
             const Eigen::VectorXd& params)>
             CheckParamsFunc;
         typedef std::function<double(
+            const Eigen::VectorXd& params,
+            double t,
             const Eigen::Vector3d& trunkPos,
             const Eigen::Vector3d& trunkAxis,
             const Eigen::Vector3d& footPos,
             const Eigen::Vector3d& footAxis)>
             CheckStateFunc;
         typedef std::function<double(
+            const Eigen::VectorXd& params,
+            double t,
             const HumanoidFixedModel& model)>
             CheckDOFFunc;
         typedef std::function<double(
@@ -72,6 +76,12 @@ class TrajectoryGeneration
             const Eigen::VectorXd& params);
 
         /**
+         * Set the normalization coefficients.
+         */
+        void setNormalizationCoefs(
+            const Eigen::VectorXd& normCoefs);
+
+        /**
          * Set Trajectory Generation function. 
          * The function returns the Trajectories spline
          * container from given parameters vector.
@@ -91,7 +101,7 @@ class TrajectoryGeneration
          * Set the Cartesian Trunk/Foot state 
          * check function.
          * The function returns positive cost value if
-         * given trunk/foot position and orientation
+         * given time, trunk/foot position and orientation
          * are outside valid bounds.
          */
         void setCheckStateFunc(CheckStateFunc func);
@@ -99,7 +109,7 @@ class TrajectoryGeneration
         /**
          * Set the Joint DOF check function.
          * The function returns positive cost value
-         * if given model DOF state is outside 
+         * if given time and model DOF state is outside 
          * valid bounds.
          */
         void setCheckDOFFunc(CheckDOFFunc func);
@@ -124,6 +134,11 @@ class TrajectoryGeneration
          * Return initial parameters
          */
         Eigen::VectorXd initialParameters() const;
+        
+        /**
+         * Return normalization coefficients
+         */
+        Eigen::VectorXd normalizationCoefs() const;
 
         /**
          * Call Trajectory Generation function
@@ -137,11 +152,15 @@ class TrajectoryGeneration
         double checkParameters(
             const Eigen::VectorXd& params) const;
         double checkState(
+            const Eigen::VectorXd& params,
+            double t,
             const Eigen::Vector3d& trunkPos,
             const Eigen::Vector3d& trunkAxis,
             const Eigen::Vector3d& footPos,
             const Eigen::Vector3d& footAxis) const;
         double checkDOF(
+            const Eigen::VectorXd& params,
+            double t,
             const HumanoidFixedModel& model) const;
 
         /**
@@ -206,6 +225,11 @@ class TrajectoryGeneration
          * optimization process
          */
         Eigen::VectorXd _initialParameters;
+
+        /**
+         * Normalization coefficients
+         */
+        Eigen::VectorXd _normCoefs;
 
         /**
          * User functions
