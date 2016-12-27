@@ -1,4 +1,5 @@
 #include <SFML/OpenGL.hpp>
+#include "GL/glut.h"
 #include "Viewer/ModelViewer.hpp"
 
 namespace Leph {
