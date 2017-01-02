@@ -289,10 +289,17 @@ static double scoreTrajectories(
         //Cost near IK bound
         double boundIKThreshold = 1e-2;
         if (boundIKDistance < boundIKThreshold) {
+            if (verboseLevel >= 1) {
+                std::cout << "IK bound reached: " 
+                    << boundIKThreshold << std::endl;
+            }
             return 1000.0 + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         //IK Error
         if (!isSuccessFeed) {
+            if (verboseLevel >= 1) {
+                std::cout << "IK error" << std::endl;
+            }
             return 2000.0;
         }
         
@@ -468,10 +475,17 @@ static double scoreFitting(
         //Cost near IK bound
         double boundIKThreshold = 1e-2;
         if (boundIKDistance < boundIKThreshold) {
+            if (verboseLevel >= 1) {
+                std::cout << "IK bound reached: " 
+                    << boundIKThreshold << std::endl;
+            }
             return 1000.0 + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         //IK Error
         if (!isSuccessFeed) {
+            if (verboseLevel >= 1) {
+                std::cout << "IK error" << std::endl;
+            }
             return 2000.0;
         }
 
