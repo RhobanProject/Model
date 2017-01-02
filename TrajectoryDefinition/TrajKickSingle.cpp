@@ -235,6 +235,14 @@ TrajectoryGeneration::CheckParamsFunc TrajKickSingle::funcCheckParams(
         double before2Ratio = trajParams.get("time_ratio_before2", params);
         double contactRatio = trajParams.get("time_ratio_contact", params);
         double afterRatio = trajParams.get("time_ratio_after", params);
+        double timeLength = trajParams.get("time_length", params);
+        //Check time length
+        if (timeLength > 10.0) {
+            return 1000.0 + 1000.0*(timeLength-10.0);
+        }
+        if (timeLength < 0.5) {
+            return 1000.0 + 1000.0*(0.5-timeLength);
+        }
         //Check support ratio bound
         if (before1Ratio <= 0.1) {
             return  1000.0 - 1000.0*before1Ratio;
