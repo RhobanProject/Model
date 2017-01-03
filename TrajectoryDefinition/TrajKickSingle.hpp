@@ -9,8 +9,8 @@ namespace Leph {
 /**
  * TrajKickSingle
  *
- * Template for single support 
- * kick trajectory generation
+ * Template for right single 
+ * support kick trajectory generation
  */
 class TrajKickSingle
 {

@@ -2,6 +2,7 @@
 #define LEPH_COMMONTRAJS_H
 
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
+#include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 
 namespace Leph {
 
@@ -11,6 +12,20 @@ namespace Leph {
  * and double support parameters.
  */
 TrajectoryParameters DefaultTrajParameters();
+
+/**
+ * Return a standard fitness function from
+ * given trajectory parameters
+ */
+TrajectoryGeneration::ScoreFunc DefaultFuncScore(
+    const TrajectoryParameters& trajParams);
+
+/**
+ * Return a standard end fitness function from
+ * given trajectory parameters
+ */
+TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
+    const TrajectoryParameters& trajParams);
 
 }
 

@@ -1,5 +1,6 @@
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
+#include "TrajectoryDefinition/CommonTrajs.h"
 #include "Model/JointModel.hpp"
 #include "Model/NamesModel.h"
 
@@ -8,11 +9,6 @@ namespace Leph {
 void TrajKickSingle::initializeParameters(
     TrajectoryParameters& trajParams)
 {
-    //fitness maximum torque yaw
-    trajParams.set("fitness_max_torque_yaw", false) = 1.0;
-    //fitness maximum voltage ratio
-    trajParams.set("fitness_max_volt_ratio", false) = 0.9;
-
     //Total time length
     trajParams.set("time_length", true) = 3.0;
     //time ratio for control points
@@ -185,7 +181,7 @@ void TrajKickSingle::initializeParameters(
 TrajectoryGeneration::GenerationFunc TrajKickSingle::funcGeneration(
     const TrajectoryParameters& trajParams)
 {
-    return [&trajParams](const Eigen::VectorXd& params) -> Leph::Trajectories {
+    return [&trajParams](const Eigen::VectorXd& params) -> Trajectories {
         //Retrieve timing parameters
         double endTime = trajParams.get("time_length", params);
         double before1Time = trajParams.get("time_ratio_before1", params)*endTime;
@@ -194,7 +190,7 @@ TrajectoryGeneration::GenerationFunc TrajKickSingle::funcGeneration(
         double afterTime = trajParams.get("time_ratio_after", params)*endTime;
         
         //Initialize state splines
-        Leph::Trajectories traj = Leph::TrajectoriesInit();
+        Trajectories traj = TrajectoriesInit();
 
         //Support phase (single support for kick)
         traj.get("is_double_support").addPoint(0.0, 0.0);
@@ -304,7 +300,7 @@ TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
             cost += 1000.0 + 1000.0*(footPos.x() - contactPos);
         }
         //Forward to default state check
-        cost += Leph::DefaultCheckState(params, t, 
+        cost += DefaultCheckState(params, t, 
             trunkPos, trunkAxis, footPos, footAxis);
         return cost;
     };
@@ -313,125 +309,19 @@ TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
 TrajectoryGeneration::CheckDOFFunc TrajKickSingle::funcCheckDOF(
     const TrajectoryParameters& trajParams)
 {
-    return Leph::DefaultCheckDOF;
+    return DefaultCheckDOF;
 }
 
 TrajectoryGeneration::ScoreFunc TrajKickSingle::funcScore(
     const TrajectoryParameters& trajParams)
 {
-    return [&trajParams](
-        double t,
-        Leph::HumanoidFixedModel& model,
-        const Eigen::VectorXd& torques,
-        const Eigen::VectorXd& dq,
-        const Eigen::VectorXd& ddq,
-        bool isDoubleSupport,
-        Leph::HumanoidFixedModel::SupportFoot supportFoot,
-        std::vector<double>& data) -> double 
-    {
-        (void)t;
-        (void)isDoubleSupport;
-        (void)supportFoot;
-        
-        double cost = 0.0;
-
-        //Init data
-        if (data.size() == 0) {
-            //Max ZMP
-            data.push_back(0.0);
-            //Max voltage
-            data.push_back(0.0);
-            //Max torque yaw
-            data.push_back(0.0);
-        }
-
-        //ZMP
-        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques(
-            "left_foot_tip", torques);
-        zmp.z() = 0.0;
-        //Max ZMP
-        if (data[0] < zmp.lpNorm<Eigen::Infinity>()) {
-            data[0] = zmp.lpNorm<Eigen::Infinity>();
-        }
-        
-        //Voltage
-        Leph::JointModel jointModel;
-        for (const std::string& name : Leph::NamesDOF) {
-            size_t index = model.get().getDOFIndex(name);
-            double volt = fabs(jointModel.computeElectricTension(
-                dq(index), ddq(index), torques(index)));
-            //Maximum voltage
-            if (data[1] < volt) {
-                data[1] = volt;
-            }
-            cost += 0.01*volt/Leph::NamesDOF.size();
-        }
-
-        //Support torque yaw
-        double torqueSupportYaw = fabs(
-            torques(model.get().getDOFIndex("base_yaw")));
-        //Max support yaw
-        if (data[2] < torqueSupportYaw) {
-            data[2] = torqueSupportYaw;
-        }
-        
-        return cost;
-    };
+    return DefaultFuncScore(trajParams);
 }
 
 TrajectoryGeneration::EndScoreFunc TrajKickSingle::funcEndScore(
     const TrajectoryParameters& trajParams)
 {
-    return [&trajParams](
-        const Eigen::VectorXd& params,
-        const Leph::Trajectories& traj, 
-        double score,
-        std::vector<double>& data,
-        bool verbose) -> double {
-        (void)params;
-        (void)traj;
-        if (verbose) {
-            std::cout 
-                << "MeanVolt=" << score 
-                << " MaxZMP=" << data[0] 
-                << " MaxVolt=" << data[1]
-                << " MaxTorqueYaw=" << data[2] 
-                << std::endl;
-        }
-        double cost = 0.0;
-        Leph::JointModel jointModel;
-        if (data[1] > trajParams.get("fitness_max_volt_ratio")*jointModel.getMaxVoltage()) {
-            double tmpCost = 10.0 + 10.0*data[1];
-            cost += tmpCost;
-            if (verbose) {
-                std::cout << "VoltBound=" << tmpCost << std::endl;
-            }
-        } 
-        if (data[2] > trajParams.get("fitness_max_torque_yaw")) {
-            double tmpCost = 10.0 + 10.0*data[2];
-            cost += tmpCost;
-            if (verbose) {
-                std::cout << "TorqueYawBound=" << tmpCost << std::endl;
-            }
-        }
-        cost += 150.0*data[0] + 0.2*data[1] + 1.0*data[2];
-        if (verbose) {
-            std::cout 
-                << "ZMPCost=" << 150.0*data[0] 
-                << " VoltCost=" << 0.2*data[1]
-                << " TorqueYawCost=" << 1.0*data[2] 
-                << std::endl;
-        }
-        if (verbose) {
-            std::cout 
-                << "--> "
-                << "IterationCost=" << score 
-                << " EndCost=" << cost 
-                << " Total=" << score + cost 
-                << std::endl;
-        }
-        return cost;
-    };
+    return DefaultFuncEndScore(trajParams);
 }
 
 }
