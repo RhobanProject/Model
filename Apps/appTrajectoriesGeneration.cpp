@@ -7,6 +7,7 @@
 #include "TrajectoryDefinition/CommonTrajs.h"
 #include "Utils/FileVector.h"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
+#include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
 
 #ifdef LEPH_VIEWER_ENABLED
@@ -21,6 +22,7 @@ int main(int argc, char** argv)
         std::cout << "Usage: ./app SEED trajectoryName outputPrefix restartParameters [paramName=value] ..." << std::endl;
         std::cout << "Available trajectories:" << std::endl;
         std::cout << "-- kicksingle" << std::endl;
+        std::cout << "-- kickdouble" << std::endl;
         std::cout << "-- leglift" << std::endl;
         return 1;
     }
@@ -73,6 +75,14 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajKickSingle::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
+    } else if (trajName == "kickdouble") {
+        Leph::TrajKickDouble::initializeParameters(trajParams);
+        generator.setTrajectoryGenerationFunc(Leph::TrajKickDouble::funcGeneration(trajParams));
+        generator.setCheckParametersFunc(Leph::TrajKickDouble::funcCheckParams(trajParams));
+        generator.setCheckStateFunc(Leph::TrajKickDouble::funcCheckState(trajParams));
+        generator.setCheckDOFFunc(Leph::TrajKickDouble::funcCheckDOF(trajParams));
+        generator.setScoreFunc(Leph::TrajKickDouble::funcScore(trajParams));
+        generator.setEndScoreFunc(Leph::TrajKickDouble::funcEndScore(trajParams));
     } else if (trajName == "leglift") {
         Leph::TrajLegLift::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajLegLift::funcGeneration(trajParams));

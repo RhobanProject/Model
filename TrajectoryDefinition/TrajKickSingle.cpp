@@ -25,7 +25,7 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("contact_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("contact_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
     trajParams.set("contact_pos_foot_pos_x",   false) = 0.03;
-    trajParams.set("contact_pos_foot_pos_y",   false) = -0.11;
+    trajParams.set("contact_pos_foot_pos_y",   false) = -0.09;
     trajParams.set("contact_pos_foot_pos_z",   false) = 0.06;
     trajParams.set("contact_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("contact_pos_foot_axis_y",  false) = 0.0;
@@ -239,30 +239,30 @@ TrajectoryGeneration::CheckParamsFunc TrajKickSingle::funcCheckParams(
         if (timeLength < 0.5) {
             return 1000.0 + 1000.0*(0.5-timeLength);
         }
-        //Check support ratio bound
+        //Check ratio bound
         if (before1Ratio <= 0.1) {
-            return  1000.0 - 1000.0*before1Ratio;
+            return  1000.0 - 1000.0*(before1Ratio - 0.1);
         }
         if (before1Ratio >= 0.9) {
-            return  1000.0 + 1000.0*(before1Ratio - 1.0);
+            return  1000.0 + 1000.0*(before1Ratio - 0.9);
         }
         if (before2Ratio <= 0.1) {
-            return  1000.0 - 1000.0*before2Ratio;
+            return  1000.0 - 1000.0*(before2Ratio - 0.1);
         }
         if (before2Ratio >= 0.9) {
-            return  1000.0 + 1000.0*(before2Ratio - 1.0);
+            return  1000.0 + 1000.0*(before2Ratio - 0.9);
         }
         if (contactRatio <= 0.1) {
-            return  1000.0 - 1000.0*contactRatio;
+            return  1000.0 - 1000.0*(contactRatio - 0.1);
         }
         if (contactRatio >= 0.9) {
-            return  1000.0 + 1000.0*(contactRatio - 1.0);
+            return  1000.0 + 1000.0*(contactRatio - 0.9);
         }
         if (afterRatio <= 0.1) {
-            return  1000.0 - 1000.0*afterRatio;
+            return  1000.0 - 1000.0*(afterRatio - 0.1);
         }
         if (afterRatio >= 0.9) {
-            return  1000.0 + 1000.0*(afterRatio - 1.0);
+            return  1000.0 + 1000.0*(afterRatio - 0.9);
         }
         if (before1Ratio + 0.05 > before2Ratio) {
             return 1000.0 - 1000.0*(before2Ratio-before1Ratio-0.05);
@@ -296,7 +296,7 @@ TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
             * trajParams.get("time_ratio_contact", params);
         double contactPos = 
             trajParams.get("contact_pos_foot_pos_x", params);
-        if (t < contactTime && footPos.x() > contactPos) {
+        if (t < contactTime-0.01 && footPos.x() > contactPos) {
             cost += 1000.0 + 1000.0*(footPos.x() - contactPos);
         }
         //Forward to default state check

@@ -103,6 +103,7 @@ set(SOURCES_FILES
     DMP/DMPSpline.cpp
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
+    TrajectoryDefinition/TrajKickDouble.cpp
     TrajectoryDefinition/TrajLegLift.cpp
 )
 

@@ -206,22 +206,22 @@ TrajectoryGeneration::CheckParamsFunc TrajLegLift::funcCheckParams(
         }
         //Check support ratio bound
         if (beforeRatio <= 0.1) {
-            return  1000.0 - 1000.0*beforeRatio;
+            return  1000.0 - 1000.0*(beforeRatio - 0.1);
         }
         if (beforeRatio >= 0.9) {
-            return  1000.0 + 1000.0*(beforeRatio - 1.0);
+            return  1000.0 + 1000.0*(beforeRatio - 0.9);
         }
         if (swapRatio <= 0.1) {
-            return  1000.0 - 1000.0*swapRatio;
+            return  1000.0 - 1000.0*(swapRatio - 0.1);
         }
         if (swapRatio >= 0.9) {
-            return  1000.0 + 1000.0*(swapRatio - 1.0);
+            return  1000.0 + 1000.0*(swapRatio - 0.9);
         }
         if (afterRatio <= 0.1) {
-            return  1000.0 - 1000.0*afterRatio;
+            return  1000.0 - 1000.0*(afterRatio - 0.1);
         }
         if (afterRatio >= 0.9) {
-            return  1000.0 + 1000.0*(afterRatio - 1.0);
+            return  1000.0 + 1000.0*(afterRatio - 0.9);
         }
         if (beforeRatio + 0.05 > swapRatio) {
             return 1000.0 - 1000.0*(swapRatio-beforeRatio-0.05);
