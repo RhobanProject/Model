@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
-#include "TrajectoryDefinition/DefaultTrajParameters.h"
+#include "TrajectoryDefinition/CommonTrajs.h"
 #include "Utils/FileVector.h"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"

@@ -1,4 +1,4 @@
-#include "TrajectoryDefinition/DefaultTrajParameters.h"
+#include "TrajectoryDefinition/CommonTrajs.h"
 
 namespace Leph {
 

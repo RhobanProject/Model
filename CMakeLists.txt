@@ -101,7 +101,7 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
-    TrajectoryDefinition/DefaultTrajParameters.cpp
+    TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajLegLift.cpp
 )

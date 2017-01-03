@@ -1,5 +1,5 @@
-#ifndef LEPH_DEFAULTTRAJPARAMETERS_H
-#define LEPH_DEFAULTTRAJPARAMETERS_H
+#ifndef LEPH_COMMONTRAJS_H
+#define LEPH_COMMONTRAJS_H
 
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 
