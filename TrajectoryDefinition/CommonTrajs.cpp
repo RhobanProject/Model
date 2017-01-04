@@ -129,6 +129,12 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
         bool verbose) -> double {
         (void)params;
         (void)traj;
+        //Skip if the first iteration
+        //has not ended (data not initialize)
+        if (data.size() != 3) {
+            return 0.0;
+        }
+        //Verbose
         if (verbose) {
             std::cout 
                 << "MeanVolt=" << score 
@@ -138,6 +144,7 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
                 << std::endl;
         }
         double cost = 0.0;
+        //Penalize impossible high motor voltage
         JointModel jointModel;
         if (data[1] > trajParams.get("fitness_max_volt_ratio")
             *jointModel.getMaxVoltage()
@@ -148,6 +155,7 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
                 std::cout << "VoltBound=" << tmpCost << std::endl;
             }
         } 
+        //Penalize high yaw support torque
         if (data[2] > trajParams.get("fitness_max_torque_yaw")) {
             double tmpCost = 10.0 + 10.0*data[2];
             cost += tmpCost;
@@ -155,15 +163,16 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
                 std::cout << "TorqueYawBound=" << tmpCost << std::endl;
             }
         }
+        //Compute mixed costs with max ZMP, 
+        //max voltage and max torque yaw
         cost += 150.0*data[0] + 0.2*data[1] + 1.0*data[2];
+        //Verbose
         if (verbose) {
             std::cout 
                 << "ZMPCost=" << 150.0*data[0] 
                 << " VoltCost=" << 0.2*data[1]
                 << " TorqueYawCost=" << 1.0*data[2] 
                 << std::endl;
-        }
-        if (verbose) {
             std::cout 
                 << "--> "
                 << "IterationCost=" << score 
