@@ -394,12 +394,21 @@ class TrajectoryParameters
          * using following name format:
          * prefix_[pos|vel|acc]_[trunk|foot]_[pos|axis]_[x|y|z]
          * (Zero is set to missing data)
+         * If doInverse is true, the input cartesian state 
+         * is supposed to be expressed in the other support foot
+         * and inversion is aplied to meet same state as expected but
+         * with current supporting foot.
+         * If doMirror is true, the input cartesian state 
+         * is mirrored with respect to X-Z plane (Y translation 
+         * and X rotation are inversed).
          */
         void trajectoriesAssign(
             Trajectories& traj,
             double time,
             const std::string& prefix,
-            const Eigen::VectorXd& vect) const
+            const Eigen::VectorXd& vect,
+            bool doInverse = false,
+            bool doMirror = false) const
         {
             Eigen::Vector3d posTrunkPos = 
                 getVect(prefix + "_pos_trunk_pos", vect);
@@ -425,30 +434,33 @@ class TrajectoryParameters
                 getVect(prefix + "_vel_foot_axis", vect);
             Eigen::Vector3d accFootAxis = 
                 getVect(prefix + "_acc_foot_axis", vect);
+            double coef1 = (doInverse ? -1.0 : 1.0);
+            double coef2 = (doInverse ? 1.0 : 0.0);
+            double coef3 = (doMirror ? -1.0 : 1.0);
             traj.get("trunk_pos_x").addPoint(
-                time, posTrunkPos.x(), velTrunkPos.x(), accTrunkPos.x());
+                time, posTrunkPos.x()-coef2*posFootPos.x(), coef1*velTrunkPos.x(), coef1*accTrunkPos.x());
             traj.get("trunk_pos_y").addPoint(
-                time, posTrunkPos.y(), velTrunkPos.y(), accTrunkPos.y());
+                time, coef3*(posTrunkPos.y()-coef2*posFootPos.y()), coef3*coef1*velTrunkPos.y(), coef3*coef1*accTrunkPos.y());
             traj.get("trunk_pos_z").addPoint(
-                time, posTrunkPos.z(), velTrunkPos.z(), accTrunkPos.z());
+                time, posTrunkPos.z()-coef2*posFootPos.z(), coef1*velTrunkPos.z(), coef1*accTrunkPos.z());
             traj.get("trunk_axis_x").addPoint(
-                time, posTrunkAxis.x(), velTrunkAxis.x(), accTrunkAxis.x());
+                time, coef3*posTrunkAxis.x(), coef3*velTrunkAxis.x(), coef3*accTrunkAxis.x());
             traj.get("trunk_axis_y").addPoint(
                 time, posTrunkAxis.y(), velTrunkAxis.y(), accTrunkAxis.y());
             traj.get("trunk_axis_z").addPoint(
-                time, posTrunkAxis.z(), velTrunkAxis.z(), accTrunkAxis.z());
+                time, coef3*posTrunkAxis.z(), coef3*velTrunkAxis.z(), coef3*accTrunkAxis.z());
             traj.get("foot_pos_x").addPoint(
-                time, posFootPos.x(), velFootPos.x(), accFootPos.x());
+                time, coef1*posFootPos.x(), coef1*velFootPos.x(), coef1*accFootPos.x());
             traj.get("foot_pos_y").addPoint(
-                time, posFootPos.y(), velFootPos.y(), accFootPos.y());
+                time, coef3*coef1*posFootPos.y(), coef3*coef1*velFootPos.y(), coef3*coef1*accFootPos.y());
             traj.get("foot_pos_z").addPoint(
-                time, posFootPos.z(), velFootPos.z(), accFootPos.z());
+                time, coef1*posFootPos.z(), coef1*velFootPos.z(), coef1*accFootPos.z());
             traj.get("foot_axis_x").addPoint(
-                time, posFootAxis.x(), velFootAxis.x(), accFootAxis.x());
+                time, coef3*posFootAxis.x(), coef3*velFootAxis.x(), coef3*accFootAxis.x());
             traj.get("foot_axis_y").addPoint(
                 time, posFootAxis.y(), velFootAxis.y(), accFootAxis.y());
             traj.get("foot_axis_z").addPoint(
-                time, posFootAxis.z(), velFootAxis.z(), accFootAxis.z());
+                time, coef3*posFootAxis.z(), coef3*velFootAxis.z(), coef3*accFootAxis.z());
         }
 
     private:

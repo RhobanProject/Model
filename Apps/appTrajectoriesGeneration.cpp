@@ -9,6 +9,7 @@
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
+#include "TrajectoryDefinition/TrajWalk.hpp"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
@@ -24,6 +25,7 @@ int main(int argc, char** argv)
         std::cout << "-- kicksingle" << std::endl;
         std::cout << "-- kickdouble" << std::endl;
         std::cout << "-- leglift" << std::endl;
+        std::cout << "-- walk" << std::endl;
         return 1;
     }
     std::string mode = argv[1];
@@ -91,6 +93,14 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajLegLift::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajLegLift::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajLegLift::funcEndScore(trajParams));
+    } else if (trajName == "walk") {
+        Leph::TrajWalk::initializeParameters(trajParams);
+        generator.setTrajectoryGenerationFunc(Leph::TrajWalk::funcGeneration(trajParams));
+        generator.setCheckParametersFunc(Leph::TrajWalk::funcCheckParams(trajParams));
+        generator.setCheckStateFunc(Leph::TrajWalk::funcCheckState(trajParams));
+        generator.setCheckDOFFunc(Leph::TrajWalk::funcCheckDOF(trajParams));
+        generator.setScoreFunc(Leph::TrajWalk::funcScore(trajParams));
+        generator.setEndScoreFunc(Leph::TrajWalk::funcEndScore(trajParams));
     } else {
         std::cout << "Invalid trajectory name: " << trajName << std::endl;
         return 1;

@@ -105,6 +105,7 @@ set(SOURCES_FILES
     TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajKickDouble.cpp
     TrajectoryDefinition/TrajLegLift.cpp
+    TrajectoryDefinition/TrajWalk.cpp
 )
 
 #Tests main files
