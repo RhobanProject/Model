@@ -11,7 +11,7 @@ void TrajLegLift::initializeParameters(
 {
     //Total time length
     trajParams.set("time_length", true) = 3.0;
-    //time ratio for control points
+    //Time ratio for control points
     trajParams.set("time_ratio_before", true) = 0.3;
     trajParams.set("time_ratio_swap", true) = 0.5;
     trajParams.set("time_ratio_after", true) = 0.7;

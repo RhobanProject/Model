@@ -51,11 +51,41 @@ class TrajectoryParameters
             _container.at(name).name = name;
             _container.at(name).isOptimized = isOptimized;
             _container.at(name).defaultValue = value;
+            _container.at(name).alias = "";
             computeIndex();
         }
 
         /**
-         * Return true is given parameter 
+         * Define the new given name as parameter
+         * alias for given others parameter name
+         * (not optimized)
+         */
+        inline void cpy(
+            const std::string& name,
+            const std::string& alias)
+        {
+            //Check parameter exists
+            if (isDefined(name)) {
+                throw std::logic_error(
+                    "TrajectoryParameters exist parameter: " 
+                    + name);
+            }
+            if (!isDefined(alias)) {
+                throw std::logic_error(
+                    "TrajectoryParameters alias not exist: " 
+                    + alias);
+            }
+            //Create parameters
+            _container[name] = Parameter();
+            _container.at(name).name = name;
+            _container.at(name).isOptimized = false;
+            _container.at(name).defaultValue = 0.0;
+            _container.at(name).alias = alias;
+            computeIndex();
+        }
+
+        /**
+         * Return true if given parameter 
          * name is already contained
          */
         inline bool isDefined(
@@ -65,13 +95,24 @@ class TrajectoryParameters
         }
 
         /**
+         * Return true if given parameter
+         * name is an alias
+         */
+        inline bool isAlias(
+            const std::string& name) const
+        {
+            checkName(name);
+            return (_container.at(name).alias != "");
+        }
+
+        /**
          * Enable or disable a parameter optimization
          */
         inline void optimize(
             const std::string& name, bool isOptimized) 
         {
-            checkName(name);
-            _container.at(name).isOptimized = isOptimized;
+            const std::string& alias = resolveAlias(name);
+            _container.at(alias).isOptimized = isOptimized;
             computeIndex();
         }
 
@@ -83,8 +124,8 @@ class TrajectoryParameters
         inline double& set(
             const std::string& name)
         {
-            checkName(name);
-            return _container.at(name).defaultValue;
+            const std::string& alias = resolveAlias(name);
+            return _container.at(alias).defaultValue;
         }
         
         /**
@@ -99,11 +140,13 @@ class TrajectoryParameters
         {
             if (!isDefined(name)) {
                 add(name, 0.0, isOptimized);
+                return _container.at(name).defaultValue;
             } else {
-                _container.at(name).isOptimized = isOptimized;
+                const std::string& alias = resolveAlias(name);
+                _container.at(alias).isOptimized = isOptimized;
                 computeIndex();
+                return _container.at(alias).defaultValue;
             }
-            return _container.at(name).defaultValue;
         }
 
         /**
@@ -230,9 +273,9 @@ class TrajectoryParameters
             const std::string& name, 
             const Eigen::VectorXd& parameters) const
         {
-            checkName(name);
+            const std::string& alias = resolveAlias(name);
             //Get from container or vector
-            const Parameter& p = _container.at(name);
+            const Parameter& p = _container.at(alias);
             if (p.isOptimized) {
                 return parameters(p.index);
             } else {
@@ -247,9 +290,9 @@ class TrajectoryParameters
         inline double get(
             const std::string& name) const
         {
-            checkName(name);
+            const std::string& alias = resolveAlias(name);
             //Get from container or vector
-            const Parameter& p = _container.at(name);
+            const Parameter& p = _container.at(alias);
             return p.defaultValue;
         }
         
@@ -276,7 +319,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameX)) {
                 //Retrieve default value or parameter
-                const Parameter& pX = _container.at(nameX);
+                const std::string& aliasX = resolveAlias(nameX);
+                const Parameter& pX = _container.at(aliasX);
                 if (pX.isOptimized) {
                     vect.x() = parameters(pX.index);
                 } else {
@@ -290,7 +334,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameY)) {
                 //Retrieve default value or parameter
-                const Parameter& pY = _container.at(nameY);
+                const std::string& aliasY = resolveAlias(nameY);
+                const Parameter& pY = _container.at(aliasY);
                 if (pY.isOptimized) {
                     vect.y() = parameters(pY.index);
                 } else {
@@ -304,7 +349,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameZ)) {
                 //Retrieve default value or parameter
-                const Parameter& pZ = _container.at(nameZ);
+                const std::string& aliasZ = resolveAlias(nameZ);
+                const Parameter& pZ = _container.at(aliasZ);
                 if (pZ.isOptimized) {
                     vect.z() = parameters(pZ.index);
                 } else {
@@ -332,7 +378,11 @@ class TrajectoryParameters
                 } else {
                     os << std::setw(5) << "] ";
                 }
-                os << it.second.defaultValue;
+                if (it.second.alias != "") {
+                    os << it.second.alias;
+                } else {
+                    os << it.second.defaultValue;
+                }
                 os << std::endl;
             }
         }
@@ -411,6 +461,7 @@ class TrajectoryParameters
             bool isOptimized;
             double defaultValue;
             size_t index;
+            std::string alias;
         };
 
         /**
@@ -435,6 +486,22 @@ class TrajectoryParameters
                 throw std::logic_error(
                     "TrajectoryParameters unknown parameter: " 
                     + name);
+            }
+        }
+
+        /**
+         * Return the parameter name (not alias)
+         * referenced by given name
+         */
+        const std::string& resolveAlias(
+            const std::string& name) const
+        {
+            checkName(name);
+            const std::string& alias = _container.at(name).alias;
+            if (alias == "") {
+                return name;
+            } else {
+                return resolveAlias(alias);
             }
         }
 

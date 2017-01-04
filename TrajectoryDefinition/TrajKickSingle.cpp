@@ -11,11 +11,17 @@ void TrajKickSingle::initializeParameters(
 {
     //Total time length
     trajParams.set("time_length", true) = 3.0;
-    //time ratio for control points
+    //Time ratio for control points
     trajParams.set("time_ratio_before1", true) = 0.3;
     trajParams.set("time_ratio_before2", true) = 0.4;
     trajParams.set("time_ratio_contact", true) = 0.5;
     trajParams.set("time_ratio_after", true) = 0.6;
+
+    //Kick configuration
+    trajParams.set("kick_x",   false) = 0.03;
+    trajParams.set("kick_y",   false) = -0.09;
+    trajParams.set("kick_z",   false) = 0.06;
+    trajParams.set("kick_vel", false) = 1.0;
     
     //Position at contact
     trajParams.set("contact_pos_trunk_pos_x",  true)  = trajParams.get("static_single_pos_trunk_pos_x");
@@ -24,9 +30,9 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("contact_pos_trunk_axis_x", true)  = trajParams.get("static_single_pos_trunk_axis_x");
     trajParams.set("contact_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("contact_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
-    trajParams.set("contact_pos_foot_pos_x",   false) = 0.03;
-    trajParams.set("contact_pos_foot_pos_y",   false) = -0.09;
-    trajParams.set("contact_pos_foot_pos_z",   false) = 0.06;
+    trajParams.cpy("contact_pos_foot_pos_x",   "kick_x");
+    trajParams.cpy("contact_pos_foot_pos_y",   "kick_y");
+    trajParams.cpy("contact_pos_foot_pos_z",   "kick_z");
     trajParams.set("contact_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("contact_pos_foot_axis_y",  false) = 0.0;
     trajParams.set("contact_pos_foot_axis_z",  false) = 0.0;
@@ -37,7 +43,7 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("contact_vel_trunk_axis_x", true)  = 0.0;
     trajParams.set("contact_vel_trunk_axis_y", true)  = 0.0;
     trajParams.set("contact_vel_trunk_axis_z", true)  = 0.0;
-    trajParams.set("contact_vel_foot_pos_x",   false) = 1.0;
+    trajParams.cpy("contact_vel_foot_pos_x",   "kick_vel");
     trajParams.set("contact_vel_foot_pos_y",   false) = 0.0;
     trajParams.set("contact_vel_foot_pos_z",   false) = 0.0;
     trajParams.set("contact_vel_foot_axis_x",  false) = 0.0;
@@ -65,7 +71,7 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("before1_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("before1_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
     trajParams.set("before1_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")-0.02;
-    trajParams.set("before1_pos_foot_pos_y",   false) = trajParams.get("contact_pos_foot_pos_y");
+    trajParams.cpy("before1_pos_foot_pos_y",   "kick_y");
     trajParams.set("before1_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.02;
     trajParams.set("before1_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("before1_pos_foot_axis_y",  true)  = 0.3;
@@ -105,7 +111,7 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("before2_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("before2_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
     trajParams.set("before2_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")-0.01;
-    trajParams.set("before2_pos_foot_pos_y",   false) = trajParams.get("contact_pos_foot_pos_y");
+    trajParams.cpy("before2_pos_foot_pos_y",   "kick_y");
     trajParams.set("before2_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.01;
     trajParams.set("before2_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("before2_pos_foot_axis_y",  true)  = 0.1;
@@ -145,7 +151,7 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("after_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("after_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
     trajParams.set("after_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")+0.01;
-    trajParams.set("after_pos_foot_pos_y",   false) = trajParams.get("contact_pos_foot_pos_y");
+    trajParams.cpy("after_pos_foot_pos_y",   "kick_y");
     trajParams.set("after_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.02;
     trajParams.set("after_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("after_pos_foot_axis_y",  true)  = -0.3;
