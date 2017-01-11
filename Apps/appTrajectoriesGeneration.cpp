@@ -116,8 +116,11 @@ int main(int argc, char** argv)
     for (const auto& it : inputParameters) {
         std::cout << "Custom Parameter: " << it.first << "=" << it.second << std::endl;
         trajParams.set(it.first) = it.second;
-        paramsStr += it.first + std::string("_") 
-            + std::to_string(it.second) + std::string("_");
+        //Skip CMAES parameters
+        if (it.first.find("cmaes") == std::string::npos) {
+            paramsStr += it.first + std::string("_") 
+                + std::to_string(it.second) + std::string("_");
+        }
     }
 
     //Verbose
