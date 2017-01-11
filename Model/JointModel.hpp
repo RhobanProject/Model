@@ -173,7 +173,8 @@ class JointModel
         double _coefAnglePosToTension;
 
         /**
-         * Model parameters
+         * Model parameters.
+         * All positive range value are valid.
          */
         //Friction Stribeck transtition velocity
         double _paramFrictionVelLimit;

@@ -25,14 +25,16 @@ JointModel::JointModel(
     //Joint internal gearbox inertia
     _paramInertiaIn(0.003),
     //Friction internal gearbox parameters
+    //(BreakIn is a positive offset above CoulombIn)
     _paramFrictionViscousIn(0.07),
-    _paramFrictionBreakIn(0.08),
+    _paramFrictionBreakIn(0.03),
     _paramFrictionCoulombIn(0.05),
     //Joint external gearbox inertia
     _paramInertiaOut(0.001),
     //Friction external gearbox parameters
+    //(BreakOut is a positive offset above CoulombOut)
     _paramFrictionViscousOut(0.01),
-    _paramFrictionBreakOut(0.05),
+    _paramFrictionBreakOut(0.03),
     _paramFrictionCoulombOut(0.02),
     //Electric motor voltage
     _paramElectricVoltage(12.0),
@@ -47,7 +49,8 @@ JointModel::JointModel(
     //Control lag in seconds
     _paramControlLag(0.030),
     //Backlash enable to disable position threshold
-    _paramBacklashThresholdDeactivation(0.008),
+    //(Positive offset above activation)
+    _paramBacklashThresholdDeactivation(0.002),
     //Backlash disable to enable position threshold
     _paramBacklashThresholdActivation(0.006),
     //Backlash maximum angular distance
@@ -59,19 +62,20 @@ JointModel::JointModel(
             "JointModel invalid joint type");
     }
 
+    //Temporary identified parameters
     _paramFrictionVelLimit = 0.2914428092;
     _paramFrictionViscousOut = 0.003099660986;
-    _paramFrictionBreakOut = 0.0711517838;
+    _paramFrictionBreakOut = 0.04943333614;
     _paramFrictionCoulombOut = 0.02171844766;
     _paramInertiaOut = 0.0007936561532;
     _paramControlLag = 0.03300551425;
     _paramFrictionViscousIn = 0.1242307908;
-    _paramFrictionBreakIn = 0.1838766208;
+    _paramFrictionBreakIn = 0.10865058966;
     _paramFrictionCoulombIn = 0.07522603114;
     _paramInertiaIn = 0.005212544434;
     _paramBacklashRangeMax = 0.006733195882;
-    _paramBacklashThresholdDeactivation = 0.0004490002377;
-    _paramBacklashThresholdActivation = 0.006874491195;
+    _paramBacklashThresholdDeactivation = 0.002;
+    _paramBacklashThresholdActivation = 0.004;
     _paramElectricKe = 1.951435691;
     _paramElectricVoltage = 12.65527041;
     _paramElectricResistance = 3.098613714;
@@ -250,14 +254,20 @@ void JointModel::updateState(
         _stateBacklashPosition + dt*_stateBacklashVelocity;
     //Compute bask
     //Update backlash state
+    double relativePos = fabs(AngleDistance(pos, _stateBacklashPosition));
+    //Used state transition thresholds
+    double usedThresholdDeactivation = 
+        _paramBacklashThresholdDeactivation 
+        + _paramBacklashThresholdActivation;
+    double usedThresholdActivation = _paramBacklashThresholdActivation;
     if (
         _stateBacklashIsEnabled && 
-        fabs(AngleDistance(pos, _stateBacklashPosition)) > _paramBacklashThresholdDeactivation 
+        relativePos > usedThresholdDeactivation
     ) {
         _stateBacklashIsEnabled = false;
     } else if (
         !_stateBacklashIsEnabled && 
-        fabs(AngleDistance(pos, _stateBacklashPosition)) < _paramBacklashThresholdActivation
+        relativePos < usedThresholdActivation
     ) {
         _stateBacklashIsEnabled = true;
     }
@@ -294,7 +304,7 @@ double JointModel::getBacklashStateVel() const
 {
     return _stateBacklashVelocity;
 }
-        
+ 
 void JointModel::boundState(double& pos, double& vel)
 {
     //Check numerical instability
@@ -374,12 +384,14 @@ double JointModel::computeFrictionTorque(
     double usedFrictionCoulomb = 0.0;
     if (isInFriction) {
         usedFrictionViscous += _paramFrictionViscousIn;
-        usedFrictionBreak += _paramFrictionBreakIn;
+        usedFrictionBreak += 
+            _paramFrictionBreakIn + _paramFrictionCoulombIn;
         usedFrictionCoulomb += _paramFrictionCoulombIn;
     }
     if (isOutFriction) {
         usedFrictionViscous += _paramFrictionViscousOut;
-        usedFrictionBreak += _paramFrictionBreakOut;
+        usedFrictionBreak += 
+            _paramFrictionBreakOut + _paramFrictionCoulombOut;
         usedFrictionCoulomb += _paramFrictionCoulombOut;
     } 
 
