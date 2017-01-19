@@ -304,6 +304,14 @@ double JointModel::getBacklashStateVel() const
 {
     return _stateBacklashVelocity;
 }
+        
+void JointModel::resetBacklashState()
+{
+    _isInitialized = false;
+    _stateBacklashIsEnabled = true;
+    _stateBacklashPosition = 0.0;
+    _stateBacklashVelocity = 0.0;
+}
  
 void JointModel::boundState(double& pos, double& vel)
 {

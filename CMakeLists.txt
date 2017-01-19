@@ -244,6 +244,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appMapSeriesLogsViewer
         appDMPTrajectoryOptimization
         appTrajectoriesKickGeneration
+        appHumanoidSimulationPlayer
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics

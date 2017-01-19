@@ -100,6 +100,12 @@ class JointModel
         double getBacklashStateVel() const;
 
         /**
+         * Reset the backlash state 
+         * enabled, position and velocity
+         */
+        void resetBacklashState();
+
+        /**
          * Optionnaly update given current joint
          * position and velocity to ensure constraints
          */
