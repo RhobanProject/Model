@@ -20,6 +20,7 @@
 /**
  * Global CMA-ES configuration
  */
+static unsigned int cmaesElitism = 1;
 static unsigned int cmaesMaxIterations = 1000;
 static unsigned int cmaesRestarts = 3;
 static unsigned int cmaesLambda = 10;
@@ -755,7 +756,7 @@ int main(int argc, char** argv)
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
-    cmaparams.set_elitism(1);
+    cmaparams.set_elitism(cmaesElitism);
     cmaparams.set_restarts(cmaesRestarts);
     cmaparams.set_max_iter(cmaesMaxIterations);
     cmaparams.set_ftolerance(1e-9);

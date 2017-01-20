@@ -266,7 +266,8 @@ void TrajectoryGeneration::runOptimization(
     unsigned int restart,
     const std::string& filename,
     unsigned int populationSize,
-    double lambda)
+    double lambda,
+    unsigned int elitismLevel)
 {
     //Retrieve initial parameters
     Eigen::VectorXd initParams = initialParameters();
@@ -350,7 +351,7 @@ void TrajectoryGeneration::runOptimization(
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");
-    cmaparams.set_elitism(true);
+    cmaparams.set_elitism(elitismLevel);
     cmaparams.set_restarts(restart);
     cmaparams.set_max_iter(maxIterations);
 

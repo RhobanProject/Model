@@ -169,7 +169,8 @@ int main(int argc, char** argv)
         (unsigned int)trajParams.get("cmaes_restarts"),
         filename, 
         (unsigned int)trajParams.get("cmaes_lambda"), 
-        trajParams.get("cmaes_sigma"));
+        trajParams.get("cmaes_sigma"),
+        (unsigned int)trajParams.get("cmaes_elitism"));
 
 #ifdef LEPH_VIEWER_ENABLED
     //Display found trajectory

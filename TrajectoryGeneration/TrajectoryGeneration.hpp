@@ -203,7 +203,8 @@ class TrajectoryGeneration
             unsigned int restart,
             const std::string& filename = "",
             unsigned int populationSize = 10,
-            double lambda = -1.0);
+            double lambda = -1.0,
+            unsigned int elitismLevel = 1);
 
         /**
          * Access to best found Trajectories, 

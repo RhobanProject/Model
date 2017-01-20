@@ -14,6 +14,7 @@ TrajectoryParameters DefaultTrajParameters()
     parameters.add("cmaes_restarts", 3.0);
     parameters.add("cmaes_lambda", 10.0);
     parameters.add("cmaes_sigma", -1.0);
+    parameters.add("cmaes_elitism", 1.0);
     //Fitness maximum torque yaw
     parameters.add("fitness_max_torque_yaw", 1.0);
     //Fitness maximum voltage ratio
