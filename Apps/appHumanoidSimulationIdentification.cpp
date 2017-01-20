@@ -472,6 +472,7 @@ int main(int argc, char** argv)
 
     //Initial verbose
     for (size_t i=0;i<logsData.size();i++) {
+        std::cout << "Initial score for: " << filenames[i] << std::endl;
         scoreFitness(
             logsData[i], initParams, 
             indexStartJoints, indexStartInertias, 
@@ -540,7 +541,7 @@ int main(int argc, char** argv)
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [&bestParams, &bestScore, &iteration, &coef, &logsData,
+        [&bestParams, &bestScore, &iteration, &coef, &logsData, filenames,
         &indexStartJoints, &indexStartInertias, 
         &sizeJointParameters, &sizeInertiaParameters, 
         &defaultInertiaData, &defaultInertiaName]
@@ -581,6 +582,7 @@ int main(int argc, char** argv)
             }
             std::cout << "============" << std::endl;
             for (size_t i=0;i<logsData.size();i++) {
+                std::cout << "Best score for: " << filenames[i] << std::endl;
                 scoreFitness(
                     logsData[i], bestParams, 
                     indexStartJoints, indexStartInertias, 
@@ -617,6 +619,7 @@ int main(int argc, char** argv)
     
     //Final verbose
     for (size_t i=0;i<logsData.size();i++) {
+        std::cout << "Final score for: " << filenames[i] << std::endl;
         scoreFitness(
             logsData[i], bestParams.array(), 
             indexStartJoints, indexStartInertias, 
