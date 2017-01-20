@@ -149,8 +149,10 @@ static double scoreFitness(
         sim.setVel(name, 0.0); 
     }
     //Init model state
-    sim.putOnGround();
-    sim.putFootAt(0.0, 0.0);
+    sim.putOnGround(
+        Leph::HumanoidFixedModel::LeftSupportFoot);
+    sim.putFootAt(0.0, 0.0, 
+        Leph::HumanoidFixedModel::LeftSupportFoot);
     //Run small time 0.5s for 
     //waiting stabilization (backlash)
     for (int k=0;k<500;k++) {

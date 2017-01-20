@@ -176,7 +176,6 @@ void CleatsDraw(
         "right_cleat_1", "right_cleat_2",
         "right_cleat_3", "right_cleat_4",
     };
-    /*
     for (const std::string& name : names) {
         Eigen::Vector3d pos = simulation.model().position(name, "origin");
         double force = simulation.getCleatForce(name);
@@ -189,7 +188,6 @@ void CleatsDraw(
                 0.002, -0.01*force, 1.0, 0.0, 0.0);
         }
     }
-    */
 }
 
 }
