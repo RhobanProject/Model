@@ -27,6 +27,16 @@ int main()
     }
     std::cout << std::endl;
     
+    std::cout << "Geometry Data:" << std::endl;
+    for (const auto& it : model.getGeometryName()) {
+        std::cout << it.second << " " << it.first << ": ";
+        for (size_t i=0;i<(size_t)model.getGeometryData().cols();i++) {
+            std::cout << model.getGeometryData()(it.second, i) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    
     for (size_t i=0;i<model.sizeFrame();i++) {
         std::cout << model.getFrameName(i) << ": "
             << model.position(i, model.getFrameIndex("trunk")).transpose() 

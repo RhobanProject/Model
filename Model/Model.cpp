@@ -16,7 +16,9 @@ Model::Model() :
     _frameNameToIndex(),
     _frameIndexToId(),
     _inertiaData(),
-    _inertiaName()
+    _inertiaName(),
+    _geometryData(),
+    _geometryName()
 {
 }
         
@@ -31,25 +33,33 @@ Model::Model(const std::string& filename) :
     _frameNameToIndex(),
     _frameIndexToId(),
     _inertiaData(),
-    _inertiaName()
+    _inertiaName(),
+    _geometryData(),
+    _geometryName()
 {
-    //URDF loading and retrieve inertia data
+    //URDF loading and retrieve inertia 
+    //and geometry data
     RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
         filename.c_str(), &model, false, 
-        &_inertiaData, &_inertiaName, false)
+        &_inertiaData, &_inertiaName, false,
+        &_geometryData, &_geometryName, false)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
     }
 
     //Parse and load RBDL model
-    initializeModel(model, _inertiaData, _inertiaName);
+    initializeModel(model, 
+        _inertiaData, _inertiaName,
+        _geometryData, _geometryName);
 }
         
 Model::Model(const std::string& filename, 
     const Eigen::MatrixXd& inertiaData,
-    const std::map<std::string, size_t>& inertiaName) :
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
     _model(),
     _isAutoUpdate(true),
     _dofIndexToName(),
@@ -60,25 +70,33 @@ Model::Model(const std::string& filename,
     _frameNameToIndex(),
     _frameIndexToId(),
     _inertiaData(inertiaData),
-    _inertiaName(inertiaName)
+    _inertiaName(inertiaName),
+    _geometryData(geometryData),
+    _geometryName(geometryName)
 {
-    //URDF loading with override inertia data
+    //URDF loading with override inertia 
+    //and geometry data
     RBDL::Model model;
     if (!RBDL::Addons::URDFReadFromFile(
         filename.c_str(), &model, false, 
-        &_inertiaData, &_inertiaName, true)
+        &_inertiaData, &_inertiaName, true,
+        &_geometryData, &_geometryName, true)
     ) {
         throw std::runtime_error(
             "Model unable to load URDF file: " + filename);
     }
 
     //Parse and load RBDL model
-    initializeModel(model, _inertiaData, _inertiaName);
+    initializeModel(model, 
+        _inertiaData, _inertiaName,
+        _geometryData, _geometryName);
 }
         
 Model::Model(RBDL::Model& model,
     const Eigen::MatrixXd& inertiaData,
-    const std::map<std::string, size_t>& inertiaName) :
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
     _model(),
     _isAutoUpdate(true),
     _dofIndexToName(),
@@ -89,10 +107,14 @@ Model::Model(RBDL::Model& model,
     _frameNameToIndex(),
     _frameIndexToId(),
     _inertiaData(inertiaData),
-    _inertiaName(inertiaName)
+    _inertiaName(inertiaName),
+    _geometryData(geometryData),
+    _geometryName(geometryName)
 {
     //Parse and load RBDL model
-    initializeModel(model, _inertiaData, _inertiaName);
+    initializeModel(model, 
+        _inertiaData, _inertiaName,
+        _geometryData, _geometryName);
 }
         
 bool Model::isAutoUpdate() const
@@ -1045,6 +1067,15 @@ const std::map<std::string, size_t>& Model::getInertiaName() const
     return _inertiaName;
 }
 
+const Eigen::MatrixXd& Model::getGeometryData() const
+{
+    return _geometryData;
+}
+const std::map<std::string, size_t>& Model::getGeometryName() const
+{
+    return _geometryName;
+}
+
 std::string Model::filterJointName(const std::string& name) const
 {
     std::string filtered = name;
@@ -1069,12 +1100,16 @@ std::string Model::filterFrameName(const std::string& name) const
         
 void Model::initializeModel(RBDL::Model& model, 
     const Eigen::MatrixXd& inertiaData,
-    const std::map<std::string, size_t>& inertiaName)
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName)
 {
     //Assign RBDL model
     _model = model;
     _inertiaData = inertiaData;
     _inertiaName = inertiaName;
+    _geometryData = geometryData;
+    _geometryName = geometryName;
     //Build name-index joint mapping 
     //and VectorLabel structure
     for (size_t i=1;i<_model.mBodies.size();i++) {
