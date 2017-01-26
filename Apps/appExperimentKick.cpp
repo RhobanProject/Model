@@ -46,6 +46,7 @@ static void assignModelState(Leph::HumanoidFixedPressureModel& model, const Leph
 /**
  * Render given logs with given viewer
  */
+/*
 static void displayState(Leph::ModelViewer& viewer, 
     const Leph::VectorLabel& log, bool loop = false)
 {
@@ -88,6 +89,7 @@ static void displayState(Leph::ModelViewer& viewer,
         }
     }
 }
+*/
 
 /**
  * Compute and add model data to given MatrixLabel

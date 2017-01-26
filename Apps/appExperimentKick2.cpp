@@ -1719,7 +1719,7 @@ void testLearningMotorModel()
         double score = 0.0;
         for (size_t i=0;i<data.logs.size();i++) {
             double pos = data.logs[i][2]("pos:"+name);
-            double posOld = pos;
+            //double posOld = pos;
             //Leph::Plot plot;
             for (size_t j=10;j<data.logs[i].size();j++) {
                 Eigen::VectorXd in(2);
@@ -1733,7 +1733,7 @@ void testLearningMotorModel()
                     //data.logs[i][j-2]("torque:"+name), 
                     //posOld,
                     pos;
-                posOld = pos;
+                //posOld = pos;
                 pos = regression.prediction(in);
                 score += fabs(pos - data.logs[i][j]("pos:"+name));
                 /*

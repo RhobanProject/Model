@@ -599,8 +599,8 @@ int main(int argc, char** argv)
     };
     
     //CMAES initialization
-    libcmaes::CMAParameters<> cmaparams(initParams, 
-        cmaesSigma, cmaesLambda);
+    libcmaes::CMAParameters<> cmaparams(
+        initParams, cmaesSigma, cmaesLambda);
     cmaparams.set_quiet(false);
     cmaparams.set_mt_feval(true);
     cmaparams.set_str_algo("abipop");

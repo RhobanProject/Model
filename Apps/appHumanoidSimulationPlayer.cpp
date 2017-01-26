@@ -100,7 +100,7 @@ int main(int argc, char** argv)
     bool isContinue = true;
     bool isInitialized = false;
     while (isContinue) {
-        //Simulator and goal model initializarion
+        //Simulator and goal model initialization
         Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
         Leph::HumanoidSimulation sim(Leph::SigmabanModel);
         //No reinitialition in cycle mode
@@ -149,8 +149,10 @@ int main(int argc, char** argv)
                     //TODO XXX base == trunk vel initialization. Careful euler angle ...
                     sim.setVel(name, 0.0); 
                 }
-                sim.putOnGround();
-                sim.putFootAt(0.0, 0.0);
+                sim.putOnGround(
+                    Leph::HumanoidFixedModel::LeftSupportFoot);
+                sim.putFootAt(0.0, 0.0,
+                    Leph::HumanoidFixedModel::LeftSupportFoot);
                 isInitialized = true;
             }
             //Run simulation
