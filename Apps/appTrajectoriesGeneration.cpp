@@ -5,7 +5,7 @@
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryDefinition/CommonTrajs.h"
-#include "Utils/FileVector.h"
+#include "Utils/FileEigen.h"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 
     //Load initial parameters if SEED mode
     if (mode == "SEED") {
-        Eigen::VectorXd tmpVect = Leph::ReadVector(seedParametersFile);
+        Eigen::VectorXd tmpVect = Leph::ReadEigenVector(seedParametersFile);
         if (tmpVect.size() != initParams.size()) {
             std::cout << "Invalid seed parameters size: " 
                 << std::to_string(tmpVect.size()) << std::endl;

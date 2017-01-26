@@ -70,7 +70,8 @@ set(SOURCES_FILES
     Utils/LWPRInputsOptimization.cpp
     Utils/EncoderFilter.cpp
     Utils/ComputeModelData.cpp
-    Utils/FileVector.cpp
+    Utils/FileEigen.cpp
+    Utils/FileModelParameters.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp

@@ -9,7 +9,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Utils/time.h"
-#include "Utils/FileVector.h"
+#include "Utils/FileEigen.h"
 #include "Plot/Plot.hpp"
 
 /**
@@ -335,7 +335,7 @@ int main()
         .plot("t", "forcing:foot_pos_y")
         .plot("t", "forcing:foot_pos_z")
         .render();
-    Leph::WriteVector("/tmp/DMPKick_" 
+    Leph::WriteEigenVector("/tmp/DMPKick_" 
         + Leph::currentDate() + ".params", bestParams);
     bestTraj.exportData("/tmp/DMPKick_" 
         + Leph::currentDate() + ".splines");

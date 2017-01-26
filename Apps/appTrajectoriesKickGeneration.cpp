@@ -8,7 +8,7 @@
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
 #include "Model/JointModel.hpp"
 #include "Model/NamesModel.h"
-#include "Utils/FileVector.h"
+#include "Utils/FileEigen.h"
 
 int main()
 {
@@ -64,7 +64,7 @@ int main()
 
         return params;
     }());
-    //generator.setInitialParameters(Leph::ReadVector("../Data/trajKick_2016-07-12-11-00-29.params"));
+    //generator.setInitialParameters(Leph::ReadEigenVector("../Data/trajKick_2016-07-12-11-00-29.params"));
     
     //Set Trajectory generation function
     generator.setTrajectoryGenerationFunc([](const Eigen::VectorXd& params) -> Leph::Trajectories {

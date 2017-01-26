@@ -1,6 +1,6 @@
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
-#include "Utils/FileVector.h"
+#include "Utils/FileEigen.h"
 #include "Utils/time.h"
 
 namespace Leph {
@@ -311,7 +311,7 @@ void TrajectoryGeneration::runOptimization(
                 _bestTraj.exportData(filename + ".splines");
                 std::cout << "****** Saving Trajectories to: " 
                     << filename + ".splines" << std::endl;
-                WriteVector(filename + ".params", _bestParams);
+                WriteEigenVector(filename + ".params", _bestParams);
                 std::cout << "****** Saving Parameters to: " 
                     << filename + ".params" << std::endl;
             }
@@ -374,7 +374,7 @@ void TrajectoryGeneration::runOptimization(
         _bestTraj.exportData(filename + ".splines");
         std::cout << "****** Saving Trajectories to: " 
             << filename + ".splines" << std::endl;
-        WriteVector(filename + ".params", _bestParams);
+        WriteEigenVector(filename + ".params", _bestParams);
         std::cout << "****** Saving Parameters to: " 
             << filename + ".params" << std::endl;
     }
