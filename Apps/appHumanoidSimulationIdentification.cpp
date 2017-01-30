@@ -10,12 +10,23 @@
 #include "Types/MapSeries.hpp"
 #include "Utils/Angle.h"
 #include "Model/NamesModel.h"
+#include "Utils/FileModelParameters.h"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Plot/Plot.hpp"
 #endif
+
+/**
+ * Names of DOF whose Joint Model is uniquely optimized
+ */
+static const std::vector<std::string> namesDOFJoint = {
+    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
+    "right_knee", "right_ankle_pitch", "right_ankle_roll",
+    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
+    "left_knee", "left_ankle_pitch", "left_ankle_roll",
+};
 
 /**
  * Names of frame whose inertia data is optimized
@@ -29,9 +40,9 @@ static const std::vector<std::string> namesFrameInertia = {
 };
 
 /**
- * Names of DOF whose Joint Model is uniquely optimized
+ * Names of frame whose geometry data is optimized
  */
-static const std::vector<std::string> namesDOFJoint = {
+static const std::vector<std::string> namesFrameGeometry = {
     "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
     "right_knee", "right_ankle_pitch", "right_ankle_roll",
     "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
@@ -60,12 +71,19 @@ static const double trunkOrientationCoef = 0.5;
 static double scoreFitness(
     const Leph::MapSeries& logs, 
     const Eigen::VectorXd& parameters, 
+    size_t indexStartCommon,
     size_t indexStartJoints,
     size_t indexStartInertias,
+    size_t indexStartGeometries,
     size_t sizeJointParameters,
     size_t sizeInertiaParameters,
+    size_t sizeGeometryParameters,
+    const Eigen::MatrixXd& defaultJointData,
+    const std::map<std::string, size_t>& defaultJointName,
     const Eigen::MatrixXd& defaultInertiaData,
     const std::map<std::string, size_t>& defaultInertiaName,
+    const Eigen::MatrixXd& defaultGeometryData,
+    const std::map<std::string, size_t>& defaultGeometryName,
     int verbose,
     double* sumError = nullptr, 
     double* countError = nullptr, 
@@ -112,19 +130,42 @@ static double scoreFitness(
         }
     }
     
+    //Build used geometry data
+    Eigen::MatrixXd currentGeometryData = defaultGeometryData;
+    if (indexStartGeometries != (size_t)-1) {
+        size_t index = 0;
+        for (const std::string& name : namesFrameGeometry) {
+            currentGeometryData.row(defaultGeometryName.at(name)) = 
+                parameters.segment(
+                    indexStartGeometries + index*sizeGeometryParameters, sizeGeometryParameters)
+                    .transpose();
+            index++;
+        }
+    }
+    
     //Initialize full humanoid model
     //simulation with overrided 
-    //inertia data
+    //inertia and geometry data
     Leph::HumanoidSimulation sim(
         Leph::SigmabanModel, 
         currentInertiaData, 
-        defaultInertiaName);
+        defaultInertiaName,
+        currentGeometryData,
+        defaultGeometryName);
     Leph::HumanoidModel modelRead(
         Leph::SigmabanModel, 
         "left_foot_tip", false);
 
-    //Assign default joint parameters
-    sim.setJointModelParameters(parameters.segment(0, sizeJointParameters));
+    //Assign common joint parameters
+    if (indexStartCommon != (size_t)-1) {
+        sim.setJointModelParameters(
+            parameters.segment(indexStartCommon, sizeJointParameters));
+    } else {
+        for (const std::string& name : namesDOFJoint) {
+            sim.jointModel(name).setParameters(
+                defaultJointData.row(defaultJointName.at(name)).transpose());
+        }
+    }
     //Assign joint parameters to uniquely optimized DOF
     if (indexStartJoints != (size_t)-1) {
         size_t index = 0;
@@ -350,6 +391,96 @@ static double scoreFitness(
 }
 
 /**
+ * Dump to given filename the model parameters contained
+ * in given parameters vector and in default 
+ * joint, inertia and geometry matrix.
+ */
+static void saveModelParameters(
+    const std::string& filename,
+    const Eigen::VectorXd& parameters, 
+    size_t indexStartCommon,
+    size_t indexStartJoints,
+    size_t indexStartInertias,
+    size_t indexStartGeometries,
+    size_t sizeJointParameters,
+    size_t sizeInertiaParameters,
+    size_t sizeGeometryParameters,
+    const Eigen::MatrixXd& defaultJointData,
+    const std::map<std::string, size_t>& defaultJointName,
+    const Eigen::MatrixXd& defaultInertiaData,
+    const std::map<std::string, size_t>& defaultInertiaName,
+    const Eigen::MatrixXd& defaultGeometryData,
+    const std::map<std::string, size_t>& defaultGeometryName)
+{
+    Eigen::MatrixXd currentJointData = defaultJointData;
+    Eigen::MatrixXd currentInertiaData = defaultInertiaData;
+    Eigen::MatrixXd currentGeometryData = defaultGeometryData;
+
+    if (indexStartCommon != (size_t)-1) {
+        for (const auto& it : defaultJointName) {
+            currentJointData.row(defaultJointName.at(it.first)) = 
+                parameters.segment(
+                    indexStartCommon, sizeJointParameters)
+                    .transpose();
+        }
+    }
+    if (indexStartJoints != (size_t)-1) {
+        size_t index = 0;
+        for (const std::string& name : namesDOFJoint) {
+            currentJointData.row(defaultJointName.at(name)) = 
+                parameters.segment(
+                    indexStartJoints + index*sizeJointParameters, sizeJointParameters)
+                    .transpose();
+            index++;
+        }
+    }
+    if (indexStartInertias != (size_t)-1) {
+        size_t index = 0;
+        for (const std::string& name : namesFrameInertia) {
+            currentInertiaData.row(defaultInertiaName.at(name)) = 
+                parameters.segment(
+                    indexStartInertias + index*sizeInertiaParameters, sizeInertiaParameters)
+                    .transpose();
+            index++;
+        }
+    }
+    if (indexStartGeometries != (size_t)-1) {
+        size_t index = 0;
+        for (const std::string& name : namesFrameGeometry) {
+            currentGeometryData.row(defaultGeometryName.at(name)) = 
+                parameters.segment(
+                    indexStartGeometries + index*sizeGeometryParameters, sizeGeometryParameters)
+                    .transpose();
+            index++;
+        }
+    }
+
+    Leph::WriteModelParameters(
+        filename,
+        currentJointData, defaultJointName,
+        currentInertiaData, defaultInertiaName,
+        currentGeometryData, defaultGeometryName);
+}
+
+
+/**
+ * Print application usage
+ */
+static void printUsage()
+{
+    std::cout << "Usage: " <<
+        "./app output.modelparams mode ... " <<
+        "LEARNING logfile.mapseries ... " <<
+        "VALIDATION logfile.mapseries ... " << 
+        "SEED inputSeed.modelparams" << std::endl;
+    std::cout << "Available optimization modes:" << std::endl;
+    std::cout << "-- COMMON" << std::endl;
+    std::cout << "-- JOINTS" << std::endl;
+    std::cout << "-- INERTIAS" << std::endl;
+    std::cout << "-- GEOMETRIES" << std::endl;
+}
+
+/**
  * Use CMA-ES optimization to find
  * joint parameters and/or intertia
  * parameters for which forward simulation
@@ -358,50 +489,61 @@ static double scoreFitness(
 int main(int argc, char** argv)
 {
     //Parse user inputs
-    if (
-        argc < 3 || (
-        std::string(argv[1]) != "SINGLE" &&
-        std::string(argv[1]) != "JOINTS" &&
-        std::string(argv[1]) != "INERTIAS" &&
-        std::string(argv[1]) != "ALL"
-        )
-    ) {
-        std::cout << "./app SINGLE   [logfile.mapseries] ..." << std::endl;
-        std::cout << "./app JOINTS   [logfile.mapseries] ..." << std::endl;
-        std::cout << "./app INERTIAS [logfile.mapseries] ..." << std::endl;
-        std::cout << "./app ALL      [logfile.mapseries] ..." << std::endl;
+    if (argc < 5) {
+        printUsage();
         return 1;
     }
-    //Retrieve log filenames
-    std::vector<std::string> filenames;
-    for (size_t i=2;i<(size_t)argc;i++) {
-        filenames.push_back(std::string(argv[i]));
-    }
-    //Retrieve identification mode
+    //Retrieve output model parameter filename
+    std::string outputParamsFilename = argv[1];
+    //Retrieve optimization option
+    int argIndex = 2;
+    bool isIdentificationCommon = false;
     bool isIdentificationJoints = false;
     bool isIdentificationInertias = false;
-    if (std::string(argv[1]) == "SINGLE") {
-        isIdentificationJoints = false;
-        isIdentificationInertias = false;
-    } else if (std::string(argv[1]) == "JOINTS") {
-        isIdentificationJoints = true;
-        isIdentificationInertias = false;
-    } else if (std::string(argv[1]) == "INERTIAS") {
-        isIdentificationJoints = false;
-        isIdentificationInertias = true;
-    } else if (std::string(argv[1]) == "ALL") {
-        isIdentificationJoints = true;
-        isIdentificationInertias = true;
-    } else {
-        return 1;
+    bool isIdentificationGeometries = false;
+    while (argIndex < argc && std::string(argv[argIndex]) != "LEARNING") {
+        if (std::string(argv[argIndex]) == "COMMON") {
+            isIdentificationCommon = true;
+        } else if (std::string(argv[argIndex]) == "JOINTS") {
+            isIdentificationJoints = true;
+        } else if (std::string(argv[argIndex]) == "INERTIAS") {
+            isIdentificationInertias = true;
+        } else if (std::string(argv[argIndex]) == "GEOMETRIES") {
+            isIdentificationGeometries = true;
+        } else {
+            std::cout << "Invalid optimization option." << std::endl;
+            printUsage();
+            return 1;
+        }
+        argIndex++;
+    }
+    //Retrieve learning log filenames
+    argIndex++;
+    std::vector<std::string> filenames;
+    while (argIndex < argc && std::string(argv[argIndex]) != "VALIDATION") {
+        filenames.push_back(std::string(argv[argIndex]));
+        argIndex++;
+    }
+    //Retrieve validation log filenames
+    argIndex++;
+    std::vector<std::string> filenamesValidation;
+    while (argIndex < argc && std::string(argv[argIndex]) != "SEED") {
+        filenamesValidation.push_back(std::string(argv[argIndex]));
+        argIndex++;
+    }
+    //Retrieve seed input model parameters
+    argIndex++;
+    std::string inputParamsFilename;
+    if (argIndex < argc) {
+        inputParamsFilename = argv[argIndex];
     }
 
-    //Load data logs into MapSeries
+    //Load learning data logs into MapSeries
     std::vector<Leph::MapSeries> logsData;
     for (size_t i=0;i<filenames.size();i++) {
         logsData.push_back(Leph::MapSeries());
         logsData.back().importData(filenames[i]);
-        std::cout << "Loaded " 
+        std::cout << "Loaded learning " 
             << filenames[i] << ": "
             << logsData.back().dimension() << " series from " 
             << logsData.back().timeMin() << "s to " 
@@ -409,15 +551,33 @@ int main(int argc, char** argv)
             << logsData.back().timeMax()-logsData.back().timeMin() 
             << "s" << std::endl;
     }
+    //Load validation data logs into MapSeries
+    std::vector<Leph::MapSeries> logsValidation;
+    for (size_t i=0;i<filenamesValidation.size();i++) {
+        logsValidation.push_back(Leph::MapSeries());
+        logsValidation.back().importData(filenamesValidation[i]);
+        std::cout << "Loaded validation " 
+            << filenamesValidation[i] << ": "
+            << logsValidation.back().dimension() << " series from " 
+            << logsValidation.back().timeMin() << "s to " 
+            << logsValidation.back().timeMax() << "s with length "
+            << logsValidation.back().timeMax()-logsValidation.back().timeMin() 
+            << "s" << std::endl;
+    }
 
     //Inertia default data and name
     Eigen::MatrixXd defaultInertiaData;
     std::map<std::string, size_t> defaultInertiaName;
-    //Load default inertia data from model
+    //Geometry default data and name
+    Eigen::MatrixXd defaultGeometryData;
+    std::map<std::string, size_t> defaultGeometryName;
+    //Load default inertia and geometry data from model
     Leph::HumanoidModel tmpModel(
         Leph::SigmabanModel, "left_foot_tip", false);
     defaultInertiaData = tmpModel.getInertiaData();
     defaultInertiaName = tmpModel.getInertiaName();
+    defaultGeometryData = tmpModel.getGeometryData();
+    defaultGeometryName = tmpModel.getGeometryName();
 
     //Joint default parameters
     Eigen::VectorXd defaultJointParams;
@@ -425,14 +585,53 @@ int main(int argc, char** argv)
     Leph::JointModel tmpJoint;
     defaultJointParams = tmpJoint.getParameters();
 
+    //Build default joint parameters matrix
+    Eigen::MatrixXd defaultJointData(
+        Leph::NamesDOF.size(), defaultJointParams.size());
+    std::map<std::string, size_t> defaultJointName;
+    size_t tmpIndex = 0;
+    for (const std::string& name : Leph::NamesDOF) {
+        defaultJointName[name] = tmpIndex;
+        defaultJointData.block(
+            tmpIndex, 0, 1, defaultJointParams.size()) = 
+            defaultJointParams.transpose();
+        tmpIndex++;
+    }
+
+    //Load if provided the seed model parameters
+    if (inputParamsFilename != "") {
+        std::cout << "Loading seed model parameters from: " 
+            << inputParamsFilename << std::endl;
+        Leph::ReadModelParameters(
+            inputParamsFilename,
+            defaultJointData,
+            defaultJointName,
+            defaultInertiaData,
+            defaultInertiaName,
+            defaultGeometryData,
+            defaultGeometryName);
+    }
+
     //Build initial parameters vector
     Eigen::VectorXd initParams = defaultJointParams;
+    size_t indexStartCommon = (size_t)-1;
     size_t indexStartJoints = (size_t)-1;
     size_t indexStartInertias = (size_t)-1;
+    size_t indexStartGeometries = (size_t)-1;
     //Util sizes
-    size_t sizeInertiaParameters = defaultInertiaData.cols();
     size_t sizeJointParameters = defaultJointParams.size();
-    size_t sizeAllParameters = sizeJointParameters;
+    size_t sizeInertiaParameters = defaultInertiaData.cols();
+    size_t sizeGeometryParameters = defaultGeometryData.cols();
+    size_t sizeAllParameters = 0;
+    //Add common optimized joint parameters
+    if (isIdentificationCommon) {
+        indexStartCommon = sizeAllParameters;
+        sizeAllParameters += sizeJointParameters;
+        initParams.conservativeResize(sizeAllParameters);
+        initParams.segment(
+            indexStartCommon, sizeJointParameters) = 
+            defaultJointParams;
+    }
     //Add all uniquely optimized joint parameters
     if (isIdentificationJoints) {
         indexStartJoints = sizeAllParameters;
@@ -442,7 +641,7 @@ int main(int argc, char** argv)
         for (const std::string& name : namesDOFJoint) {
             initParams.segment(
                 indexStartJoints + index*sizeJointParameters, sizeJointParameters) = 
-                defaultJointParams;
+                defaultJointData.row(defaultJointName.at(name)).transpose();
             index++;
         }
     }
@@ -459,25 +658,57 @@ int main(int argc, char** argv)
             index++;
         }
     }
+    //Add all uniquely optimized geometry parameters
+    if (isIdentificationGeometries) {
+        indexStartGeometries = sizeAllParameters;
+        sizeAllParameters += namesFrameGeometry.size()*sizeGeometryParameters;
+        initParams.conservativeResize(sizeAllParameters);
+        size_t index = 0;
+        for (const std::string& name : namesFrameGeometry) {
+            initParams.segment(
+                indexStartGeometries + index*sizeGeometryParameters, sizeGeometryParameters) = 
+                defaultGeometryData.row(defaultGeometryName.at(name)).transpose();
+            index++;
+        }
+    }
 
     //Normalization coefficient
     Eigen::VectorXd coef = initParams;
     Eigen::VectorXd coefInv = initParams;
     for (size_t i=0;i<(size_t)coef.size();i++) {
-        if (fabs(coef(i)) < 1e-4) {
+        if (fabs(coef(i)) < 1e-5) {
             coef(i) = 0.01;
         }
         coefInv(i) = 1.0/coef(i);
     }
 
     //Initial verbose
+    std::cout << "Dimension: " << initParams.size() << std::endl;
     for (size_t i=0;i<logsData.size();i++) {
-        std::cout << "Initial score for: " << filenames[i] << std::endl;
+        std::cout << "============" << std::endl;
+        std::cout << "Initial learning score for: " << filenames[i] << std::endl;
         scoreFitness(
             logsData[i], initParams, 
-            indexStartJoints, indexStartInertias, 
-            sizeJointParameters, sizeInertiaParameters, 
-            defaultInertiaData, defaultInertiaName, 3);
+            indexStartCommon, indexStartJoints, 
+            indexStartInertias, indexStartGeometries,
+            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+            defaultJointData, defaultJointName, 
+            defaultInertiaData, defaultInertiaName, 
+            defaultGeometryData, defaultGeometryName, 
+            3);
+    }
+    for (size_t i=0;i<logsValidation.size();i++) {
+        std::cout << "============" << std::endl;
+        std::cout << "Initial validation score for: " << filenamesValidation[i] << std::endl;
+        scoreFitness(
+            logsValidation[i], initParams, 
+            indexStartCommon, indexStartJoints, 
+            indexStartInertias, indexStartGeometries,
+            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+            defaultJointData, defaultJointName, 
+            defaultInertiaData, defaultInertiaName, 
+            defaultGeometryData, defaultGeometryName, 
+            3);
     }
 
     //Normalization of initial parameters
@@ -488,20 +719,34 @@ int main(int argc, char** argv)
     
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [&logsData, &coef, &indexStartJoints, &indexStartInertias, 
-        &sizeJointParameters, &sizeInertiaParameters, 
-        &defaultInertiaData, &defaultInertiaName]
+        [&logsData, &coef, &indexStartCommon, &indexStartJoints, 
+        &indexStartInertias, &indexStartGeometries,
+        &sizeJointParameters, &sizeInertiaParameters, &sizeGeometryParameters,
+        &defaultJointData, &defaultJointName,
+        &defaultInertiaData, &defaultInertiaName,
+        &defaultGeometryData, &defaultGeometryName]
         (const Eigen::VectorXd& params) 
     {
         //Check positive joint parameters
         double cost = 0.0;
-        for (size_t i=0;i<(size_t)params.size();i++) {
-            if (
-                (indexStartInertias == (size_t)-1 || 
-                i < indexStartInertias) && 
-                params(i) < 0.0
+        if (indexStartCommon != (size_t)-1) {
+            for (
+                size_t i=indexStartCommon;
+                i<indexStartCommon+sizeJointParameters;i++
             ) {
-                cost += 1000.0 - 1000.0*params(i);
+                if (params(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i);
+                }
+            }
+        }
+        if (indexStartJoints != (size_t)-1) {
+            for (
+                size_t i=indexStartJoints;
+                i<indexStartJoints+sizeJointParameters*namesDOFJoint.size();i++
+            ) {
+                if (params(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i);
+                }
             }
         }
         if (cost > 0.0) {
@@ -519,9 +764,13 @@ int main(int argc, char** argv)
             try {
                 cost += scoreFitness(
                     logsData[i], coef.array() * params.array(),
-                    indexStartJoints, indexStartInertias, 
-                    sizeJointParameters, sizeInertiaParameters, 
-                    defaultInertiaData, defaultInertiaName, 0,
+                    indexStartCommon, indexStartJoints, 
+                    indexStartInertias, indexStartGeometries,
+                    sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                    defaultJointData, defaultJointName, 
+                    defaultInertiaData, defaultInertiaName, 
+                    defaultGeometryData, defaultGeometryName, 
+                    0,
                     &sumError, &countError, &maxError, &maxAllError);
             } catch (const std::runtime_error& e) {
                 cost += 10000.0;
@@ -541,10 +790,15 @@ int main(int argc, char** argv)
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [&bestParams, &bestScore, &iteration, &coef, &logsData, filenames,
-        &indexStartJoints, &indexStartInertias, 
-        &sizeJointParameters, &sizeInertiaParameters, 
-        &defaultInertiaData, &defaultInertiaName]
+        [&bestParams, &bestScore, &iteration, &coef, 
+        &logsData, &filenames, &outputParamsFilename,
+        &logsValidation, &filenamesValidation,
+        &indexStartCommon, &indexStartJoints, 
+        &indexStartInertias, &indexStartGeometries,
+        &sizeJointParameters, &sizeInertiaParameters, &sizeGeometryParameters,
+        &defaultJointData, &defaultJointName,
+        &defaultInertiaData, &defaultInertiaName,
+        &defaultGeometryData, &defaultGeometryName]
         (const libcmaes::CMAParameters<>& cmaparams, 
         const libcmaes::CMASolutions& cmasols)
     {
@@ -558,6 +812,7 @@ int main(int argc, char** argv)
             bestScore = score;
         }
         if (iteration % 50 == 0) {
+            //Show best optimization state
             std::cout << "============" << std::endl;
             std::cout << "Dimension: " << params.size() << std::endl;
             std::cout << "BestScore: " << bestScore << std::endl;
@@ -570,6 +825,7 @@ int main(int argc, char** argv)
                     std::cout << ";" << std::endl;
                 }
             }
+            //Show current optimization state
             std::cout << "Score: " << score<< std::endl;
             std::cout << "Params: ";
             for (size_t i=0;i<(size_t)params.size();i++) {
@@ -580,14 +836,44 @@ int main(int argc, char** argv)
                     std::cout << ";" << std::endl;
                 }
             }
+            //Saving
+            saveModelParameters(
+                outputParamsFilename,
+                bestParams,
+                indexStartCommon, indexStartJoints,
+                indexStartInertias, indexStartGeometries,
+                sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                defaultJointData, defaultJointName,
+                defaultInertiaData, defaultInertiaName,
+                defaultGeometryData, defaultGeometryName);
+            std::cout << "Best parameters dumped to: " << outputParamsFilename << std::endl;
             std::cout << "============" << std::endl;
+            std::cout << "Learning data:" << std::endl;
             for (size_t i=0;i<logsData.size();i++) {
-                std::cout << "Best score for: " << filenames[i] << std::endl;
+                std::cout << "==== Best score for: " << filenames[i] << std::endl;
                 scoreFitness(
                     logsData[i], bestParams, 
-                    indexStartJoints, indexStartInertias, 
-                    sizeJointParameters, sizeInertiaParameters, 
-                    defaultInertiaData, defaultInertiaName, 1);
+                    indexStartCommon, indexStartJoints, 
+                    indexStartInertias, indexStartGeometries,
+                    sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                    defaultJointData, defaultJointName, 
+                    defaultInertiaData, defaultInertiaName, 
+                    defaultGeometryData, defaultGeometryName, 
+                    1);
+            }
+            std::cout << "============" << std::endl;
+            std::cout << "Validation data:" << std::endl;
+            for (size_t i=0;i<logsData.size();i++) {
+                std::cout << "==== Best score for: " << filenamesValidation[i] << std::endl;
+                scoreFitness(
+                    logsValidation[i], bestParams, 
+                    indexStartCommon, indexStartJoints, 
+                    indexStartInertias, indexStartGeometries,
+                    sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                    defaultJointData, defaultJointName, 
+                    defaultInertiaData, defaultInertiaName, 
+                    defaultGeometryData, defaultGeometryName, 
+                    1);
             }
             std::cout << "============" << std::endl;
         }
@@ -622,9 +908,13 @@ int main(int argc, char** argv)
         std::cout << "Final score for: " << filenames[i] << std::endl;
         scoreFitness(
             logsData[i], bestParams.array(), 
-            indexStartJoints, indexStartInertias, 
-            sizeJointParameters, sizeInertiaParameters, 
-            defaultInertiaData, defaultInertiaName, 3);
+            indexStartCommon, indexStartJoints, 
+            indexStartInertias, indexStartGeometries,
+            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+            defaultJointData, defaultJointName, 
+            defaultInertiaData, defaultInertiaName, 
+            defaultGeometryData, defaultGeometryName, 
+            3);
     }
     std::cout << "BestParams: " << bestParams.transpose() << std::endl;
     std::cout << "BestScore: " << bestScore << std::endl;
