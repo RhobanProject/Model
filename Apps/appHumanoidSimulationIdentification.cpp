@@ -779,9 +779,9 @@ int main(int argc, char** argv)
         if (countError > 0.0 && maxError > 0.0) {
             return 
                 cost 
-                + 0.6*(sumError/countError) 
-                + 0.2*(maxAllError.mean()) 
-                + 0.2*(maxError);
+                + 0.9*(sumError/countError) 
+                + 0.05*(maxAllError.mean()) 
+                + 0.05*(maxError);
         } else {
             return cost;
         }
@@ -863,7 +863,7 @@ int main(int argc, char** argv)
             }
             std::cout << "============" << std::endl;
             std::cout << "Validation data:" << std::endl;
-            for (size_t i=0;i<logsData.size();i++) {
+            for (size_t i=0;i<logsValidation.size();i++) {
                 std::cout << "==== Best score for: " << filenamesValidation[i] << std::endl;
                 scoreFitness(
                     logsValidation[i], bestParams, 
