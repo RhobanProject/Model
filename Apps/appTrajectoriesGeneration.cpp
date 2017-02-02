@@ -19,8 +19,12 @@ int main(int argc, char** argv)
 {
     //Parse argument
     if (argc < 4) {
-        std::cout << "Usage: ./app RUN trajectoryName outputPrefix [paramName=value] ..." << std::endl;
-        std::cout << "Usage: ./app SEED trajectoryName outputPrefix restartParameters [paramName=value] ..." << std::endl;
+        std::cout << 
+            "Usage: ./app RUN trajectoryName outputPrefix [paramName=value] ... " << 
+            "[MODEL] [path.modelparams]" << std::endl;
+        std::cout << 
+            "Usage: ./app SEED trajectoryName outputPrefix restartParameters [paramName=value] ... " << 
+            "[MODEL] [path.modelparams]" << std::endl;
         std::cout << "Available trajectories:" << std::endl;
         std::cout << "-- kicksingle" << std::endl;
         std::cout << "-- kickdouble" << std::endl;
@@ -47,8 +51,15 @@ int main(int argc, char** argv)
     }
     //Parse parameters
     std::vector<std::pair<std::string, double>> inputParameters;
+    std::string modelParametersPath;
     for (size_t i=startInputIndex;i<(size_t)argc;i++) {
         std::string part = argv[i];
+        if (part == "MODEL" && i < (size_t)argc-1) {
+            modelParametersPath = argv[i+1];
+            std::cout << "Loading model parameters from: " 
+                << modelParametersPath << std::endl;
+            break;
+        }
         size_t pos = part.find("=");
         if (pos == std::string::npos) {
             std::cout << "Error format: " << part << std::endl;
@@ -67,7 +78,8 @@ int main(int argc, char** argv)
     Leph::TrajectoryParameters trajParams = Leph::DefaultTrajParameters();
 
     //Initialize the generator
-    Leph::TrajectoryGeneration generator(Leph::SigmabanModel);
+    Leph::TrajectoryGeneration generator(
+        Leph::SigmabanModel, modelParametersPath);
     //Load trajectory template
     if (trajName == "kicksingle") {
         Leph::TrajKickSingle::initializeParameters(trajParams);
@@ -160,7 +172,10 @@ int main(int argc, char** argv)
     
 #ifdef LEPH_VIEWER_ENABLED
     //Display initial trajectory
-    TrajectoriesDisplay(generator.generateTrajectory(generator.initialParameters()));
+    TrajectoriesDisplay(
+        generator.generateTrajectory(generator.initialParameters()),
+        Leph::SigmabanModel,
+        modelParametersPath);
 #endif
     
     //Run the CMA-ES optimization
@@ -174,7 +189,10 @@ int main(int argc, char** argv)
 
 #ifdef LEPH_VIEWER_ENABLED
     //Display found trajectory
-    TrajectoriesDisplay(generator.bestTrajectories());
+    TrajectoriesDisplay(
+        generator.bestTrajectories(), 
+        Leph::SigmabanModel, 
+        modelParametersPath);
 #endif
 
     return 0;

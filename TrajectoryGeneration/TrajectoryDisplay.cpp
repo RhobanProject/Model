@@ -1,3 +1,4 @@
+#include <map>
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
 #include "Plot/Plot.hpp"
 #include "Viewer/ModelViewer.hpp"
@@ -5,11 +6,14 @@
 #include "Utils/Scheduling.hpp"
 #include "Model/JointModel.hpp"
 #include "Model/NamesModel.h"
+#include "Utils/FileModelParameters.h"
 
 namespace Leph {
 
 void TrajectoriesDisplay(
-    const Trajectories& traj, RobotType type)
+    const Trajectories& traj, 
+    RobotType type,
+    const std::string& modelParamsPath)
 {
     //Plot Cartesian trajectory
     Plot plot;
@@ -88,11 +92,35 @@ void TrajectoriesDisplay(
     }
     plot.plot("time", "all").render();
     plot.clear();
-    //Joint Model
-    JointModel jointModel;
+    //Load model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
+    Eigen::MatrixXd geometryData;
+    std::map<std::string, size_t> geometryName;
+    if (modelParamsPath != "") {
+        ReadModelParameters(
+            modelParamsPath,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
+    }
+    //Joint Model for each DOF
+    std::map<std::string, JointModel> jointModels;
+    for (const std::string& name : NamesDOF) {
+        jointModels[name] = JointModel();
+        if (modelParamsPath != "" && jointName.count(name) > 0) {
+            jointModels[name].setParameters(
+                jointData.row(jointName.at(name)).transpose());
+        } 
+    }
+    //Sigmaban fixed model
+    HumanoidFixedModel model(type, 
+        inertiaData, inertiaName, 
+        geometryData, geometryName);
     //Display Trajectory
     ModelViewer viewer(1200, 900);
-    HumanoidFixedModel model(type);
     Scheduling scheduling;
     scheduling.setFrequency(50.0);
     double t = traj.min();
@@ -183,15 +211,15 @@ void TrajectoriesDisplay(
             }
         }
         if (!isLoop) {
-            Leph::VectorLabel vect;
+            VectorLabel vect;
             vect.append("t", t);
             vect.append("zmp_x", zmp.x());
             vect.append("zmp_y", zmp.y());
             vect.append("torque_support_yaw", torqueSupportYaw);
-            for (const std::string& name : Leph::NamesDOFLegLeft) {
+            for (const std::string& name : NamesDOFLegLeft) {
                 size_t index = model.get().getDOFIndex(name);
                 //Compute voltage
-                double volt = jointModel.computeElectricTension(
+                double volt = jointModels.at(name).computeElectricTension(
                     dq(index), ddq(index), torques(index));
                 if (maxVolt < 0.0 || maxVolt < volt) {
                     maxVolt = volt;
@@ -207,10 +235,10 @@ void TrajectoriesDisplay(
                 vect.append("left_ddq:"+name, 
                     ddq(index));
             }
-            for (const std::string& name : Leph::NamesDOFLegRight) {
+            for (const std::string& name : NamesDOFLegRight) {
                 size_t index = model.get().getDOFIndex(name);
                 //Compute voltage
-                double volt = jointModel.computeElectricTension(
+                double volt = jointModels.at(name).computeElectricTension(
                     dq(index), ddq(index), torques(index));
                 if (maxVolt < 0.0 || maxVolt < volt) {
                     maxVolt = volt;

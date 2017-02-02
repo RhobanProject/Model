@@ -1,12 +1,16 @@
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "Utils/FileEigen.h"
+#include "Utils/FileModelParameters.h"
 #include "Utils/time.h"
+#include "Model/NamesModel.h"
 
 namespace Leph {
 
-TrajectoryGeneration::TrajectoryGeneration(RobotType type) :
+TrajectoryGeneration::TrajectoryGeneration(RobotType type,
+    const std::string& modelParamsPath) :
     _type(type),
+    _modelParametersPath(modelParamsPath),
     _initialParameters(),
     _normCoefs(),
     _generateFunc(),
@@ -122,6 +126,7 @@ double TrajectoryGeneration::checkDOF(
 double TrajectoryGeneration::score(
     double t,
     HumanoidFixedModel& model,
+    const std::map<std::string, JointModel>& joints,
     const Eigen::VectorXd& torques,
     const Eigen::VectorXd& dq,
     const Eigen::VectorXd& ddq,
@@ -130,7 +135,7 @@ double TrajectoryGeneration::score(
     std::vector<double>& data) const
 {
     return _scoreFunc(
-        t, model, 
+        t, model, joints,
         torques, dq, ddq, 
         isDoubleSupport, supportFoot, 
         data);
@@ -168,8 +173,36 @@ double TrajectoryGeneration::scoreTrajectory(
     const Trajectories& traj,
     bool verbose) const
 {
+    //Load model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
+    Eigen::MatrixXd geometryData;
+    std::map<std::string, size_t> geometryName;
+    if (_modelParametersPath != "") {
+        ReadModelParameters(
+            _modelParametersPath,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
+    }
+    //Joint Model for each DOF
+    std::map<std::string, JointModel> joints;
+    for (const std::string& name : NamesDOF) {
+        joints[name] = JointModel();
+        if (
+            _modelParametersPath != "" && 
+            jointName.count(name) > 0
+        ) {
+            joints[name].setParameters(
+                jointData.row(jointName.at(name)).transpose());
+        } 
+    }
     //Sigmaban fixed model
-    Leph::HumanoidFixedModel model(_type);
+    Leph::HumanoidFixedModel model(_type, 
+        inertiaData, inertiaName, 
+        geometryData, geometryName);
     double cost = 0.0;
     std::vector<double> data;
     for (double t=traj.min();t<=traj.max();t+=0.01) {
@@ -250,7 +283,7 @@ double TrajectoryGeneration::scoreTrajectory(
         }
         //Evaluate the trajectory
         cost += score(
-            t, model, 
+            t, model, joints,
             torques, dq, ddq, 
             isDoubleSupport, supportFoot,
             data);

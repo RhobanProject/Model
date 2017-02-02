@@ -273,9 +273,10 @@ int main()
     generator.setCheckStateFunc(Leph::DefaultCheckState);
     generator.setCheckDOFFunc(Leph::DefaultCheckDOF);
     //Set trajectory scoring function
-    generator.setScoreFunc([&jointModel](
+    generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -307,7 +308,7 @@ int main()
         //Maximum voltage
         for (const std::string& name : Leph::NamesDOF) {
             size_t index = model.get().getDOFIndex(name);
-            double volt = jointModel.computeElectricTension(
+            double volt = joints.at(name).computeElectricTension(
                 dq(index), ddq(index), torques(index));
             //Maximum voltage
             if (data[0] < volt) {

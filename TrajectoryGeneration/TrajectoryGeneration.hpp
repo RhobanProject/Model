@@ -1,11 +1,14 @@
 #ifndef LEPH_TRAJECTORYGENERATION_HPP
 #define LEPH_TRAJECTORYGENERATION_HPP
 
+#include <map>
+#include <string>
 #include <functional>
 #include <Eigen/Dense>
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Model/HumanoidModel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
+#include "Model/JointModel.hpp"
 
 namespace Leph {
 
@@ -46,6 +49,7 @@ class TrajectoryGeneration
         typedef std::function<double(
             double t,
             HumanoidFixedModel& model,
+            const std::map<std::string, JointModel>& joints,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
@@ -63,9 +67,11 @@ class TrajectoryGeneration
 
         /**
          * Initialization with 
-         * humanoid type
+         * humanoid type and an optional 
+         * filepath to model parameters
          */
-        TrajectoryGeneration(RobotType type);
+        TrajectoryGeneration(RobotType type, 
+            const std::string& modelParamsPath = "");
         
         /**
          * Set the initial parameters for 
@@ -169,6 +175,7 @@ class TrajectoryGeneration
         double score(
             double t,
             HumanoidFixedModel& model,
+            const std::map<std::string, JointModel>& joints,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
@@ -220,6 +227,13 @@ class TrajectoryGeneration
          * Humanoid robot type
          */
         RobotType _type;
+
+        /**
+         * If not empty, a filepath to
+         * joint, inertia and geometry model 
+         * parameters to be loaded and used.
+         */
+        std::string _modelParametersPath;
 
         /**
          * Initial parameters for 

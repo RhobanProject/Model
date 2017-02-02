@@ -234,6 +234,7 @@ void generateLegLift()
     generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -243,6 +244,7 @@ void generateLegLift()
     {
         (void)t;
         (void)model;
+        (void)joints;
         (void)dq;
         (void)ddq;
 
@@ -537,6 +539,7 @@ void generateKick()
     generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -584,10 +587,9 @@ void generateKick()
         cost += 0.01*tmpTorques.norm();
         
         //Voltage
-        Leph::JointModel jointModel;
         for (const std::string& name : Leph::NamesDOF) {
             size_t index = model.get().getDOFIndex(name);
-            double volt = jointModel.computeElectricTension(
+            double volt = joints.at(name).computeElectricTension(
                 dq(index), ddq(index), torques(index));
             //Maximum voltage
             if (data[1] < volt) {
@@ -735,6 +737,7 @@ void generateStaticSingleSupport()
     generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -744,6 +747,7 @@ void generateStaticSingleSupport()
     {
         (void)t;
         (void)model;
+        (void)joints;
         (void)dq;
         (void)ddq;
         (void)data;
@@ -1337,6 +1341,7 @@ void generateWalk()
     generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -1398,12 +1403,11 @@ void generateWalk()
         }
 
         //Voltage
-        Leph::JointModel jointModel;
         for (const std::string& name : Leph::NamesDOF) {
             size_t index = model.get().getDOFIndex(name);
-            double volt = jointModel.computeElectricTension(
+            double volt = joints.at(name).computeElectricTension(
                 dq(index), ddq(index), torques(index));
-            cost += 0.01*(1.0/jointModel.getMaxVoltage())
+            cost += 0.01*(1.0/joints.at(name).getMaxVoltage())
                 *volt/((double)Leph::NamesDOF.size());
             //Maximum voltage
             if (data[1] < volt) {

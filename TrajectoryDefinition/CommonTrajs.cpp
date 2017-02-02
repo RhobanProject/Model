@@ -55,6 +55,7 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
     return [&trajParams](
         double t,
         HumanoidFixedModel& model,
+        const std::map<std::string, JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -69,7 +70,7 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
         if (data.size() == 0) {
             //Max ZMP
             data.push_back(0.0);
-            //Max voltage
+            //Max voltage overload
             data.push_back(0.0);
             //Max torque yaw
             data.push_back(0.0);
@@ -93,14 +94,15 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
         }
         
         //Voltage
-        JointModel jointModel;
         for (const std::string& name : NamesDOF) {
             size_t index = model.get().getDOFIndex(name);
-            double volt = fabs(jointModel.computeElectricTension(
+            double volt = fabs(joints.at(name).computeElectricTension(
                 dq(index), ddq(index), torques(index)));
-            //Maximum voltage
-            if (data[1] < volt) {
-                data[1] = volt;
+            double maxVolt = trajParams.get("fitness_max_volt_ratio")
+                * fabs(joints.at(name).getMaxVoltage());
+            //Maximum voltage overload
+            if (volt > maxVolt && data[1] < (volt-maxVolt)) {
+                data[1] = volt-maxVolt;
             }
             cost += 0.01*volt/NamesDOF.size();
         }
@@ -140,20 +142,17 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
             std::cout 
                 << "MeanVolt=" << score 
                 << " MaxZMP=" << data[0] 
-                << " MaxVolt=" << data[1]
+                << " MaxVoltOverload=" << data[1]
                 << " MaxTorqueYaw=" << data[2] 
                 << std::endl;
         }
         double cost = 0.0;
-        //Penalize impossible high motor voltage
-        JointModel jointModel;
-        if (data[1] > trajParams.get("fitness_max_volt_ratio")
-            *jointModel.getMaxVoltage()
-        ) {
-            double tmpCost = 10.0 + 10.0*data[1];
+        //Penalize impossible high motor voltage overload
+        if (data[1] > 0.0) {
+            double tmpCost = 10.0 + 20.0*data[1];
             cost += tmpCost;
             if (verbose) {
-                std::cout << "VoltBound=" << tmpCost << std::endl;
+                std::cout << "VoltOverloadBound=" << tmpCost << std::endl;
             }
         } 
         //Penalize high yaw support torque
@@ -165,13 +164,13 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
             }
         }
         //Compute mixed costs with max ZMP, 
-        //max voltage and max torque yaw
+        //max voltage overload and max torque yaw
         cost += 150.0*data[0] + 0.2*data[1] + 1.0*data[2];
         //Verbose
         if (verbose) {
             std::cout 
                 << "ZMPCost=" << 150.0*data[0] 
-                << " VoltCost=" << 0.2*data[1]
+                << " VoltOverloadCost=" << 0.2*data[1]
                 << " TorqueYawCost=" << 1.0*data[2] 
                 << std::endl;
             std::cout 
