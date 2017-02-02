@@ -10,6 +10,7 @@
 #include "Types/MapSeries.hpp"
 #include "Plot/Plot.hpp"
 #include "Model/NamesModel.h"
+#include "Utils/FileModelParameters.h"
 
 /**
  * Run HumanoidSimulation
@@ -19,16 +20,16 @@ int main(int argc, char** argv)
 {
     //Parse arguments
     if (
-        argc != 3 || (
+        argc < 3 || (
         argv[1] != std::string("LOG") && 
         argv[1] != std::string("LOG_CYCLE") && 
         argv[1] != std::string("TRAJ_CYCLE") && 
         argv[1] != std::string("TRAJ"))
     ) {
-        std::cout << "Usage: ./app LOG filepath.mapseries" << std::endl;
-        std::cout << "Usage: ./app TRAJ filepath.splines" << std::endl;
-        std::cout << "Usage: ./app LOG_CYCLE filepath.mapseries" << std::endl;
-        std::cout << "Usage: ./app TRAJ_CYCLE filepath.splines" << std::endl;
+        std::cout << "Usage: ./app LOG filepath.mapseries [MODEL] [file.modelparams]" << std::endl;
+        std::cout << "Usage: ./app TRAJ filepath.splines [MODEL] [file.modelparams]" << std::endl;
+        std::cout << "Usage: ./app LOG_CYCLE filepath.mapseries [MODEL] [file.modelparams]" << std::endl;
+        std::cout << "Usage: ./app TRAJ_CYCLE filepath.splines [MODEL] [file.modelparams]" << std::endl;
         return 1;
     }
     std::string filename = argv[2];
@@ -52,6 +53,10 @@ int main(int argc, char** argv)
         std::cout << "Reading periodic Log: " << filename << std::endl;
     } else {
         return 0;
+    }
+    std::string modelParamsPath;
+    if (argc == 5 && std::string(argv[3]) == "MODEL") {
+        modelParamsPath = argv[4];
     }
 
     //Viewer initialization
@@ -94,15 +99,48 @@ int main(int argc, char** argv)
         timeMin -= 0.5;
         timeMax += 2.0;
     }
+    
+    //Load model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
+    Eigen::MatrixXd geometryData;
+    std::map<std::string, size_t> geometryName;
+    if (modelParamsPath != "") {
+        Leph::ReadModelParameters(
+            modelParamsPath,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
+    }
         
     //Main loop
     Leph::Plot plot;
+    bool isFirstLoop = true;
     bool isContinue = true;
     bool isInitialized = false;
     while (isContinue) {
-        //Simulator and goal model initialization
+        //Simulator, goal and read model initialization
         Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
-        Leph::HumanoidSimulation sim(Leph::SigmabanModel);
+        Leph::HumanoidFixedModel modelRead(
+            Leph::SigmabanModel,
+            inertiaData,
+            inertiaName,
+            geometryData,
+            geometryName);
+        Leph::HumanoidSimulation sim(
+            Leph::SigmabanModel,
+            inertiaData,
+            inertiaName,
+            geometryData,
+            geometryName);
+        for (const std::string& name : Leph::NamesDOF) {
+            if (modelParamsPath != "" && jointName.count(name) > 0) {
+                sim.jointModel(name).setParameters(
+                    jointData.row(jointName.at(name)).transpose());
+            }
+        }
         //No reinitialition in cycle mode
         if (!isCycleMode) {
             isInitialized = false;
@@ -125,10 +163,11 @@ int main(int argc, char** argv)
                     sim.setGoal(name, modelGoal.get().getDOF(name));
                 }
             } else {
-                //Assign simulation DOF goal
+                //Assign simulation DOF goal and read
                 for (const std::string& name : Leph::NamesDOF) {
                     sim.setGoal(name, logs.get("goal:" + name, t));
                     modelGoal.get().setDOF(name, logs.get("goal:" + name, t));
+                    modelRead.get().setDOF(name, logs.get("read:" + name, t));
                 }
             } 
             //State Initialization
@@ -160,7 +199,11 @@ int main(int argc, char** argv)
                 sim.update(0.001);
             }
             //Display
-            Leph::ModelDraw(modelGoal.get(), viewer, 0.3);
+            if (!isTrajMode) {
+                Leph::ModelDraw(modelRead.get(), viewer, 0.3);
+            } else {
+                Leph::ModelDraw(modelGoal.get(), viewer, 0.3); 
+            }
             Leph::ModelDraw(sim.model(), viewer);
             Leph::CleatsDraw(sim, viewer);
             //Viewer update
@@ -168,8 +211,126 @@ int main(int argc, char** argv)
                 isContinue = false;
                 break;
             }
+            //Plot
+            if (isFirstLoop) {
+                for (const std::string& name : Leph::NamesDOF) {
+                    plot.add({
+                        "t", t-timeMin,
+                        "goal:"+name, modelGoal.get().getDOF(name),
+                        "sim:"+name, sim.model().getDOF(name),
+                    });
+                    if (!isTrajMode) {
+                        plot.add({
+                            "t", t-timeMin,
+                            "read:"+name, logs.get("read:" + name, t),
+                        });
+                    }
+                }
+                Eigen::Vector3d trunkPosGoal = modelGoal
+                    .get().position("trunk", "left_foot_tip");
+                Eigen::Vector3d footPosGoal = modelGoal
+                    .get().position("right_foot_tip", "left_foot_tip");
+                Eigen::Vector3d trunkPosSim = sim.model()
+                    .position("trunk", "left_foot_tip");
+                Eigen::Vector3d footPosSim = sim.model()
+                    .position("right_foot_tip", "left_foot_tip");
+                plot.add({
+                    "t", t-timeMin,
+                    "goal:trunk_x", trunkPosGoal.x(),
+                    "goal:trunk_y", trunkPosGoal.y(),
+                    "goal:trunk_z", trunkPosGoal.z(),
+                    "goal:foot_x", footPosGoal.x(),
+                    "goal:foot_y", footPosGoal.y(),
+                    "goal:foot_z", footPosGoal.z(),
+                    "sim:trunk_x", trunkPosSim.x(),
+                    "sim:trunk_y", trunkPosSim.y(),
+                    "sim:trunk_z", trunkPosSim.z(),
+                    "sim:foot_x", footPosSim.x(),
+                    "sim:foot_y", footPosSim.y(),
+                    "sim:foot_z", footPosSim.z(),
+                });
+                if (!isTrajMode) {
+                    Eigen::Vector3d trunkPosRead = modelRead
+                        .get().position("trunk", "left_foot_tip");
+                    Eigen::Vector3d footPosRead = modelRead
+                        .get().position("right_foot_tip", "left_foot_tip");
+                    plot.add({
+                        "t", t-timeMin,
+                        "read:trunk_x", trunkPosRead.x(),
+                        "read:trunk_y", trunkPosRead.y(),
+                        "read:trunk_z", trunkPosRead.z(),
+                        "read:foot_x", footPosRead.x(),
+                        "read:foot_y", footPosRead.y(),
+                        "read:foot_z", footPosRead.z(),
+                    });
+                }
+            }
         }
+        isFirstLoop = false;
     }
+    //Plot
+    plot
+        .plot("t", "goal:left_hip_yaw")
+        .plot("t", "read:left_hip_yaw")
+        .plot("t", "sim:left_hip_yaw")
+        .plot("t", "goal:left_hip_pitch")
+        .plot("t", "read:left_hip_pitch")
+        .plot("t", "sim:left_hip_pitch")
+        .plot("t", "goal:left_hip_roll")
+        .plot("t", "read:left_hip_roll")
+        .plot("t", "sim:left_hip_roll")
+        .plot("t", "goal:left_knee")
+        .plot("t", "read:left_knee")
+        .plot("t", "sim:left_knee")
+        .plot("t", "goal:left_ankle_pitch")
+        .plot("t", "read:left_ankle_pitch")
+        .plot("t", "sim:left_ankle_pitch")
+        .plot("t", "goal:left_ankle_roll")
+        .plot("t", "read:left_ankle_roll")
+        .plot("t", "sim:left_ankle_roll")
+        .render();
+    plot
+        .plot("t", "goal:right_hip_yaw")
+        .plot("t", "read:right_hip_yaw")
+        .plot("t", "sim:right_hip_yaw")
+        .plot("t", "goal:right_hip_pitch")
+        .plot("t", "read:right_hip_pitch")
+        .plot("t", "sim:right_hip_pitch")
+        .plot("t", "goal:right_hip_roll")
+        .plot("t", "read:right_hip_roll")
+        .plot("t", "sim:right_hip_roll")
+        .plot("t", "goal:right_knee")
+        .plot("t", "read:right_knee")
+        .plot("t", "sim:right_knee")
+        .plot("t", "goal:right_ankle_pitch")
+        .plot("t", "read:right_ankle_pitch")
+        .plot("t", "sim:right_ankle_pitch")
+        .plot("t", "goal:right_ankle_roll")
+        .plot("t", "read:right_ankle_roll")
+        .plot("t", "sim:right_ankle_roll")
+        .render();
+    plot
+        .plot("t", "goal:trunk_x")
+        .plot("t", "read:trunk_x")
+        .plot("t", "sim:trunk_x")
+        .plot("t", "goal:trunk_y")
+        .plot("t", "read:trunk_y")
+        .plot("t", "sim:trunk_y")
+        .plot("t", "goal:trunk_z")
+        .plot("t", "read:trunk_z")
+        .plot("t", "sim:trunk_z")
+        .render();
+    plot
+        .plot("t", "goal:foot_x")
+        .plot("t", "read:foot_x")
+        .plot("t", "sim:foot_x")
+        .plot("t", "goal:foot_y")
+        .plot("t", "read:foot_y")
+        .plot("t", "sim:foot_y")
+        .plot("t", "goal:foot_z")
+        .plot("t", "read:foot_z")
+        .plot("t", "sim:foot_z")
+        .render();
 
     return 0;
 }
