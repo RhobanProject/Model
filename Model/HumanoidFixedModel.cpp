@@ -4,10 +4,16 @@
 namespace Leph {
 
 HumanoidFixedModel::HumanoidFixedModel(
-    RobotType type) :
+    RobotType type,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
     _supportFoot(LeftSupportFoot),
-    _modelLeft(type, "left_foot_tip"),
-    _modelRight(type, "right_foot_tip")
+    _modelLeft(type, "left_foot_tip", true,
+        inertiaData, inertiaName, geometryData, geometryName),
+    _modelRight(type, "right_foot_tip", true,
+        inertiaData, inertiaName, geometryData, geometryName)
 {
 }
         
