@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     std::string modelParametersPath;
     for (size_t i=startInputIndex;i<(size_t)argc;i++) {
         std::string part = argv[i];
-        if (part == "MODEL" && i < (size_t)argc-1) {
+        if (part == "MODEL" && i == (size_t)argc-2) {
             modelParametersPath = argv[i+1];
             std::cout << "Loading model parameters from: " 
                 << modelParametersPath << std::endl;
@@ -150,6 +150,7 @@ int main(int argc, char** argv)
         << " restarts=" << (unsigned int)trajParams.get("cmaes_restarts")
         << " lambda=" << (unsigned int)trajParams.get("cmaes_lambda")
         << " sigma=" << trajParams.get("cmaes_sigma")
+        << " elitism=" << trajParams.get("cmaes_elitism")
         << std::endl;
 
     //Load initial parameters if SEED mode

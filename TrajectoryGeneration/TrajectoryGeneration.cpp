@@ -323,6 +323,11 @@ void TrajectoryGeneration::runOptimization(
         [this, &filename, &normCoef](const libcmaes::CMAParameters<>& cmaparams, 
             const libcmaes::CMASolutions& cmasols)
     {
+        if (cmasols.get_best_seen_candidate().get_x_dvec().size() == 0) {
+            //Call default CMA-ES default progress function
+            return libcmaes::CMAStrategy<libcmaes::CovarianceUpdate>
+            ::_defaultPFunc(cmaparams, cmasols);
+        }
         //Retrieve best Trajectories and score
         Eigen::VectorXd params = 
             cmasols.get_best_seen_candidate().get_x_dvec().array()
