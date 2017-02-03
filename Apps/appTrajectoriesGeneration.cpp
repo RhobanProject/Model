@@ -89,6 +89,7 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajKickSingle::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajKickSingle::funcSave(trajParams));
     } else if (trajName == "kickdouble") {
         Leph::TrajKickDouble::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickDouble::funcGeneration(trajParams));
@@ -97,6 +98,7 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajKickDouble::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajKickDouble::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajKickDouble::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajKickDouble::funcSave(trajParams));
     } else if (trajName == "leglift") {
         Leph::TrajLegLift::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajLegLift::funcGeneration(trajParams));
@@ -105,6 +107,7 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajLegLift::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajLegLift::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajLegLift::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajLegLift::funcSave(trajParams));
     } else if (trajName == "walk") {
         Leph::TrajWalk::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajWalk::funcGeneration(trajParams));
@@ -113,16 +116,18 @@ int main(int argc, char** argv)
         generator.setCheckDOFFunc(Leph::TrajWalk::funcCheckDOF(trajParams));
         generator.setScoreFunc(Leph::TrajWalk::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajWalk::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajWalk::funcSave(trajParams));
     } else {
         std::cout << "Invalid trajectory name: " << trajName << std::endl;
         return 1;
     }
 
-    //Build initial parameters
-    Eigen::VectorXd initParams = trajParams.buildVector();
-    //Build normalization coefficents
-    Eigen::VectorXd normCoefs = trajParams.buildNormalizationCoefs();
-    
+    //Load initial parameters if SEED mode
+    if (mode == "SEED") {
+        trajParams.importData(seedParametersFile);
+        std::cout << "Seed parameters loading from: " << seedParametersFile << std::endl;
+    } 
+
     //Insert inputs parameters to trajectory parameter
     std::string paramsStr = "_";
     for (const auto& it : inputParameters) {
@@ -134,6 +139,11 @@ int main(int argc, char** argv)
                 + std::to_string(it.second) + std::string("_");
         }
     }
+    
+    //Build initial parameters
+    Eigen::VectorXd initParams = trajParams.buildVector();
+    //Build normalization coefficents
+    Eigen::VectorXd normCoefs = trajParams.buildNormalizationCoefs();
 
     //Verbose
     char hostnameStr[100];
@@ -152,19 +162,6 @@ int main(int argc, char** argv)
         << " sigma=" << trajParams.get("cmaes_sigma")
         << " elitism=" << trajParams.get("cmaes_elitism")
         << std::endl;
-
-    //Load initial parameters if SEED mode
-    if (mode == "SEED") {
-        Eigen::VectorXd tmpVect = Leph::ReadEigenVector(seedParametersFile);
-        if (tmpVect.size() != initParams.size()) {
-            std::cout << "Invalid seed parameters size: " 
-                << std::to_string(tmpVect.size()) << std::endl;
-            return 1;
-        } else {
-            std::cout << "Seed parameters loaded from: " << seedParametersFile << std::endl;
-            initParams = tmpVect;
-        }
-    } 
 
     //Set initial parameters
     generator.setInitialParameters(initParams);

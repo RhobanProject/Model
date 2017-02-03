@@ -330,5 +330,11 @@ TrajectoryGeneration::EndScoreFunc TrajKickSingle::funcEndScore(
     return DefaultFuncEndScore(trajParams);
 }
 
+TrajectoryGeneration::SaveFunc TrajKickSingle::funcSave(
+    const TrajectoryParameters& trajParams)
+{
+    return DefaultFuncSave(trajParams);
+}
+
 }
 

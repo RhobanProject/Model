@@ -8,6 +8,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "TrajectoryGeneration/TrajectoryUtils.h"
+#include "Utils/FileMap.h"
 
 namespace Leph {
 
@@ -461,6 +462,36 @@ class TrajectoryParameters
                 time, posFootAxis.y(), velFootAxis.y(), accFootAxis.y());
             traj.get("foot_axis_z").addPoint(
                 time, coef3*posFootAxis.z(), coef3*velFootAxis.z(), coef3*accFootAxis.z());
+        }
+
+        /**
+         * Dump all contained parameters values
+         * from unoptimized value of from given
+         * parameters vector to given filename.
+         */
+        inline void exportData(
+            const std::string& filename,
+            const Eigen::VectorXd& parameters) const
+        {
+            std::map<std::string, double> map;
+            for (const auto& it : _container) {
+                map[it.first] = get(it.first, parameters);
+            }
+            WriteMap(filename, map);
+        }
+
+        /**
+         * Load and assign (no parameter creation)
+         * parameters value from given filename.
+         */
+        inline void importData(
+            const std::string& filename)
+        {
+            std::map<std::string, double> map = 
+                ReadMap<std::string, double>(filename);
+            for (const auto& it : map) {
+                set(it.first) = it.second;
+            }
         }
 
     private:

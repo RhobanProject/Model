@@ -1,6 +1,5 @@
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
-#include "Utils/FileEigen.h"
 #include "Utils/FileModelParameters.h"
 #include "Utils/time.h"
 #include "Model/NamesModel.h"
@@ -19,6 +18,7 @@ TrajectoryGeneration::TrajectoryGeneration(RobotType type,
     _checkDOFFunc(),
     _scoreFunc(),
     _endScoreFunc(),
+    _saveFunc(),
     _bestTraj(),
     _bestParams(),
     _bestScore(0.0),
@@ -77,6 +77,12 @@ void TrajectoryGeneration::setEndScoreFunc(
     EndScoreFunc func)
 {
     _endScoreFunc = func;
+}
+
+void TrajectoryGeneration::setSaveFunc(
+    SaveFunc func)
+{
+    _saveFunc = func;
 }
         
 Eigen::VectorXd TrajectoryGeneration::initialParameters() const
@@ -149,6 +155,14 @@ double TrajectoryGeneration::endScore(
 {
     return _endScoreFunc(params, traj, 
         score, data, verbose);
+}
+
+void TrajectoryGeneration::save(
+    const std::string& filename,
+    const Trajectories& traj,
+    const Eigen::VectorXd& params)
+{
+    _saveFunc(filename, traj, params);
 }
         
 double TrajectoryGeneration::scoreTrajectory(
@@ -345,20 +359,12 @@ void TrajectoryGeneration::runOptimization(
                 << std::endl;
             std::cout << "****** Date: " << currentDate() 
                 << std::endl;
-            if (filename != "") {
-                _bestTraj.exportData(filename + ".splines");
-                std::cout << "****** Saving Trajectories to: " 
-                    << filename + ".splines" << std::endl;
-                WriteEigenVector(filename + ".params", _bestParams);
-                std::cout << "****** Saving Parameters to: " 
-                    << filename + ".params" << std::endl;
-            }
+            //Save best trajectories and parameters
+            this->save(filename, _bestTraj, _bestParams);
             std::cout << "****** Dimension: " 
                 << _bestParams.size() << std::endl;
             std::cout << "****** BestScore: " 
                 << _bestScore << std::endl;
-            std::cout << "****** BestParams: " 
-                << _bestParams.transpose() << std::endl;
             std::cout << "****** BestFitness verbose:" << std::endl;
             scoreTrajectory(_bestParams, true);
             std::cout << "****** CurrentScore: " 
@@ -408,14 +414,8 @@ void TrajectoryGeneration::runOptimization(
     _bestScore = score;
     std::cout << "############" 
         << std::endl;
-    if (filename != "") {
-        _bestTraj.exportData(filename + ".splines");
-        std::cout << "****** Saving Trajectories to: " 
-            << filename + ".splines" << std::endl;
-        WriteEigenVector(filename + ".params", _bestParams);
-        std::cout << "****** Saving Parameters to: " 
-            << filename + ".params" << std::endl;
-    }
+    //Save best trajectories and parameters
+    save(filename, _bestTraj, _bestParams);
     std::cout << "****** BestScore: " 
         << _bestScore << std::endl;
     std::cout << "****** BestParams: " 

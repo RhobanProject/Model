@@ -27,6 +27,13 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
 TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
     const TrajectoryParameters& trajParams);
 
+/**
+ * Return a standard saving function for
+ * trajectories and parameters
+ */
+TrajectoryGeneration::SaveFunc DefaultFuncSave(
+    const TrajectoryParameters& trajParams);
+
 }
 
 #endif

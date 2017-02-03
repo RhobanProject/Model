@@ -64,6 +64,11 @@ class TrajectoryGeneration
             std::vector<double>& data,
             bool verbose)> 
             EndScoreFunc;
+        typedef std::function<void(
+            const std::string& filename,
+            const Trajectories& traj,
+            const Eigen::VectorXd& params)>
+            SaveFunc;
 
         /**
          * Initialization with 
@@ -129,12 +134,20 @@ class TrajectoryGeneration
         void setScoreFunc(ScoreFunc func);
 
         /**
-         * set the ending scoring trajectory function.
+         * Set the ending scoring trajectory function.
          * The function is called at the end of Trajectory
          * scoring. It returns positive cost value from given
          * Trajectories spline container;
          */
         void setEndScoreFunc(EndScoreFunc func);
+
+        /**
+         * Set the saving function. The function is called
+         * at regular interval (in progress function) and
+         * save given current best trajectories 
+         * and parameters to given filename.
+         */
+        void setSaveFunc(SaveFunc func);
 
         /**
          * Return initial parameters
@@ -188,6 +201,14 @@ class TrajectoryGeneration
             double score,
             std::vector<double>& data,
             bool verbose) const;
+
+        /**
+         * Call saving function
+         */
+        void save(
+            const std::string& filename,
+            const Trajectories& traj,
+            const Eigen::VectorXd& params);
 
         /**
          * Build up the Trajectories from 
@@ -255,6 +276,7 @@ class TrajectoryGeneration
         CheckDOFFunc _checkDOFFunc;
         ScoreFunc _scoreFunc;
         EndScoreFunc _endScoreFunc;
+        SaveFunc _saveFunc;
 
         /**
          * Best found trajectories and 

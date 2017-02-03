@@ -1,5 +1,6 @@
 #include "TrajectoryDefinition/CommonTrajs.h"
 #include "Model/JointModel.hpp"
+#include "Utils/FileEigen.h"
 #include "Model/NamesModel.h"
 
 namespace Leph {
@@ -181,6 +182,25 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
                 << std::endl;
         }
         return cost;
+    };
+}
+
+TrajectoryGeneration::SaveFunc DefaultFuncSave(
+    const TrajectoryParameters& trajParams)
+{
+    return [&trajParams](
+        const std::string& filename,
+        const Trajectories& traj,
+        const Eigen::VectorXd& params) -> void 
+    {
+        if (filename != "") {
+            traj.exportData(filename + ".splines");
+            std::cout << "****** Saving Trajectories to: " 
+                << filename + ".splines" << std::endl;
+            trajParams.exportData(filename + ".params", params);
+            std::cout << "****** Saving Parameters to: " 
+                << filename + ".params" << std::endl;
+        }
     };
 }
 

@@ -237,5 +237,11 @@ TrajectoryGeneration::EndScoreFunc TrajWalk::funcEndScore(
     return DefaultFuncEndScore(trajParams);
 }
 
+TrajectoryGeneration::SaveFunc TrajWalk::funcSave(
+    const TrajectoryParameters& trajParams)
+{
+    return DefaultFuncSave(trajParams);
+}
+
 }
 

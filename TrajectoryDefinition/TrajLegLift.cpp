@@ -279,5 +279,11 @@ TrajectoryGeneration::EndScoreFunc TrajLegLift::funcEndScore(
     return DefaultFuncEndScore(trajParams);
 }
 
+TrajectoryGeneration::SaveFunc TrajLegLift::funcSave(
+    const TrajectoryParameters& trajParams)
+{
+    return DefaultFuncSave(trajParams);
+}
+
 }
 
