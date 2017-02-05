@@ -59,7 +59,7 @@ inline Eigen::Vector3d MatrixToAxis(const Eigen::Matrix3d& mat)
 
 /**
  * Conversion from rotation axis 
- * (forst or second) differential to actual 
+ * (first or second) differential to actual 
  * angular velocity or acceleration in world frame
  * Reference:
  * Representing attitude: Euler angles, unit quaternions, and rotation vectors

@@ -328,13 +328,15 @@ Eigen::MatrixXd Model::pointJacobian(
         srcFrameIndex, point, G, true);
 
     //Convertion to dst frame
-    Eigen::Matrix3d mat = orientation("origin", dstFrame);
-    mat.transposeInPlace();
-    for (size_t i=0;i<(size_t)G.cols();i++) {
-        Eigen::Vector3d rot = G.block(0, i, 3, 1);
-        Eigen::Vector3d trans = G.block(3, i, 3, 1);
-        G.block(0, i, 3, 1) = mat * rot;
-        G.block(3, i, 3, 1) = mat * trans;
+    if (dstFrame != "origin") {
+        Eigen::Matrix3d mat = orientation("origin", dstFrame);
+        mat.transposeInPlace();
+        for (size_t i=0;i<(size_t)G.cols();i++) {
+            Eigen::Vector3d rot = G.block(0, i, 3, 1);
+            Eigen::Vector3d trans = G.block(3, i, 3, 1);
+            G.block(0, i, 3, 1) = mat * rot;
+            G.block(3, i, 3, 1) = mat * trans;
+        }
     }
         
     return G;

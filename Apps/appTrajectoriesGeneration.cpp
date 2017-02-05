@@ -5,7 +5,6 @@
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryDefinition/CommonTrajs.h"
-#include "Utils/FileEigen.h"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
@@ -183,7 +182,8 @@ int main(int argc, char** argv)
         filename, 
         (unsigned int)trajParams.get("cmaes_lambda"), 
         trajParams.get("cmaes_sigma"),
-        (unsigned int)trajParams.get("cmaes_elitism"));
+        (unsigned int)trajParams.get("cmaes_elitism"),
+        100);
 
 #ifdef LEPH_VIEWER_ENABLED
     //Display found trajectory

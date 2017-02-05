@@ -816,26 +816,8 @@ int main(int argc, char** argv)
             std::cout << "============" << std::endl;
             std::cout << "Dimension: " << params.size() << std::endl;
             std::cout << "BestScore: " << bestScore << std::endl;
-            std::cout << "BestParams: ";
-            for (size_t i=0;i<(size_t)bestParams.size();i++) {
-                std::cout << std::setprecision(10) << bestParams(i);
-                if (i != (size_t)bestParams.size()-1) {
-                    std::cout << ", ";
-                } else {
-                    std::cout << ";" << std::endl;
-                }
-            }
             //Show current optimization state
             std::cout << "Score: " << score<< std::endl;
-            std::cout << "Params: ";
-            for (size_t i=0;i<(size_t)params.size();i++) {
-                std::cout << std::setprecision(10) << params(i);
-                if (i != (size_t)params.size()-1) {
-                    std::cout << ", ";
-                } else {
-                    std::cout << ";" << std::endl;
-                }
-            }
             //Saving
             saveModelParameters(
                 outputParamsFilename,
