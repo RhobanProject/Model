@@ -141,12 +141,9 @@ int main(int argc, char** argv)
                     jointData.row(jointName.at(name)).transpose());
             }
         }
-        //No reinitialition in cycle mode
-        if (!isCycleMode) {
-            isInitialized = false;
-        }
         //Simulation loop
-        for (double t=timeMin;t<timeMax;t+=0.01) {
+        double t = timeMin;
+        while (t <= timeMax) {
             //Expected velocities and accelerations
             Eigen::VectorXd dq;
             Eigen::VectorXd ddq;
@@ -172,6 +169,7 @@ int main(int argc, char** argv)
             } 
             //State Initialization
             if (!isInitialized) {
+                //Assign DOF position and velocity
                 for (const std::string& name : Leph::NamesDOF) {
                     sim.setGoal(name, modelGoal.get().getDOF(name));
                     sim.setPos(name, modelGoal.get().getDOF(name));
@@ -184,14 +182,35 @@ int main(int argc, char** argv)
                     //Reset backlash state
                     sim.jointModel(name).resetBacklashState();
                 }
-                for (const std::string& name : Leph::NamesBase) {
-                    //TODO XXX base == trunk vel initialization. Careful euler angle ...
-                    sim.setVel(name, 0.0); 
-                }
+                //Put the model flat on left support 
+                //foot at origin
                 sim.putOnGround(
                     Leph::HumanoidFixedModel::LeftSupportFoot);
                 sim.putFootAt(0.0, 0.0,
                     Leph::HumanoidFixedModel::LeftSupportFoot);
+                //Compute trunk 6D jacobian with 
+                //respect to the 6D base DOF
+                Eigen::MatrixXd allJac = sim.model().pointJacobian("trunk", "origin");
+                Eigen::MatrixXd trunkJac(6, 6);
+                trunkJac.col(0) = allJac.col(sim.model().getDOFIndex("base_roll"));
+                trunkJac.col(1) = allJac.col(sim.model().getDOFIndex("base_pitch"));
+                trunkJac.col(2) = allJac.col(sim.model().getDOFIndex("base_yaw"));
+                trunkJac.col(3) = allJac.col(sim.model().getDOFIndex("base_x"));
+                trunkJac.col(4) = allJac.col(sim.model().getDOFIndex("base_y"));
+                trunkJac.col(5) = allJac.col(sim.model().getDOFIndex("base_z"));
+                //Compute 6D target trunk velocities
+                Eigen::VectorXd targetTrunkVel = 
+                    modelGoal.get().pointVelocity("trunk", "origin", dq);
+                //Compute base DOF on sim model
+                Eigen::VectorXd baseVel = 
+                    trunkJac.colPivHouseholderQr().solve(targetTrunkVel);
+                //Assign base vel
+                sim.setVel("base_roll", baseVel(0));
+                sim.setVel("base_pitch", baseVel(1));
+                sim.setVel("base_yaw", baseVel(2));
+                sim.setVel("base_x", baseVel(3));
+                sim.setVel("base_y", baseVel(4));
+                sim.setVel("base_z", baseVel(5));
                 isInitialized = true;
             }
             //Run simulation
@@ -264,6 +283,13 @@ int main(int argc, char** argv)
                         "read:foot_z", footPosRead.z(),
                     });
                 }
+            }
+            //Time update
+            t += 0.01;
+            //Cycle mode
+            if (isCycleMode && t > timeMax) {
+                t -= timeMax-timeMin;
+                isFirstLoop = false;
             }
         }
         isFirstLoop = false;
