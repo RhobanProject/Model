@@ -10,7 +10,7 @@ void TrajKickDouble::initializeParameters(
     TrajectoryParameters& trajParams)
 {
     //Total time length
-    trajParams.set("time_length", true) = 2.0;
+    trajParams.set("time_length", true) = 1.5;
     //Time ratio for control points
     trajParams.set("time_ratio_swap1",   true) = 0.2;
     trajParams.set("time_ratio_before",  true) = 0.35;

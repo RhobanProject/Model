@@ -17,9 +17,9 @@ TrajectoryParameters DefaultTrajParameters()
     parameters.add("cmaes_sigma", -1.0);
     parameters.add("cmaes_elitism", 1.0);
     //Fitness maximum torque yaw
-    parameters.add("fitness_max_torque_yaw", 1.0);
+    parameters.add("fitness_max_torque_yaw", 1.5);
     //Fitness maximum voltage ratio
-    parameters.add("fitness_max_volt_ratio", 1.0);
+    parameters.add("fitness_max_volt_ratio", 2.0);
     //Double support static position
     parameters.add("static_double_pos_trunk_pos_x", 0.009816280388);
     parameters.add("static_double_pos_trunk_pos_y", -0.07149996496);
@@ -65,15 +65,18 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
         std::vector<double>& data) -> double 
     {
         (void)t;
-        double cost = 0.0;
 
         //Init data
         if (data.size() == 0) {
-            //Max ZMP
+            //[0] Count summed
             data.push_back(0.0);
-            //Max voltage overload
+            //[1] Sum voltage
             data.push_back(0.0);
-            //Max torque yaw
+            //[2] Max ZMP
+            data.push_back(0.0);
+            //[3] Max voltage overload
+            data.push_back(0.0);
+            //[4] Max torque yaw
             data.push_back(0.0);
         }
 
@@ -89,8 +92,8 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
             }
             zmp.z() = 0.0;
             //Max ZMP
-            if (data[0] < zmp.lpNorm<Eigen::Infinity>()) {
-                data[0] = zmp.lpNorm<Eigen::Infinity>();
+            if (data[2] < zmp.lpNorm<Eigen::Infinity>()) {
+                data[2] = zmp.lpNorm<Eigen::Infinity>();
             }
         }
         
@@ -102,10 +105,11 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
             double maxVolt = trajParams.get("fitness_max_volt_ratio")
                 * fabs(joints.at(name).getMaxVoltage());
             //Maximum voltage overload
-            if (volt > maxVolt && data[1] < (volt-maxVolt)) {
-                data[1] = volt-maxVolt;
+            if (volt > maxVolt && data[3] < (volt-maxVolt)) {
+                data[3] = volt-maxVolt;
             }
-            cost += 0.01*volt/NamesDOF.size();
+            data[0] += 1.0;
+            data[1] += volt;
         }
 
         //Support torque yaw if single support
@@ -113,12 +117,12 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
             double torqueSupportYaw = fabs(
                 torques(model.get().getDOFIndex("base_yaw")));
             //Max support yaw
-            if (data[2] < torqueSupportYaw) {
-                data[2] = torqueSupportYaw;
+            if (data[4] < torqueSupportYaw) {
+                data[4] = torqueSupportYaw;
             }
         }
         
-        return cost;
+        return 0.0;
     };
 }
 
@@ -135,53 +139,43 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
         (void)traj;
         //Skip if the first iteration
         //has not ended (data not initialize)
-        if (data.size() != 3) {
+        if (data.size() != 5) {
             return 0.0;
         }
         //Verbose
         if (verbose) {
             std::cout 
-                << "MeanVolt=" << score 
-                << " MaxZMP=" << data[0] 
-                << " MaxVoltOverload=" << data[1]
-                << " MaxTorqueYaw=" << data[2] 
+                << "MeanVolt=" << data[1]/data[0] 
+                << " MaxZMP=" << data[2] 
+                << " MaxVoltOverload=" << data[3]
+                << " MaxTorqueYaw=" << data[4] 
                 << std::endl;
         }
-        double cost = 0.0;
-        //Penalize impossible high motor voltage overload
-        if (data[1] > 0.0) {
-            double tmpCost = 10.0 + 20.0*data[1];
-            cost += tmpCost;
-            if (verbose) {
-                std::cout << "VoltOverloadBound=" << tmpCost << std::endl;
-            }
-        } 
+        //Penalize high motor voltage overload
+        double costVoltOverload = data[3];
+        //Penalize motor mean voltage
+        double costVoltMean = (data[1]/data[0])/5.0;
+        //Penalize max ZMP
+        double costZMP = data[2]/0.02;
         //Penalize high yaw support torque
-        if (data[2] > trajParams.get("fitness_max_torque_yaw")) {
-            double tmpCost = 10.0 + 10.0*data[2];
-            cost += tmpCost;
-            if (verbose) {
-                std::cout << "TorqueYawBound=" << tmpCost << std::endl;
-            }
+        double costTorqueYaw = 0.0;
+        if (data[4] > trajParams.get("fitness_max_torque_yaw")) {
+            costTorqueYaw = 
+                data[4]/trajParams.get("fitness_max_torque_yaw");
         }
-        //Compute mixed costs with max ZMP, 
-        //max voltage overload and max torque yaw
-        cost += 150.0*data[0] + 0.2*data[1] + 1.0*data[2];
-        //Verbose
         if (verbose) {
             std::cout 
-                << "ZMPCost=" << 150.0*data[0] 
-                << " VoltOverloadCost=" << 0.2*data[1]
-                << " TorqueYawCost=" << 1.0*data[2] 
-                << std::endl;
-            std::cout 
-                << "--> "
-                << "IterationCost=" << score 
-                << " EndCost=" << cost 
-                << " Total=" << score + cost 
+                << "MeanVoltCost=" << costVoltMean
+                << " MaxZMPCost=" << costZMP
+                << " MaxVoltOverloadCost=" << costVoltOverload
+                << " MaxTorqueYawCost=" << costTorqueYaw
                 << std::endl;
         }
-        return cost;
+        return 
+            costVoltMean + 
+            costZMP + 
+            costVoltOverload + 
+            costTorqueYaw;
     };
 }
 

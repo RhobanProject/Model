@@ -314,7 +314,8 @@ void TrajectoryGeneration::runOptimization(
     const std::string& filename,
     unsigned int populationSize,
     double lambda,
-    unsigned int elitismLevel)
+    unsigned int elitismLevel,
+    unsigned int verboseIterations)
 {
     //Retrieve initial parameters
     Eigen::VectorXd initParams = initialParameters();
@@ -334,9 +335,11 @@ void TrajectoryGeneration::runOptimization(
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [this, &filename, &normCoef](const libcmaes::CMAParameters<>& cmaparams, 
-            const libcmaes::CMASolutions& cmasols)
+        [this, &filename, &normCoef, &verboseIterations]
+        (const libcmaes::CMAParameters<>& cmaparams, 
+        const libcmaes::CMASolutions& cmasols)
     {
+        //Empty case
         if (cmasols.get_best_seen_candidate().get_x_dvec().size() == 0) {
             //Call default CMA-ES default progress function
             return libcmaes::CMAStrategy<libcmaes::CovarianceUpdate>
@@ -354,7 +357,7 @@ void TrajectoryGeneration::runOptimization(
             _bestScore = score;
         }
         //Save current best found
-        if (_countIteration % 100 == 0) {
+        if (_countIteration % verboseIterations == 0) {
             std::cout << "============" 
                 << std::endl;
             std::cout << "****** Date: " << currentDate() 

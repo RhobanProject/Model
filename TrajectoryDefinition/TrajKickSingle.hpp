@@ -16,8 +16,12 @@ class TrajKickSingle
 {
     public:
 
+        /**
+         * If isFwd is true, the motion parameters
+         * are created for complete forward optimization.
+         */
         static void initializeParameters(
-            TrajectoryParameters& trajParams);
+            TrajectoryParameters& trajParams, bool isFwd = false);
 
         static TrajectoryGeneration::GenerationFunc funcGeneration(
             const TrajectoryParameters& trajParams);

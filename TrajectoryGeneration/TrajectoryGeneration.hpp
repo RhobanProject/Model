@@ -212,7 +212,8 @@ class TrajectoryGeneration
 
         /**
          * Build up the Trajectories from 
-         * given parameters and evaluates it.
+         * given parameters and evaluates it
+         * from inverse dynamics.
          */
         double scoreTrajectory(
             const Eigen::VectorXd& params, 
@@ -232,7 +233,8 @@ class TrajectoryGeneration
             const std::string& filename = "",
             unsigned int populationSize = 10,
             double lambda = -1.0,
-            unsigned int elitismLevel = 1);
+            unsigned int elitismLevel = 1,
+            unsigned int verboseIterations = 100);
 
         /**
          * Access to best found Trajectories, 
