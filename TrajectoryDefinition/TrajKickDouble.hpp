@@ -16,8 +16,12 @@ class TrajKickDouble
 {
     public:
 
+        /**
+         * If isFwd is true, the motion parameters
+         * are created for complete forward optimization.
+         */
         static void initializeParameters(
-            TrajectoryParameters& trajParams);
+            TrajectoryParameters& trajParams, bool isFwd = false);
 
         static TrajectoryGeneration::GenerationFunc funcGeneration(
             const TrajectoryParameters& trajParams);
@@ -35,6 +39,12 @@ class TrajKickDouble
             const TrajectoryParameters& trajParams);
 
         static TrajectoryGeneration::EndScoreFunc funcEndScore(
+            const TrajectoryParameters& trajParams);
+        
+        static TrajectoryGeneration::ScoreSimFunc funcScoreSim(
+            const TrajectoryParameters& trajParams);
+
+        static TrajectoryGeneration::EndScoreSimFunc funcEndScoreSim(
             const TrajectoryParameters& trajParams);
         
         static TrajectoryGeneration::SaveFunc funcSave(

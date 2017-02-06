@@ -169,6 +169,7 @@ set(APPS_FILES
     appOdometryModelCalibration
     appTrajectoriesGeneration
     appTrajectoriesCorrection
+    appTrajectoriesSimulation
     appFeedForwardLogsComparison
     appHumanoidSimulationIdentification
 )

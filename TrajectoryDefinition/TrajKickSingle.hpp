@@ -41,6 +41,12 @@ class TrajKickSingle
         static TrajectoryGeneration::EndScoreFunc funcEndScore(
             const TrajectoryParameters& trajParams);
         
+        static TrajectoryGeneration::ScoreSimFunc funcScoreSim(
+            const TrajectoryParameters& trajParams);
+
+        static TrajectoryGeneration::EndScoreSimFunc funcEndScoreSim(
+            const TrajectoryParameters& trajParams);
+        
         static TrajectoryGeneration::SaveFunc funcSave(
             const TrajectoryParameters& trajParams);
 };

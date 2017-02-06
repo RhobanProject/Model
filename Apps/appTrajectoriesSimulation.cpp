@@ -1,62 +1,53 @@
 #include <iostream>
+#include <cmath>
 #include <string>
-#include <vector>
-#include <unistd.h>
+#include <Eigen/Dense>
+#include <libcmaes/cmaes.h>
+#include "Model/HumanoidModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
+#include "Model/JointModel.hpp"
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
+#include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryDefinition/CommonTrajs.h"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
 #include "TrajectoryDefinition/TrajWalk.hpp"
+#include "Utils/AxisAngle.h"
+#include "Model/NamesModel.h"
+#include "Utils/FileModelParameters.h"
 
-#ifdef LEPH_VIEWER_ENABLED
-#include "TrajectoryGeneration/TrajectoryDisplay.h"
-#endif
-
+/**
+ * Optimize a trajectory parameters
+ * using the forward simulation as fitness function
+ * in order to account for motors control inacuracies.
+ */
 int main(int argc, char** argv)
 {
-    //Parse argument
-    if (argc < 4) {
-        std::cout << 
-            "Usage: ./app RUN trajectoryName outputPrefix [paramName=value] ... " << 
-            "[MODEL] [path.modelparams]" << std::endl;
-        std::cout << 
-            "Usage: ./app SEED trajectoryName outputPrefix seed.params [paramName=value] ... " << 
-            "[MODEL] [path.modelparams]" << std::endl;
+    //Parse user input
+    if (argc < 3) {
+        std::cout << "Usage: ./app trajectoryName outputPrefix seed.params " << 
+            "[paramName=value] ... " << 
+            "[MODEL] [file.modelparams]" << std::endl;
         std::cout << "Available trajectories:" << std::endl;
         std::cout << "-- kicksingle" << std::endl;
         std::cout << "-- kickdouble" << std::endl;
-        std::cout << "-- leglift" << std::endl;
-        std::cout << "-- walk" << std::endl;
         return 1;
     }
-    std::string mode = argv[1];
-    if (mode != "RUN" && mode != "SEED") {
-        std::cout << "Invalid mode: " << mode << std::endl;
-        return 1;
-    }
-    std::string trajName = argv[2];
-    std::string outputPrefix = argv[3];
-    std::string seedParametersFile = "";
     size_t startInputIndex = 4;
-    if (mode == "SEED") {
-        if (argc < 5) {
-            std::cout << "SEED mode but no parameters file" << std::endl;
-            return 1;
-        }
-        startInputIndex = 5;
-        seedParametersFile = argv[4];
-    }
+    std::string trajName = argv[1];
+    std::string outputPrefix = argv[2];
+    std::string seedParametersFile = argv[3];
     //Parse parameters
     std::vector<std::pair<std::string, double>> inputParameters;
-    std::string modelParametersPath;
+    std::string modelParamsPath;
     for (size_t i=startInputIndex;i<(size_t)argc;i++) {
         std::string part = argv[i];
         if (part == "MODEL" && i == (size_t)argc-2) {
-            modelParametersPath = argv[i+1];
+            modelParamsPath = argv[i+1];
             std::cout << "Loading model parameters from: " 
-                << modelParametersPath << std::endl;
+                << modelParamsPath << std::endl;
             break;
         }
         size_t pos = part.find("=");
@@ -72,61 +63,42 @@ int main(int argc, char** argv)
         }
         inputParameters.push_back({partName, std::stod(partVal)});
     }
-
+    
     //Initialize trajectory parameters
     Leph::TrajectoryParameters trajParams = Leph::DefaultTrajParameters();
-
+    
     //Initialize the generator
     Leph::TrajectoryGeneration generator(
-        Leph::SigmabanModel, modelParametersPath);
-    //Load trajectory template
+        Leph::SigmabanModel, modelParamsPath);
+    //Load trajectory template and
+    //parameter trajectories initialization.
+    //Enable forward (complete) parameter optimization.
     if (trajName == "kicksingle") {
-        Leph::TrajKickSingle::initializeParameters(trajParams);
+        Leph::TrajKickSingle::initializeParameters(trajParams, true);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickSingle::funcGeneration(trajParams));
         generator.setCheckParametersFunc(Leph::TrajKickSingle::funcCheckParams(trajParams));
-        generator.setCheckStateFunc(Leph::TrajKickSingle::funcCheckState(trajParams));
         generator.setCheckDOFFunc(Leph::TrajKickSingle::funcCheckDOF(trajParams));
-        generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
-        generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
+        generator.setScoreSimFunc(Leph::TrajKickSingle::funcScoreSim(trajParams));
+        generator.setEndScoreSimFunc(Leph::TrajKickSingle::funcEndScoreSim(trajParams));
         generator.setSaveFunc(Leph::TrajKickSingle::funcSave(trajParams));
     } else if (trajName == "kickdouble") {
-        Leph::TrajKickDouble::initializeParameters(trajParams);
+        Leph::TrajKickDouble::initializeParameters(trajParams, true);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickDouble::funcGeneration(trajParams));
         generator.setCheckParametersFunc(Leph::TrajKickDouble::funcCheckParams(trajParams));
-        generator.setCheckStateFunc(Leph::TrajKickDouble::funcCheckState(trajParams));
         generator.setCheckDOFFunc(Leph::TrajKickDouble::funcCheckDOF(trajParams));
-        generator.setScoreFunc(Leph::TrajKickDouble::funcScore(trajParams));
-        generator.setEndScoreFunc(Leph::TrajKickDouble::funcEndScore(trajParams));
+        generator.setScoreSimFunc(Leph::TrajKickDouble::funcScoreSim(trajParams));
+        generator.setEndScoreSimFunc(Leph::TrajKickDouble::funcEndScoreSim(trajParams));
         generator.setSaveFunc(Leph::TrajKickDouble::funcSave(trajParams));
-    } else if (trajName == "leglift") {
-        Leph::TrajLegLift::initializeParameters(trajParams);
-        generator.setTrajectoryGenerationFunc(Leph::TrajLegLift::funcGeneration(trajParams));
-        generator.setCheckParametersFunc(Leph::TrajLegLift::funcCheckParams(trajParams));
-        generator.setCheckStateFunc(Leph::TrajLegLift::funcCheckState(trajParams));
-        generator.setCheckDOFFunc(Leph::TrajLegLift::funcCheckDOF(trajParams));
-        generator.setScoreFunc(Leph::TrajLegLift::funcScore(trajParams));
-        generator.setEndScoreFunc(Leph::TrajLegLift::funcEndScore(trajParams));
-        generator.setSaveFunc(Leph::TrajLegLift::funcSave(trajParams));
-    } else if (trajName == "walk") {
-        Leph::TrajWalk::initializeParameters(trajParams);
-        generator.setTrajectoryGenerationFunc(Leph::TrajWalk::funcGeneration(trajParams));
-        generator.setCheckParametersFunc(Leph::TrajWalk::funcCheckParams(trajParams));
-        generator.setCheckStateFunc(Leph::TrajWalk::funcCheckState(trajParams));
-        generator.setCheckDOFFunc(Leph::TrajWalk::funcCheckDOF(trajParams));
-        generator.setScoreFunc(Leph::TrajWalk::funcScore(trajParams));
-        generator.setEndScoreFunc(Leph::TrajWalk::funcEndScore(trajParams));
-        generator.setSaveFunc(Leph::TrajWalk::funcSave(trajParams));
     } else {
         std::cout << "Invalid trajectory name: " << trajName << std::endl;
         return 1;
     }
-
-    //Load initial parameters if SEED mode
-    if (mode == "SEED") {
-        trajParams.importData(seedParametersFile);
-        std::cout << "Seed parameters loading from: " << seedParametersFile << std::endl;
-    } 
-
+        
+    //Load trajectories parameters from file
+    std::cout << "Trajectories parameters loading from: " 
+        << seedParametersFile << std::endl;
+    trajParams.importData(seedParametersFile);
+    
     //Insert inputs parameters to trajectory parameter
     std::string paramsStr = "_";
     for (const auto& it : inputParameters) {
@@ -143,7 +115,7 @@ int main(int argc, char** argv)
     Eigen::VectorXd initParams = trajParams.buildVector();
     //Build normalization coefficents
     Eigen::VectorXd normCoefs = trajParams.buildNormalizationCoefs();
-
+    
     //Verbose
     char hostnameStr[100];
     gethostname(hostnameStr, 100);
@@ -153,7 +125,7 @@ int main(int argc, char** argv)
         hostname + "_" + Leph::currentDate();
     std::cout << "Hostname: " << hostname << std::endl;
     std::cout << "Output path: " << filename << std::endl;
-    std::cout << "Starting with mode=" << mode << " and dimension=" << initParams.size() << std::endl;
+    std::cout << "Starting with dimension=" << initParams.size() << std::endl;
     std::cout << "CMA-ES"
         << " max_iterations=" << (unsigned int)trajParams.get("cmaes_max_iterations")
         << " restarts=" << (unsigned int)trajParams.get("cmaes_restarts")
@@ -161,19 +133,11 @@ int main(int argc, char** argv)
         << " sigma=" << trajParams.get("cmaes_sigma")
         << " elitism=" << trajParams.get("cmaes_elitism")
         << std::endl;
-
+    
     //Set initial parameters
     generator.setInitialParameters(initParams);
     //Set normalization coefficients
     generator.setNormalizationCoefs(normCoefs);
-    
-#ifdef LEPH_VIEWER_ENABLED
-    //Display initial trajectory
-    TrajectoriesDisplay(
-        generator.generateTrajectory(generator.initialParameters()),
-        Leph::SigmabanModel,
-        modelParametersPath);
-#endif
     
     //Run the CMA-ES optimization
     generator.runOptimization(
@@ -183,16 +147,8 @@ int main(int argc, char** argv)
         (unsigned int)trajParams.get("cmaes_lambda"), 
         trajParams.get("cmaes_sigma"),
         (unsigned int)trajParams.get("cmaes_elitism"),
-        100, false);
-
-#ifdef LEPH_VIEWER_ENABLED
-    //Display found trajectory
-    TrajectoriesDisplay(
-        generator.bestTrajectories(), 
-        Leph::SigmabanModel, 
-        modelParametersPath);
-#endif
-
+        10, true);
+    
     return 0;
 }
 

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryDefinition/CommonTrajs.h"
@@ -329,6 +330,67 @@ TrajectoryGeneration::EndScoreFunc TrajKickSingle::funcEndScore(
 {
     return DefaultFuncEndScore(trajParams);
 }
+
+TrajectoryGeneration::ScoreSimFunc TrajKickSingle::funcScoreSim(
+    const TrajectoryParameters& trajParams)
+{
+    return [&trajParams](
+        double t,
+        HumanoidSimulation& sim,
+        std::vector<double>& data) -> double
+    {
+        if (data.size() == 0) {
+            //Max X vel
+            data.push_back(0.0);
+            //X pos at max vel
+            data.push_back(0.0);
+            //Y pos at max vel
+            data.push_back(0.0);
+            //Z pos at max vel
+            data.push_back(0.0);
+        }
+
+        //Compute foot velocity
+        Eigen::VectorXd footVel = sim.model().pointVelocity(
+            "right_foot_tip", "left_foot_tip", sim.velocities());
+        if (data[0] < footVel(3)) {
+            Eigen::Vector3d footPos = sim.model().position(
+                "right_foot_tip", "left_foot_tip");
+            data[0] = footVel(3);
+            data[1] = footPos.x();
+            data[2] = footPos.y();
+            data[3] = footPos.z();
+        }
+
+        return 0.0;
+    };
+}
+
+TrajectoryGeneration::EndScoreSimFunc TrajKickSingle::funcEndScoreSim(
+    const TrajectoryParameters& trajParams)
+{
+    return [&trajParams](
+        const Eigen::VectorXd& params,
+        const Trajectories& traj,
+        double score,
+        std::vector<double>& data,
+        bool verbose) -> double
+    {
+        //Empty case
+        if (data.size() != 4) {
+            return 0.0;
+        }
+        if (verbose) {
+            std::cout 
+                << "MaxVel=" << data[0]
+                << " PosX=" << data[1]
+                << " PosY=" << data[2]
+                << " PosZ=" << data[3]
+                << std::endl;
+        }
+        return 1.0/data[0];
+    };
+} 
 
 TrajectoryGeneration::SaveFunc TrajKickSingle::funcSave(
     const TrajectoryParameters& trajParams)

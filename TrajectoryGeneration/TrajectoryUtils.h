@@ -89,7 +89,7 @@ double DefaultCheckState(
 double DefaultCheckDOF(
     const Eigen::VectorXd& params,
     double t,
-    const HumanoidFixedModel& model);
+    const HumanoidModel& model);
 
 }
 

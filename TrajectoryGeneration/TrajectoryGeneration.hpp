@@ -9,6 +9,7 @@
 #include "Model/HumanoidModel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Model/JointModel.hpp"
+#include "Model/HumanoidSimulation.hpp"
 
 namespace Leph {
 
@@ -44,7 +45,7 @@ class TrajectoryGeneration
         typedef std::function<double(
             const Eigen::VectorXd& params,
             double t,
-            const HumanoidFixedModel& model)>
+            const HumanoidModel& model)>
             CheckDOFFunc;
         typedef std::function<double(
             double t,
@@ -64,6 +65,18 @@ class TrajectoryGeneration
             std::vector<double>& data,
             bool verbose)> 
             EndScoreFunc;
+        typedef std::function<double(
+            double t,
+            HumanoidSimulation& sim,
+            std::vector<double>& data)>
+            ScoreSimFunc;
+        typedef std::function<double(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            double score,
+            std::vector<double>& data,
+            bool verbose)> 
+            EndScoreSimFunc;
         typedef std::function<void(
             const std::string& filename,
             const Trajectories& traj,
@@ -142,6 +155,23 @@ class TrajectoryGeneration
         void setEndScoreFunc(EndScoreFunc func);
 
         /**
+         * Set the scoring function for simulation
+         * optimization.
+         * The function returns positive cost value
+         * for the given Humanoid simulation.
+         */
+        void setScoreSimFunc(ScoreSimFunc func);
+        
+        /**
+         * Set the ending scoring trajectory function for
+         * simulation optimization.
+         * The function is called at the end of Trajectory
+         * scoring. It returns positive cost value from given
+         * Trajectories spline container;
+         */
+        void setEndScoreSimFunc(EndScoreSimFunc func);
+
+        /**
          * Set the saving function. The function is called
          * at regular interval (in progress function) and
          * save given current best trajectories 
@@ -180,7 +210,7 @@ class TrajectoryGeneration
         double checkDOF(
             const Eigen::VectorXd& params,
             double t,
-            const HumanoidFixedModel& model) const;
+            const HumanoidModel& model) const;
 
         /**
          * Call score function
@@ -196,6 +226,21 @@ class TrajectoryGeneration
             HumanoidFixedModel::SupportFoot supportFoot,
             std::vector<double>& data) const;
         double endScore(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            double score,
+            std::vector<double>& data,
+            bool verbose) const;
+
+        /**
+         * Call score function
+         * for simulation optimization
+         */
+        double scoreSim(
+            double t,
+            HumanoidSimulation& sim,
+            std::vector<double>& data) const;
+        double endScoreSim(
             const Eigen::VectorXd& params,
             const Trajectories& traj,
             double score,
@@ -224,6 +269,19 @@ class TrajectoryGeneration
             bool verbose = false) const;
 
         /**
+         * Build up the Trajectories fom
+         * given parameters and evatuates it
+         * from forward dynamics simulation.
+         */
+        double scoreSimulation(
+            const Eigen::VectorXd& params, 
+            bool verbose = false) const;
+        double scoreSimulation(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            bool verbose = false) const;
+
+        /**
          * Run the CMA-ES Trajectories optimization
          * with given algorithm configuration.
          */
@@ -234,7 +292,8 @@ class TrajectoryGeneration
             unsigned int populationSize = 10,
             double lambda = -1.0,
             unsigned int elitismLevel = 1,
-            unsigned int verboseIterations = 100);
+            unsigned int verboseIterations = 100,
+            bool isForwardSimulationOptimization = false);
 
         /**
          * Access to best found Trajectories, 
@@ -278,6 +337,8 @@ class TrajectoryGeneration
         CheckDOFFunc _checkDOFFunc;
         ScoreFunc _scoreFunc;
         EndScoreFunc _endScoreFunc;
+        ScoreSimFunc _scoreSimFunc;
+        EndScoreSimFunc _endScoreSimFunc;
         SaveFunc _saveFunc;
 
         /**

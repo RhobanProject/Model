@@ -230,12 +230,11 @@ double DefaultCheckState(
 double DefaultCheckDOF(
     const Eigen::VectorXd& params,
     double t,
-    const HumanoidFixedModel& modelFixed)
+    const HumanoidModel& model)
 {
     (void)params;
     (void)t;
     double cost = 0.0;
-    const HumanoidModel& model = modelFixed.get();
     if (fabs(model.getDOF("left_hip_yaw")) > M_PI/3.0) {
         cost += 1000.0 + 
             1000.0*(fabs(model.getDOF("left_hip_yaw")) - M_PI/3.0);

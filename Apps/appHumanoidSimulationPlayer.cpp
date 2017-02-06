@@ -119,7 +119,6 @@ int main(int argc, char** argv)
     Leph::Plot plot;
     bool isFirstLoop = true;
     bool isContinue = true;
-    bool isInitialized = false;
     while (isContinue) {
         //Simulator, goal and read model initialization
         Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
@@ -135,6 +134,7 @@ int main(int argc, char** argv)
             inertiaName,
             geometryData,
             geometryName);
+        bool isInitialized = false;
         for (const std::string& name : Leph::NamesDOF) {
             if (modelParamsPath != "" && jointName.count(name) > 0) {
                 sim.jointModel(name).setParameters(

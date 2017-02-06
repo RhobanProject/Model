@@ -1,8 +1,10 @@
+#include <stdexcept>
 #include <libcmaes/cmaes.h>
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "Utils/FileModelParameters.h"
 #include "Utils/time.h"
 #include "Model/NamesModel.h"
+#include "Utils/AxisAngle.h"
 
 namespace Leph {
 
@@ -18,6 +20,8 @@ TrajectoryGeneration::TrajectoryGeneration(RobotType type,
     _checkDOFFunc(),
     _scoreFunc(),
     _endScoreFunc(),
+    _scoreSimFunc(),
+    _endScoreSimFunc(),
     _saveFunc(),
     _bestTraj(),
     _bestParams(),
@@ -79,6 +83,18 @@ void TrajectoryGeneration::setEndScoreFunc(
     _endScoreFunc = func;
 }
 
+void TrajectoryGeneration::setScoreSimFunc(
+    ScoreSimFunc func)
+{
+    _scoreSimFunc = func;
+}
+        
+void TrajectoryGeneration::setEndScoreSimFunc(
+    EndScoreSimFunc func)
+{
+    _endScoreSimFunc = func;
+}
+
 void TrajectoryGeneration::setSaveFunc(
     SaveFunc func)
 {
@@ -124,7 +140,7 @@ double TrajectoryGeneration::checkState(
 double TrajectoryGeneration::checkDOF(
     const Eigen::VectorXd& params,
     double t,
-    const HumanoidFixedModel& model) const
+    const HumanoidModel& model) const
 {
     return _checkDOFFunc(params, t, model);
 }
@@ -154,6 +170,24 @@ double TrajectoryGeneration::endScore(
     bool verbose) const
 {
     return _endScoreFunc(params, traj, 
+        score, data, verbose);
+}
+
+double TrajectoryGeneration::scoreSim(
+    double t,
+    HumanoidSimulation& sim,
+    std::vector<double>& data) const
+{
+    return _scoreSimFunc(t, sim, data);
+}
+double TrajectoryGeneration::endScoreSim(
+    const Eigen::VectorXd& params,
+    const Trajectories& traj,
+    double score,
+    std::vector<double>& data,
+    bool verbose) const
+{
+    return _endScoreSimFunc(params, traj, 
         score, data, verbose);
 }
 
@@ -217,10 +251,13 @@ double TrajectoryGeneration::scoreTrajectory(
     Leph::HumanoidFixedModel model(_type, 
         inertiaData, inertiaName, 
         geometryData, geometryName);
+    //Retrieve time bounds
+    double timeMin = traj.min();
+    double timeMax = traj.max();
     double cost = 0.0;
     std::vector<double> data;
-    for (double t=traj.min();t<=traj.max();t+=0.01) {
-        //Check Cartesian State
+    for (double t=timeMin;t<=timeMax;t+=0.01) {
+        //Compute DOF targets
         Eigen::Vector3d trunkPos;
         Eigen::Vector3d trunkAxis;
         Eigen::Vector3d footPos;
@@ -228,6 +265,7 @@ double TrajectoryGeneration::scoreTrajectory(
         TrajectoriesTrunkFootPos(t, traj,
             trunkPos, trunkAxis,
             footPos, footAxis);
+        //Check Cartesian State
         double costState = checkState(params, t, 
             trunkPos, trunkAxis, footPos, footAxis);
         if (costState > 0.0) {
@@ -266,8 +304,8 @@ double TrajectoryGeneration::scoreTrajectory(
             cost += 1000.0;
             continue;
         }
-        //Check Joit DOF
-        double costDOF = checkDOF(params, t, model);
+        //Check Joint DOF
+        double costDOF = checkDOF(params, t, model.get());
         if (costDOF > 0.0) {
             if (verbose) {
                 std::cout 
@@ -307,6 +345,245 @@ double TrajectoryGeneration::scoreTrajectory(
 
     return cost;
 }
+
+double TrajectoryGeneration::scoreSimulation(
+    const Eigen::VectorXd& params,
+    bool verbose) const
+{
+    double cost = checkParameters(params);
+    if (cost > 0.0) {
+        if (verbose) {
+            std::cout 
+                << "Error checkParameters() cost=" 
+                << cost << std::endl;
+        }
+        return cost;
+    } else {
+        Trajectories traj = generateTrajectory(params);
+        return scoreSimulation(params, traj, verbose);
+    }
+}
+double TrajectoryGeneration::scoreSimulation(
+    const Eigen::VectorXd& params,
+    const Trajectories& traj,
+    bool verbose) const
+{
+    //Load model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
+    Eigen::MatrixXd geometryData;
+    std::map<std::string, size_t> geometryName;
+    if (_modelParametersPath != "") {
+        ReadModelParameters(
+            _modelParametersPath,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
+    }
+    //Simulator and goal model initialization
+    Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
+    Leph::HumanoidSimulation sim(
+        Leph::SigmabanModel,
+        inertiaData, inertiaName,
+        geometryData, geometryName);
+    //Assign joint parameters
+    for (const std::string& name : Leph::NamesDOF) {
+        if (jointName.count(name) > 0) {
+            sim.jointModel(name).setParameters(
+                jointData.row(jointName.at(name)).transpose());
+        }
+    }
+    //Retrieve time bounds
+    double timeMin = traj.min();
+    double timeMax = traj.max();
+
+    //State initialization
+    //Expected initial velocities 
+    //and accelerations
+    Eigen::VectorXd dqInit;
+    Eigen::VectorXd ddqInit;
+    //Compute DOF target and velocities from Cartesian
+    double boundIKDistanceInit = 0.0;
+    bool isSuccessInit = Leph::TrajectoriesComputeKinematics(
+        timeMin, traj, modelGoal, dqInit, ddqInit, 
+        &boundIKDistanceInit);
+    //Cost near IK bound
+    double boundIKThreshold = 1e-2;
+    if (boundIKDistanceInit < boundIKThreshold) {
+        if (verbose) {
+            std::cout << "Error init boundIKDistance: t=" 
+                << timeMin << " "
+                << boundIKDistanceInit << std::endl;
+        }
+        return 1000.0 + 1000.0*
+            (boundIKThreshold - boundIKDistanceInit);
+    }
+    //IK Error
+    if (!isSuccessInit) {
+        if (verbose) {
+            std::cout << "Error init IK t=" 
+                << timeMin << std::endl;
+        }
+        return 2000.0;
+    }
+    //Assign initial DOF state pos and vel
+    for (const std::string& name : Leph::NamesDOF) {
+        sim.setGoal(name, modelGoal.get().getDOF(name));
+        sim.setPos(name, modelGoal.get().getDOF(name));
+        size_t indexModel = modelGoal.get().getDOFIndex(name);
+        sim.setVel(name, dqInit(indexModel));
+        //Reset backlash state
+        sim.jointModel(name).resetBacklashState();
+    }
+    for (const std::string& name : Leph::NamesBase) {
+        sim.setVel(name, 0.0); 
+    }
+    //Put the model flat on left support 
+    //foot at origin
+    sim.putOnGround(
+        Leph::HumanoidFixedModel::LeftSupportFoot);
+    sim.putFootAt(0.0, 0.0,
+        Leph::HumanoidFixedModel::LeftSupportFoot);
+    //Compute trunk 6D jacobian with 
+    //respect to the 6D base DOF
+    Eigen::MatrixXd allJac = 
+        sim.model().pointJacobian("trunk", "origin");
+    Eigen::MatrixXd trunkJac(6, 6);
+    trunkJac.col(0) = 
+        allJac.col(sim.model().getDOFIndex("base_roll"));
+    trunkJac.col(1) = 
+        allJac.col(sim.model().getDOFIndex("base_pitch"));
+    trunkJac.col(2) = 
+        allJac.col(sim.model().getDOFIndex("base_yaw"));
+    trunkJac.col(3) = 
+        allJac.col(sim.model().getDOFIndex("base_x"));
+    trunkJac.col(4) = 
+        allJac.col(sim.model().getDOFIndex("base_y"));
+    trunkJac.col(5) = 
+        allJac.col(sim.model().getDOFIndex("base_z"));
+    //Compute 6D target trunk velocities
+    Eigen::VectorXd targetTrunkVel = 
+        modelGoal.get().pointVelocity("trunk", "origin", dqInit);
+    //Compute base DOF on sim model
+    Eigen::VectorXd baseVel = 
+        trunkJac.colPivHouseholderQr().solve(targetTrunkVel);
+    //Assign base vel
+    sim.setVel("base_roll", baseVel(0));
+    sim.setVel("base_pitch", baseVel(1));
+    sim.setVel("base_yaw", baseVel(2));
+    sim.setVel("base_x", baseVel(3));
+    sim.setVel("base_y", baseVel(4));
+    sim.setVel("base_z", baseVel(5));
+    
+    //Run small time 0.5s for 
+    //waiting stabilization (backlash)
+    //in case of zero initial trunk velocities
+    if (baseVel.norm() < 1e-8) {
+        timeMin -= 0.5;
+    }
+
+    //Main simulation loop
+    double waitDelay = 3.0;
+    double cost = 0.0;
+    std::vector<double> data;
+    for (double t=timeMin;t<=timeMax+waitDelay;t+=0.01) {
+        //Compute DOF goal target
+        Eigen::Vector3d trunkPos;
+        Eigen::Vector3d trunkAxis;
+        Eigen::Vector3d footPos;
+        Eigen::Vector3d footAxis;
+        bool isDoubleSupport;
+        Leph::HumanoidFixedModel::SupportFoot supportFoot;
+        Leph::TrajectoriesTrunkFootPos(
+            t, traj, 
+            trunkPos, trunkAxis,
+            footPos, footAxis);
+        Leph::TrajectoriesSupportFootState(
+            t, traj,
+            isDoubleSupport, 
+            supportFoot);
+        double boundIKDistance = 0.0;
+        bool isSuccess = modelGoal.trunkFootIK(
+            supportFoot,
+            trunkPos,
+            Leph::AxisToMatrix(trunkAxis),
+            footPos,
+            Leph::AxisToMatrix(footAxis),
+            &boundIKDistance);
+        //Cost near IK bound
+        if (boundIKDistance < boundIKThreshold) {
+            if (verbose) {
+                std::cout << "Error IK bound reached: t="
+                    << t << " "
+                    << boundIKDistance << std::endl;
+            }
+            cost += 1000.0 + 1000.0
+                *(boundIKThreshold - boundIKDistance);
+            break;
+        }
+        //IK Error
+        if (!isSuccess) {
+            if (verbose) {
+                std::cout << "Error IK t=" << t << std::endl;
+            }
+            cost += 2000.0;
+            break;
+        }
+        //Assign simulation DOF goal
+        for (const std::string& name : Leph::NamesDOF) {
+            sim.setGoal(name, modelGoal.get().getDOF(name));
+        }
+        //Run simulation
+        try {
+            for (int k=0;k<10;k++) {
+                sim.update(0.001);
+            }
+        } catch (const std::runtime_error& e) {
+            if (verbose) {
+                std::cout << "Error exception: " 
+                    << e.what() << std::endl;
+            }
+            return 2000.0;
+        }
+        //Check Joint DOF
+        double costDOF = checkDOF(params, t, sim.model());
+        if (costDOF > 0.0) {
+            if (verbose) {
+                std::cout 
+                    << "Error checkDOF() cost=" 
+                    << 1000.0 + costDOF 
+                    << std::endl;
+            }
+            cost += 1000.0 + costDOF;
+            break;
+        }
+        //Check lateral foot
+        Eigen::Vector3d simFootPos = sim.model()
+            .position("right_foot_tip", "left_foot_tip");
+        if (fabs(simFootPos.y()) < 2.0*0.045) {
+            cost += 100.0 + 100.0*(2.0*0.045 - fabs(simFootPos.y()));
+        }
+        //Detect and penalize falling
+        //if trunk orientation is below 45 degrees
+        Eigen::Vector3d trunkAngles = 
+            sim.model().trunkSelfOrientation();
+        if (
+            fabs(trunkAngles.x()) > M_PI/4.0 || 
+            fabs(trunkAngles.y()) > M_PI/4.0
+        ) {
+            cost += 500.0;
+            break;
+        } 
+        //Call user defined score function
+        cost += scoreSim(t, sim, data);
+    }
+    //Call user defined end score function
+    cost += endScoreSim(params, traj, cost, data, verbose);
+
+    return cost;
+}
         
 void TrajectoryGeneration::runOptimization(
     unsigned int maxIterations,
@@ -315,7 +592,8 @@ void TrajectoryGeneration::runOptimization(
     unsigned int populationSize,
     double lambda,
     unsigned int elitismLevel,
-    unsigned int verboseIterations)
+    unsigned int verboseIterations,
+    bool isForwardSimulationOptimization)
 {
     //Retrieve initial parameters
     Eigen::VectorXd initParams = initialParameters();
@@ -327,15 +605,22 @@ void TrajectoryGeneration::runOptimization(
 
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [this, &normCoef](const Eigen::VectorXd& params) 
+        [this, &normCoef, &isForwardSimulationOptimization]
+        (const Eigen::VectorXd& params) 
     {
-        return this->scoreTrajectory(
-            params.array() * normCoef.array());
+        if (isForwardSimulationOptimization) {
+            return this->scoreSimulation(
+                params.array() * normCoef.array());
+        } else {
+            return this->scoreTrajectory(
+                params.array() * normCoef.array());
+        }
     };
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [this, &filename, &normCoef, &verboseIterations]
+        [this, &filename, &normCoef, &verboseIterations,
+        &isForwardSimulationOptimization]
         (const libcmaes::CMAParameters<>& cmaparams, 
         const libcmaes::CMASolutions& cmasols)
     {
@@ -369,11 +654,19 @@ void TrajectoryGeneration::runOptimization(
             std::cout << "****** BestScore: " 
                 << _bestScore << std::endl;
             std::cout << "****** BestFitness verbose:" << std::endl;
-            scoreTrajectory(_bestParams, true);
+            if (isForwardSimulationOptimization) {
+                scoreSimulation(_bestParams, true);
+            } else {
+                scoreTrajectory(_bestParams, true);
+            }
             std::cout << "****** CurrentScore: " 
                 << score << std::endl;
             std::cout << "****** CurrentFitness verbose:" << std::endl;
-            scoreTrajectory(params, true);
+            if (isForwardSimulationOptimization) {
+                scoreSimulation(params, true);
+            } else {
+                scoreTrajectory(params, true);
+            }
             std::cout << "============" 
                 << std::endl;
         }
@@ -385,7 +678,12 @@ void TrajectoryGeneration::runOptimization(
     };
 
     //Show initial info
-    double initScore = scoreTrajectory(initParams, true);
+    double initScore;
+    if (isForwardSimulationOptimization) {
+        initScore = scoreSimulation(initParams, true);
+    } else {
+        initScore = scoreTrajectory(initParams, true);
+    }
     std::cout << "============" << std::endl;
     std::cout << "Init Score: " << initScore << std::endl;
     std::cout << "Dimension:  " << initParams.size() << std::endl;
