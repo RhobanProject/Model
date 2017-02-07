@@ -52,10 +52,10 @@ static const std::vector<std::string> namesFrameGeometry = {
 /**
  * Global CMA-ES configuration
  */
-static const int cmaesElitismLevel = 1;
-static const unsigned int cmaesMaxIterations = 10000;
+static const int cmaesElitismLevel = 0;
+static const unsigned int cmaesMaxIterations = 1000;
 static const unsigned int cmaesRestarts = 5;
-static const unsigned int cmaesLambda = 10;
+static const unsigned int cmaesLambda = 100;
 static const double cmaesSigma = -1.0;
 
 /**
@@ -105,31 +105,7 @@ static double scoreFitness(
                     .transpose();
             index++;
         }
-        //Check positive inertia parameters
-        double tmpCost = 0.0;
-        for (size_t i=0;i<(size_t)currentInertiaData.rows();i++) {
-            //0 Mass
-            if (currentInertiaData(i, 0) <= 0.0) {
-                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 0);
-            }
-            //4 Ixx
-            if (currentInertiaData(i, 4) <= 0.0) {
-                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 4);
-            }
-            //7 Iyy
-            if (currentInertiaData(i, 7) <= 0.0) {
-                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 7);
-            }
-            //9 Izz
-            if (currentInertiaData(i, 9) <= 0.0) {
-                tmpCost += 1000.0 - 1000.0*currentInertiaData(i, 9);
-            }
-        }
-        if (tmpCost > 0.0) {
-            return tmpCost;
-        }
     }
-    
     //Build used geometry data
     Eigen::MatrixXd currentGeometryData = defaultGeometryData;
     if (indexStartGeometries != (size_t)-1) {
@@ -734,8 +710,8 @@ int main(int argc, char** argv)
                 size_t i=indexStartCommon;
                 i<indexStartCommon+sizeJointParameters;i++
             ) {
-                if (params(i) < 0.0) {
-                    cost += 1000.0 - 1000.0*params(i);
+                if (params(i)*coef(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i)*coef(i);
                 }
             }
         }
@@ -744,9 +720,58 @@ int main(int argc, char** argv)
                 size_t i=indexStartJoints;
                 i<indexStartJoints+sizeJointParameters*namesDOFJoint.size();i++
             ) {
-                if (params(i) < 0.0) {
-                    cost += 1000.0 - 1000.0*params(i);
+                if (params(i)*coef(i) < 0.0) {
+                    cost += 1000.0 - 1000.0*params(i)*coef(i);
                 }
+            }
+        }
+        if (indexStartInertias != (size_t)-1) {
+            for (
+                size_t i=indexStartInertias;
+                i<indexStartInertias+sizeInertiaParameters*namesFrameInertia.size();
+                i+=sizeInertiaParameters
+            ) {
+                //0 Mass
+                if (params(i+0)*coef(i+0) <= 0.0) {
+                    cost += 1000.0 - 1000.0*params(i+0)*coef(i+0);
+                }
+                //4 Ixx
+                if (params(i+4)*coef(i+4) <= 0.0) {
+                    cost += 1000.0 - 1000.0*params(i+4)*coef(i+4);
+                }
+                //7 Iyy
+                if (params(i+7)*coef(i+7) <= 0.0) {
+                    cost += 1000.0 - 1000.0*params(i+7)*coef(i+7);
+                }
+                //9 Izz
+                if (params(i+9)*coef(i+9) <= 0.0) {
+                    cost += 1000.0 - 1000.0*params(i+9)*coef(i+9);
+                }
+            }
+        }
+        if (indexStartGeometries != (size_t)-1) {
+            size_t index = 0;
+            for (const std::string& name : namesFrameGeometry) {
+                size_t tmpJ = indexStartGeometries + index*sizeGeometryParameters;
+                //Penalize too large rotation correction
+                //0 Roll 1 Pitch 2 Yaw
+                for (size_t k=0;k<3;k++) {
+                    double val = params(tmpJ+k)*coef(tmpJ+k);
+                    double target = defaultGeometryData(defaultGeometryName.at(name), k);
+                    if (fabs(val - target) > 10.0*M_PI/180.0) {
+                        cost += 1000.0 + 1000.0*(fabs(val - target) - 10.0*M_PI/180.0);
+                    }
+                }
+                //Penalize too large translation correction
+                //3 X 4 Y 5 Z
+                for (size_t k=3;k<6;k++) {
+                    double val = params(tmpJ+k)*coef(tmpJ+k);
+                    double target = defaultGeometryData(defaultGeometryName.at(name), k);
+                    if (fabs(val - target) > 0.005) {
+                        cost += 1000.0 + 1000.0*(fabs(val - target) - 0.005);
+                    }
+                }
+                index++;
             }
         }
         if (cost > 0.0) {
