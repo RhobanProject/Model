@@ -82,11 +82,11 @@ int main()
             inv.setDOFSubset(state1);
             double tmp1 = model.get()
                 .inverseDynamicsClosedLoop("right_foot_tip")
-                .lpNorm<Eigen::Infinity>();
+                .tail(20).lpNorm<Eigen::Infinity>();
             inv.setDOFSubset(state2);
             double tmp2 = model.get()
                 .inverseDynamicsClosedLoop("right_foot_tip")
-                .lpNorm<Eigen::Infinity>();
+                .tail(20).lpNorm<Eigen::Infinity>();
             return tmp1 < tmp2;
         });
 
@@ -106,9 +106,9 @@ int main()
         Eigen::VectorXd tau = model.get().inverseDynamicsClosedLoop(
             model.get().getFrameIndex("right_foot_tip"));
         std::cout << "TorquesSumMax: " 
-            << tau.lpNorm<Eigen::Infinity>() << std::endl;
+            << tau.tail(20).lpNorm<Eigen::Infinity>() << std::endl;
         std::cout << "TorquesSumNorm: " 
-            << tau.norm() << std::endl;
+            << tau.tail(20).norm() << std::endl;
 
         if (t > 1.0) {
             index++;
@@ -135,8 +135,8 @@ int main()
             value += 1000.0;
         }
         value += model.get()
-            .inverseDynamicsClosedLoop("right_foot_tip", true)
-            .lpNorm<Eigen::Infinity>();
+            .inverseDynamicsClosedLoop("right_foot_tip", nullptr, true)
+            .tail(20).lpNorm<Eigen::Infinity>();
         Eigen::VectorXd fvect(inv.values());
         inv.operator()(y, fvect);
         value += 100.0*fvect.norm();
@@ -159,11 +159,11 @@ int main()
     std::cout << "best solution: " << cmasols << std::endl;
     std::cout << "optimization took " << cmasols.elapsed_time() / 1000.0 << " seconds\n";
     Eigen::VectorXd tau = model.get().inverseDynamicsClosedLoop(
-        model.get().getFrameIndex("right_foot_tip"), true);
+        model.get().getFrameIndex("right_foot_tip"), nullptr, true);
     std::cout << "TorquesSumMax: " 
-        << tau.lpNorm<Eigen::Infinity>() << std::endl;
+        << tau.tail(20).lpNorm<Eigen::Infinity>() << std::endl;
     std::cout << "TorquesSumNorm: " 
-        << tau.norm() << std::endl;
+        << tau.tail(20).norm() << std::endl;
     
     //Display best found CMA-ES torques pose
     inv.setDOFSubset(cmasols.best_candidate().get_x_dvec());

@@ -256,8 +256,11 @@ class Model
          * Compute Inverse Dynamics on a modified closed loop
          * model where given frame index is considered fixed
          * in base coordinates. Computed torques are returned
-         * but floating base degrees of freedom are set to zero.
+         * and floating base degrees of freedom are also computed.
          * Current position is used.
+         * If contactForce is not null, the cartesian 6D moment and
+         * linear forces (Nx, Ny, Nz, Fx, Fy, Fz) 
+         * is assign and expressed in fixed body frame.
          * If useInfinityNorm is true, infinity norm is minimized to
          * solve the torques underdetermined system with 
          * high performance cost.
@@ -266,11 +269,13 @@ class Model
          */
         Eigen::VectorXd inverseDynamicsClosedLoop(
             size_t fixedFrameIndex,
+            Eigen::VectorXd* contactForce = nullptr,
             bool useInfinityNorm = false,
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
         Eigen::VectorXd inverseDynamicsClosedLoop(
             const std::string& fixedFrameName,
+            Eigen::VectorXd* contactForce = nullptr,
             bool useInfinityNorm = false,
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());

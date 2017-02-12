@@ -10,7 +10,7 @@ namespace Leph {
  * Compute the Inverse Dynamics of given RBDL
  * model with given body id fixed (position and
  * orientation) in base coordinates.
- * This fixed body creates a kinematics loop
+ * This fixed body creates a kinematics loop.
  *
  * Model position Q, velocity QDot and acceleration QDDot
  * are given. Computed torques for degrees 
@@ -18,9 +18,13 @@ namespace Leph {
  *
  * If given model has floating base virtual body, the
  * floating base is used for position and orientation 
- * computations but is skipped for torques evaluation. 
- * Null torque is returned for floating base 
+ * computations and the torques are also evaluate
+ * and returned for floating base 
  * degrees of freedom.
+ *
+ * The cartesian 6D moment and linear (Nx, Ny, Nz, Fx, Fy, Fz)
+ * contact forces (lambda) at fixed body point are returned 
+ * in fixedBodyForce if not null.
  *
  * If useInfinityNorm is true, underdetermined torques
  * system is solve by minimizing normInfinity() + norm2()
@@ -32,6 +36,7 @@ RigidBodyDynamics::Math::VectorNd RBDLClosedLoopInverseDynamics(
     const RigidBodyDynamics::Math::VectorNd& QDot,
     const RigidBodyDynamics::Math::VectorNd& QDDot,
     unsigned int fixedBodyId,
+    RigidBodyDynamics::Math::VectorNd* fixedBodyForce,
     bool useInfinityNorm = false);
 
 }

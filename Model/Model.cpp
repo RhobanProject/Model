@@ -486,6 +486,7 @@ VectorLabel Model::inverseDynamics(
 
 Eigen::VectorXd Model::inverseDynamicsClosedLoop(
     size_t fixedFrameIndex,
+    Eigen::VectorXd* contactForce,
     bool useInfinityNorm, 
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& acceleration)
@@ -512,16 +513,18 @@ Eigen::VectorXd Model::inverseDynamicsClosedLoop(
     unsigned int fixedFrameId = _frameIndexToId.at(fixedFrameIndex);
     return RBDLClosedLoopInverseDynamics(
         _model, _dofs, QDot, QDDot,
-        fixedFrameId, useInfinityNorm);
+        fixedFrameId, contactForce, useInfinityNorm);
 }
 Eigen::VectorXd Model::inverseDynamicsClosedLoop(
     const std::string& fixedFrameName,
+    Eigen::VectorXd* contactForce,
     bool useInfinityNorm, 
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& acceleration)
 {
     return inverseDynamicsClosedLoop(
         getFrameIndex(fixedFrameName), 
+        contactForce,
         useInfinityNorm, 
         velocity, acceleration);
 }
