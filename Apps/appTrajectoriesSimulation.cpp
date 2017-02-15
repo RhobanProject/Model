@@ -26,7 +26,7 @@
 int main(int argc, char** argv)
 {
     //Parse user input
-    if (argc < 3) {
+    if (argc < 4) {
         std::cout << "Usage: ./app trajectoryName outputPrefix seed.params " << 
             "[paramName=value] ... " << 
             "[MODEL] [file.modelparams]" << std::endl;

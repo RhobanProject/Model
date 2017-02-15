@@ -561,7 +561,7 @@ void generateKick()
         }
 
         //ZMP
-        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
+        Eigen::Vector3d zmp = model.zeroMomentPointSingleSupport("origin", torques);
         zmp.z() = 0.0;
         cost += zmp.norm();
         //Max ZMP
@@ -1036,7 +1036,7 @@ void generateRecovery()
 
         double cost = 0.0;
         cost += 0.01*tmpTorques.norm();
-        Eigen::Vector3d zmp = model.zeroMomentPointFromTorques("origin", torques);
+        Eigen::Vector3d zmp = model.zeroMomentPointSingleSupport("origin", torques);
         cost += fabs(zmp.y());
         cost += fabs(zmp.x());
 
@@ -1376,9 +1376,9 @@ void generateWalk()
         if (!isDoubleSupport) {
             Eigen::Vector3d zmp;
             if (supportFoot == Leph::HumanoidFixedModel::LeftSupportFoot) {
-                zmp = model.zeroMomentPointFromTorques("left_foot_tip", torques);
+                zmp = model.zeroMomentPointSingleSupport("left_foot_tip", torques);
             } else {
-                zmp = model.zeroMomentPointFromTorques("right_foot_tip", torques);
+                zmp = model.zeroMomentPointSingleSupport("right_foot_tip", torques);
             }
             cost += 10.0*fabs(zmp.x()) + 10.0*fabs(zmp.y());
         }

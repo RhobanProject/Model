@@ -213,9 +213,9 @@ void computeModel(Leph::VectorLabel& state)
         state.extract("vel").rename("vel", ""), 
         state.extract("acc").rename("acc", ""));
     state.mergeUnion(torques.rename("", "torque"));
-    Eigen::Vector3d zmp = model.zeroMomentPoint("left_foot_tip", 
+    Eigen::Vector3d zmp /* XXX TODO API change = model.zeroMomentPoint("left_foot_tip", 
         state.extract("vel").rename("vel", ""), 
-        state.extract("acc").rename("acc", ""));
+        state.extract("acc").rename("acc", "")) TODO XXX */ = Eigen::Vector3d(0, 0, 0);
     state.setOrAppend("model:zmp_x", zmp.x());
     state.setOrAppend("model:zmp_y", zmp.y());
 

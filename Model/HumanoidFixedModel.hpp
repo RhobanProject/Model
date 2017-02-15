@@ -74,7 +74,7 @@ class HumanoidFixedModel
 
         /**
          * Update current support foot
-         * and compute floating base tranformation
+         * and compute floating base transformation
          * to integrate model displacement
          */
         virtual void updateBase();
@@ -93,7 +93,7 @@ class HumanoidFixedModel
             bool applyYaw = true);
 
         /**
-         * Update base_x dans base_y DOF in order
+         * Update base_x and base_y DOF in order
          * that trunk x/y position in world frame
          * matches given planar position.
          * Use to assign and override corrected odometry.
@@ -104,24 +104,35 @@ class HumanoidFixedModel
          * Compute and return the Zero Moment Point
          * (ZMP) in given frame. Given degrees of freedom
          * velocity and acceleration are used (to compute
-         * inverse dynamics)
+         * inverse dynamics).
+         * Current degrees of freedom position 
+         * and support foot are used.
+         * If isDoubleSupport is true, the ZMP is computed
+         * for double support case assuming given velocity 
+         * and acceleration comply with closed loop constraints.
          */
         Eigen::Vector3d zeroMomentPoint(
             const std::string& frame,
             const Eigen::VectorXd& velocity,
-            const Eigen::VectorXd& acceleration);
-        Eigen::Vector3d zeroMomentPoint(
-            const std::string& frame,
-            const VectorLabel& velocity,
-            const VectorLabel& acceleration);
+            const Eigen::VectorXd& acceleration,
+            bool isDoubleSupport = false);
 
         /**
-         * Compute and return the Zero Moment Point
-         * (ZMP) in given frame from given torques.
+         * Compute the zero moment point in given frame
+         * either from single support or double support torques.
+         * Current degrees of freedom position and 
+         * support foot are used.
+         * Single or double support torque from inverseDynamics.
+         * The contact force is given in flying foot frame for
+         * double support calculation.
          */
-        Eigen::Vector3d zeroMomentPointFromTorques(
+        Eigen::Vector3d zeroMomentPointSingleSupport(
             const std::string& frame,
             const Eigen::VectorXd& torques);
+        Eigen::Vector3d zeroMomentPointDoubleSupport(
+            const std::string& frame,
+            const Eigen::VectorXd& torques,
+            const Eigen::VectorXd& contactForces);
 
         /**
          * Set the model state by running 
@@ -214,20 +225,12 @@ class HumanoidFixedModel
         HumanoidModel _modelRight;
 
         /**
-         * Convert given base pitch/roll torque into
-         * X/Y torque in world frame
-         */
-        void convertFootMoment(
-            double torquePitch, double torqueRoll,
-            double& Mx, double& My);
-
-        /**
-         * Compute ZMP position given X/Y/Z force
-         * and X/Y moment in world frame
+         * Compute the ZMP position given linear 
+         * Z force and X/Y moment in local foot frame.
+         * Returned ZMP is in local foot frame.
          */
         Eigen::Vector3d computeZMP(
-            double Fx, double Fy, double Fz, 
-            double Mx, double My);
+            double Mx, double My, double Fz);
 };
 
 }

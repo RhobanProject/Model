@@ -158,22 +158,20 @@ void TrajectoriesDisplay(
         if (isDoubleSupport) {
             if (supportFoot == HumanoidFixedModel::LeftSupportFoot) {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "right_foot_tip", false, dq, ddq);
+                    "right_foot_tip", nullptr, false, dq, ddq);
             } else {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "left_foot_tip", false, dq, ddq);
+                    "left_foot_tip", nullptr, false, dq, ddq);
             }
         } else {
             torques = model.get().inverseDynamics(dq, ddq);
         }
         //Compute ZMP
         Eigen::Vector3d zmp = Eigen::Vector3d::Zero();
-        if (!isDoubleSupport) {
-            zmp = model.zeroMomentPointFromTorques("origin", torques);
-            zmp.z() = 0.0;
-            viewer.addTrackedPoint(
-                zmp, ModelViewer::Yellow);
-        }
+        zmp = model.zeroMomentPoint("origin", dq, ddq, false);
+        zmp.z() = 0.0;
+        viewer.addTrackedPoint(
+            zmp, ModelViewer::Yellow);
         //Compute CoM
         Eigen::Vector3d com = model.get().centerOfMass("origin");
         com.z() = 0.0;

@@ -317,13 +317,11 @@ int main()
         }
         
         //Maximum ZMP
-        if (!isDoubleSupport) {
-            Eigen::Vector3d zmp = 
-                model.zeroMomentPointFromTorques("origin", torques);
-            zmp.z() = 0.0;
-            if (data[1] < zmp.lpNorm<Eigen::Infinity>()) {
-                data[1] = zmp.lpNorm<Eigen::Infinity>();
-            }
+        Eigen::Vector3d zmp = 
+            model.zeroMomentPoint("origin", dq, ddq, false);
+        zmp.z() = 0.0;
+        if (data[1] < zmp.lpNorm<Eigen::Infinity>()) {
+            data[1] = zmp.lpNorm<Eigen::Infinity>();
         }
 
         return cost;

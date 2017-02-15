@@ -325,10 +325,10 @@ double TrajectoryGeneration::scoreTrajectory(
         if (isDoubleSupport) {
             if (supportFoot == HumanoidFixedModel::LeftSupportFoot) {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "right_foot_tip", false, dq, ddq);
+                    "right_foot_tip", nullptr, false, dq, ddq);
             } else {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "left_foot_tip", false, dq, ddq);
+                    "left_foot_tip", nullptr, false, dq, ddq);
             }
         } else {
             torques = model.get().inverseDynamics(dq, ddq);

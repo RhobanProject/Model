@@ -836,7 +836,7 @@ int main(int argc, char** argv)
             bestParams = params;
             bestScore = score;
         }
-        if (iteration % 50 == 0) {
+        if (iteration % 10 == 0) {
             //Show best optimization state
             std::cout << "============" << std::endl;
             std::cout << "Dimension: " << params.size() << std::endl;
