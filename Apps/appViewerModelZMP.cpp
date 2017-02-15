@@ -154,8 +154,8 @@ int main(int argc, char** argv)
         modelMotors.get().setDOF("base_pitch", pos("base_pitch"));
         modelMotors.get().setDOF("base_roll", pos("base_roll"));
         //Compute ZMP point
-        Eigen::Vector3d zmp = modelMotors.zeroMomentPoint(
-            "origin", vel, acc);
+        Eigen::Vector3d zmp /*TODO XXX API change modelMotors.zeroMomentPoint(
+            "origin", vel, acc) */ = Eigen::Vector3d(0, 0, 0);
         //Compute center of pressure form model
         //Display captured center of mass ground projection
         Eigen::Vector3d copLeft = modelMotors

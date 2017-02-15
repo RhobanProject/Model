@@ -13,9 +13,9 @@ TrajectoryParameters DefaultTrajParameters()
     //CMA-ES parameters
     parameters.add("cmaes_max_iterations", 1000.0);
     parameters.add("cmaes_restarts", 3.0);
-    parameters.add("cmaes_lambda", 10.0);
+    parameters.add("cmaes_lambda", 100.0);
     parameters.add("cmaes_sigma", -1.0);
-    parameters.add("cmaes_elitism", 1.0);
+    parameters.add("cmaes_elitism", 0.0);
     //Fitness maximum torque yaw
     parameters.add("fitness_max_torque_yaw", 1.5);
     //Fitness maximum voltage ratio
@@ -80,21 +80,99 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
             data.push_back(0.0);
         }
 
-        //ZMP if single support
+        //Penalize foot cleats under the ground
+        Eigen::Vector3d cleatLeft1 = 
+            model.get().position("left_cleat_1", "origin");
+        Eigen::Vector3d cleatLeft2 = 
+            model.get().position("left_cleat_2", "origin");
+        Eigen::Vector3d cleatLeft3 = 
+            model.get().position("left_cleat_3", "origin");
+        Eigen::Vector3d cleatLeft4 = 
+            model.get().position("left_cleat_4", "origin");
+        Eigen::Vector3d cleatRight1 = 
+            model.get().position("right_cleat_1", "origin");
+        Eigen::Vector3d cleatRight2 = 
+            model.get().position("right_cleat_2", "origin");
+        Eigen::Vector3d cleatRight3 = 
+            model.get().position("right_cleat_3", "origin");
+        Eigen::Vector3d cleatRight4 = 
+            model.get().position("right_cleat_4", "origin");
+        if (cleatLeft1.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatLeft1.z();
+        }
+        if (cleatLeft2.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatLeft2.z();
+        }
+        if (cleatLeft3.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatLeft3.z();
+        }
+        if (cleatLeft4.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatLeft4.z();
+        }
+        if (cleatRight1.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatRight1.z();
+        }
+        if (cleatRight2.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatRight2.z();
+        }
+        if (cleatRight3.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatRight3.z();
+        }
+        if (cleatRight4.z() < -1e-3) {
+            return 1000.0 - 1000.0*cleatRight4.z();
+        }
+
+        //Retrieve support and 
+        //flying foot names
+        std::string supportName;
+        std::string footName;
+        if (supportFoot == HumanoidFixedModel::LeftSupportFoot) {
+            supportName = "left_foot_tip";
+            footName = "right_foot_tip";
+        } else {
+            supportName = "right_foot_tip";
+            footName = "left_foot_tip";
+        }
+
+        //Compute the Zero Moment Point in 
+        //support foot frame
+        Eigen::Vector3d zmp;
         if (!isDoubleSupport) {
-            Eigen::Vector3d zmp;
-            if (supportFoot == HumanoidFixedModel::LeftSupportFoot) {
-                zmp = model.zeroMomentPointFromTorques(
-                    "left_foot_tip", torques);
-            } else {
-                zmp = model.zeroMomentPointFromTorques(
-                    "right_foot_tip", torques);
+            //In case of single support
+            //compute the ZMP from torques
+            zmp = model.zeroMomentPointSingleSupport(
+                supportName, torques);
+        } else {
+            //In case of double support, compute
+            //the ZMP as if it were in signe support
+            //(torques needs to be recomputed)
+            zmp = model.zeroMomentPoint(
+                supportName, dq, ddq, false);
+        }
+        zmp.z() = 0.0;
+        //Compute the ZMP error distance
+        double zmpError = 0.0;
+        if (isDoubleSupport) {
+            //In case of double support, compute the distance
+            //from the segment between the two foot centers
+            Eigen::Vector3d footPos = 
+                model.get().position(footName, supportName);
+            footPos.z() = 0.0;
+            double affix = (footPos.dot(zmp))/footPos.squaredNorm();
+            if (affix <= 0.0) {
+                affix = 0.0;
+            } else if (affix >= 1.0){
+                affix = 1.0;
             }
-            zmp.z() = 0.0;
-            //Max ZMP
-            if (data[2] < zmp.lpNorm<Eigen::Infinity>()) {
-                data[2] = zmp.lpNorm<Eigen::Infinity>();
-            }
+            zmpError = (zmp-(affix*footPos)).lpNorm<Eigen::Infinity>();
+        } else {
+            //In single support, the error id simply the
+            //distance for the support foot center
+            zmpError = zmp.lpNorm<Eigen::Infinity>();
+        }
+        //Max ZMP error
+        if (data[2] < zmpError) {
+            data[2] = zmpError;
         }
         
         //Voltage
