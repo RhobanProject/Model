@@ -9,19 +9,7 @@
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Plot/Plot.hpp"
-
-/**
- * DOF names
- */
-static std::vector<std::string> dofsNames = {
-    "head_pitch", "head_yaw",
-    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
-    "left_knee", "left_ankle_pitch", "left_ankle_roll",
-    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
-    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
-    "right_knee", "right_ankle_pitch", "right_ankle_roll",
-};
+#include "Model/NamesModel.h"
 
 int main()
 {
@@ -56,8 +44,8 @@ int main()
     double errorNormalCount = 0.0;
     double errorNormalSum = 0.0;
     double errorNormalMaxTime = 0.0;
-    Eigen::VectorXd errorNormalMaxAll(dofsNames.size());
-    for (size_t i=0;i<dofsNames.size();i++) {
+    Eigen::VectorXd errorNormalMaxAll(Leph::NamesDOF.size());
+    for (size_t i=0;i<Leph::NamesDOF.size();i++) {
         errorNormalMaxAll(i) = -1.0;
     }
     std::string errorNormalMaxName = "";
@@ -65,8 +53,8 @@ int main()
     double errorFeedCount = 0.0;
     double errorFeedSum = 0.0;
     double errorFeedMaxTime = 0.0;
-    Eigen::VectorXd errorFeedMaxAll(dofsNames.size());
-    for (size_t i=0;i<dofsNames.size();i++) {
+    Eigen::VectorXd errorFeedMaxAll(Leph::NamesDOF.size());
+    for (size_t i=0;i<Leph::NamesDOF.size();i++) {
         errorFeedMaxAll(i) = -1.0;
     }
     std::string errorFeedMaxName = "";
@@ -97,7 +85,7 @@ int main()
         //Initialization
         if (isInit) {
             isInit = false;
-            for (const std::string& name : dofsNames) {
+            for (const std::string& name : Leph::NamesDOF) {
                 size_t indexSim = modelSimNormal.getDOFIndex(name);
                 simNormal.positions()(indexSim) = 
                     modelGoal.get().getDOF(name);
@@ -113,7 +101,7 @@ int main()
         }
         
         //Assign target to simulation
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             size_t indexGoal = modelGoal.get().getDOFIndex(name);
             size_t indexSim = modelSimNormal.getDOFIndex(name);
             //Compute feed forward target angular position offset
@@ -138,7 +126,7 @@ int main()
         
         //Compute error
         size_t index = 0;
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             double errorNormal = pow(180.0/M_PI
                 *(modelGoal.get().getDOF(name) - modelSimNormal.getDOF(name)), 2);
             errorNormalSum += errorNormal;
@@ -191,7 +179,7 @@ int main()
     std::cout << "MaxAllErrorMean: " << sqrt(errorFeedMaxAll.mean()) << std::endl;
     std::cout << "MaxAllError: " << (errorFeedMaxAll.array().sqrt().transpose()) << std::endl;
 
-    for (const std::string& name : dofsNames) {
+    for (const std::string& name : Leph::NamesDOF) {
         plot
             .plot("t", "goal:" + name)
             .plot("t", "feed_goal:" + name)

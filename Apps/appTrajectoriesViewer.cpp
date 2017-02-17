@@ -6,10 +6,16 @@ int main(int argc, char** argv)
 {
     //Check command line
     if (argc < 2) {
-        std::cout << "Usage: ./app [Trajectories filename]" << std::endl;
+        std::cout << "Usage: ./app [Trajectories filename] [MODEL] [file.modelparams]" << std::endl;
         return 1;
     }
     std::string filename = std::string(argv[1]);
+    std::string modelParamsFile;
+    if (argc == 4 && std::string(argv[2]) == "MODEL") {
+        modelParamsFile = argv[3];
+        std::cout << "Loading model parameters from: " 
+            << modelParamsFile << std::endl;
+    }
         
     //Load Trajectories
     Leph::Trajectories traj;
@@ -44,7 +50,8 @@ int main(int argc, char** argv)
     }
 
     //Display Trajectory
-    Leph::TrajectoriesDisplay(traj, Leph::SigmabanModel);
+    Leph::TrajectoriesDisplay(
+        traj, Leph::SigmabanModel, modelParamsFile);
 
     return 0;
 }

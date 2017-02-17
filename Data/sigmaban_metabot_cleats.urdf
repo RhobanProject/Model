@@ -896,7 +896,7 @@
     </inertial>
 </link>
 <joint name="right_foot_tip" type="fixed">
-<origin xyz="0 0 -0.061" rpy="0 0 0"/>
+<origin xyz="0 0 -0.056" rpy="0 0 0"/>
     <parent link="right_ankle_roll" />
     <child link="right_foot_tip" />
     <axis xyz="0 0 0" />
@@ -930,25 +930,25 @@
     </inertial>
 </link>
 <joint name="right_cleat_1" type="fixed">
-<origin xyz="0.063 0.037 -0.061" rpy="0 0 0"/>
+<origin xyz="0.063 0.037 -0.056" rpy="0 0 0"/>
     <parent link="right_ankle_roll" />
     <child link="right_cleat_1" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="right_cleat_2" type="fixed">
-<origin xyz="0.063 -0.043 -0.061" rpy="0 0 0"/>
+<origin xyz="0.063 -0.043 -0.056" rpy="0 0 0"/>
     <parent link="right_ankle_roll" />
     <child link="right_cleat_2" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="right_cleat_3" type="fixed">
-<origin xyz="-0.063 -0.043 -0.061" rpy="0 0 0"/>
+<origin xyz="-0.063 -0.043 -0.056" rpy="0 0 0"/>
     <parent link="right_ankle_roll" />
     <child link="right_cleat_3" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="right_cleat_4" type="fixed">
-<origin xyz="-0.063 0.037 -0.061" rpy="0 0 0"/>
+<origin xyz="-0.063 0.037 -0.056" rpy="0 0 0"/>
     <parent link="right_ankle_roll" />
     <child link="right_cleat_4" />
     <axis xyz="0 0 0" />
@@ -1856,7 +1856,7 @@
     </inertial>
 </link>
 <joint name="left_foot_tip" type="fixed">
-<origin xyz="0 0 -0.061" rpy="0 0 0"/>
+<origin xyz="0 0 -0.056" rpy="0 0 0"/>
     <parent link="left_ankle_roll" />
     <child link="left_foot_tip" />
     <axis xyz="0 0 0" />
@@ -1890,25 +1890,25 @@
     </inertial>
 </link>
 <joint name="left_cleat_1" type="fixed">
-<origin xyz="0.063 0.043 -0.061" rpy="0 0 0"/>
+<origin xyz="0.063 0.043 -0.056" rpy="0 0 0"/>
     <parent link="left_ankle_roll" />
     <child link="left_cleat_1" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="left_cleat_2" type="fixed">
-<origin xyz="0.063 -0.037 -0.061" rpy="0 0 0"/>
+<origin xyz="0.063 -0.037 -0.056" rpy="0 0 0"/>
     <parent link="left_ankle_roll" />
     <child link="left_cleat_2" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="left_cleat_3" type="fixed">
-<origin xyz="-0.063 -0.037 -0.061" rpy="0 0 0"/>
+<origin xyz="-0.063 -0.037 -0.056" rpy="0 0 0"/>
     <parent link="left_ankle_roll" />
     <child link="left_cleat_3" />
     <axis xyz="0 0 0" />
 </joint>
 <joint name="left_cleat_4" type="fixed">
-<origin xyz="-0.063 0.043 -0.061" rpy="0 0 0"/>
+<origin xyz="-0.063 0.043 -0.056" rpy="0 0 0"/>
     <parent link="left_ankle_roll" />
     <child link="left_cleat_4" />
     <axis xyz="0 0 0" />

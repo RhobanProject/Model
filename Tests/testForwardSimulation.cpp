@@ -7,23 +7,7 @@
 #include "Model/HumanoidFixedModel.hpp"
 #include "Utils/AxisAngle.h"
 #include "Plot/Plot.hpp"
-
-/**
- * DOF names
- */
-static std::vector<std::string> dofsNames = {
-    "head_pitch", "head_yaw",
-    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
-    "left_knee", "left_ankle_pitch", "left_ankle_roll",
-    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
-    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
-    "right_knee", "right_ankle_pitch", "right_ankle_roll",
-};
-static std::vector<std::string> basesNames = {
-    "base_x", "base_y", "base_z",
-    "base_roll", "base_pitch", "base_yaw",
-};
+#include "Model/NamesModel.h"
 
 /**
  * Simple pendulum model. No contact. No floating base. 3 DOFs.
@@ -379,7 +363,7 @@ void testHumanoid()
         std::cout << "IK ERROR" << std::endl;
         exit(1);
     }
-    for (const std::string& name : dofsNames) {
+    for (const std::string& name : Leph::NamesDOF) {
         size_t index = model.getDOFIndex(name);
         sim.positions()(index) = goalModel.get().getDOF(name);
         sim.goals()(index) = goalModel.get().getDOF(name);
@@ -428,7 +412,7 @@ void testHumanoid()
     Eigen::Vector3d posFoot = model.position(foot2, "origin");
     model.setDOF("base_x", model.getDOF("base_x") - posFoot.x());
     model.setDOF("base_y", model.getDOF("base_y") - posFoot.y());
-    for (const std::string& name : basesNames) {
+    for (const std::string& name : Leph::NamesBase) {
         size_t index = model.getDOFIndex(name);
         sim.positions()(index) = model.getDOF(name);
     }
@@ -539,7 +523,7 @@ void testHumanoidFullConstraints()
         std::cout << "IK ERROR" << std::endl;
         exit(1);
     }
-    for (const std::string& name : dofsNames) {
+    for (const std::string& name : Leph::NamesDOF) {
         size_t index = model.getDOFIndex(name);
         sim.positions()(index) = goalModel.get().getDOF(name);
         sim.goals()(index) = goalModel.get().getDOF(name);

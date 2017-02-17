@@ -35,21 +35,25 @@ class Model
         
         /**
          * Initialization with URDF file
-         * and with given inertia data overriding
-         * file data
+         * and with given inertia and geometry 
+         * data overriding file data
          */
         Model(const std::string& filename, 
             const Eigen::MatrixXd& inertiaData,
-            const std::map<std::string, size_t>& inertiaName);
+            const std::map<std::string, size_t>& inertiaName,
+            const Eigen::MatrixXd& geometryData,
+            const std::map<std::string, size_t>& geometryName);
 
         /**
          * Initialize with RBDL model.
-         * Given inertia data and name override
+         * Given inertia and geometry data and name override
          * model internal data with externaly loaded urdf.
          */
         Model(RBDL::Model& model,
             const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
-            const std::map<std::string, size_t>& inertiaName = {});
+            const std::map<std::string, size_t>& inertiaName = {},
+            const Eigen::MatrixXd& geometryData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& geometryName = {});
 
         /**
          * Return current update mode
@@ -252,8 +256,11 @@ class Model
          * Compute Inverse Dynamics on a modified closed loop
          * model where given frame index is considered fixed
          * in base coordinates. Computed torques are returned
-         * but floating base degrees of freedom are set to zero.
+         * and floating base degrees of freedom are also computed.
          * Current position is used.
+         * If contactForce is not null, the cartesian 6D moment and
+         * linear forces (Nx, Ny, Nz, Fx, Fy, Fz) 
+         * is assign and expressed in fixed body frame.
          * If useInfinityNorm is true, infinity norm is minimized to
          * solve the torques underdetermined system with 
          * high performance cost.
@@ -262,11 +269,13 @@ class Model
          */
         Eigen::VectorXd inverseDynamicsClosedLoop(
             size_t fixedFrameIndex,
+            Eigen::VectorXd* contactForce = nullptr,
             bool useInfinityNorm = false,
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
         Eigen::VectorXd inverseDynamicsClosedLoop(
             const std::string& fixedFrameName,
+            Eigen::VectorXd* contactForce = nullptr,
             bool useInfinityNorm = false,
             const Eigen::VectorXd& velocity = Eigen::VectorXd(),
             const Eigen::VectorXd& acceleration = Eigen::VectorXd());
@@ -428,17 +437,30 @@ class Model
          */
         const Eigen::MatrixXd& getInertiaData() const;
         const std::map<std::string, size_t>& getInertiaName() const;
+        
+        /**
+         * Return access to joint geometry data matrix.
+         * One line for each body. 
+         * Rotation roll, pitch, yaw. Translation X, Y, Z.
+         * And mapping body name to row index in 
+         * geometry data matrix
+         */
+        const Eigen::MatrixXd& getGeometryData() const;
+        const std::map<std::string, size_t>& getGeometryName() const;
 
     protected:
         
         /**
          * Parse and initialilize RBDL model.
-         * Given inertia data and name are used to
-         * assigned the model with externaly loaded urdf.
+         * Given inertia data and names, geometry data and name 
+         * are used to assigned the model with 
+         * externaly loaded urdf.
          */
         void initializeModel(RBDL::Model& model, 
             const Eigen::MatrixXd& inertiaData,
-            const std::map<std::string, size_t>& inertiaName);
+            const std::map<std::string, size_t>& inertiaName,
+            const Eigen::MatrixXd& geometryData,
+            const std::map<std::string, size_t>& geometryName);
 
     private:
     
@@ -492,6 +514,17 @@ class Model
          */
         Eigen::MatrixXd _inertiaData;
         std::map<std::string, size_t> _inertiaName;
+
+        /**
+         * Container of joint body geometry data.
+         * One line for each body.
+         * Rotation roll, pitch, yaw. Translation X, Y, Z.
+         * And mapping body name to row index in 
+         * geometry data matrix.
+         * (used to override loading geometry)
+         */
+        Eigen::MatrixXd _geometryData;
+        std::map<std::string, size_t> _geometryName;
 
         /**
          * Filter body name to joint and frame name

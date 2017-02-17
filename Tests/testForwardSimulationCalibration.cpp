@@ -9,29 +9,13 @@
 #include "Model/RBDLRootUpdate.h"
 #include "Types/MapSeries.hpp"
 #include "Utils/Angle.h"
+#include "Model/NamesModel.h"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "Viewer/ModelViewer.hpp"
 #include "Viewer/ModelDraw.hpp"
 #include "Plot/Plot.hpp"
 #endif
-
-/**
- * DOF names
- */
-static std::vector<std::string> dofsNames = {
-    "head_pitch", "head_yaw",
-    "left_shoulder_pitch", "left_shoulder_roll", "left_elbow",
-    "left_hip_yaw", "left_hip_pitch", "left_hip_roll",
-    "left_knee", "left_ankle_pitch", "left_ankle_roll",
-    "right_shoulder_pitch", "right_shoulder_roll", "right_elbow",
-    "right_hip_yaw", "right_hip_pitch", "right_hip_roll",
-    "right_knee", "right_ankle_pitch", "right_ankle_roll",
-};
-static std::vector<std::string> basesNames = {
-    "base_x", "base_y", "base_z",
-    "base_roll", "base_pitch", "base_yaw",
-};
 
 /**
  * Names of frame used for fitness error evaluation
@@ -193,7 +177,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
     Leph::ForwardSimulation sim(modelSim);
     sim.setJointModelParameters(parameters.segment(0, sizeJointParameters));
     //Initialization
-    for (const std::string& name : dofsNames) {
+    for (const std::string& name : Leph::NamesDOF) {
         sim.positions()(modelSim.getDOFIndex(name)) = 
             logs.get("read:" + name, min);
         sim.goals()(modelSim.getDOFIndex(name)) = 
@@ -274,7 +258,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
             }
         }
 #endif
-        for (const std::string& name : dofsNames) {
+        for (const std::string& name : Leph::NamesDOF) {
             sim.goals()(modelSim.getDOFIndex(name)) = 
                 logs.get("goal:" + name, t);
             modelRead.setDOF(name, logs.get("read:" + name, t));
@@ -319,7 +303,7 @@ static double scoreFitness(const std::string& filename, const Eigen::VectorXd& p
         }
 #ifdef LEPH_VIEWER_ENABLED
         if (verbose >= 2) {
-            for (const std::string& name : dofsNames) {
+            for (const std::string& name : Leph::NamesDOF) {
                 vect.setOrAppend("t", t);
                 vect.setOrAppend("read:" + name, 180.0/M_PI*logs.get("read:" + name, t));
                 vect.setOrAppend("goal:" + name, 180.0/M_PI*logs.get("goal:" + name, t));

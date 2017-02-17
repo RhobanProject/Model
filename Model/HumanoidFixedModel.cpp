@@ -4,10 +4,16 @@
 namespace Leph {
 
 HumanoidFixedModel::HumanoidFixedModel(
-    RobotType type) :
+    RobotType type,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
     _supportFoot(LeftSupportFoot),
-    _modelLeft(type, "left_foot_tip"),
-    _modelRight(type, "right_foot_tip")
+    _modelLeft(type, "left_foot_tip", true,
+        inertiaData, inertiaName, geometryData, geometryName),
+    _modelRight(type, "right_foot_tip", true,
+        inertiaData, inertiaName, geometryData, geometryName)
 {
 }
         
@@ -99,7 +105,7 @@ HumanoidModel& HumanoidFixedModel::get()
         return _modelRight;
     }
 }
-        
+
 void HumanoidFixedModel::updateBase()
 {
     //Check if moving foot is touching
@@ -190,52 +196,115 @@ void HumanoidFixedModel::setOdometryState(const Eigen::Vector2d& pose)
 Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
     const std::string& frame,
     const Eigen::VectorXd& velocity,
-    const Eigen::VectorXd& acceleration)
+    const Eigen::VectorXd& acceleration,
+    bool isDoubleSupport)
 {
-    Eigen::VectorXd torque = get().inverseDynamics(
-        velocity, acceleration);
-
-    return zeroMomentPointFromTorques(frame, torque);
+    if (isDoubleSupport) {
+        std::string footName;
+        if (getSupportFoot() == LeftSupportFoot) {
+            footName = "right_foot_tip";
+        } else {
+            footName = "left_foot_tip";
+        }
+        Eigen::VectorXd contactForce(6);
+        Eigen::VectorXd torque = get().inverseDynamicsClosedLoop(
+            footName, &contactForce, false, velocity, acceleration);
+        return zeroMomentPointDoubleSupport(frame, torque, contactForce);
+    } else {
+        Eigen::VectorXd torque = get().inverseDynamics(
+            velocity, acceleration);
+        return zeroMomentPointSingleSupport(frame, torque);
+    }
 }
-Eigen::Vector3d HumanoidFixedModel::zeroMomentPoint(
-    const std::string& frame,
-    const VectorLabel& velocity,
-    const VectorLabel& acceleration)
-{
-    VectorLabel torque = get().inverseDynamics(
-        velocity, acceleration);
-
-    double Fx = torque("base_x");
-    double Fy = torque("base_y");
-    double Fz = torque("base_z");
-    double MRoll = torque("base_roll");
-    double MPitch = torque("base_pitch");
-    
-    double Mx;
-    double My;
-    convertFootMoment(MPitch, MRoll, Mx, My);
-    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
-    
-    return get().position("origin", frame, zmp);
-}
-        
-Eigen::Vector3d HumanoidFixedModel::zeroMomentPointFromTorques(
+ 
+Eigen::Vector3d HumanoidFixedModel::zeroMomentPointSingleSupport(
     const std::string& frame,
     const Eigen::VectorXd& torques)
 {
-    double Fx = torques(get().getDOFIndex("base_x"));
-    double Fy = torques(get().getDOFIndex("base_y"));
-    double Fz = torques(get().getDOFIndex("base_z"));
-    double MRoll = torques(get().getDOFIndex("base_roll"));
-    double MPitch = torques(get().getDOFIndex("base_pitch"));
+    //Retrieve linear and angular 
+    //force applied on the ground
+    //by the support foot
+    Eigen::Vector3d linearForce;
+    linearForce.x() = torques(get().getDOFIndex("base_x"));
+    linearForce.y() = torques(get().getDOFIndex("base_y"));
+    linearForce.z() = torques(get().getDOFIndex("base_z"));
+    Eigen::Vector3d angularForce;
+    angularForce.x() = torques(get().getDOFIndex("base_roll"));
+    angularForce.y() = torques(get().getDOFIndex("base_pitch"));
+    angularForce.z() = torques(get().getDOFIndex("base_yaw"));
+
+    //Retrieve frame name
+    std::string supportName;
+    if (getSupportFoot() == LeftSupportFoot) {
+        supportName = "left_foot_tip";
+    } else {
+        supportName = "right_foot_tip";
+    }
     
-    double Mx;
-    double My;
-    convertFootMoment(MPitch, MRoll, Mx, My);
-    Eigen::Vector3d zmp = computeZMP(Fx, Fy, Fz, Mx, My);
+    //Convert linear force in support foot frame
+    Eigen::Matrix3d mat = get().orientation(supportName, "origin");
+    linearForce = mat*linearForce;
 
-    return get().position("origin", frame, zmp);
+    //Compute the ZMP
+    Eigen::Vector3d zmpInFoot = computeZMP(
+        angularForce.x(), angularForce.y(), linearForce.z());
+    //Comvert in requested frame
+    return get().position(supportName, frame, zmpInFoot);
 
+}
+Eigen::Vector3d HumanoidFixedModel::zeroMomentPointDoubleSupport(
+    const std::string& frame,
+    const Eigen::VectorXd& torques,
+    const Eigen::VectorXd& contactForces)
+{
+    //Retrieve linear and angular 
+    //force applied on the ground
+    //by the support foot
+    Eigen::Vector3d linearSupportForce;
+    linearSupportForce.x() = torques(get().getDOFIndex("base_x"));
+    linearSupportForce.y() = torques(get().getDOFIndex("base_y"));
+    linearSupportForce.z() = torques(get().getDOFIndex("base_z"));
+    Eigen::Vector3d angularSupportForce;
+    angularSupportForce.x() = torques(get().getDOFIndex("base_roll"));
+    angularSupportForce.y() = torques(get().getDOFIndex("base_pitch"));
+    angularSupportForce.z() = torques(get().getDOFIndex("base_yaw"));
+    
+    //Retrieve frame names
+    std::string supportName;
+    std::string footName;
+    if (getSupportFoot() == LeftSupportFoot) {
+        supportName = "left_foot_tip";
+        footName = "right_foot_tip";
+    } else {
+        supportName = "right_foot_tip";
+        footName = "left_foot_tip";
+    }
+    
+    //Convert linear force in support foot frame
+    Eigen::Matrix3d mat = get().orientation(supportName, "origin");
+    linearSupportForce = mat*linearSupportForce;
+
+    //Convert other ffixed foot contact force 
+    //in support foot frame
+    Eigen::Vector3d linearFootForce = contactForces.segment(3, 3);
+    Eigen::Vector3d angularFootForce = contactForces.segment(0, 3);
+    Eigen::Matrix3d mat2 = get().orientation(supportName, footName);
+    Eigen::Vector3d trans = get().position(supportName, footName);
+    //Use Varignon formula as RBDL do in SpatialAlgebraOperators.h
+    //in toMatrixAdjoint() to convert flying fixed foot contact force
+    //in support foo frame
+    angularFootForce = mat2*angularFootForce + mat2*(linearFootForce.cross(trans));
+    linearFootForce = mat2*linearFootForce;
+    
+    //Compute the ZMP
+    //The applied force on the ground is the sum
+    //of forces applied by left and right feet
+    Eigen::Vector3d zmpInFoot = computeZMP(
+        angularSupportForce.x() + angularFootForce.x(), 
+        angularSupportForce.y() + angularFootForce.y(), 
+        linearSupportForce.z() + linearFootForce.z());
+    //Comvert in requested frame
+    return get().position(supportName, frame, zmpInFoot);
 }
 
 bool HumanoidFixedModel::trunkFootIK(
@@ -583,52 +652,15 @@ Eigen::VectorXd HumanoidFixedModel::trunkFootIKAcc(
     return dofAcc;
 }
 
-void HumanoidFixedModel::convertFootMoment(
-    double torquePitch, double torqueRoll,
-    double& Mx, double& My)
-{
-    //Compute matrix rotation from world origin
-    //to foot
-    Eigen::Matrix3d mat;
-    if (_supportFoot == LeftSupportFoot) {
-        mat = get().orientation("left_foot_tip", "origin");
-    } else {
-        mat = get().orientation("right_foot_tip", "origin");
-    }
-    mat.transposeInPlace();
-
-    //Compute Pitch/Roll torque vector in world frame
-    Eigen::Vector3d uRoll = mat.col(0);
-    Eigen::Vector3d uPitch = mat.col(1);
-    Eigen::Vector3d torque = torqueRoll*uRoll + torquePitch*uPitch;
-
-    //Retrieve X/Y component
-    Mx = torque.x();
-    My = torque.y();
-}
-        
 Eigen::Vector3d HumanoidFixedModel::computeZMP(
-    double Fx, double Fy, double Fz, 
-    double Mx, double My)
+    double Mx, double My, double Fz)
 {
-    Eigen::Vector3d posA;
-    if (_supportFoot == LeftSupportFoot) {
-        posA = get().position("left_foot_tip", "origin");
-    } else {
-        posA = get().position("right_foot_tip", "origin");
+    if (fabs(Fz) <= 1e-6) {
+        return Eigen::Vector3d(0, 0, 0);
     }
 
-    double Ax = posA.x();
-    double Ay = posA.y();
-    double Az = posA.z();
-
-    if (Fz == 0.0) {
-        throw std::logic_error(
-            "HumanoidFixedModel null vertical force Fz");
-    }
-
-    double Px = (-My - (Az*Fx-Ax*Fz))/Fz;
-    double Py = (Mx + (Ay*Fz-Az*Fy))/Fz;
+    double Px = -My/Fz;
+    double Py = Mx/Fz;
     double Pz = 0.0;
 
     return Eigen::Vector3d(Px, Py, Pz);

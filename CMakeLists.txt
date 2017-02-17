@@ -93,7 +93,8 @@ set(SOURCES_FILES
     Utils/LWPRInputsOptimization.cpp
     Utils/EncoderFilter.cpp
     Utils/ComputeModelData.cpp
-    Utils/FileVector.cpp
+    Utils/FileEigen.cpp
+    Utils/FileModelParameters.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -106,7 +107,6 @@ set(SOURCES_FILES
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/HumanoidSimulation.cpp
-    Model/MotorModel.cpp
     Model/JointModel.cpp
     Model/OdometryModel.cpp
     StaticWalk/StaticWalk.cpp
@@ -125,9 +125,11 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
-    TrajectoryDefinition/DefaultTrajParameters.cpp
-    TrajectoryDefinition/TrajKick.cpp
+    TrajectoryDefinition/CommonTrajs.cpp
+    TrajectoryDefinition/TrajKickSingle.cpp
+    TrajectoryDefinition/TrajKickDouble.cpp
     TrajectoryDefinition/TrajLegLift.cpp
+    TrajectoryDefinition/TrajWalk.cpp
 )
 
 #Tests main files
@@ -176,6 +178,7 @@ set(TESTS_FILES
     testDMPSpline
     testJointModel
     testTrajectoryParameters
+    testForwardSimulationCalibration
 )
 
 #Applications main files
@@ -188,6 +191,11 @@ set(APPS_FILES
     appStatsDynaban
     appOdometryModelCalibration
     appTrajectoriesGeneration
+    appTrajectoriesCorrection
+    appTrajectoriesSimulation
+    appFeedForwardLogsComparison
+    appHumanoidSimulationIdentification
+    appTrajectoriesLogFitting
 )
 
 #Build App RhIO Viewer 
@@ -247,7 +255,6 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
         testTrunkFootIK
         testForwardSimulation
-        testForwardSimulationCalibration
         testQuinticWalk
         testCameraModel
         testHumanoidSimulation
@@ -261,9 +268,13 @@ if (BUILD_LEPH_CODE_VIEWER)
         appDynamicTrajectoryOptimizationTorques
         appTrajectoriesViewer
         appTestLegTorques
-        # These applications are not compiling yet
-        #appExperimentKick
-        #appExperimentKick2
+        appExperimentKick
+        appExperimentKick2
+        appTestZMPControl
+        appMapSeriesLogsViewer
+        appDMPTrajectoryOptimization
+        appTrajectoriesKickGeneration
+        appHumanoidSimulationPlayer
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics

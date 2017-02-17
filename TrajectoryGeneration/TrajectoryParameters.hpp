@@ -8,6 +8,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "TrajectoryGeneration/TrajectoryUtils.h"
+#include "Utils/FileMap.h"
 
 namespace Leph {
 
@@ -51,11 +52,41 @@ class TrajectoryParameters
             _container.at(name).name = name;
             _container.at(name).isOptimized = isOptimized;
             _container.at(name).defaultValue = value;
+            _container.at(name).alias = "";
             computeIndex();
         }
 
         /**
-         * Return true is given parameter 
+         * Define the new given name as parameter
+         * alias for given others parameter name
+         * (not optimized)
+         */
+        inline void cpy(
+            const std::string& name,
+            const std::string& alias)
+        {
+            //Check parameter exists
+            if (isDefined(name)) {
+                throw std::logic_error(
+                    "TrajectoryParameters exist parameter: " 
+                    + name);
+            }
+            if (!isDefined(alias)) {
+                throw std::logic_error(
+                    "TrajectoryParameters alias not exist: " 
+                    + alias);
+            }
+            //Create parameters
+            _container[name] = Parameter();
+            _container.at(name).name = name;
+            _container.at(name).isOptimized = false;
+            _container.at(name).defaultValue = 0.0;
+            _container.at(name).alias = alias;
+            computeIndex();
+        }
+
+        /**
+         * Return true if given parameter 
          * name is already contained
          */
         inline bool isDefined(
@@ -65,13 +96,24 @@ class TrajectoryParameters
         }
 
         /**
+         * Return true if given parameter
+         * name is an alias
+         */
+        inline bool isAlias(
+            const std::string& name) const
+        {
+            checkName(name);
+            return (_container.at(name).alias != "");
+        }
+
+        /**
          * Enable or disable a parameter optimization
          */
         inline void optimize(
             const std::string& name, bool isOptimized) 
         {
-            checkName(name);
-            _container.at(name).isOptimized = isOptimized;
+            const std::string& alias = resolveAlias(name);
+            _container.at(alias).isOptimized = isOptimized;
             computeIndex();
         }
 
@@ -83,8 +125,8 @@ class TrajectoryParameters
         inline double& set(
             const std::string& name)
         {
-            checkName(name);
-            return _container.at(name).defaultValue;
+            const std::string& alias = resolveAlias(name);
+            return _container.at(alias).defaultValue;
         }
         
         /**
@@ -99,11 +141,13 @@ class TrajectoryParameters
         {
             if (!isDefined(name)) {
                 add(name, 0.0, isOptimized);
+                return _container.at(name).defaultValue;
             } else {
-                _container.at(name).isOptimized = isOptimized;
+                const std::string& alias = resolveAlias(name);
+                _container.at(alias).isOptimized = isOptimized;
                 computeIndex();
+                return _container.at(alias).defaultValue;
             }
-            return _container.at(name).defaultValue;
         }
 
         /**
@@ -125,6 +169,103 @@ class TrajectoryParameters
         }
 
         /**
+         * Build and return the vector of 
+         * normalization coefficients.
+         * Independent of current parameter values.
+         * All coefficients are non zero.
+         */
+        inline Eigen::VectorXd buildNormalizationCoefs() const
+        {
+            //Build and assign the vector
+            Eigen::VectorXd coefs = 
+                Eigen::VectorXd::Ones(_countOptimized);
+            for (const auto& it : _container) {
+                if (it.second.isOptimized) {
+                    if (
+                        it.first.find("time_ratio") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 1.0;
+                    } else if (
+                        it.first.find("time_length") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 3.0;
+                    } else if (
+                        it.first.find("pos_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.28;
+                    } else if (
+                        it.first.find("pos_trunk_pos_x") != std::string::npos ||
+                        it.first.find("pos_trunk_pos_y") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.01;
+                    } else if (
+                        it.first.find("vel_trunk_pos_x") != std::string::npos ||
+                        it.first.find("vel_trunk_pos_y") != std::string::npos ||
+                        it.first.find("vel_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.05;
+                    } else if (
+                        it.first.find("acc_trunk_pos_x") != std::string::npos ||
+                        it.first.find("acc_trunk_pos_y") != std::string::npos ||
+                        it.first.find("acc_trunk_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 2.0;
+                    } else if (
+                        it.first.find("pos_trunk_axis_x") != std::string::npos ||
+                        it.first.find("pos_trunk_axis_y") != std::string::npos ||
+                        it.first.find("pos_trunk_axis_z") != std::string::npos ||
+                        it.first.find("pos_foot_axis_x") != std::string::npos ||
+                        it.first.find("pos_foot_axis_y") != std::string::npos ||
+                        it.first.find("pos_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 1.0;
+                    } else if (
+                        it.first.find("vel_trunk_axis_x") != std::string::npos ||
+                        it.first.find("vel_trunk_axis_y") != std::string::npos ||
+                        it.first.find("vel_trunk_axis_z") != std::string::npos ||
+                        it.first.find("vel_foot_axis_x") != std::string::npos ||
+                        it.first.find("vel_foot_axis_y") != std::string::npos ||
+                        it.first.find("vel_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 3.0;
+                    } else if (
+                        it.first.find("acc_trunk_axis_x") != std::string::npos ||
+                        it.first.find("acc_trunk_axis_y") != std::string::npos ||
+                        it.first.find("acc_trunk_axis_z") != std::string::npos ||
+                        it.first.find("acc_foot_axis_x") != std::string::npos ||
+                        it.first.find("acc_foot_axis_y") != std::string::npos ||
+                        it.first.find("acc_foot_axis_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 30.0;
+                    } else if (
+                        it.first.find("pos_foot_pos_x") != std::string::npos ||
+                        it.first.find("pos_foot_pos_y") != std::string::npos ||
+                        it.first.find("pos_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 0.1;
+                    } else if (
+                        it.first.find("vel_foot_pos_x") != std::string::npos ||
+                        it.first.find("vel_foot_pos_y") != std::string::npos ||
+                        it.first.find("vel_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 2.0;
+                    } else if (
+                        it.first.find("acc_foot_pos_x") != std::string::npos ||
+                        it.first.find("acc_foot_pos_y") != std::string::npos ||
+                        it.first.find("acc_foot_pos_z") != std::string::npos
+                    ) {
+                        coefs(it.second.index) = 10.0;
+                    } else {
+                        //Default coeficient
+                        coefs(it.second.index) = 1.0;
+                    }
+                }
+            }
+
+            return coefs;
+        }
+
+        /**
          * Retrieve the given parameter name either
          * from unoptimized value of from given
          * parameters vector
@@ -133,9 +274,9 @@ class TrajectoryParameters
             const std::string& name, 
             const Eigen::VectorXd& parameters) const
         {
-            checkName(name);
+            const std::string& alias = resolveAlias(name);
             //Get from container or vector
-            const Parameter& p = _container.at(name);
+            const Parameter& p = _container.at(alias);
             if (p.isOptimized) {
                 return parameters(p.index);
             } else {
@@ -150,9 +291,9 @@ class TrajectoryParameters
         inline double get(
             const std::string& name) const
         {
-            checkName(name);
+            const std::string& alias = resolveAlias(name);
             //Get from container or vector
-            const Parameter& p = _container.at(name);
+            const Parameter& p = _container.at(alias);
             return p.defaultValue;
         }
         
@@ -179,7 +320,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameX)) {
                 //Retrieve default value or parameter
-                const Parameter& pX = _container.at(nameX);
+                const std::string& aliasX = resolveAlias(nameX);
+                const Parameter& pX = _container.at(aliasX);
                 if (pX.isOptimized) {
                     vect.x() = parameters(pX.index);
                 } else {
@@ -193,7 +335,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameY)) {
                 //Retrieve default value or parameter
-                const Parameter& pY = _container.at(nameY);
+                const std::string& aliasY = resolveAlias(nameY);
+                const Parameter& pY = _container.at(aliasY);
                 if (pY.isOptimized) {
                     vect.y() = parameters(pY.index);
                 } else {
@@ -207,7 +350,8 @@ class TrajectoryParameters
             //Check if elements exist
             if (isDefined(nameZ)) {
                 //Retrieve default value or parameter
-                const Parameter& pZ = _container.at(nameZ);
+                const std::string& aliasZ = resolveAlias(nameZ);
+                const Parameter& pZ = _container.at(aliasZ);
                 if (pZ.isOptimized) {
                     vect.z() = parameters(pZ.index);
                 } else {
@@ -235,7 +379,11 @@ class TrajectoryParameters
                 } else {
                     os << std::setw(5) << "] ";
                 }
-                os << it.second.defaultValue;
+                if (it.second.alias != "") {
+                    os << it.second.alias;
+                } else {
+                    os << it.second.defaultValue;
+                }
                 os << std::endl;
             }
         }
@@ -247,12 +395,21 @@ class TrajectoryParameters
          * using following name format:
          * prefix_[pos|vel|acc]_[trunk|foot]_[pos|axis]_[x|y|z]
          * (Zero is set to missing data)
+         * If doInverse is true, the input cartesian state 
+         * is supposed to be expressed in the other support foot
+         * and inversion is aplied to meet same state as expected but
+         * with current supporting foot.
+         * If doMirror is true, the input cartesian state 
+         * is mirrored with respect to X-Z plane (Y translation 
+         * and X rotation are inversed).
          */
         void trajectoriesAssign(
             Trajectories& traj,
             double time,
             const std::string& prefix,
-            const Eigen::VectorXd& vect) const
+            const Eigen::VectorXd& vect,
+            bool doInverse = false,
+            bool doMirror = false) const
         {
             Eigen::Vector3d posTrunkPos = 
                 getVect(prefix + "_pos_trunk_pos", vect);
@@ -278,30 +435,63 @@ class TrajectoryParameters
                 getVect(prefix + "_vel_foot_axis", vect);
             Eigen::Vector3d accFootAxis = 
                 getVect(prefix + "_acc_foot_axis", vect);
+            double coef1 = (doInverse ? -1.0 : 1.0);
+            double coef2 = (doInverse ? 1.0 : 0.0);
+            double coef3 = (doMirror ? -1.0 : 1.0);
             traj.get("trunk_pos_x").addPoint(
-                time, posTrunkPos.x(), velTrunkPos.x(), accTrunkPos.x());
+                time, posTrunkPos.x()-coef2*posFootPos.x(), coef1*velTrunkPos.x(), coef1*accTrunkPos.x());
             traj.get("trunk_pos_y").addPoint(
-                time, posTrunkPos.y(), velTrunkPos.y(), accTrunkPos.y());
+                time, coef3*(posTrunkPos.y()-coef2*posFootPos.y()), coef3*coef1*velTrunkPos.y(), coef3*coef1*accTrunkPos.y());
             traj.get("trunk_pos_z").addPoint(
-                time, posTrunkPos.z(), velTrunkPos.z(), accTrunkPos.z());
+                time, posTrunkPos.z()-coef2*posFootPos.z(), coef1*velTrunkPos.z(), coef1*accTrunkPos.z());
             traj.get("trunk_axis_x").addPoint(
-                time, posTrunkAxis.x(), velTrunkAxis.x(), accTrunkAxis.x());
+                time, coef3*posTrunkAxis.x(), coef3*velTrunkAxis.x(), coef3*accTrunkAxis.x());
             traj.get("trunk_axis_y").addPoint(
                 time, posTrunkAxis.y(), velTrunkAxis.y(), accTrunkAxis.y());
             traj.get("trunk_axis_z").addPoint(
-                time, posTrunkAxis.z(), velTrunkAxis.z(), accTrunkAxis.z());
+                time, coef3*posTrunkAxis.z(), coef3*velTrunkAxis.z(), coef3*accTrunkAxis.z());
             traj.get("foot_pos_x").addPoint(
-                time, posFootPos.x(), velFootPos.x(), accFootPos.x());
+                time, coef1*posFootPos.x(), coef1*velFootPos.x(), coef1*accFootPos.x());
             traj.get("foot_pos_y").addPoint(
-                time, posFootPos.y(), velFootPos.y(), accFootPos.y());
+                time, coef3*coef1*posFootPos.y(), coef3*coef1*velFootPos.y(), coef3*coef1*accFootPos.y());
             traj.get("foot_pos_z").addPoint(
-                time, posFootPos.z(), velFootPos.z(), accFootPos.z());
+                time, coef1*posFootPos.z(), coef1*velFootPos.z(), coef1*accFootPos.z());
             traj.get("foot_axis_x").addPoint(
-                time, posFootAxis.x(), velFootAxis.x(), accFootAxis.x());
+                time, coef3*posFootAxis.x(), coef3*velFootAxis.x(), coef3*accFootAxis.x());
             traj.get("foot_axis_y").addPoint(
                 time, posFootAxis.y(), velFootAxis.y(), accFootAxis.y());
             traj.get("foot_axis_z").addPoint(
-                time, posFootAxis.z(), velFootAxis.z(), accFootAxis.z());
+                time, coef3*posFootAxis.z(), coef3*velFootAxis.z(), coef3*accFootAxis.z());
+        }
+
+        /**
+         * Dump all contained parameters values
+         * from unoptimized value of from given
+         * parameters vector to given filename.
+         */
+        inline void exportData(
+            const std::string& filename,
+            const Eigen::VectorXd& parameters) const
+        {
+            std::map<std::string, double> map;
+            for (const auto& it : _container) {
+                map[it.first] = get(it.first, parameters);
+            }
+            WriteMap(filename, map);
+        }
+
+        /**
+         * Load and assign (no parameter creation)
+         * parameters value from given filename.
+         */
+        inline void importData(
+            const std::string& filename)
+        {
+            std::map<std::string, double> map = 
+                ReadMap<std::string, double>(filename);
+            for (const auto& it : map) {
+                set(it.first) = it.second;
+            }
         }
 
     private:
@@ -314,6 +504,7 @@ class TrajectoryParameters
             bool isOptimized;
             double defaultValue;
             size_t index;
+            std::string alias;
         };
 
         /**
@@ -338,6 +529,22 @@ class TrajectoryParameters
                 throw std::logic_error(
                     "TrajectoryParameters unknown parameter: " 
                     + name);
+            }
+        }
+
+        /**
+         * Return the parameter name (not alias)
+         * referenced by given name
+         */
+        const std::string& resolveAlias(
+            const std::string& name) const
+        {
+            checkName(name);
+            const std::string& alias = _container.at(name).alias;
+            if (alias == "") {
+                return name;
+            } else {
+                return resolveAlias(alias);
             }
         }
 

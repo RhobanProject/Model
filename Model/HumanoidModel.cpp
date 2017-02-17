@@ -8,7 +8,9 @@ HumanoidModel::HumanoidModel(
     const std::string& frameRoot,
     bool isFloatingBase,
     const Eigen::MatrixXd& inertiaData,
-    const std::map<std::string, size_t>& inertiaName) :
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
     Model(),
     _type(type)
 {
@@ -32,12 +34,26 @@ HumanoidModel::HumanoidModel(
         tmpInertiaData = inertiaData;
         tmpInertiaName = inertiaName;
     }
+    
+    //Check for overriden geometry
+    bool isGeometryOverride = false;
+    Eigen::MatrixXd tmpGeometryData;
+    std::map<std::string, size_t> tmpGeometryName;
+    if (
+        geometryData.rows() > 0 &&
+        (size_t)geometryData.rows() == geometryName.size()
+    ) {
+        isGeometryOverride = true;
+        tmpGeometryData = geometryData;
+        tmpGeometryName = geometryName;
+    }
 
     //Load model from URDF file
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
         urdfFile.c_str(), &modelOld, false, 
-        &tmpInertiaData, &tmpInertiaName, isInertiaOverride)
+        &tmpInertiaData, &tmpInertiaName, isInertiaOverride,
+        &tmpGeometryData, &tmpGeometryName, isGeometryOverride)
     ) {
         std::runtime_error("Model unable to load URDF file");
     }
@@ -56,7 +72,9 @@ HumanoidModel::HumanoidModel(
     RBDL::Model modelNew = 
         Leph::RBDLRootUpdate(modelOld, frameRootId, isFloatingBase);
     //Initialize base model
-    Model::initializeModel(modelNew, tmpInertiaData, tmpInertiaName);
+    Model::initializeModel(modelNew, 
+        tmpInertiaData, tmpInertiaName,
+        tmpGeometryData, tmpGeometryName);
 
     //Compute leg segments length
     Eigen::Vector3d hipPt = Model::position(

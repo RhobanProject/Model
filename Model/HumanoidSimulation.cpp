@@ -6,8 +6,15 @@
 
 namespace Leph {
 
-HumanoidSimulation::HumanoidSimulation(RobotType type) :
-    _model(type, "trunk", true),
+HumanoidSimulation::HumanoidSimulation(
+    RobotType type,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
+    _model(type, "trunk", true, 
+        inertiaData, inertiaName,
+        geometryData, geometryName),
     _simulation(_model),
     _constraints(nullptr),
     _cleats()
@@ -48,22 +55,33 @@ HumanoidModel& HumanoidSimulation::model()
 void HumanoidSimulation::putOnGround()
 {
     //Find lowest foot
-    std::string foot;
     Eigen::Vector3d posLeft = 
         _model.position("trunk", "left_foot_tip");
     Eigen::Vector3d posRight = 
         _model.position("trunk", "right_foot_tip");
+    //Forward to putOnGround()
     if (posLeft.z() >= posRight.z()) {
-        foot = "left_foot_tip";
+        putOnGround(HumanoidFixedModel::LeftSupportFoot);
     } else {
-        foot = "right_foot_tip";
+        putOnGround(HumanoidFixedModel::RightSupportFoot);
     }
 
+}
+void HumanoidSimulation::putOnGround(
+    HumanoidFixedModel::SupportFoot foot)
+{
+    std::string footName;
+    if (foot == HumanoidFixedModel::LeftSupportFoot) {
+        footName = "left_foot_tip";
+    } else {
+        footName = "right_foot_tip";
+    }
+    
     //Set the foot flat
     Eigen::Matrix3d rotOriginToTrunk = 
         _model.orientation("trunk", "origin");
     Eigen::Matrix3d rotOriginToFoot = 
-        _model.orientation(foot, "origin");
+        _model.orientation(footName, "origin");
     Eigen::Matrix3d rotation = 
         rotOriginToTrunk * rotOriginToFoot.transpose();
     //Retrieve YawPitchRoll euler angles from rotation matrix
@@ -83,7 +101,7 @@ void HumanoidSimulation::putOnGround()
     setPos("base_pitch", angles(1));
 
     //Set the foot on ground
-    Eigen::VectorXd pos = _model.position(foot, "origin");
+    Eigen::VectorXd pos = _model.position(footName, "origin");
     double height = getPos("base_z");
     setPos("base_z", height-pos.z());
 }
@@ -91,21 +109,37 @@ void HumanoidSimulation::putOnGround()
 void HumanoidSimulation::putFootAt(double x, double y)
 {
     //Find lowest foot
-    std::string foot;
     Eigen::Vector3d posLeft = 
         _model.position("trunk", "left_foot_tip");
     Eigen::Vector3d posRight = 
         _model.position("trunk", "right_foot_tip");
+    //Forward to putFootAt()
     if (posLeft.z() >= posRight.z()) {
-        foot = "left_foot_tip";
+        putFootAt(x, y, HumanoidFixedModel::LeftSupportFoot);
     } else {
-        foot = "right_foot_tip";
+        putFootAt(x, y, HumanoidFixedModel::RightSupportFoot);
     }
-    
+
+}
+void HumanoidSimulation::putFootAt(double x, double y, 
+    HumanoidFixedModel::SupportFoot foot)
+{
+    std::string footName;
+    if (foot == HumanoidFixedModel::LeftSupportFoot) {
+        footName = "left_foot_tip";
+    } else {
+        footName = "right_foot_tip";
+    }
+
+    //Compute translation in origin frame
+    Eigen::Vector3d originToFoot(x, y, 0.0);
+    Eigen::Vector3d footToTrunk = _model.position("trunk", footName);
+    Eigen::Vector3d originToTrunk = originToFoot + footToTrunk;
+
     //Update base position
-    Eigen::Vector3d posFoot = _model.position(foot, "origin");
-    setPos("base_x", getPos("base_x") - posFoot.x());
-    setPos("base_y", getPos("base_y") - posFoot.y());
+    setPos("base_x", originToTrunk.x());
+    setPos("base_y", originToTrunk.y());
+    setPos("base_yaw", 0.0);
 }
 
 const Eigen::VectorXd& HumanoidSimulation::positions() const
@@ -200,7 +234,7 @@ void HumanoidSimulation::setJointModelParameters(
     _simulation.setJointModelParameters(params);
 }
 
-const Eigen::VectorXd& HumanoidSimulation::getCleatForce(
+double HumanoidSimulation::getCleatForce(
     const std::string& name) const
 {
     if (_cleats.count(name) == 0) {
@@ -211,151 +245,421 @@ const Eigen::VectorXd& HumanoidSimulation::getCleatForce(
     return _cleats.at(name).force;
 }
 
-double HumanoidSimulation::getWeightSum() const
-{
-    double sum = 0.0;
-    for (const auto& it : _cleats) {
-        sum += it.second.force.z();
-    }
-    if (sum < 0.0) {
-        sum = 0.0;
-    }
-
-    return sum/9.81;
-}
-double HumanoidSimulation::getWeightLeftRatio() const
-{
-    double sum = 0.0;
-    double sumLeft = 0.0;
-    for (const auto& it : _cleats) {
-        sum += it.second.force.z();
-        if (it.second.isLeft) {
-            sumLeft += it.second.force.z();
-        } 
-    }
-    if (sumLeft < 0.0) {
-        sumLeft = 0.0;
-    }
-    if (sum < 0.0) {
-        sum = 0.0;
-    }
-   
-    if (fabs(sum) < 1e-6) {
-        return 0.0;
-    } else {
-        return sumLeft/sum;
-    }
-}
-double HumanoidSimulation::getWeightRightRatio() const
-{
-    double sum = 0.0;
-    double sumRight = 0.0;
-    for (const auto& it : _cleats) {
-        sum += it.second.force.z();
-        if (!it.second.isLeft) {
-            sumRight += it.second.force.z();
-        } 
-    }
-    if (sumRight < 0.0) {
-        sumRight = 0.0;
-    }
-    if (sum < 0.0) {
-        sum = 0.0;
-    }
-   
-    if (fabs(sum) < 1e-6) {
-        return 0.0;
-    } else {
-        return sumRight/sum;
-    }
-}
-
 void HumanoidSimulation::update(double dt)
 {
-    _simulation.update(dt, _constraints);
-    _model.setDOFVect(_simulation.positions());
+    //std::cout << "########## Step ######### " << dt << std::endl; //XXX
 
-    bool isAdded = false;
-    bool isRemoved = false;
+    //Transition between no contact and contact
+    unsigned int countContactLeft = 0;
+    unsigned int countContactRight = 0;
+    unsigned int countDetachingLeft = 0;
+    unsigned int countDetachingRight = 0;
+    bool needUpdateLeft = false;
+    bool needUpdateRight = false;
     for (auto& it : _cleats) {
+        //Compute cleat vertical Z position
         Eigen::Vector3d pos = _model.position(
             it.second.frame, "origin");
-        if (it.second.isEnabled) {
-            /* XXX
-            if (pos.z() <= 0.0) {
-                throw std::logic_error("ERROR CS");
+        //Check non contacting cleats collision
+        if (!it.second.isContact && pos.z() <= -1e-5) {
+            //A collision is detected
+            it.second.isContact = true;
+            it.second.isActive = false;
+            //std::cout << "Collision for " << it.second.frame << " Z=" << pos.z() << std::endl; //XXX
+            it.second.force = 0.0;
+            //Set the foot for constraints update
+            if (it.second.isLeft) needUpdateLeft = true;
+            else needUpdateRight = true;
+        //Check contacting cleats release
+        } else if (it.second.isContact && !it.second.isActive && pos.z() > 0.0) {
+            //The contact is released
+            it.second.isContact = false;
+            it.second.isActive = false;
+            //std::cout << "Detaching for " << it.second.frame << " Z=" << pos.z() << std::endl; //TODO
+            it.second.force = 0.0;
+            //Set the foot for constraints update
+            if (it.second.isLeft) countDetachingLeft++;
+            else countDetachingRight++;
+        //Check contacting cleats sinking
+        } else if (it.second.isContact && !it.second.isActive && pos.z() < it.second.height - 1e-7) {
+            //std::cout << "Sinking for " << it.second.frame << " Z=" << pos.z() << " lastZ=" << it.second.height << " Delta=" << it.second.height - pos.z() << std::endl; //TODO
+            //Set the foot for constraints update
+            if (it.second.isLeft) needUpdateLeft = true;
+            else needUpdateRight = true;
+        }
+        it.second.height = pos.z();
+        //Update contact counters
+        if (it.second.isContact && it.second.isLeft) {
+            countContactLeft++;
+        }
+        if (it.second.isContact && !it.second.isLeft) {
+            countContactRight++;
+        }
+    }
+    //In strange case when only 3 cleats are
+    //contacting per foot, the fourth is added
+    for (auto& it : _cleats) {
+        if (
+            (it.second.isLeft && !it.second.isContact && countContactLeft == 3) ||
+            (!it.second.isLeft && !it.second.isContact && countContactRight == 3)
+        ) {
+            //A collision is added
+            it.second.isContact = true;
+            it.second.isActive = false;
+            //std::cout << "Strange fix for " << it.second.frame << std::endl; //XXX
+            if (it.second.isLeft && countDetachingLeft > 0) {
+                countDetachingLeft--;
             }
-            */
-            it.second.force.x() = 
-                _constraints->force(3*it.second.index + 0);
-            it.second.force.y() = 
-                _constraints->force(3*it.second.index + 1);
-            it.second.force.z() = 
-                _constraints->force(3*it.second.index + 2);
-            if (it.second.force.z() < 1e-6) {
-                it.second.isEnabled = false;
-                isRemoved = true;
-            }
-        } else {
-            it.second.force.setZero();
-            if (pos.z() <= 0.0) {
-                it.second.isEnabled = true;
-                isAdded = true;
-                //_simulation.positions()(_model.getDOFIndex("base_z")) += -pos.z() + 1e-8; //XXX
+            if (!it.second.isLeft && countDetachingRight > 0) {
+                countDetachingRight--;
             }
         }
     }
-    if (isAdded || isRemoved) {
-        buildConstraints();
+    //Check for constraint forces
+    for (auto& it : _cleats) {
+        //Check for negative force 
+        if (it.second.isActive && it.second.force < 0.0) {
+            //std::cout << "Negative force for " << it.second.frame << std::endl; //XXX
+            //Set the foot for constraints update
+            if (it.second.isLeft) needUpdateLeft = true;
+            else needUpdateRight = true;
+        }
     }
-    if (isAdded) {
-        _simulation.velocities() = _model.impulseContacts(
-            *_constraints,
-            _simulation.positions(),
-            _simulation.velocities());
+    if (countDetachingLeft > 0) {
+        needUpdateLeft = true;
     }
+    if (countDetachingRight > 0) {
+        needUpdateRight = true;
+    }
+
+    //If needed, recompute active constraints set
+    if (needUpdateLeft) {
+        //std::cout << "FINDACTIVE LEFT" << std::endl; //XXX
+        findActiveConstraints(dt, true);
+    }
+    if (needUpdateRight) {
+        //std::cout << "FINDACTIVE RIGHT" << std::endl; //XXX
+        findActiveConstraints(dt, false);
+    }
+
+    //Simulation update
+    _simulation.update(dt, _constraints);
+    //Assign model position state
+    _model.setDOFVect(_simulation.positions());
+    
+    //Retrieve contact active force
+    for (auto& it : _cleats) {
+        if (it.second.isActive) {
+            it.second.force = _constraints->force[it.second.index];
+        }
+    }
+}
+
+void HumanoidSimulation::printCleatsStatus(bool verbose)
+{
+    if (verbose) {
+        for (const auto& it : _cleats) {
+            std::cout 
+                << "[" << it.second.frame 
+                << ":" << it.second.number 
+                << ":" << (it.second.isLeft ? "left" : "right") 
+                << "] pos=" << _model.position(it.second.frame, "origin").z()
+                << " " << (it.second.isContact ? "isContact" : "")
+                << " " << (it.second.isActive ? 
+                    "isActive index=" 
+                    + std::to_string(it.second.index) 
+                    + " force=" 
+                    + std::to_string(it.second.force) : "")
+                << std::endl;
+        }
+        if (_constraints != nullptr) {
+            std::cout << "Constraint set size=" 
+                << _constraints->force.size() << std::endl;
+        }
+    } else {
+        for (const auto& it : _cleats) {
+            std::cout 
+                << " " << _model.position(it.second.frame, "origin").z()
+                << " " << _model.pointVelocity(it.second.frame, "origin", velocities())(5)
+                << " " << it.second.force
+                << " " << (it.second.isContact ? "1" : "0")
+                << " " << (it.second.isActive ? "1" : "0");
+        }
+        std::cout << std::endl;
+    }
+}
+void HumanoidSimulation::printCleatsStatus(Plot& plot)
+{
+    VectorLabel vect;
+    for (const auto& it : _cleats) {
+        vect.append(it.second.frame + ":pos", 
+            _model.position(it.second.frame, "origin").z());
+        vect.append(it.second.frame + ":vel",
+            _model.pointVelocity(it.second.frame, "origin", velocities())(5));
+        vect.append(it.second.frame + ":acc",
+            _model.pointAcceleration(it.second.frame, "origin", velocities(), accelerations())(5));
+        vect.append(it.second.frame + ":force", 
+            it.second.force);
+        vect.append(it.second.frame + ":isContact", 
+            (it.second.isContact ? 1.0 : 0.0));
+        vect.append(it.second.frame + ":isActive",
+            (it.second.isActive ? 1.0+0.05*it.second.number : 0.0));
+    }
+    plot.add(vect);
 }
         
 void HumanoidSimulation::addCleat(const std::string& frame)
 {
     _cleats[frame] = {
-        frame, (frame.find("left") != std::string::npos), 
-        false, 0, Eigen::Vector3d(0.0, 0.0, 0.0)
+        frame, 
+        std::stoi(frame.substr(frame.find_last_of("_")+1)) - 1,
+        _model.frameIndexToBodyId(
+            _model.getFrameIndex(frame)),
+        (frame.find("left") != std::string::npos), 
+        false, false, (size_t)-1, 0.0, 0.0
     };
 }
         
 void HumanoidSimulation::buildConstraints()
 {
+    //Clean if necessary
     if (_constraints != nullptr) {
         delete _constraints;
         _constraints = nullptr;
     }
-    _constraints = new RBDL::ConstraintSet;
-    size_t index = 0;
+    //ConstraintSet allocation
+    _constraints = new RBDL::ConstraintSet();
+    //_constraints->SetSolver(RBDLMath::LinearSolverFullPivLU);
+    _constraints->SetSolver(RBDLMath::LinearSolverFullPivHouseholderQR);
+    //Add all constraints
+    size_t indexInSet = 0;
+    unsigned int countLeft = 0;
+    unsigned int countRight = 0;
     for (auto& it : _cleats) {
-        if (it.second.isEnabled) {
-            //Retrieve RBDL body id
-            size_t frameId = _model.frameIndexToBodyId(
-                _model.getFrameIndex(it.second.frame));
-            //Create three constraints for x,y,z axis
+        if (it.second.isActive) {
+            //Create Z constraint
+            //for all active cleat
             _constraints->AddConstraint(
-                frameId,
-                Eigen::Vector3d(0.0, 0.0, 0.0),
-                RBDLMath::Vector3d(1.0, 0.0, 0.0));
-            _constraints->AddConstraint(
-                frameId,
-                Eigen::Vector3d(0.0, 0.0, 0.0),
-                RBDLMath::Vector3d(0.0, 1.0, 0.0));
-            _constraints->AddConstraint(
-                frameId,
-                Eigen::Vector3d(0.0, 0.0, 0.0),
+                it.second.bodyId,
+                RBDLMath::Vector3d(0.0, 0.0, 0.0),
                 RBDLMath::Vector3d(0.0, 0.0, 1.0));
-            //Assign constraints index
-            it.second.index = index;
-            index++;
+            //Assign constraint index in set
+            it.second.index = indexInSet;
+            indexInSet++;
+            //Count left and right active constraints
+            //and assign current (left or right) active
+            //count
+            unsigned int currentCount;
+            if (it.second.isLeft) {
+                countLeft++;
+                currentCount = countLeft;
+            } else {
+                countRight++;
+                currentCount = countRight;
+            }
+            //Create X constraints only for the first 
+            //two active constraints if existing
+            if (currentCount == 1 || currentCount == 2) {
+                _constraints->AddConstraint(
+                    it.second.bodyId,
+                    RBDLMath::Vector3d(0.0, 0.0, 0.0),
+                    RBDLMath::Vector3d(1.0, 0.0, 0.0));
+                indexInSet++;
+            }
+            //Create Y constraints only for the first
+            //active constraint if existing
+            if (currentCount == 1) {
+                _constraints->AddConstraint(
+                    it.second.bodyId,
+                    RBDLMath::Vector3d(0.0, 0.0, 0.0),
+                    RBDLMath::Vector3d(0.0, 1.0, 0.0));
+                indexInSet++;
+            }
+            //1 active cleat : 3 foot dof -> 3 constraint
+            //2 active cleat : 1 foot dof -> 5 constraint
+            //3 active cleat : 0 foot dof -> 6 constraint
         } 
     }
+    //Sanity check
+    if (countLeft > 3 || countRight > 3) {
+        throw std::logic_error(
+            "HumanoidSimulation count constraints failed assert: " 
+            + std::string(" left=") + std::to_string(countLeft)
+            + std::string(" right=") + std::to_string(countRight));
+    }
+
+    //Bind and initialize the set 
+    //with the RBDL model
     _constraints->Bind(_model.getRBDLModel());
+}
+        
+bool HumanoidSimulation::setActiveCombination(
+    const std::vector<size_t>& set, bool isLeft)
+{
+    //Assign the combination to active constraints
+    size_t indexCleat = 0;
+    size_t indexComb = 0;
+    size_t num1 = -1;
+    size_t num2 = -1;
+    for (auto& it : _cleats) {
+        if (it.second.isLeft == isLeft && it.second.isContact) {
+            if (indexComb < set.size() && indexCleat == set[indexComb]) {
+                it.second.isActive = true;
+                it.second.force = 0.0;
+                if (indexComb == 0) {
+                    num1 = it.second.number;
+                } else if (indexComb == 1) {
+                    num2 = it.second.number;
+                }
+                indexComb++;
+            } else {
+                it.second.isActive = false;
+                it.second.force = 0.0;
+            }
+            indexCleat++;
+        }
+    }
+    //Check if only foot diagonal cleat are activated
+    if (
+        set.size() == 2 && 
+        ((num1 == 0 && num2 == 2) || (num1 == 1 && num2 == 3))
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void HumanoidSimulation::findActiveConstraints(double dt, bool isLeft)
+{
+    //Save current simulation state
+    ForwardSimulation saveSim = _simulation;
+    //Retrieve the number of contacts
+    unsigned int countContact = 0;
+    for (auto& it : _cleats) {
+        if (
+            it.second.isContact && 
+            it.second.isLeft == isLeft
+        ) {
+            countContact++;
+        }
+    }
+    //Compute maximum active constraints
+    unsigned int maxActive = 
+        (countContact >= 3 ? 3 : countContact);
+
+    //Check for no contacting point
+    if (countContact == 0) {
+        for (auto& it : _cleats) {
+            if (it.second.isLeft == isLeft) {
+                it.second.isActive = false;
+                it.second.force = 0.0;
+            }
+        }
+        //No contact
+        return;
+    }
+
+    bool bestFound = false;
+    double bestForce = 0.0;
+    double bestDelta = 0.0;
+    std::vector<size_t> bestSet;
+    for (int k=maxActive;k>=0;k--) {
+        //Iterate over all left or right 
+        //cleat combinations
+        Combination combination;
+        if (k >= 1) {
+            combination.startCombination(k, countContact);
+        }
+        while (true) {
+            //Compute next combination
+            std::vector<size_t> set;
+            if (k >= 1) {
+                set = combination.nextCombination();
+                if (set.size() == 0) {
+                    //No remaining combination
+                    break;
+                }
+            }
+            //Assign the combination to active constraints
+            bool isDiagonal = setActiveCombination(set, isLeft);
+            //Do not activate only the two cleats at foot diagonal
+            if (isDiagonal) {
+                continue;
+            }
+            //Assign simulation saved state
+            _simulation = saveSim;
+            //Rebuildt constraints set
+            buildConstraints();
+            //Recompute impulses to comply with constraints
+            _simulation.computeImpulses(*_constraints);
+            //Run the update
+            _simulation.update(dt, _constraints);
+            //Assign model position state
+            _model.setDOFVect(_simulation.positions());
+            //Retrieve computed force
+            double minForce = +1e10;
+            if (k == 0) minForce = 0.0;
+            double maxDelta = 0.0;
+            //std::cout << "Comb(" << k << "): "; //XXX
+            for (auto& it : _cleats) {
+                if (it.second.isContact && !it.second.isActive && it.second.isLeft == isLeft) {
+                    double height = _model.position(it.second.frame, "origin").z();
+                    double delta = it.second.height - height;
+                    if (delta > 1e-7) {
+                        maxDelta = delta;
+                    }
+                    /* //XXX
+                    std::cout << it.second.number+1 
+                        << "-(delta)>" << delta << " ";
+                    */
+                }
+                if (it.second.isActive && it.second.isLeft == isLeft) {
+                    it.second.force = _constraints->force(it.second.index);
+                    if (minForce > it.second.force) {
+                        minForce = it.second.force;
+                    }
+                    //std::cout << it.second.number+1 << "-(force)>" << it.second.force << " "; //XXX
+                }
+            }
+            /* //XXX
+            std::cout << std::endl;
+            std::cout << "--> bestForce=" << bestForce << " bestDelta=" << bestDelta << " setSize=" << bestSet.size() << " minForce=" << minForce << " maxDelta=" << maxDelta << std::endl;
+            */
+            //Get the best possible set using following:
+            //- with zero delta
+            //- with positive minimum force
+            //- with maximal set size
+            if (
+                !bestFound || 
+                (maxDelta < bestDelta) ||
+                (maxDelta == 0 && bestForce < 0.0 && minForce > 0.0) ||
+                (maxDelta == 0 && bestForce < minForce && (bestForce < 0.0 || bestSet.size() == set.size())) //TODO XXX
+            ) {
+                //std::cout << "BEST" << std::endl; //XXX
+                bestSet = set;
+                bestFound = true;
+                bestForce = minForce;
+                bestDelta = maxDelta;
+            }
+            if (set.size() == 0) {
+                break;
+            }
+        }
+    }
+    //Reload state
+    _simulation = saveSim;
+    if (bestFound) {
+        //Assign the combination to active constraints
+        setActiveCombination(bestSet, isLeft);
+    } else {
+        throw std::logic_error(
+            "HumanoidSimulation unable to find constraints set");
+    }
+    //Rebuildt constraints set
+    buildConstraints();
+    //Recompute impulses to comply with constraints
+    _simulation.computeImpulses(*_constraints);
 }
 
 }

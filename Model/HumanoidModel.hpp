@@ -45,13 +45,17 @@ class HumanoidModel : public Model
          * isFloatingBase is true.
          * If inertia data and name are not empty,
          * given inertia override default model data.
+         * If geometry data and name are not empty,
+         * given geometry override default model data.
          */
         HumanoidModel(
             RobotType type,
             const std::string& frameRoot,
             bool isFloatingBase = true,
             const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
-            const std::map<std::string, size_t>& inertiaName = {});
+            const std::map<std::string, size_t>& inertiaName = {},
+            const Eigen::MatrixXd& geometryData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& geometryName = {});
         
         /**
          * Virtual destructor

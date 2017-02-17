@@ -1,11 +1,15 @@
 #ifndef LEPH_TRAJECTORYGENERATION_HPP
 #define LEPH_TRAJECTORYGENERATION_HPP
 
+#include <map>
+#include <string>
 #include <functional>
 #include <Eigen/Dense>
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Model/HumanoidModel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
+#include "Model/JointModel.hpp"
+#include "Model/HumanoidSimulation.hpp"
 
 namespace Leph {
 
@@ -31,17 +35,22 @@ class TrajectoryGeneration
             const Eigen::VectorXd& params)>
             CheckParamsFunc;
         typedef std::function<double(
+            const Eigen::VectorXd& params,
+            double t,
             const Eigen::Vector3d& trunkPos,
             const Eigen::Vector3d& trunkAxis,
             const Eigen::Vector3d& footPos,
             const Eigen::Vector3d& footAxis)>
             CheckStateFunc;
         typedef std::function<double(
-            const HumanoidFixedModel& model)>
+            const Eigen::VectorXd& params,
+            double t,
+            const HumanoidModel& model)>
             CheckDOFFunc;
         typedef std::function<double(
             double t,
             HumanoidFixedModel& model,
+            const std::map<std::string, JointModel>& joints,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
@@ -56,12 +65,31 @@ class TrajectoryGeneration
             std::vector<double>& data,
             bool verbose)> 
             EndScoreFunc;
+        typedef std::function<double(
+            double t,
+            HumanoidSimulation& sim,
+            std::vector<double>& data)>
+            ScoreSimFunc;
+        typedef std::function<double(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            double score,
+            std::vector<double>& data,
+            bool verbose)> 
+            EndScoreSimFunc;
+        typedef std::function<void(
+            const std::string& filename,
+            const Trajectories& traj,
+            const Eigen::VectorXd& params)>
+            SaveFunc;
 
         /**
          * Initialization with 
-         * humanoid type
+         * humanoid type and an optional 
+         * filepath to model parameters
          */
-        TrajectoryGeneration(RobotType type);
+        TrajectoryGeneration(RobotType type, 
+            const std::string& modelParamsPath = "");
         
         /**
          * Set the initial parameters for 
@@ -70,6 +98,12 @@ class TrajectoryGeneration
          */
         void setInitialParameters(
             const Eigen::VectorXd& params);
+
+        /**
+         * Set the normalization coefficients.
+         */
+        void setNormalizationCoefs(
+            const Eigen::VectorXd& normCoefs);
 
         /**
          * Set Trajectory Generation function. 
@@ -91,7 +125,7 @@ class TrajectoryGeneration
          * Set the Cartesian Trunk/Foot state 
          * check function.
          * The function returns positive cost value if
-         * given trunk/foot position and orientation
+         * given time, trunk/foot position and orientation
          * are outside valid bounds.
          */
         void setCheckStateFunc(CheckStateFunc func);
@@ -99,7 +133,7 @@ class TrajectoryGeneration
         /**
          * Set the Joint DOF check function.
          * The function returns positive cost value
-         * if given model DOF state is outside 
+         * if given time and model DOF state is outside 
          * valid bounds.
          */
         void setCheckDOFFunc(CheckDOFFunc func);
@@ -113,7 +147,7 @@ class TrajectoryGeneration
         void setScoreFunc(ScoreFunc func);
 
         /**
-         * set the ending scoring trajectory function.
+         * Set the ending scoring trajectory function.
          * The function is called at the end of Trajectory
          * scoring. It returns positive cost value from given
          * Trajectories spline container;
@@ -121,9 +155,44 @@ class TrajectoryGeneration
         void setEndScoreFunc(EndScoreFunc func);
 
         /**
+         * Set the scoring function for simulation
+         * optimization.
+         * The function returns positive cost value
+         * for the given Humanoid simulation.
+         */
+        void setScoreSimFunc(ScoreSimFunc func);
+        
+        /**
+         * Set the ending scoring trajectory function for
+         * simulation optimization.
+         * The function is called at the end of Trajectory
+         * scoring. It returns positive cost value from given
+         * Trajectories spline container;
+         */
+        void setEndScoreSimFunc(EndScoreSimFunc func);
+
+        /**
+         * Set the saving function. The function is called
+         * at regular interval (in progress function) and
+         * save given current best trajectories 
+         * and parameters to given filename.
+         */
+        void setSaveFunc(SaveFunc func);
+
+        /**
          * Return initial parameters
          */
         Eigen::VectorXd initialParameters() const;
+        
+        /**
+         * Return normalization coefficients
+         */
+        Eigen::VectorXd normalizationCoefs() const;
+
+        /**
+         * Return model parameters path
+         */
+        const std::string& modelParametersPath() const;
 
         /**
          * Call Trajectory Generation function
@@ -137,12 +206,16 @@ class TrajectoryGeneration
         double checkParameters(
             const Eigen::VectorXd& params) const;
         double checkState(
+            const Eigen::VectorXd& params,
+            double t,
             const Eigen::Vector3d& trunkPos,
             const Eigen::Vector3d& trunkAxis,
             const Eigen::Vector3d& footPos,
             const Eigen::Vector3d& footAxis) const;
         double checkDOF(
-            const HumanoidFixedModel& model) const;
+            const Eigen::VectorXd& params,
+            double t,
+            const HumanoidModel& model) const;
 
         /**
          * Call score function
@@ -150,6 +223,7 @@ class TrajectoryGeneration
         double score(
             double t,
             HumanoidFixedModel& model,
+            const std::map<std::string, JointModel>& joints,
             const Eigen::VectorXd& torques,
             const Eigen::VectorXd& dq,
             const Eigen::VectorXd& ddq,
@@ -164,13 +238,50 @@ class TrajectoryGeneration
             bool verbose) const;
 
         /**
+         * Call score function
+         * for simulation optimization
+         */
+        double scoreSim(
+            double t,
+            HumanoidSimulation& sim,
+            std::vector<double>& data) const;
+        double endScoreSim(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            double score,
+            std::vector<double>& data,
+            bool verbose) const;
+
+        /**
+         * Call saving function
+         */
+        void save(
+            const std::string& filename,
+            const Trajectories& traj,
+            const Eigen::VectorXd& params);
+
+        /**
          * Build up the Trajectories from 
-         * given parameters and evaluates it.
+         * given parameters and evaluates it
+         * from inverse dynamics.
          */
         double scoreTrajectory(
             const Eigen::VectorXd& params, 
             bool verbose = false) const;
         double scoreTrajectory(
+            const Eigen::VectorXd& params,
+            const Trajectories& traj,
+            bool verbose = false) const;
+
+        /**
+         * Build up the Trajectories fom
+         * given parameters and evatuates it
+         * from forward dynamics simulation.
+         */
+        double scoreSimulation(
+            const Eigen::VectorXd& params, 
+            bool verbose = false) const;
+        double scoreSimulation(
             const Eigen::VectorXd& params,
             const Trajectories& traj,
             bool verbose = false) const;
@@ -184,7 +295,10 @@ class TrajectoryGeneration
             unsigned int restart,
             const std::string& filename = "",
             unsigned int populationSize = 10,
-            double lambda = -1.0);
+            double lambda = -1.0,
+            unsigned int elitismLevel = 1,
+            unsigned int verboseIterations = 100,
+            bool isForwardSimulationOptimization = false);
 
         /**
          * Access to best found Trajectories, 
@@ -202,10 +316,22 @@ class TrajectoryGeneration
         RobotType _type;
 
         /**
+         * If not empty, a filepath to
+         * joint, inertia and geometry model 
+         * parameters to be loaded and used.
+         */
+        std::string _modelParametersPath;
+
+        /**
          * Initial parameters for 
          * optimization process
          */
         Eigen::VectorXd _initialParameters;
+
+        /**
+         * Normalization coefficients
+         */
+        Eigen::VectorXd _normCoefs;
 
         /**
          * User functions
@@ -216,6 +342,9 @@ class TrajectoryGeneration
         CheckDOFFunc _checkDOFFunc;
         ScoreFunc _scoreFunc;
         EndScoreFunc _endScoreFunc;
+        ScoreSimFunc _scoreSimFunc;
+        EndScoreSimFunc _endScoreSimFunc;
+        SaveFunc _saveFunc;
 
         /**
          * Best found trajectories and 

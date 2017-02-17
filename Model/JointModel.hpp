@@ -58,6 +58,11 @@ class JointModel
          * Return internal joint inertia
          */
         double getInertia() const;
+
+        /**
+         * Return maximum available voltage
+         */
+        double getMaxVoltage() const;
         
         /**
          * Compute the torque applied on 
@@ -93,6 +98,12 @@ class JointModel
         bool getBacklashStateEnabled() const;
         double getBacklashStatePos() const;
         double getBacklashStateVel() const;
+
+        /**
+         * Reset the backlash state 
+         * enabled, position and velocity
+         */
+        void resetBacklashState();
 
         /**
          * Optionnaly update given current joint
@@ -168,7 +179,8 @@ class JointModel
         double _coefAnglePosToTension;
 
         /**
-         * Model parameters
+         * Model parameters.
+         * All positive range value are valid.
          */
         //Friction Stribeck transtition velocity
         double _paramFrictionVelLimit;

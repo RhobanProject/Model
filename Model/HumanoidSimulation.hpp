@@ -5,6 +5,7 @@
 #include <string>
 #include <Eigen/Dense>
 #include "Model/HumanoidModel.hpp"
+#include "Model/HumanoidFixedModel.hpp"
 #include "Model/ForwardSimulation.hpp"
 #include "Plot/Plot.hpp"
 
@@ -24,9 +25,18 @@ class HumanoidSimulation
     public:
 
         /**
-         * Initialization with robot type
+         * Initialization with robot type.
+         * If inertia data and name are not empty,
+         * given inertia override default model data.
+         * If geometry data and name are not empty,
+         * given geometry override default model data.
          */
-        HumanoidSimulation(RobotType type);
+        HumanoidSimulation(
+            RobotType type,
+            const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& inertiaName = {},
+            const Eigen::MatrixXd& geometryData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& geometryName = {});
 
         /**
          * Deallocation of ConstraintSet
@@ -40,16 +50,22 @@ class HumanoidSimulation
         HumanoidModel& model();
 
         /**
-         * Set the current model with the
-         * lowest foot flat on the ground
+         * Set the floating base (trunk) orientation
+         * to set the lowest foot (or given foot) flat 
+         * on the ground
          */
         void putOnGround();
+        void putOnGround(
+            HumanoidFixedModel::SupportFoot foot);
 
         /**
-         * Set the current lowest foot
+         * Set the floating base translation (trunk)
+         * to set the lowest foot (or given foot) 
          * at given position
          */
         void putFootAt(double x, double y);
+        void putFootAt(double x, double y, 
+             HumanoidFixedModel::SupportFoot foot);
 
         /**
          * Internal state access
@@ -90,9 +106,7 @@ class HumanoidSimulation
          * Return the vertical force appling 
          * on given cleat name
          */
-        /** TODO
         double getCleatForce(const std::string& name) const;
-        */
 
         /**
          * Assign given joints parameters to all 
@@ -101,39 +115,46 @@ class HumanoidSimulation
         void setJointModelParameters(const Eigen::VectorXd& params);
 
         /**
-         * Return the computed force acting on given 
-         * foot cleat frame name
-         */
-        const Eigen::VectorXd& getCleatForce(
-            const std::string& name) const;
-
-        /**
-         * Return the total vertical weight
-         * and vertical weight ratio computed 
-         * on cleats in kilogramms
-         */
-        double getWeightSum() const;
-        double getWeightLeftRatio() const;
-        double getWeightRightRatio() const;
-
-        /**
          * Run the forward simulation by one step
          * of given time duration. Handle contact
          * and collision constraints.
          */
         void update(double dt);
 
+        /**
+         * Display on standart output deguging
+         * info on cleats status
+         */
+        void printCleatsStatus(bool verbose = true);
+        void printCleatsStatus(Plot& plot);
+
     private:
 
         /**
-         * Structure for fot cleat constraint state
+         * Structure for cleat constraint state
          */
         struct CleatState {
+            //Model frame name
             std::string frame;
+            //Cleat number between
+            //1 and 4 typicaly
+            int number;
+            //RBDL body id
+            size_t bodyId;
+            //Is left or right leg
             bool isLeft;
-            bool isEnabled;
+            //Is currently in active constraints set
+            bool isActive;
+            //Is currently on the ground
+            bool isContact;
+            //If active, index of Z in constraints set
             size_t index;
-            Eigen::VectorXd force;
+            //Vertical Z force.
+            //Non zero if the active
+            double force;
+            //Temporary cleat height
+            //for constraints management
+            double height;
         };
 
         /**
@@ -167,6 +188,29 @@ class HumanoidSimulation
          * from foot cleats state
          */
         void buildConstraints();
+
+        /**
+         * Assign current cleat active state to
+         * given combination.
+         * The set size is the number of constraints
+         * and the index is the number of activated cleat.
+         * Only given foot is assign.
+         * True is returned when only foot diagonal cleats
+         * are activated.
+         */
+        bool setActiveCombination(
+            const std::vector<size_t>& set, bool isLeft);
+
+        /**
+         * Try out all possible combination of enabled
+         * constraints for left or right foot (depending on
+         * is Left is true) to find a valid active set.
+         * The given dt is used to simulate the outcome
+         * one step ahead.
+         * Valid active constraint set are assign 
+         * (buildConstraints) and constraints are enforced.
+         */
+        void findActiveConstraints(double dt, bool isLeft);
 };
 
 }

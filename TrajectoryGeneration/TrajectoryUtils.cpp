@@ -195,11 +195,15 @@ bool TrajectoriesComputeKinematics(
 }
 
 double DefaultCheckState(
+    const Eigen::VectorXd& params,
+    double t,
     const Eigen::Vector3d& trunkPos,
     const Eigen::Vector3d& trunkAxis,
     const Eigen::Vector3d& footPos,
     const Eigen::Vector3d& footAxis)
 {
+    (void)params;
+    (void)t;
     double cost = 0.0;
     if (trunkPos.z() < 0.0) {
         cost += 1000.0 - 1000.0*trunkPos.z();
@@ -223,10 +227,14 @@ double DefaultCheckState(
     return cost;
 }
 
-double DefaultCheckDOF(const HumanoidFixedModel& modelFixed)
+double DefaultCheckDOF(
+    const Eigen::VectorXd& params,
+    double t,
+    const HumanoidModel& model)
 {
+    (void)params;
+    (void)t;
     double cost = 0.0;
-    const HumanoidModel& model = modelFixed.get();
     if (fabs(model.getDOF("left_hip_yaw")) > M_PI/3.0) {
         cost += 1000.0 + 
             1000.0*(fabs(model.getDOF("left_hip_yaw")) - M_PI/3.0);

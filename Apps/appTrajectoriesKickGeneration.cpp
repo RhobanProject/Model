@@ -6,13 +6,17 @@
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryGeneration/TrajectoryDisplay.h"
-#include "Model/MotorModel.hpp"
-#include "Utils/FileVector.h"
+#include "Model/JointModel.hpp"
+#include "Model/NamesModel.h"
+#include "Utils/FileEigen.h"
 
 int main()
 {
     //Initialize the generator
     Leph::TrajectoryGeneration generator(Leph::SigmabanModel);
+
+    //Joint Model
+    Leph::JointModel jointModel;
     
     //Initial trajectory parameters
     generator.setInitialParameters([]() -> Eigen::VectorXd {
@@ -60,7 +64,7 @@ int main()
 
         return params;
     }());
-    //generator.setInitialParameters(Leph::ReadVector("../Data/trajKick_2016-07-12-11-00-29.params"));
+    //generator.setInitialParameters(Leph::ReadEigenVector("../Data/trajKick_2016-07-12-11-00-29.params"));
     
     //Set Trajectory generation function
     generator.setTrajectoryGenerationFunc([](const Eigen::VectorXd& params) -> Leph::Trajectories {
@@ -272,6 +276,7 @@ int main()
     generator.setScoreFunc([](
         double t,
         Leph::HumanoidFixedModel& model,
+        const std::map<std::string, Leph::JointModel>& joints,
         const Eigen::VectorXd& torques,
         const Eigen::VectorXd& dq,
         const Eigen::VectorXd& ddq,
@@ -295,29 +300,33 @@ int main()
         tmpTorques(model.get().getDOFIndex("base_roll")) = 0.0;
         cost += 0.05*tmpTorques.norm();
         
-        //Maximum voltage
-        Eigen::VectorXd volts = Leph::MotorModel::voltage(dq, tmpTorques);
         if (data.size() == 0) {
             data.push_back(0.0);
             data.push_back(0.0);
         }
-        if (data[0] < volts.lpNorm<Eigen::Infinity>()) {
-            data[0] = volts.lpNorm<Eigen::Infinity>();
+
+        //Maximum voltage
+        for (const std::string& name : Leph::NamesDOF) {
+            size_t index = model.get().getDOFIndex(name);
+            double volt = joints.at(name).computeElectricTension(
+                dq(index), ddq(index), torques(index));
+            //Maximum voltage
+            if (data[0] < volt) {
+                data[0] = volt;
+            }
         }
         
         //Maximum ZMP
-        if (!isDoubleSupport) {
-            Eigen::Vector3d zmp = 
-                model.zeroMomentPointFromTorques("origin", torques);
-            zmp.z() = 0.0;
-            if (data[1] < zmp.lpNorm<Eigen::Infinity>()) {
-                data[1] = zmp.lpNorm<Eigen::Infinity>();
-            }
+        Eigen::Vector3d zmp = 
+            model.zeroMomentPoint("origin", dq, ddq, false);
+        zmp.z() = 0.0;
+        if (data[1] < zmp.lpNorm<Eigen::Infinity>()) {
+            data[1] = zmp.lpNorm<Eigen::Infinity>();
         }
 
         return cost;
     });
-    generator.setEndScoreFunc([](
+    generator.setEndScoreFunc([&jointModel](
         const Eigen::VectorXd& params,
         const Leph::Trajectories& traj,
         double score,
@@ -328,7 +337,7 @@ int main()
         (void)score;
         (void)verbose;
         double cost = 0.0;
-        if (data[0] > Leph::MotorModel::maxVoltage()) {
+        if (data[0] > jointModel.getMaxVoltage()) {
             cost += 5.0 + 5.0*data[0];
         } 
         if (data[1] > 0.02) {

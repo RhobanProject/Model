@@ -5,13 +5,7 @@
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Plot/Plot.hpp"
-
-static std::vector<std::string> NameDOFs = {
-    "left_ankle_pitch", "left_ankle_roll", "left_knee",
-    "left_hip_pitch", "left_hip_roll", "left_hip_yaw",
-    "right_ankle_pitch", "right_ankle_roll", "right_knee",
-    "right_hip_pitch", "right_hip_roll", "right_hip_yaw"
-};
+#include "Model/NamesModel.h"
 
 int main(int argc, char** argv)
 {
@@ -29,7 +23,7 @@ int main(int argc, char** argv)
     //Initialize DOF spline container
     Leph::SplineContainer<Leph::FittedSpline> trajDOF;
     Leph::SplineContainer<Leph::FittedSpline> trajTorque;
-    for (const std::string& name : NameDOFs) {
+    for (const std::string& name : Leph::NamesDOFLeg) {
         trajDOF.add(name);
         trajTorque.add(name);
     }
@@ -54,16 +48,16 @@ int main(int argc, char** argv)
         if (isDoubleSupport) {
             if (supportFoot == Leph::HumanoidFixedModel::LeftSupportFoot) {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "right_foot_tip", false, dq, ddq);
+                    "right_foot_tip", nullptr, false, dq, ddq);
             } else {
                 torques = model.get().inverseDynamicsClosedLoop(
-                    "left_foot_tip", false, dq, ddq);
+                    "left_foot_tip", nullptr, false, dq, ddq);
             }
         } else {
             torques = model.get().inverseDynamics(dq, ddq);
         }
         //Assign DOF position and torques
-        for (const std::string& name : NameDOFs) {
+        for (const std::string& name : Leph::NamesDOFLeg) {
             trajDOF.get(name).addPoint(t, model.get().getDOF(name));
             trajTorque.get(name).addPoint(t, torques(model.get().getDOFIndex(name)));
             plot.add(Leph::VectorLabel(
@@ -75,7 +69,7 @@ int main(int argc, char** argv)
     }
 
     //Compute fitting
-    for (const std::string& name : NameDOFs) {
+    for (const std::string& name : Leph::NamesDOFLeg) {
         double maxError1 = trajDOF.get(name).fittingPolynomPieces(4, 0.25, 1.0);
         double maxError2 = trajTorque.get(name).fittingPolynomPieces(4, 0.25, 1.0);
         std::cout << "Position " << name << " max fitting error: " << maxError1 << std::endl;
@@ -84,7 +78,7 @@ int main(int argc, char** argv)
 
     //Display retulting fitting
     for (double t=traj.min();t<=traj.max();t+=0.01) {
-        for (const std::string& name : NameDOFs) {
+        for (const std::string& name : Leph::NamesDOFLeg) {
             plot.add(Leph::VectorLabel(
                 "t", t, 
                 "fitted_pos:" + name, trajDOF.get(name).pos(t),
