@@ -113,7 +113,12 @@ Eigen::VectorXd TrajectoryGeneration::normalizationCoefs() const
     } else {
         return _normCoefs;
     }
-}        
+}
+        
+const std::string& TrajectoryGeneration::modelParametersPath() const
+{
+    return _modelParametersPath;
+}
         
 Trajectories TrajectoryGeneration::generateTrajectory(
     const Eigen::VectorXd& params) const
@@ -383,7 +388,10 @@ double TrajectoryGeneration::scoreSimulation(
             geometryData, geometryName);
     }
     //Simulator and goal model initialization
-    Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
+    Leph::HumanoidFixedModel modelGoal(
+        Leph::SigmabanModel,
+        inertiaData, inertiaName, 
+        geometryData, geometryName);
     Leph::HumanoidSimulation sim(
         Leph::SigmabanModel,
         inertiaData, inertiaName,
@@ -558,12 +566,6 @@ double TrajectoryGeneration::scoreSimulation(
             }
             cost += 1000.0 + costDOF;
             break;
-        }
-        //Check lateral foot
-        Eigen::Vector3d simFootPos = sim.model()
-            .position("right_foot_tip", "left_foot_tip");
-        if (fabs(simFootPos.y()) < 2.0*0.045) {
-            cost += 100.0 + 100.0*(2.0*0.045 - fabs(simFootPos.y()));
         }
         //Detect and penalize falling
         //if trunk orientation is below 45 degrees

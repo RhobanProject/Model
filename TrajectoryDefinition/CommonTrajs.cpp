@@ -97,28 +97,28 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
             model.get().position("right_cleat_3", "origin");
         Eigen::Vector3d cleatRight4 = 
             model.get().position("right_cleat_4", "origin");
-        if (cleatLeft1.z() < -1e-3) {
+        if (cleatLeft1.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatLeft1.z();
         }
-        if (cleatLeft2.z() < -1e-3) {
+        if (cleatLeft2.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatLeft2.z();
         }
-        if (cleatLeft3.z() < -1e-3) {
+        if (cleatLeft3.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatLeft3.z();
         }
-        if (cleatLeft4.z() < -1e-3) {
+        if (cleatLeft4.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatLeft4.z();
         }
-        if (cleatRight1.z() < -1e-3) {
+        if (cleatRight1.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatRight1.z();
         }
-        if (cleatRight2.z() < -1e-3) {
+        if (cleatRight2.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatRight2.z();
         }
-        if (cleatRight3.z() < -1e-3) {
+        if (cleatRight3.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatRight3.z();
         }
-        if (cleatRight4.z() < -1e-3) {
+        if (cleatRight4.z() < -5e-3) {
             return 1000.0 - 1000.0*cleatRight4.z();
         }
 

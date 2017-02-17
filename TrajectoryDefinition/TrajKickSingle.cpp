@@ -11,7 +11,7 @@ void TrajKickSingle::initializeParameters(
     TrajectoryParameters& trajParams, bool isFwd)
 {
     //Total time length
-    trajParams.set("time_length", true) = 3.0;
+    trajParams.set("time_length", false) = 2.0;
     //Time ratio for control points
     trajParams.set("time_ratio_before1", true) = 0.3;
     trajParams.set("time_ratio_before2", true) = 0.4;

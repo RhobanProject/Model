@@ -123,7 +123,12 @@ int main(int argc, char** argv)
     bool isContinue = true;
     while (isContinue) {
         //Simulator, goal and read model initialization
-        Leph::HumanoidFixedModel modelGoal(Leph::SigmabanModel);
+        Leph::HumanoidFixedModel modelGoal(
+            Leph::SigmabanModel,
+            inertiaData,
+            inertiaName,
+            geometryData,
+            geometryName);
         Leph::HumanoidFixedModel modelRead(
             Leph::SigmabanModel,
             inertiaData,

@@ -190,6 +190,11 @@ class TrajectoryGeneration
         Eigen::VectorXd normalizationCoefs() const;
 
         /**
+         * Return model parameters path
+         */
+        const std::string& modelParametersPath() const;
+
+        /**
          * Call Trajectory Generation function
          */
         Trajectories generateTrajectory(
