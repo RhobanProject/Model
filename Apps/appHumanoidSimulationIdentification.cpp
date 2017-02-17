@@ -53,7 +53,7 @@ static const std::vector<std::string> namesFrameGeometry = {
  * Global CMA-ES configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 1000;
+static const unsigned int cmaesMaxIterations = 2000;
 static const unsigned int cmaesRestarts = 5;
 static const unsigned int cmaesLambda = 100;
 static const double cmaesSigma = -1.0;

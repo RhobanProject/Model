@@ -143,6 +143,11 @@ int main(int argc, char** argv)
                     jointData.row(jointName.at(name)).transpose());
             }
         }
+        //Cartesian foot last position
+        //for velocity calculations
+        Eigen::Vector3d lastFootPosGoal = Eigen::Vector3d::Zero();
+        Eigen::Vector3d lastFootPosRead = Eigen::Vector3d::Zero();
+        Eigen::Vector3d lastFootPosSim = Eigen::Vector3d::Zero();
         //Simulation loop
         double t = timeMin;
         while (t <= timeMax) {
@@ -241,6 +246,7 @@ int main(int argc, char** argv)
             }
             //Plot
             if (isFirstLoop) {
+                //DOFs data
                 for (const std::string& name : Leph::NamesDOF) {
                     plot.add({
                         "t", t-timeMin,
@@ -254,6 +260,7 @@ int main(int argc, char** argv)
                         });
                     }
                 }
+                //Cart data
                 Eigen::Vector3d trunkPosGoal = modelGoal
                     .get().position("trunk", "left_foot_tip");
                 Eigen::Vector3d footPosGoal = modelGoal
@@ -262,6 +269,11 @@ int main(int argc, char** argv)
                     .position("trunk", "left_foot_tip");
                 Eigen::Vector3d footPosSim = sim.model()
                     .position("right_foot_tip", "left_foot_tip");
+                //Compute foot velocity by differentiation
+                Eigen::Vector3d footVelGoal = (1.0/0.01)*(footPosGoal-lastFootPosGoal);
+                Eigen::Vector3d footVelSim = (1.0/0.01)*(footPosSim-lastFootPosSim);
+                lastFootPosGoal = footPosGoal;
+                lastFootPosSim = footPosSim;
                 plot.add({
                     "t", t-timeMin,
                     "goal:trunk_x", trunkPosGoal.x(),
@@ -277,11 +289,22 @@ int main(int argc, char** argv)
                     "sim:foot_y", footPosSim.y(),
                     "sim:foot_z", footPosSim.z(),
                 });
+                plot.add({
+                    "t", t-timeMin,
+                    "vel_goal:foot_x", footVelGoal.x(),
+                    "vel_goal:foot_y", footVelGoal.y(),
+                    "vel_goal:foot_z", footVelGoal.z(),
+                    "vel_sim:foot_x", footVelSim.x(),
+                    "vel_sim:foot_y", footVelSim.y(),
+                    "vel_sim:foot_z", footVelSim.z(),
+                });
                 if (!isTrajMode) {
                     Eigen::Vector3d trunkPosRead = modelRead
                         .get().position("trunk", "left_foot_tip");
                     Eigen::Vector3d footPosRead = modelRead
                         .get().position("right_foot_tip", "left_foot_tip");
+                    Eigen::Vector3d footVelRead = (1.0/0.01)*(footPosRead-lastFootPosRead);
+                    lastFootPosRead = footPosRead;
                     plot.add({
                         "t", t-timeMin,
                         "read:trunk_x", trunkPosRead.x(),
@@ -290,6 +313,12 @@ int main(int argc, char** argv)
                         "read:foot_x", footPosRead.x(),
                         "read:foot_y", footPosRead.y(),
                         "read:foot_z", footPosRead.z(),
+                    });
+                    plot.add({
+                        "t", t-timeMin,
+                        "vel_read:foot_x", footVelRead.x(),
+                        "vel_read:foot_y", footVelRead.y(),
+                        "vel_read:foot_z", footVelRead.z(),
                     });
                 }
             }
@@ -365,6 +394,14 @@ int main(int argc, char** argv)
         .plot("t", "goal:foot_z")
         .plot("t", "read:foot_z")
         .plot("t", "sim:foot_z")
+        .render();
+    plot
+        .plot("t", "goal:foot_x")
+        .plot("t", "vel_goal:foot_x")
+        .plot("t", "read:foot_x")
+        .plot("t", "vel_read:foot_x")
+        .plot("t", "sim:foot_x")
+        .plot("t", "vel_sim:foot_x")
         .render();
 
     return 0;

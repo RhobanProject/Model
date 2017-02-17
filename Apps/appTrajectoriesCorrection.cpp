@@ -6,10 +6,11 @@
 #include "Model/HumanoidModel.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Model/JointModel.hpp"
-#include "Model/ForwardSimulation.hpp"
+#include "Model/HumanoidSimulation.hpp"
 #include "TrajectoryGeneration/TrajectoryUtils.h"
 #include "Utils/AxisAngle.h"
 #include "Model/NamesModel.h"
+#include "Utils/FileModelParameters.h"
 
 #ifdef LEPH_VIEWER_ENABLED
 #include "Viewer/ModelViewer.hpp"
@@ -20,10 +21,10 @@
 /**
  * Global CMA-ES configuration
  */
-static unsigned int cmaesElitism = 1;
+static unsigned int cmaesElitism = 0;
 static unsigned int cmaesMaxIterations = 1000;
 static unsigned int cmaesRestarts = 3;
-static unsigned int cmaesLambda = 10;
+static unsigned int cmaesLambda = 100;
 static double cmaesSigma = -1.0;
 
 /**
@@ -39,6 +40,7 @@ static std::vector<std::string> cartNames = {
     "trunk_axis_x", "trunk_axis_y", "trunk_axis_z",
     "foot_pos_x", "foot_pos_y", "foot_pos_z",
     //"foot_axis_x", "foot_axis_y", "foot_axis_z",
+    "foot_axis_y"
 };
 
 /**
@@ -190,22 +192,35 @@ static Leph::Trajectories buildTrajectories(
 static double scoreTrajectories(
     const Eigen::VectorXd& params, 
     const Leph::Trajectories& trajsGoal, 
-    int verboseLevel)
+    int verboseLevel,
+    const Eigen::MatrixXd& jointData,
+    const std::map<std::string, size_t>& jointName,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName)
 {
     //Initialize Humanoid models
-    Leph::HumanoidModel modelSim(
-        Leph::SigmabanModel, 
-        "left_foot_tip", false);
     Leph::HumanoidFixedModel modelGoal(
         Leph::SigmabanModel);
     Leph::HumanoidFixedModel modelFeed(
         Leph::SigmabanModel);
+    //Initialize humanoid model
+    //simulation with given model parameters
+    Leph::HumanoidSimulation sim(
+        Leph::SigmabanModel,
+        inertiaData, inertiaName,
+        geometryData, geometryName);
+    //Assign joint parameters
+    for (const std::string& name : Leph::NamesDOF) {
+        if (jointName.count(name) > 0) {
+            sim.jointModel(name).setParameters(
+                jointData.row(jointName.at(name)).transpose());
+        }
+    }
 
     //Build trajectories
     Leph::Trajectories trajsFeed = buildTrajectories(params, trajsGoal);
-    
-    //Initialize simulator
-    Leph::ForwardSimulation sim(modelSim);
     
 #ifdef LEPH_VIEWER_ENABLED
     Leph::ModelViewer* viewer = nullptr;
@@ -307,20 +322,61 @@ static double scoreTrajectories(
         //Initialization
         if (isInit) {
             isInit = false;
+            //Compute expected initial velocities 
+            //and accelerations
+            Eigen::VectorXd dqFeed;
+            Eigen::VectorXd ddqFeed;
+            Leph::TrajectoriesComputeKinematics(
+                t, trajsFeed, modelFeed, dqFeed, ddqFeed);
             for (const std::string& name : Leph::NamesDOF) {
-                sim.positions()(modelSim.getDOFIndex(name)) = 
-                    modelFeed.get().getDOF(name);
-                sim.goals()(modelSim.getDOFIndex(name)) = 
-                    modelFeed.get().getDOF(name);
-                sim.velocities()(modelSim.getDOFIndex(name)) = 0.0;
+                sim.setPos(name, modelFeed.get().getDOF(name));
+                sim.setGoal(name, modelFeed.get().getDOF(name));
+                sim.setVel(name, dqFeed(modelFeed.get().getDOFIndex(name)));
+                //Reset backlash state
+                sim.jointModel(name).resetBacklashState();
+            }
+            //Put the model flat on left support 
+            //foot at origin
+            sim.putOnGround(
+                Leph::HumanoidFixedModel::LeftSupportFoot);
+            sim.putFootAt(0.0, 0.0,
+                Leph::HumanoidFixedModel::LeftSupportFoot);
+            //Compute and assign initial base velocity
+            //Compute trunk 6D jacobian with 
+            //respect to the 6D base DOF
+            Eigen::MatrixXd allJac = sim.model().pointJacobian("trunk", "origin");
+            Eigen::MatrixXd trunkJac(6, 6);
+            trunkJac.col(0) = allJac.col(sim.model().getDOFIndex("base_roll"));
+            trunkJac.col(1) = allJac.col(sim.model().getDOFIndex("base_pitch"));
+            trunkJac.col(2) = allJac.col(sim.model().getDOFIndex("base_yaw"));
+            trunkJac.col(3) = allJac.col(sim.model().getDOFIndex("base_x"));
+            trunkJac.col(4) = allJac.col(sim.model().getDOFIndex("base_y"));
+            trunkJac.col(5) = allJac.col(sim.model().getDOFIndex("base_z"));
+            //Compute 6D target trunk velocities
+            Eigen::VectorXd targetTrunkVel = 
+                modelFeed.get().pointVelocity("trunk", "origin", dqFeed);
+            //Compute base DOF on sim model
+            Eigen::VectorXd baseVel = 
+                trunkJac.colPivHouseholderQr().solve(targetTrunkVel);
+            //Assign base vel
+            sim.setVel("base_roll", baseVel(0));
+            sim.setVel("base_pitch", baseVel(1));
+            sim.setVel("base_yaw", baseVel(2));
+            sim.setVel("base_x", baseVel(3));
+            sim.setVel("base_y", baseVel(4));
+            sim.setVel("base_z", baseVel(5));
+            if (baseVel.squaredNorm() < 1e-6) {
+                //Run small time 0.5s for 
+                //waiting stabilization (backlash)
+                for (int k=0;k<500;k++) {
+                    sim.update(0.001);
+                }
             }
         }
         
         //Assign goal to simulation
         for (const std::string& name : Leph::NamesDOF) {
-            sim.goals()(modelSim.getDOFIndex(name)) = 
-                modelFeed.get().getDOF(name);
-            
+            sim.setGoal(name, modelFeed.get().getDOF(name));
         }
 
         //Simulation step
@@ -332,7 +388,7 @@ static double scoreTrajectories(
         size_t index = 0;
         for (const std::string& name : Leph::NamesDOF) {
             double error = pow(180.0/M_PI
-                *(modelGoal.get().getDOF(name) - modelSim.getDOF(name)), 2);
+                *(modelGoal.get().getDOF(name) - sim.getPos(name)), 2);
             errorSum += error;
             errorCount += 1.0;
             if (errorMax < 0.0 || errorMax < error) {
@@ -349,7 +405,7 @@ static double scoreTrajectories(
                 "t", t,
                 "goal:"+name, 180.0/M_PI*modelGoal.get().getDOF(name),
                 "feed:"+name, 180.0/M_PI*modelFeed.get().getDOF(name),
-                "sim:"+name, 180.0/M_PI*modelSim.getDOF(name),
+                "sim:"+name, 180.0/M_PI*sim.getPos(name),
             });
 #endif
         }
@@ -357,7 +413,7 @@ static double scoreTrajectories(
 #ifdef LEPH_VIEWER_ENABLED
         //Display
         if (verboseLevel >= 2) {
-            Leph::ModelDraw(modelSim, *viewer, 1.0);
+            Leph::ModelDraw(sim.model(), *viewer, 1.0);
             Leph::ModelDraw(modelGoal.get(), *viewer, 0.6);
             Leph::ModelDraw(modelFeed.get(), *viewer, 0.4);
         }
@@ -574,45 +630,70 @@ int main(int argc, char** argv)
 {
     //Parse user inputs
     if (
-        (argc != 4 && argc != 5) || (
+        (argc != 4 && argc != 5 && argc != 6 && argc != 7) || (
         std::string(argv[1]) != "RUN" &&
         std::string(argv[1]) != "RESTART" &&
         std::string(argv[1]) != "RUN_FEED" &&
         std::string(argv[1]) != "RESTART_FEED")
     ) {
-        std::cout << "Usage ./app [RUN] [inGoalSplines] [outCorrectedSplines]" << std::endl;
-        std::cout << "Usage ./app [RESTART] [inGoalSplines] [inRestartSplines] [outCorrectedSplines]" << std::endl;
-        std::cout << "Usage ./app [RUN_FEED] [inGoalSplines] [outCorrectedSplines]" << std::endl;
-        std::cout << "Usage ./app [RESTART_FEED] [inGoalSplines] [inRestartSplines] [outCorrectedSplines]" << std::endl;
+        std::cout << "Usage ./app RUN          " << 
+            "inGoal.splines outCorrected.splines " << 
+            "[MODEL] [inFile.modelparams]" << std::endl;
+        std::cout << "Usage ./app RESTART      " << 
+            "inGoal.splines inRestart.splines outCorrected.splines " <<
+            "[MODEL] [inFile.modelparams]" << std::endl;
+        std::cout << "Usage ./app RUN_FEED     " << 
+            "inGoal.splines outCorrected.splines " <<
+            "[MODEL] [inFile.modelparams]" << std::endl;
+        std::cout << "Usage ./app RESTART_FEED " <<
+            "inGoal.splines inRestart.splines outCorrected.splines " <<
+            "[MODEL] [inFile.modelparams]" << std::endl;
         return 1;
     }
     std::string goalFilename = "";
     std::string restartFilename = "";
     std::string outFilename = "";
+    std::string modelParamsPath = "";
     bool isFeedForward = false;
-    if (std::string(argv[1]) == "RUN") {
+    if (argc >= 4 && std::string(argv[1]) == "RUN") {
         isFeedForward = false;
         goalFilename = argv[2];
         restartFilename = "";
         outFilename = argv[3];
+        std::cout << "RUN mode" << std::endl;
+        if (argc == 6 && std::string(argv[4]) == "MODEL") {
+            modelParamsPath = argv[5];
+        }
     }
-    if (std::string(argv[1]) == "RESTART") {
+    if (argc >= 5 && std::string(argv[1]) == "RESTART") {
         isFeedForward = false;
         goalFilename = argv[2];
         restartFilename = argv[3];
         outFilename = argv[4];
+        std::cout << "RESTART mode" << std::endl;
+        if (argc == 7 && std::string(argv[5]) == "MODEL") {
+            modelParamsPath = argv[6];
+        }
     }
-    if (std::string(argv[1]) == "RUN_FEED") {
+    if (argc >= 4 && std::string(argv[1]) == "RUN_FEED") {
         isFeedForward = true;
         goalFilename = argv[2];
         restartFilename = "";
         outFilename = argv[3];
+        std::cout << "RUN_FEED mode" << std::endl;
+        if (argc == 6 && std::string(argv[4]) == "MODEL") {
+            modelParamsPath = argv[5];
+        }
     }
-    if (std::string(argv[1]) == "RESTART_FEED") {
+    if (argc >= 5 && std::string(argv[1]) == "RESTART_FEED") {
         isFeedForward = true;
         goalFilename = argv[2];
         restartFilename = argv[3];
         outFilename = argv[4];
+        std::cout << "RESTART_FEED mode" << std::endl;
+        if (argc == 7 && std::string(argv[5]) == "MODEL") {
+            modelParamsPath = argv[6];
+        }
     }
 
     //Load trajectories from file
@@ -625,6 +706,23 @@ int main(int argc, char** argv)
         std::cout << "Minimizing feed forward distance." << std::endl;
     } else {
         std::cout << "Minimizing simulated distance." << std::endl;
+    }
+    
+    //Load model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
+    Eigen::MatrixXd geometryData;
+    std::map<std::string, size_t> geometryName;
+    if (modelParamsPath != "") {
+        std::cout << "Loading model parameters from: " 
+            << modelParamsPath << std::endl;
+        Leph::ReadModelParameters(
+            modelParamsPath,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
     }
     
     //Subdivise the trajectories
@@ -663,14 +761,21 @@ int main(int argc, char** argv)
     
     //Fitness function
     libcmaes::FitFuncEigen fitness = 
-        [&trajsGoal, &isFeedForward](const Eigen::VectorXd& params) 
+        [&trajsGoal, &isFeedForward, 
+        &jointData, &jointName,
+        &inertiaData, &inertiaName, 
+        &geometryData, &geometryName]
+        (const Eigen::VectorXd& params) 
     {
         double cost = 0.0;
         try {
             if (isFeedForward) {
                 cost += scoreFitting(params, trajsGoal, 0);
             } else {
-                cost += scoreTrajectories(params, trajsGoal, 0);
+                cost += scoreTrajectories(params, trajsGoal, 0,
+                    jointData, jointName,
+                    inertiaData, inertiaName,
+                    geometryData, geometryName);
             }
         } catch (const std::runtime_error& e) {
             cost += 10000.0;
@@ -695,7 +800,11 @@ int main(int argc, char** argv)
     //Progress function
     libcmaes::ProgressFunc<
         libcmaes::CMAParameters<>, libcmaes::CMASolutions> progress = 
-        [&trajsGoal, &bestParams, &bestScore, &iteration, &outFilename, &isFeedForward](
+        [&trajsGoal, &bestParams, &bestScore, 
+        &iteration, &outFilename, &isFeedForward,
+        &jointData, &jointName,
+        &inertiaData, &inertiaName, 
+        &geometryData, &geometryName](
             const libcmaes::CMAParameters<>& cmaparams, 
             const libcmaes::CMASolutions& cmasols)
     {
@@ -713,22 +822,15 @@ int main(int argc, char** argv)
             std::cout << "Dimension: " << params.size() << std::endl;
             std::cout << "Saving to: " << outFilename << std::endl;
             std::cout << "BestScore: " << bestScore << std::endl;
-            std::cout << "BestParams: ";
-            for (size_t i=0;i<(size_t)bestParams.size();i++) {
-                std::cout << std::setprecision(10) << bestParams(i);
-                if (i != (size_t)bestParams.size()-1) {
-                    std::cout << ", ";
-                } else {
-                    std::cout << ";" << std::endl;
-                }
-            }
             std::cout << "Score: " << score<< std::endl;
-            std::cout << "Params: " << params.transpose() << std::endl;
             std::cout << "============" << std::endl;
             if (isFeedForward) {
                 scoreFitting(bestParams, trajsGoal, 1);
             } else {
-                scoreTrajectories(bestParams, trajsGoal, 1);
+                scoreTrajectories(bestParams, trajsGoal, 1,
+                    jointData, jointName,
+                    inertiaData, inertiaName,
+                    geometryData, geometryName);
             }
             std::cout << "============" << std::endl;
             Leph::Trajectories bestTrajs = buildTrajectories(bestParams, trajsGoal);  
@@ -746,7 +848,10 @@ int main(int argc, char** argv)
         double initScore = scoreFitting(initParams, trajsGoal, 2);
         std::cout << "InitScore: " << initScore << std::endl;
     } else {
-        double initScore = scoreTrajectories(initParams, trajsGoal, 2);
+        double initScore = scoreTrajectories(initParams, trajsGoal, 2,
+            jointData, jointName, 
+            inertiaData, inertiaName, 
+            geometryData, geometryName);
         std::cout << "InitScore: " << initScore << std::endl;
     }
     
@@ -775,7 +880,10 @@ int main(int argc, char** argv)
     if (isFeedForward) {
         scoreFitting(bestParams, trajsGoal, 2);
     } else {
-        scoreTrajectories(bestParams, trajsGoal, 2);
+        scoreTrajectories(bestParams, trajsGoal, 2,
+            jointData, jointName,
+            inertiaData, inertiaName,
+            geometryData, geometryName);
     }
     std::cout << "BestParams: " << bestParams.transpose() << std::endl;
     std::cout << "BestScore: " << bestScore << std::endl;
