@@ -373,6 +373,35 @@ class MapSeries
             return container;
         }
 
+        /**
+         * Return a MapSeries which data are the same as this
+         * but containts only the data points whose time
+         * is between given time range.
+         */
+        MapSeries sliceTimeRange(double timeBegin, double timeEnd) const
+        {
+            if (timeBegin > timeEnd) {
+                throw std::logic_error(
+                    "MapSeries invalid time range");
+            }
+            MapSeries cutMap;
+            for (const auto& it : _data) {
+                cutMap._data[it.first] = std::vector<Point>();
+                for (size_t i=0;i<it.second.size();i++) {
+                    if (
+                        it.second[i].time >= timeBegin && 
+                        it.second[i].time <= timeEnd
+                    ) {
+                        cutMap._data[it.first].push_back(it.second[i]);
+                    }
+                }
+                if (cutMap._data[it.first].size() == 0) {
+                    cutMap._data.erase(it.first);
+                }
+            }
+            return cutMap;   
+        }
+
     private:
 
         /**
