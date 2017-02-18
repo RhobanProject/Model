@@ -11,7 +11,7 @@ void TrajKickSingle::initializeParameters(
     TrajectoryParameters& trajParams, bool isFwd)
 {
     //Total time length
-    trajParams.set("time_length", false) = 2.0;
+    trajParams.set("time_length", false) = 1.5;
     //Time ratio for control points
     trajParams.set("time_ratio_before1", true) = 0.3;
     trajParams.set("time_ratio_before2", true) = 0.4;
@@ -71,11 +71,11 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("before1_pos_trunk_axis_x", true)  = trajParams.get("static_single_pos_trunk_axis_x");
     trajParams.set("before1_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("before1_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
-    trajParams.set("before1_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")-0.02;
+    trajParams.set("before1_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x");
     trajParams.cpy("before1_pos_foot_pos_y",   "kick_y");
-    trajParams.set("before1_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.02;
+    trajParams.set("before1_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z");
     trajParams.set("before1_pos_foot_axis_x",  false) = 0.0;
-    trajParams.set("before1_pos_foot_axis_y",  true)  = 0.3;
+    trajParams.set("before1_pos_foot_axis_y",  true)  = 0.0;
     trajParams.set("before1_pos_foot_axis_z",  false) = 0.0;
     //Velocity at before1
     trajParams.set("before1_vel_trunk_pos_x",  true)  = 0.0;
@@ -111,11 +111,11 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("before2_pos_trunk_axis_x", true)  = trajParams.get("static_single_pos_trunk_axis_x");
     trajParams.set("before2_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("before2_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
-    trajParams.set("before2_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")-0.01;
+    trajParams.set("before2_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x");
     trajParams.cpy("before2_pos_foot_pos_y",   "kick_y");
-    trajParams.set("before2_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.01;
+    trajParams.set("before2_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z");
     trajParams.set("before2_pos_foot_axis_x",  false) = 0.0;
-    trajParams.set("before2_pos_foot_axis_y",  true)  = 0.1;
+    trajParams.set("before2_pos_foot_axis_y",  true)  = 0.0;
     trajParams.set("before2_pos_foot_axis_z",  false) = 0.0;
     //Velocity at before2
     trajParams.set("before2_vel_trunk_pos_x",  true)  = 0.0;
@@ -151,11 +151,11 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("after_pos_trunk_axis_x", true)  = trajParams.get("static_single_pos_trunk_axis_x");
     trajParams.set("after_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("after_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
-    trajParams.set("after_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x")+0.01;
+    trajParams.set("after_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x");
     trajParams.cpy("after_pos_foot_pos_y",   "kick_y");
-    trajParams.set("after_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z")+0.02;
+    trajParams.set("after_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z");
     trajParams.set("after_pos_foot_axis_x",  false) = 0.0;
-    trajParams.set("after_pos_foot_axis_y",  true)  = -0.3;
+    trajParams.set("after_pos_foot_axis_y",  true)  = 0.0;
     trajParams.set("after_pos_foot_axis_z",  false) = 0.0;
     //Velocity at after
     trajParams.set("after_vel_trunk_pos_x",  true)  = 0.0;
@@ -240,11 +240,11 @@ TrajectoryGeneration::CheckParamsFunc TrajKickSingle::funcCheckParams(
         double afterRatio = trajParams.get("time_ratio_after", params);
         double timeLength = trajParams.get("time_length", params);
         //Check time length
-        if (timeLength > 10.0) {
-            return 1000.0 + 1000.0*(timeLength-10.0);
+        if (timeLength > 5.0) {
+            return 1000.0 + 1000.0*(timeLength-5.0);
         }
-        if (timeLength < 0.5) {
-            return 1000.0 + 1000.0*(0.5-timeLength);
+        if (timeLength < 1.0) {
+            return 1000.0 + 1000.0*(1.0-timeLength);
         }
         //Check ratio bound
         if (before1Ratio <= 0.1) {
@@ -296,6 +296,8 @@ TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
         const Eigen::Vector3d& footAxis) -> double
     {
         double cost = 0.0;
+        //Retrieve kick velocity
+        double contactVel = trajParams.get("kick_vel", params);
         //Check that the foot is not colliding 
         //the ball before contact time
         double contactTime = 
@@ -303,8 +305,21 @@ TrajectoryGeneration::CheckStateFunc TrajKickSingle::funcCheckState(
             * trajParams.get("time_ratio_contact", params);
         double contactPos = 
             trajParams.get("contact_pos_foot_pos_x", params);
-        if (t < contactTime-0.01 && footPos.x() > contactPos) {
+        //Penalize forward kick
+        if (
+            t < contactTime-0.01 && 
+            contactVel >= 0.0 && 
+            footPos.x() > contactPos
+        ) {
             cost += 1000.0 + 1000.0*(footPos.x() - contactPos);
+        }
+        //Penalize backward kick
+        if (
+            t < contactTime-0.01 && 
+            contactVel < 0.0 && 
+            footPos.x() < contactPos
+        ) {
+            cost += 1000.0 - 1000.0*(footPos.x() - contactPos);
         }
         //Forward to default state check
         cost += DefaultCheckState(params, t, 
@@ -335,6 +350,7 @@ TrajectoryGeneration::ScoreSimFunc TrajKickSingle::funcScoreSim(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](
+        const Eigen::VectorXd& params,
         double t,
         HumanoidSimulation& sim,
         std::vector<double>& data) -> double
@@ -350,19 +366,38 @@ TrajectoryGeneration::ScoreSimFunc TrajKickSingle::funcScoreSim(
             data.push_back(0.0);
         }
 
+        //Retrieve kick vel sign
+        double kickSign = 
+            (trajParams.get("kick_vel", params) >= 0.0 ? 1.0 : -1.0);
         //Compute foot velocity
         Eigen::VectorXd footVel = sim.model().pointVelocity(
             "right_foot_tip", "left_foot_tip", sim.velocities());
-        if (data[0] < footVel(3)) {
+        //Save maximum velocity
+        if (data[0] < kickSign*footVel(3)) {
             Eigen::Vector3d footPos = sim.model().position(
                 "right_foot_tip", "left_foot_tip");
-            data[0] = footVel(3);
+            data[0] = kickSign*footVel(3);
             data[1] = footPos.x();
             data[2] = footPos.y();
             data[3] = footPos.z();
         }
 
-        return 0.0;
+        //Compute support left foot 
+        //euler angle orientation
+        Eigen::Matrix3d footMat = sim.model().orientation("left_foot_tip", "origin");
+        Eigen::Vector3d angles = Eigen::Vector3d::Zero();
+        //Retrieve YawPitchRoll euler angles from rotation matrix
+        //(Manual computing without singular check seems better than
+        //Eigen euler angles and with better range)
+        //Roll
+        angles(0) = atan2(footMat(1, 2), footMat(2, 2));
+        //Pitch
+        angles(1) = atan2(-footMat(0, 2), 
+            sqrt(footMat(0, 0)*footMat(0, 0) 
+                + footMat(0, 1)*footMat(0, 1)));
+        
+        //Penalize support foot rotation
+        return 0.05*(fabs(angles(0)) + fabs(angles(1)));
     };
 }
 
@@ -382,10 +417,12 @@ TrajectoryGeneration::EndScoreSimFunc TrajKickSingle::funcEndScoreSim(
         }
         if (verbose) {
             std::cout 
-                << "MaxVel=" << data[0]
+                << "Score=" << score
+                << " MaxVel=" << data[0]
                 << " PosX=" << data[1]
                 << " PosY=" << data[2]
                 << " PosZ=" << data[3]
+                << " EndScore=" << 1.0/data[0]
                 << std::endl;
         }
         return 1.0/data[0];

@@ -393,6 +393,7 @@ TrajectoryGeneration::ScoreSimFunc TrajKickDouble::funcScoreSim(
     const TrajectoryParameters& trajParams)
 {
     return [&trajParams](
+        const Eigen::VectorXd& params,
         double t,
         HumanoidSimulation& sim,
         std::vector<double>& data) -> double

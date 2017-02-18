@@ -179,11 +179,12 @@ double TrajectoryGeneration::endScore(
 }
 
 double TrajectoryGeneration::scoreSim(
+    const Eigen::VectorXd& params,
     double t,
     HumanoidSimulation& sim,
     std::vector<double>& data) const
 {
-    return _scoreSimFunc(t, sim, data);
+    return _scoreSimFunc(params, t, sim, data);
 }
 double TrajectoryGeneration::endScoreSim(
     const Eigen::VectorXd& params,
@@ -579,7 +580,7 @@ double TrajectoryGeneration::scoreSimulation(
             break;
         } 
         //Call user defined score function
-        cost += scoreSim(t, sim, data);
+        cost += scoreSim(params, t, sim, data);
     }
     //Call user defined end score function
     cost += endScoreSim(params, traj, cost, data, verbose);

@@ -66,6 +66,7 @@ class TrajectoryGeneration
             bool verbose)> 
             EndScoreFunc;
         typedef std::function<double(
+            const Eigen::VectorXd& params,
             double t,
             HumanoidSimulation& sim,
             std::vector<double>& data)>
@@ -242,6 +243,7 @@ class TrajectoryGeneration
          * for simulation optimization
          */
         double scoreSim(
+            const Eigen::VectorXd& params,
             double t,
             HumanoidSimulation& sim,
             std::vector<double>& data) const;
