@@ -19,8 +19,8 @@ void TrajKickSingle::initializeParameters(
     trajParams.set("time_ratio_after", true) = 0.6;
 
     //Kick configuration
-    trajParams.set("kick_x",   isFwd) = 0.03;
-    trajParams.set("kick_y",   isFwd) = -0.09;
+    trajParams.set("kick_x",   isFwd) = 0.05;
+    trajParams.set("kick_y",   isFwd) = -0.12;
     trajParams.set("kick_z",   isFwd) = 0.06;
     trajParams.set("kick_vel", isFwd) = 1.0;
     

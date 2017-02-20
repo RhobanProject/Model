@@ -211,8 +211,8 @@ double DefaultCheckState(
     if (trunkAxis.norm() >= M_PI/2.0) {
         cost += 1000.0 + 1000.0*(trunkAxis.norm() - M_PI/2.0);
     }
-    if (fabs(footPos.y()) < 2.0*0.045) {
-        cost += 1000.0 + 1000.0*(2.0*0.045 - fabs(footPos.y()));
+    if (fabs(footPos.y()) < 2.0*0.037) {
+        cost += 1000.0 + 1000.0*(2.0*0.037 - fabs(footPos.y()));
     }
     if (footPos.z() < -1e6) {
         cost += 1000.0 - 1000.0*footPos.z();
