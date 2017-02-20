@@ -173,6 +173,7 @@ set(APPS_FILES
     appFeedForwardLogsComparison
     appHumanoidSimulationIdentification
     appTrajectoriesLogFitting
+    appMapSeriesLogsCut
 )
 
 #Build App RhIO Viewer 
