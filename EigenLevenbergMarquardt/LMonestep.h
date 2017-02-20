@@ -96,7 +96,7 @@ LevenbergMarquardt<FunctorType>::minimizeOneStep(FVectorType  &x)
   
     /**
      * XXX
-     * Constraint implementarion by gradient projection
+     * Constraint implementation by gradient projection
      * XXX
      */
     m_functor.gradientProjection(x, m_wa1);
