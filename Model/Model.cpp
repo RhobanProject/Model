@@ -147,7 +147,11 @@ const VectorLabel& Model::getDOF()
 }
 double Model::getDOF(const std::string& name) const
 {
-    return _dofs(_dofNameToIndex.at(name));
+    try {
+        return _dofs(_dofNameToIndex.at(name));
+    } catch (const std::out_of_range& e) {
+        throw std::logic_error("Model unknown getDOF(): " + name);
+    }
 }
 double Model::getDOF(size_t index) const
 {

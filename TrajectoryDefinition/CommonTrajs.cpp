@@ -23,7 +23,7 @@ TrajectoryParameters DefaultTrajParameters()
     //Double support static position
     parameters.add("static_double_pos_trunk_pos_x", 0.009816280388);
     parameters.add("static_double_pos_trunk_pos_y", -0.07149996496);
-    parameters.add("static_double_pos_trunk_pos_z", 0.2786133349);
+    parameters.add("static_double_pos_trunk_pos_z", 0.27351975164429987);
     parameters.add("static_double_pos_trunk_axis_x", 0.0);
     parameters.add("static_double_pos_trunk_axis_y", 0.1919862181);
     parameters.add("static_double_pos_trunk_axis_z", 0.0);
