@@ -16,6 +16,10 @@ double Spline::acc(double t) const
 {
     return interpolation(t, &Polynom::acc);
 }
+double Spline::jerk(double t) const
+{
+    return interpolation(t, &Polynom::jerk);
+}
         
 double Spline::posMod(double t) const
 {
@@ -28,6 +32,10 @@ double Spline::velMod(double t) const
 double Spline::accMod(double t) const
 {
     return interpolationMod(t, &Polynom::acc);
+}
+double Spline::jerkMod(double t) const
+{
+    return interpolationMod(t, &Polynom::jerk);
 }
         
 double Spline::min() const

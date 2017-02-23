@@ -45,12 +45,13 @@ class Polynom
         size_t degree() const;
 
         /**
-         * Polynom evaluation, its first and
-         * second derivative at given x
+         * Polynom evaluation, its first,
+         * second and third derivative at given x
          */
         double pos(double x) const;
         double vel(double x) const;
         double acc(double x) const;
+        double jerk(double x) const;
 
         /**
          * Some useful operators
