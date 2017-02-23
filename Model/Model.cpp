@@ -166,7 +166,11 @@ void Model::setDOF(const VectorLabel& vect, bool setBase)
 }
 void Model::setDOF(const std::string& name, double value)
 {
-    _dofs(_dofNameToIndex.at(name)) = value;
+    try {
+        _dofs(_dofNameToIndex.at(name)) = value;
+    } catch (const std::out_of_range& e) {
+        throw std::logic_error("Model unknown setDOF(): " + name);
+    }
 }
 void Model::setDOF(size_t index, double value)
 {
