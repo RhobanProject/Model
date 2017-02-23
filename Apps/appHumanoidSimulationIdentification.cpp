@@ -663,28 +663,36 @@ int main(int argc, char** argv)
     for (size_t i=0;i<logsData.size();i++) {
         std::cout << "============" << std::endl;
         std::cout << "Initial learning score for: " << filenames[i] << std::endl;
-        scoreFitness(
-            logsData[i], initParams, 
-            indexStartCommon, indexStartJoints, 
-            indexStartInertias, indexStartGeometries,
-            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
-            defaultJointData, defaultJointName, 
-            defaultInertiaData, defaultInertiaName, 
-            defaultGeometryData, defaultGeometryName, 
-            3);
+        try {
+            scoreFitness(
+                logsData[i], initParams, 
+                indexStartCommon, indexStartJoints, 
+                indexStartInertias, indexStartGeometries,
+                sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                defaultJointData, defaultJointName, 
+                defaultInertiaData, defaultInertiaName, 
+                defaultGeometryData, defaultGeometryName, 
+                3);
+        } catch (const std::runtime_error& e) {
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
     }
     for (size_t i=0;i<logsValidation.size();i++) {
         std::cout << "============" << std::endl;
         std::cout << "Initial validation score for: " << filenamesValidation[i] << std::endl;
-        scoreFitness(
-            logsValidation[i], initParams, 
-            indexStartCommon, indexStartJoints, 
-            indexStartInertias, indexStartGeometries,
-            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
-            defaultJointData, defaultJointName, 
-            defaultInertiaData, defaultInertiaName, 
-            defaultGeometryData, defaultGeometryName, 
-            3);
+        try {
+            scoreFitness(
+                logsValidation[i], initParams, 
+                indexStartCommon, indexStartJoints, 
+                indexStartInertias, indexStartGeometries,
+                sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                defaultJointData, defaultJointName, 
+                defaultInertiaData, defaultInertiaName, 
+                defaultGeometryData, defaultGeometryName, 
+                3);
+        } catch (const std::runtime_error& e) {
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
     }
 
     //Normalization of initial parameters
