@@ -174,6 +174,7 @@ set(APPS_FILES
     appHumanoidSimulationIdentification
     appTrajectoriesLogFitting
     appMapSeriesLogsCut
+    appModelParametersViewer
 )
 
 #Build App RhIO Viewer 
