@@ -409,6 +409,23 @@ class Model
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
         /**
+         * Use RBDLContactLCP which use Drake-Moby
+         * LCP solver to compute the active and
+         * releasing constraints.
+         * Position, velocity and apply torque are given.
+         * Given velocity must complies with 
+         * given constraints (with impulse).
+         * Computed cartesian contact forces 
+         * (zeros and non zeros) are assigned 
+         * to ConstraintSet force field.
+         */
+        void resolveContactConstraintLCP(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque);
+
+        /**
          * Return optionaly non zero aligned axis bounding box
          * with respect to given frame base and its half size
          */

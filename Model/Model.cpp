@@ -2,6 +2,7 @@
 #include <cmath>
 #include "Model/Model.hpp"
 #include "Model/RBDLClosedLoop.h"
+#include "Model/RBDLContactLCP.h"
 
 namespace Leph {
 
@@ -743,7 +744,7 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
         throw std::logic_error(
             "Model invalid enabled vector size");
     }
-
+    
     //Initialize returned acceleration
     Eigen::VectorXd acceleration = 
         Eigen::VectorXd::Zero(_model.dof_count);
@@ -1038,6 +1039,17 @@ Eigen::VectorXd Model::impulseContactsPartial(
     }
 
     return newVel;
+}
+
+void Model::resolveContactConstraintLCP(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque)
+{
+    RBDLContactLCP(
+        _model, position, velocity, 
+        torque, constraints);
 }
         
 void Model::boundingBox(size_t frameIndex, 

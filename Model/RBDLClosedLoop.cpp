@@ -15,9 +15,8 @@ namespace Leph {
  *
  * K * QDDot = k
  *
- * For fixed constraint, k is null.
- * No stabilization term for Inverse Dynamics 
- * computation.
+ * k is not computed since it is not used
+ * in the following Inverse Dynamics computations.
  */
 static RBDLMath::MatrixNd RBDLClosedLoopConstraintEquation(
     RBDL::Model& model, 
