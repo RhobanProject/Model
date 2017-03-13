@@ -603,7 +603,11 @@ class Plot
                 }
                 
                 bool isFirst = true;
-                for (size_t i=startIndex2D;i<=endIndex2D;i++) {
+                for (
+                    size_t i=startIndex2D;
+                    _plots2D.size() > 0 && i<=endIndex2D;
+                    i++
+                ) {
                     if (_plots2D[i].style == None) {
                         continue;
                     }
