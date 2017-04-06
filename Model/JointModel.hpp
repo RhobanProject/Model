@@ -19,28 +19,11 @@ class JointModel
     public:
 
         /**
-         * Type of Joint model
-         */
-        enum JointModelType {
-            //No friction, no control torque
-            //(no parameter)
-            JointFree,
-            //Friction and control torque
-            JointActuated,
-        };
-
-        /**
          * Initialization with 
          * jont type and name
          */
         JointModel(
-            JointModelType type = JointActuated, 
             const std::string& name = "");
-
-        /**
-         * Return the joint type
-         */
-        JointModelType getType() const;
 
         /**
          * Return joint textual name
@@ -60,8 +43,10 @@ class JointModel
         double getInertia() const;
 
         /**
-         * Return maximum available voltage
+         * Set or return the maximum 
+         * available voltage
          */
+        void setMaxVoltage(double volt);
         double getMaxVoltage() const;
         
         /**
@@ -102,8 +87,9 @@ class JointModel
         /**
          * Reset the backlash state 
          * enabled, position and velocity
+         * as well as goal lag
          */
-        void resetBacklashState();
+        void resetHiddenState();
 
         /**
          * Optionnaly update given current joint
@@ -129,7 +115,7 @@ class JointModel
          * Velocity and acceleration 
          * to follow are given.
          * External torque to follow (computed through
-         * inverse dynamics) ais given.
+         * inverse dynamics) is given.
          */
         double computeFeedForward(
             double velGoal,
@@ -139,14 +125,26 @@ class JointModel
     private:
 
         /**
-         * Joint model current type
-         */
-        JointModelType _type;
-
-        /**
          * Joint textual name
          */
         std::string _name;
+
+        /**
+         * Modelisation optional 
+         * features.
+         * Backlash model.
+         * Read position encoder discretization.
+         * Stribeck friction model.
+         * Enable optimization of parameters
+         * electric voltage, electric resistance, 
+         * static friction regularization coefficient.
+         */
+        bool _featureBacklash;
+        bool _featureFrictionStribeck;
+        bool _featureReadDiscretization;
+        bool _featureOptimizationVoltage;
+        bool _featureOptimizationResistance;
+        bool _featureOptimizationRegularization;
 
         /**
          * Current integrated time in seconds
@@ -182,6 +180,8 @@ class JointModel
          * Model parameters.
          * All positive range value are valid.
          */
+        //Friction static regularization coeficient
+        double _paramFrictionRegularization;
         //Friction Stribeck transtition velocity
         double _paramFrictionVelLimit;
         //Friction and inertia internal parameters
