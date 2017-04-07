@@ -104,6 +104,7 @@ set(SOURCES_FILES
     DMP/DMPSpline.cpp
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
+    TrajectoryDefinition/TrajKickSingleContact.cpp
     TrajectoryDefinition/TrajKickDouble.cpp
     TrajectoryDefinition/TrajStaticPose.cpp
     TrajectoryDefinition/TrajLegLift.cpp

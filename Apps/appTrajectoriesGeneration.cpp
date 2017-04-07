@@ -7,6 +7,7 @@
 #include "TrajectoryDefinition/CommonTrajs.h"
 #include "TrajectoryDefinition/TrajStaticPose.hpp"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
+#include "TrajectoryDefinition/TrajKickSingleContact.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
 #include "TrajectoryDefinition/TrajWalk.hpp"
@@ -28,6 +29,7 @@ int main(int argc, char** argv)
         std::cout << "Available trajectories:" << std::endl;
         std::cout << "-- staticpose" << std::endl;
         std::cout << "-- kicksingle" << std::endl;
+        std::cout << "-- kicksinglecontact" << std::endl;
         std::cout << "-- kickdouble" << std::endl;
         std::cout << "-- leglift" << std::endl;
         std::cout << "-- walk" << std::endl;
@@ -100,6 +102,15 @@ int main(int argc, char** argv)
         generator.setScoreFunc(Leph::TrajKickSingle::funcScore(trajParams));
         generator.setEndScoreFunc(Leph::TrajKickSingle::funcEndScore(trajParams));
         generator.setSaveFunc(Leph::TrajKickSingle::funcSave(trajParams));
+    } else if (trajName == "kicksinglecontact") {
+        Leph::TrajKickSingleContact::initializeParameters(trajParams);
+        generator.setTrajectoryGenerationFunc(Leph::TrajKickSingleContact::funcGeneration(trajParams));
+        generator.setCheckParametersFunc(Leph::TrajKickSingleContact::funcCheckParams(trajParams));
+        generator.setCheckStateFunc(Leph::TrajKickSingleContact::funcCheckState(trajParams));
+        generator.setCheckDOFFunc(Leph::TrajKickSingleContact::funcCheckDOF(trajParams));
+        generator.setScoreFunc(Leph::TrajKickSingleContact::funcScore(trajParams));
+        generator.setEndScoreFunc(Leph::TrajKickSingleContact::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajKickSingleContact::funcSave(trajParams));
     } else if (trajName == "kickdouble") {
         Leph::TrajKickDouble::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickDouble::funcGeneration(trajParams));
