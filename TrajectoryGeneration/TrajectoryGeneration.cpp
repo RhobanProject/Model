@@ -443,8 +443,8 @@ double TrajectoryGeneration::scoreSimulation(
         sim.setPos(name, modelGoal.get().getDOF(name));
         size_t indexModel = modelGoal.get().getDOFIndex(name);
         sim.setVel(name, dqInit(indexModel));
-        //Reset backlash state
-        sim.jointModel(name).resetBacklashState();
+        //Reset backlash and goal state
+        sim.jointModel(name).resetHiddenState();
     }
     for (const std::string& name : Leph::NamesBase) {
         sim.setVel(name, 0.0); 
