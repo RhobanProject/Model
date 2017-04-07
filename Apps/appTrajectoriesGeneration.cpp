@@ -5,6 +5,7 @@
 #include "TrajectoryGeneration/TrajectoryParameters.hpp"
 #include "TrajectoryGeneration/TrajectoryGeneration.hpp"
 #include "TrajectoryDefinition/CommonTrajs.h"
+#include "TrajectoryDefinition/TrajStaticPose.hpp"
 #include "TrajectoryDefinition/TrajKickSingle.hpp"
 #include "TrajectoryDefinition/TrajKickDouble.hpp"
 #include "TrajectoryDefinition/TrajLegLift.hpp"
@@ -25,6 +26,7 @@ int main(int argc, char** argv)
             "Usage: ./app SEED trajectoryName outputPrefix seed.params [paramName=value] ... " << 
             "[MODEL] [path.modelparams]" << std::endl;
         std::cout << "Available trajectories:" << std::endl;
+        std::cout << "-- staticpose" << std::endl;
         std::cout << "-- kicksingle" << std::endl;
         std::cout << "-- kickdouble" << std::endl;
         std::cout << "-- leglift" << std::endl;
@@ -80,7 +82,16 @@ int main(int argc, char** argv)
     Leph::TrajectoryGeneration generator(
         Leph::SigmabanModel, modelParametersPath);
     //Load trajectory template
-    if (trajName == "kicksingle") {
+    if (trajName == "staticpose") {
+        Leph::TrajStaticPose::initializeParameters(trajParams);
+        generator.setTrajectoryGenerationFunc(Leph::TrajStaticPose::funcGeneration(trajParams));
+        generator.setCheckParametersFunc(Leph::TrajStaticPose::funcCheckParams(trajParams));
+        generator.setCheckStateFunc(Leph::TrajStaticPose::funcCheckState(trajParams));
+        generator.setCheckDOFFunc(Leph::TrajStaticPose::funcCheckDOF(trajParams));
+        generator.setScoreFunc(Leph::TrajStaticPose::funcScore(trajParams));
+        generator.setEndScoreFunc(Leph::TrajStaticPose::funcEndScore(trajParams));
+        generator.setSaveFunc(Leph::TrajStaticPose::funcSave(trajParams));
+    } else if (trajName == "kicksingle") {
         Leph::TrajKickSingle::initializeParameters(trajParams);
         generator.setTrajectoryGenerationFunc(Leph::TrajKickSingle::funcGeneration(trajParams));
         generator.setCheckParametersFunc(Leph::TrajKickSingle::funcCheckParams(trajParams));

@@ -105,6 +105,7 @@ set(SOURCES_FILES
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajKickDouble.cpp
+    TrajectoryDefinition/TrajStaticPose.cpp
     TrajectoryDefinition/TrajLegLift.cpp
     TrajectoryDefinition/TrajWalk.cpp
 )
