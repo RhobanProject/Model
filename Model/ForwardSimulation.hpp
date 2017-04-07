@@ -48,14 +48,11 @@ class ForwardSimulation
         Eigen::VectorXd& positions();
         const Eigen::VectorXd& velocities() const;
         Eigen::VectorXd& velocities();
-        const Eigen::VectorXi& actives() const;
-        Eigen::VectorXi& actives();
         const Eigen::VectorXd& goals() const;
         Eigen::VectorXd& goals();
-        const Eigen::VectorXd& outputTorques() const;
+        const Eigen::VectorXd& jointTorques() const;
         const Eigen::VectorXd& frictionTorques() const;
         const Eigen::VectorXd& controlTorques() const;
-        const Eigen::VectorXd& inputTorques() const;
         const Eigen::VectorXd& accelerations() const;
 
         /**
@@ -76,6 +73,21 @@ class ForwardSimulation
          */
         void computeImpulses(
             RBDL::ConstraintSet& constraints);
+
+        /**
+         * Resolve active constraints from current position,
+         * velocity and torque using Moby-Drake LCP solver
+         * on given ConstraintSet.
+         * isBilateralConstraint provides for each constraints
+         * a boolean (non zero) if the constraint 
+         * is an equality (no-slip infinite friction).
+         * The computed contact force lambda (with zero
+         * and non zero elements) is assigned in force
+         * field of constraint set.
+         */
+        void computeContactLCP(
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXi& isBilateralConstraint);
         
     private:
 
@@ -86,8 +98,12 @@ class ForwardSimulation
 
         /**
          * Joint model for all degrees of freedom.
+         * and boolean indicating if the joint
+         * is actuated. If not, the JointModel
+         * is dummy.
          */
         std::vector<JointModel> _jointModels;
+        std::vector<bool> _isJointActuated;
 
         /**
          * Degrees of freedom position
@@ -97,15 +113,6 @@ class ForwardSimulation
         Eigen::VectorXd _velocities;
         
         /**
-         * Associated degrees of freedom
-         * are fixed if the actives vector
-         * value is zero. Non zero means
-         * non fixed.
-         * (Used for static friction)
-         */
-        Eigen::VectorXi _actives;
-
-        /**
          * Degrees of freedom current
          * goal position
          */
@@ -113,15 +120,13 @@ class ForwardSimulation
 
         /**
          * Last computed accelerations, last 
-         * generated output torque (decomposed in 
-         * friction and control) and computed
-         * with inverse dynamics torques for each DOF
+         * generated joint torque (decomposed in 
+         * friction and control) for each DOF
          */
         Eigen::VectorXd _accelerations;
-        Eigen::VectorXd _outputTorques;
+        Eigen::VectorXd _jointTorques;
         Eigen::VectorXd _frictionTorques;
         Eigen::VectorXd _controlTorques;
-        Eigen::VectorXd _inputTorques;
 
         /**
          * Joint internal inertia offset added to 
