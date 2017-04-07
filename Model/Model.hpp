@@ -352,6 +352,30 @@ class Model
                 RBDLMath::LinearSolverColPivHouseholderQR);
 
         /**
+         * Compute Forward Dynamics Contact 
+         * by impulsion on the tree model by 
+         * considering given RBDL contact and return 
+         * next velocity for each degrees of
+         * freedom (directly copmputed through
+         * Euler integration).
+         * DOFs position, velocity and applied 
+         * torque are given. 
+         * inertiaOffset is added to the diagonal of the 
+         * inertia matrix (used to represent joint 
+         * internal inertial).
+         * Eigen linear solver can be chosen.
+         */
+        Eigen::VectorXd forwardImpulseDynamicsContactsCustom(
+            double dt,
+            RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXd& position,
+            const Eigen::VectorXd& velocity,
+            const Eigen::VectorXd& torque,
+            const Eigen::VectorXd& inertiaOffset,
+            RBDLMath::LinearSolver solver = 
+                RBDLMath::LinearSolverColPivHouseholderQR);
+
+        /**
          * Compute Inverse Dynamics taking into account
          * the given constraints set.
          * The full matrix multiplication O(n^3) is used 
@@ -407,18 +431,25 @@ class Model
          * Use RBDLContactLCP which use Drake-Moby
          * LCP solver to compute the active and
          * releasing constraints.
+         * isBilateralConstraint provides for each constraints
+         * a boolean (non zero) if the constraint 
+         * is an equality (no-slip infinite friction).
          * Position, velocity and apply torque are given.
          * Given velocity must complies with 
          * given constraints (with impulse).
+         * Inertia offsets (H matrix diagonal) is
+         * also given (for joint internal inertia).
          * Computed cartesian contact forces 
          * (zeros and non zeros) are assigned 
          * to ConstraintSet force field.
          */
         void resolveContactConstraintLCP(
             RBDL::ConstraintSet& constraints,
+            const Eigen::VectorXi& isBilateralConstraint,
             const Eigen::VectorXd& position,
             const Eigen::VectorXd& velocity,
-            const Eigen::VectorXd& torque);
+            const Eigen::VectorXd& torque,
+            const Eigen::VectorXd& inertiaOffset);
 
         /**
          * Return optionaly non zero aligned axis bounding box

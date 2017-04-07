@@ -756,18 +756,114 @@ Eigen::VectorXd Model::forwardDynamicsContactsCustom(
     //Return computed acceleration
     return constraints.x.segment(0, sizeDOF);
 }
+
+Eigen::VectorXd Model::forwardImpulseDynamicsContactsCustom(
+    double dt,
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXd& inertiaOffset,
+    RBDLMath::LinearSolver solver)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid torque vector size");
+    }
+    if (inertiaOffset.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid inertia vector size");
     }
     
-    //Re assign output acceleration vector
-    index = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            acceleration(i) = acc2(index);
-            index++;
-        }
-    }
+    //Retrieve sizes
+    size_t sizeDOF = position.size();
+    size_t sizeCst = constraints.size();
 
-    return acceleration;
+    //Compute full H, G matrix and C
+    //vectors into the constraint set
+    RBDL::CalcContactSystemVariables(
+        _model, position /*+ dt*velocity TODO XXX ??? usefull*/, 
+        velocity, torque, constraints);
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        constraints.H(i, i) += inertiaOffset(i);
+    }
+    
+    //XXX TODO --->
+    //Compute H inverse
+    auto HQR = constraints.H.colPivHouseholderQr();
+    if (!HQR.isInvertible()) {
+        throw std::logic_error(
+            "RBDLContactLCP non invertible H matrix");
+    }
+    RBDLMath::MatrixNd Hinv = HQR.inverse();
+    //Compute M matrix and d vector
+    Eigen::MatrixXd GG1 = constraints.G;
+    Eigen::VectorXd gg1 = constraints.gamma;
+    Eigen::MatrixXd M1 = GG1 * Hinv * GG1.transpose();
+    Eigen::VectorXd d1 = gg1 - GG1 * Hinv * (torque - constraints.C);
+    Eigen::VectorXd lll1 = M1.llt().solve(d1);
+    std::cout << "Solve 0 = M*l + d ---> Solve M*l = -d ###########" << std::endl;
+    std::cout << "LAMBDA MANUAL: " << lll1.transpose() << std::endl;
+    std::cout << "MANUAL gamma: " << gg1.transpose() << std::endl;
+    Eigen::VectorXd Zeta = GG1 * velocity;
+    std::cout << "ZETA: " << Zeta.transpose() << std::endl;
+    //XXX TODO <---
+
+    //Build matrix system
+    //|H -dt*Gt| |nextVel| = |dt*(tau - C) + H*oldVel|
+    //|G   0   | |lambda |   |         0             |
+    constraints.A.setZero();
+    constraints.b.setZero();
+    constraints.A.block(0, 0, sizeDOF, sizeDOF) = 
+        constraints.H;
+    constraints.A.block(sizeDOF, 0, sizeCst, sizeDOF) = 
+        constraints.G;
+    constraints.A.block(0, sizeDOF, sizeDOF, sizeCst) = 
+        -dt*constraints.G.transpose();
+    constraints.b.segment(0, sizeDOF) = 
+        dt*(torque - constraints.C) + constraints.H*velocity;
+    
+    //Solve the linear system
+    switch (solver) {
+        case RBDLMath::LinearSolverPartialPivLU:
+            constraints.x = constraints.
+                A.partialPivLu().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverColPivHouseholderQR:
+            constraints.x = constraints.
+                A.colPivHouseholderQr().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverHouseholderQR:
+            constraints.x = constraints.
+                A.householderQr().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverFullPivLU:
+            constraints.x = constraints.
+                A.fullPivLu().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverFullPivHouseholderQR:
+            constraints.x = constraints.
+                A.fullPivHouseholderQr().solve(constraints.b);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+            
+    //Copy computed force
+    constraints.force = constraints.x.segment(sizeDOF, sizeCst);
+    //Return computed next velocity
+    return constraints.x.segment(0, sizeDOF);
 }
 
 Eigen::VectorXd Model::inverseDynamicsContacts(
@@ -801,6 +897,7 @@ Eigen::VectorXd Model::inverseDynamicsContacts(
     
     //Compute full H, G matrix and C, gamma 
     //vectors into the constraint set
+    //(actually, torque is not used by RBDL)
     RBDL::CalcContactSystemVariables(
         _model, position, velocity, 
         Eigen::VectorXd::Zero(sizeDOF), constraints);
@@ -943,13 +1040,20 @@ Eigen::VectorXd Model::impulseContactsCustom(
 
 void Model::resolveContactConstraintLCP(
     RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXi& isBilateralConstraint,
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
-    const Eigen::VectorXd& torque)
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXd& inertiaOffset)
 {
     RBDLContactLCP(
-        _model, position, velocity, 
-        torque, constraints);
+        _model, 
+        position, 
+        velocity, 
+        torque, 
+        inertiaOffset, 
+        constraints,
+        isBilateralConstraint);
 }
         
 void Model::boundingBox(size_t frameIndex, 
