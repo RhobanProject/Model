@@ -13,19 +13,19 @@ void TrajKickSingleContact::initializeParameters(
     //Total time length
     trajParams.set("time_length", false) = 1.5;
     //Time ratio for control points
-    trajParams.set("time_ratio_retract", true) = 0.3;
+    trajParams.set("time_ratio_retract",     true) = 0.3;
     trajParams.set("time_ratio_contact_end", true) = 0.6;
-    trajParams.set("time_ratio_recover", true) = 0.7;
+    trajParams.set("time_ratio_recover",     true) = 0.7;
 
     //Kick configuration
     //Contact_start is collision start (foot at x_start)
     //Contact_end is collision end (foot at x_end)
-    trajParams.set("kick_x_start",   false) = -0.05;
-    trajParams.set("kick_x_end",     false) = 0.08;
+    trajParams.set("kick_x_start",   false) = -0.04;
+    trajParams.set("kick_x_end",     false) = 0.06;
     trajParams.set("kick_y",         false) = -0.12;
     trajParams.set("kick_z",         false) = 0.06;
     trajParams.set("kick_vel_start", false) = 0.8;
-    trajParams.set("kick_vel_end",   false) = 1.2;
+    trajParams.set("kick_vel_end",   false) = 1.0;
     trajParams.set("kick_acc",       false) = splineComputeAcc(
         trajParams.get("kick_x_start"),
         trajParams.get("kick_x_end"),
@@ -132,9 +132,9 @@ void TrajKickSingleContact::initializeParameters(
     trajParams.set("retract_vel_trunk_axis_x", true)  = 0.0;
     trajParams.set("retract_vel_trunk_axis_y", true)  = 0.0;
     trajParams.set("retract_vel_trunk_axis_z", true)  = 0.0;
-    trajParams.set("retract_vel_foot_pos_x",   true)  = 0.0;
-    trajParams.set("retract_vel_foot_pos_y",   true)  = 0.0;
-    trajParams.set("retract_vel_foot_pos_z",   true)  = 0.0;
+    trajParams.set("retract_vel_foot_pos_x",   false) = 0.0;
+    trajParams.set("retract_vel_foot_pos_y",   false) = 0.0;
+    trajParams.set("retract_vel_foot_pos_z",   false) = 0.0;
     trajParams.set("retract_vel_foot_axis_x",  false) = 0.0;
     trajParams.set("retract_vel_foot_axis_y",  false) = 0.0;
     trajParams.set("retract_vel_foot_axis_z",  false) = 0.0;
