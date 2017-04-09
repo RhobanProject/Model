@@ -16,6 +16,7 @@ int main()
     joint.setParameters(params1);
     Eigen::VectorXd params2 = joint.getParameters();
     assert((param1 - param2).norm() < 1e-9);
+    joint.printParameters();
 
     //Test goal lag implementation
     plot.clear();

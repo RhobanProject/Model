@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <cmath>
 #include "Model/JointModel.hpp"
@@ -43,7 +45,7 @@ JointModel::JointModel(
     _paramFrictionBreakOut(0.03),
     _paramFrictionCoulombOut(0.02),
     //Electric motor voltage
-    _paramElectricVoltage(12.0),
+    _paramElectricVoltage(10.5),
     //Electric motor ke
     _paramElectricKe(1.4),
     //Electric motor resistance
@@ -475,6 +477,116 @@ double JointModel::computeFeedForward(
 
     return angularOffset;
 }
+        
+void JointModel::printParameters() const
+{
+    std::cout << "JointParameters: " << _name
+        << " ("
+        << "Backlash:" << _featureBacklash
+        << " Stribeck:" << _featureFrictionStribeck
+        << " Discretization:" << _featureReadDiscretization
+        << " OptimVoltage:" << _featureOptimizationVoltage
+        << " OptimResistance:" << _featureOptimizationResistance
+        << " OptimRegularization:" << _featureOptimizationRegularization
+        << ")"
+        << std::endl;
+    unsigned int width1 = 31;
+    unsigned int width2 = 15;
+    std::cout << std::setiosflags(std::ios::left) ;
+    std::cout 
+        << std::setw(width1) << "FrictionViscousOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramFrictionViscousOut << std::endl;
+    std::cout 
+        << std::setw(width1) << "FrictionCoulombOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramFrictionCoulombOut << std::endl;
+    std::cout 
+        << std::setw(width1) << "InertiaOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramInertiaOut << std::endl;
+    if (_featureFrictionStribeck) {
+        std::cout 
+            << std::setw(width1) << "FrictionVelLimit:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionVelLimit << std::endl;
+        std::cout 
+            << std::setw(width1) << "FrictionBreakOut:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionBreakOut << std::endl;
+    }
+    if (_featureBacklash) {
+        std::cout 
+            << std::setw(width1) << "FrictionViscousIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionViscousIn << std::endl;
+        std::cout 
+            << std::setw(width1) << "FrictionCoulombIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionCoulombIn << std::endl;
+        std::cout 
+            << std::setw(width1) << "InertiaIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramInertiaIn << std::endl;
+        if (_featureFrictionStribeck) {
+            std::cout 
+                << std::setw(width1) << "FrictionBreakIn:" 
+                << std::setw(width2) << std::fixed << std::setprecision(10) 
+                << _paramFrictionBreakIn << std::endl;
+        }
+    }
+    if (_featureBacklash) {
+        std::cout 
+            << std::setw(width1) << "BacklashRangeMax:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashRangeMax << std::endl;
+        std::cout 
+            << std::setw(width1) << "BacklashThresholdDeactivation:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashThresholdDeactivation << std::endl;
+        std::cout 
+            << std::setw(width1) << "BacklashThresholdActivation:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashThresholdActivation << std::endl;
+    }
+    std::cout 
+        << std::setw(width1) << "ControlLag:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramControlLag << std::endl;
+    std::cout 
+        << std::setw(width1) << "ElectricKe:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramElectricKe << std::endl;
+    std::cout 
+        << std::setw(width1) << "ControlGainP:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramControlGainP << std::endl;
+    if (_featureReadDiscretization) {
+        std::cout 
+            << std::setw(width1) << "ControlDiscretization:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramControlDiscretization << std::endl;
+    }
+    if (_featureOptimizationVoltage) {
+        std::cout 
+            << std::setw(width1) << "ElectricVoltage:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramElectricVoltage << std::endl;
+    }
+    if (_featureOptimizationResistance) {
+        std::cout 
+            << std::setw(width1) << "ElectricResistance:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramElectricResistance << std::endl;
+    }
+    if (_featureOptimizationRegularization) {
+        std::cout 
+            << std::setw(width1) << "FrictionRegularization:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionRegularization << std::endl;
+    }
+    std::cout << std::setiosflags(std::ios::right) ;
+}
 
 double JointModel::computeFrictionTorque(
     double vel, double* torque, 
@@ -549,6 +661,6 @@ double JointModel::computeControlTorque(
     
     return torque;
 }
-        
+
 }
 

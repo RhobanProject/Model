@@ -122,6 +122,12 @@ class JointModel
             double accGoal,
             double torqueGoal) const;
 
+        /**
+         * Print all parameter values on
+         * standard output
+         */
+        void printParameters() const;
+
     private:
 
         /**
