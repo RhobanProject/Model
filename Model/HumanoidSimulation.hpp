@@ -52,7 +52,7 @@ class HumanoidSimulation
         /**
          * Set the floating base (trunk) orientation
          * to set the lowest foot (or given foot) flat 
-         * on the ground
+         * on the ground and aligned in yaw with the origin.
          */
         void putOnGround();
         void putOnGround(
@@ -65,7 +65,7 @@ class HumanoidSimulation
          */
         void putFootAt(double x, double y);
         void putFootAt(double x, double y, 
-             HumanoidFixedModel::SupportFoot foot);
+            HumanoidFixedModel::SupportFoot foot);
 
         /**
          * Internal state access
@@ -76,10 +76,9 @@ class HumanoidSimulation
         Eigen::VectorXd& velocities();
         const Eigen::VectorXd& goals() const;
         Eigen::VectorXd& goals();
-        const Eigen::VectorXd& outputTorques() const;
+        const Eigen::VectorXd& jointTorques() const;
         const Eigen::VectorXd& frictionTorques() const;
         const Eigen::VectorXd& controlTorques() const;
-        const Eigen::VectorXd& inputTorques() const;
         const Eigen::VectorXd& accelerations() const;
 
         /**
@@ -122,7 +121,7 @@ class HumanoidSimulation
         void update(double dt);
 
         /**
-         * Display on standart output deguging
+         * Display on standart output debuging
          * info on cleats status
          */
         void printCleatsStatus(bool verbose = true);

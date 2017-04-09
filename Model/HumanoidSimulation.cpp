@@ -99,6 +99,7 @@ void HumanoidSimulation::putOnGround(
     //Update base
     setPos("base_roll", angles(0));
     setPos("base_pitch", angles(1));
+    setPos("base_yaw", angles(2));
 
     //Set the foot on ground
     Eigen::VectorXd pos = _model.position(footName, "origin");
@@ -139,7 +140,6 @@ void HumanoidSimulation::putFootAt(double x, double y,
     //Update base position
     setPos("base_x", originToTrunk.x());
     setPos("base_y", originToTrunk.y());
-    setPos("base_yaw", 0.0);
 }
 
 const Eigen::VectorXd& HumanoidSimulation::positions() const
@@ -166,9 +166,9 @@ Eigen::VectorXd& HumanoidSimulation::goals()
 {
     return _simulation.goals();
 }
-const Eigen::VectorXd& HumanoidSimulation::outputTorques() const
+const Eigen::VectorXd& HumanoidSimulation::jointTorques() const
 {
-    return _simulation.outputTorques();
+    return _simulation.jointTorques();
 }
 const Eigen::VectorXd& HumanoidSimulation::frictionTorques() const
 {
@@ -177,10 +177,6 @@ const Eigen::VectorXd& HumanoidSimulation::frictionTorques() const
 const Eigen::VectorXd& HumanoidSimulation::controlTorques() const
 {
     return _simulation.controlTorques();
-}
-const Eigen::VectorXd& HumanoidSimulation::inputTorques() const
-{
-    return _simulation.inputTorques();
 }
 const Eigen::VectorXd& HumanoidSimulation::accelerations() const
 {
