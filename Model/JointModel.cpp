@@ -10,12 +10,12 @@ namespace Leph {
 JointModel::JointModel(
     const std::string& name) :
     _name(name),
-    _featureBacklash(false),
-    _featureFrictionStribeck(false),
+    _featureBacklash(true),
+    _featureFrictionStribeck(true),
     _featureReadDiscretization(false),
-    _featureOptimizationVoltage(false),
-    _featureOptimizationResistance(false),
-    _featureOptimizationRegularization(false),
+    _featureOptimizationVoltage(true),
+    _featureOptimizationResistance(true),
+    _featureOptimizationRegularization(true),
     _goalTime(0.0),
     _goalHistory(),
     _isInitialized(false),

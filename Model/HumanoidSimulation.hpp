@@ -39,11 +39,6 @@ class HumanoidSimulation
             const std::map<std::string, size_t>& geometryName = {});
 
         /**
-         * Deallocation of ConstraintSet
-         */
-        ~HumanoidSimulation();
-
-        /**
          * Access to internal simulated model
          */
         const HumanoidModel& model() const;
@@ -135,13 +130,15 @@ class HumanoidSimulation
         struct CleatState {
             //Model frame name
             std::string frame;
-            //Cleat number between
-            //1 and 4 typicaly
-            int number;
             //RBDL body id
             size_t bodyId;
-            //Is left or right leg
-            bool isLeft;
+            //Cleat location
+            //Left or right foot, 
+            //top or bottom side (X),
+            //left or right side (Y)
+            bool isLeftFoot;
+            bool isTopSide;
+            bool isLeftSide;
             //Is currently in active constraints set
             bool isActive;
             //Is currently on the ground
@@ -167,9 +164,14 @@ class HumanoidSimulation
         ForwardSimulation _simulation;
 
         /**
+         * Is the ConstraintSet initialized
+         */
+        bool _isInitialized;
+
+        /**
          * RBDL current constraint set instance
          */
-        RBDL::ConstraintSet* _constraints;
+        RBDL::ConstraintSet _constraints;
 
         /**
          * All fot cleats current state container
@@ -183,33 +185,36 @@ class HumanoidSimulation
         void addCleat(const std::string& frame);
 
         /**
-         * Rebuild the RBDL constraint set
-         * from foot cleats state
+         * Build and return a RBDL ConstraintSet
+         * with all vertical (Z) and active contact.
+         * If withContact is true, also 
+         * add contacting cleat.
+         * If withLateral is true, also 
+         * add lateral (X,Y) constraints.
+         * If assignCleats is true, the vertical
+         * constraint index is assign to cleats.
+         * If isBilateralConstraint is not null,
+         * the vector is assign with boolan information
+         * on the associated constraint.
          */
-        void buildConstraints();
+        RBDL::ConstraintSet buildConstraintSet(
+            bool withContact, 
+            bool withLateral, 
+            bool assignCleats,
+            Eigen::VectorXi* isBilateralConstraint = nullptr);
 
         /**
-         * Assign current cleat active state to
-         * given combination.
-         * The set size is the number of constraints
-         * and the index is the number of activated cleat.
-         * Only given foot is assign.
-         * True is returned when only foot diagonal cleats
-         * are activated.
+         * Update cleats state (collisions detection,
+         * contact lost, negative force).
+         * If given isNeedLCPUpdate is assigned to true,
+         * the active ConstraintSet need to be updated.
+         * If given isNeedImpulse is assigned to true,
+         * the system need impulses to prevent collision.
          */
-        bool setActiveCombination(
-            const std::vector<size_t>& set, bool isLeft);
+        void checkAndUpdateCleatsState(
+            bool& isNeedLCPUpdate, bool& isNeedImpulse);
 
-        /**
-         * Try out all possible combination of enabled
-         * constraints for left or right foot (depending on
-         * is Left is true) to find a valid active set.
-         * The given dt is used to simulate the outcome
-         * one step ahead.
-         * Valid active constraint set are assign 
-         * (buildConstraints) and constraints are enforced.
-         */
-        void findActiveConstraints(double dt, bool isLeft);
+        void findActiveConstraintsLCP();
 };
 
 }

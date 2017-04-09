@@ -15,9 +15,16 @@ namespace Leph {
  * RBDL model, position, velocity and applied
  * torque are given in addition to the constraint
  * set for only considered contact.
+ * Inertia offsets (H matrix diagonal) is
+ * also given (for joint internal inertia).
  *
- * Do not add in the given constraint set 
- * the lateral (non inequality) contacts.
+ * The constraint set hold unilateral (inequality)
+ * for non penetration and bilateral (equality) 
+ * constraints representing no-slip infinite friction.
+ * All bilateral constraints must have non zero value
+ * in associated vector isBilateralConstraint.
+ * (Associated force lambda will not be constraint by
+ * complimentary. Always non zero).
  *
  * See Featherstone's book Chapter 11.3, for
  * details and notations.
@@ -31,7 +38,9 @@ void RBDLContactLCP(
     const RigidBodyDynamics::Math::VectorNd& Q,
     const RigidBodyDynamics::Math::VectorNd& QDot,
     const RigidBodyDynamics::Math::VectorNd& Tau,
-    RigidBodyDynamics::ConstraintSet& CS);
+    const RigidBodyDynamics::Math::VectorNd& inertiaOffset,
+    RigidBodyDynamics::ConstraintSet& CS,
+    const Eigen::VectorXi& isBilateralConstraint);
 
 }
 

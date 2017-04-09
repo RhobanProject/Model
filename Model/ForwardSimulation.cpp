@@ -131,6 +131,7 @@ void ForwardSimulation::update(double dt,
             _inertiaOffsets,
             RBDLMath::LinearSolverFullPivHouseholderQR);
     } else {
+        /* TODO
         _accelerations = 
             _model->forwardDynamicsContactsCustom(
             *constraints,
@@ -139,28 +140,19 @@ void ForwardSimulation::update(double dt,
             _jointTorques,
             _inertiaOffsets,
             RBDLMath::LinearSolverFullPivHouseholderQR);
-        /* TODO XXX
-        std::cout << "In ForwardSimulation do dynamics" << std::endl;
-        _accelerations = _model->forwardDynamicsContactsLambdaFirst(
-            *constraints,
-            _positions,
-            _velocities,
-            _jointTorques,
-            _inertiaOffsets);
         */
     }
     
     //TODO XXX
-    /*
-    std::cout << "TEST impultive dynamics" << std::endl;
-    Eigen::VectorXd tmpNextVel = _model->forwardImpulseDynamicsContacts(
+    //std::cout << "TEST impultive dynamics" << std::endl;
+    Eigen::VectorXd tmpNextVel = _model->forwardImpulseDynamicsContactsCustom(
         dt, 
         *constraints,
         _positions,
         _velocities,
         _jointTorques,
-        _inertiaOffsets);
-    */
+        _inertiaOffsets,
+        RBDLMath::LinearSolverFullPivHouseholderQR);
     
     //Compute next state with 
     //Euler integration.
@@ -169,10 +161,8 @@ void ForwardSimulation::update(double dt,
     _positions = _positions + dt*_velocities;
 
     //TODO XXX
-    /*
     _velocities = tmpNextVel;
     _positions = _positions + dt*_velocities;
-    */
 
     //Assign model position state
     _model->setDOFVect(_positions);

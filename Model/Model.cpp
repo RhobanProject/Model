@@ -812,11 +812,13 @@ Eigen::VectorXd Model::forwardImpulseDynamicsContactsCustom(
     Eigen::MatrixXd M1 = GG1 * Hinv * GG1.transpose();
     Eigen::VectorXd d1 = gg1 - GG1 * Hinv * (torque - constraints.C);
     Eigen::VectorXd lll1 = M1.llt().solve(d1);
+    /* XXX
     std::cout << "Solve 0 = M*l + d ---> Solve M*l = -d ###########" << std::endl;
     std::cout << "LAMBDA MANUAL: " << lll1.transpose() << std::endl;
     std::cout << "MANUAL gamma: " << gg1.transpose() << std::endl;
     Eigen::VectorXd Zeta = GG1 * velocity;
     std::cout << "ZETA: " << Zeta.transpose() << std::endl;
+    */
     //XXX TODO <---
 
     //Build matrix system

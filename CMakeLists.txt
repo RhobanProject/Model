@@ -81,6 +81,7 @@ set(SOURCES_FILES
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
+    Model/RBDLContactLCP.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/HumanoidSimulation.cpp
@@ -102,6 +103,7 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
+    LCPMobyDrake/LCPSolver.cpp
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajKickSingleContact.cpp
