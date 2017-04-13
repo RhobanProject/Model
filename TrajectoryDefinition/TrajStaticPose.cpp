@@ -75,6 +75,9 @@ TrajectoryGeneration::CheckStateFunc TrajStaticPose::funcCheckState(
         if (footPos.y() > -0.095) {
             cost += 1000.0 + 1000.0*(footPos.y() + 0.095);
         }
+        if (trunkPos.z() > 0.285) {
+            cost += 1000.0 + 1000.0*(trunkPos.z() - 0.285);
+        }
         //Forward to default state check
         cost += DefaultCheckState(params, t, 
             trunkPos, trunkAxis, footPos, footAxis);

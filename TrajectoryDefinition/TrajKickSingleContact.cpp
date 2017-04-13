@@ -160,7 +160,7 @@ void TrajKickSingleContact::initializeParameters(
     trajParams.set("recover_pos_trunk_axis_y", true)  = trajParams.get("static_single_pos_trunk_axis_y");
     trajParams.set("recover_pos_trunk_axis_z", true)  = trajParams.get("static_single_pos_trunk_axis_z");
     trajParams.set("recover_pos_foot_pos_x",   true)  = trajParams.get("static_single_pos_foot_pos_x");
-    trajParams.set("recover_pos_foot_pos_y",   true)  = trajParams.get("kick_y");
+    trajParams.cpy("recover_pos_foot_pos_y",   "kick_y");
     trajParams.set("recover_pos_foot_pos_z",   true)  = trajParams.get("static_single_pos_foot_pos_z");
     trajParams.set("recover_pos_foot_axis_x",  false) = 0.0;
     trajParams.set("recover_pos_foot_axis_y",  false) = 0.0;
@@ -173,7 +173,7 @@ void TrajKickSingleContact::initializeParameters(
     trajParams.set("recover_vel_trunk_axis_y", true)  = 0.0;
     trajParams.set("recover_vel_trunk_axis_z", true)  = 0.0;
     trajParams.set("recover_vel_foot_pos_x",   true)  = 0.0;
-    trajParams.set("recover_vel_foot_pos_y",   true)  = 0.0;
+    trajParams.set("recover_vel_foot_pos_y",   false) = 0.0;
     trajParams.set("recover_vel_foot_pos_z",   true)  = 0.0;
     trajParams.set("recover_vel_foot_axis_x",  false) = 0.0;
     trajParams.set("recover_vel_foot_axis_y",  false) = 0.0;
