@@ -375,7 +375,10 @@ class Plot
                 if (_pipeFd <= 0) {
                     throw std::logic_error("Plot closed pipe fd");
                 }
-                write(_pipeFd, commands.c_str(), commands.length());
+                int written = write(_pipeFd, commands.c_str(), commands.length());
+                if (written != (int)commands.length()) {
+                    std::cerr << "Leph::Plot::render: failed to write in pipe" << std::endl;
+                }
                 if (waitExit) {
                     waitCloseGnuplotInstance();
                 }
