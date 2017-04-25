@@ -141,7 +141,7 @@ class HumanoidModel : public Model
             const Eigen::Vector3d& pos = Eigen::Vector3d::Zero());
         
         /**
-         * Convect given pixel in image space (-1,1)
+         * Convert given pixel in image space (-1,1)
          * or given extrinsic Pan/Tilt euler angles
          * with respect to robot self frame to unnormalized
          * view vector in world frame.
