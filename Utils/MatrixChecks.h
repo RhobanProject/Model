@@ -9,7 +9,7 @@ namespace Leph {
  * Return true if given matrix is 
  * square and symmetric
  */
-bool IsMatrixSymmetric(
+inline bool IsMatrixSymmetric(
     const Eigen::MatrixXd& mat, double epsilon = 1e-9)
 {
     //Check matrix square
@@ -36,7 +36,7 @@ bool IsMatrixSymmetric(
  * Return true if given matrix is
  * square, symmetric and definite positive.
  */
-bool IsMatrixSymmetricDefinitePositive(
+inline bool IsMatrixSymmetricDefinitePositive(
     const Eigen::MatrixXd& mat)
 {
     //Check matrix square
