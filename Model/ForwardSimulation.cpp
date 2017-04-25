@@ -145,14 +145,17 @@ void ForwardSimulation::update(double dt,
     
     //TODO XXX
     //std::cout << "TEST impultive dynamics" << std::endl;
-    Eigen::VectorXd tmpNextVel = _model->forwardImpulseDynamicsContactsCustom(
-        dt, 
-        *constraints,
-        _positions,
-        _velocities,
-        _jointTorques,
-        _inertiaOffsets,
-        RBDLMath::LinearSolverFullPivHouseholderQR);
+    Eigen::VectorXd tmpNextVel;
+    if (constraints != nullptr) {
+        tmpNextVel = _model->forwardImpulseDynamicsContactsCustom(
+            dt, 
+            *constraints,
+            _positions,
+            _velocities,
+            _jointTorques,
+            _inertiaOffsets,
+            RBDLMath::LinearSolverFullPivHouseholderQR);
+    }
     
     //Compute next state with 
     //Euler integration.
@@ -161,8 +164,10 @@ void ForwardSimulation::update(double dt,
     _positions = _positions + dt*_velocities;
 
     //TODO XXX
-    _velocities = tmpNextVel;
-    _positions = _positions + dt*_velocities;
+    if (constraints != nullptr) {
+        _velocities = tmpNextVel;
+        _positions = _positions + dt*_velocities;
+    }
 
     //Assign model position state
     _model->setDOFVect(_positions);

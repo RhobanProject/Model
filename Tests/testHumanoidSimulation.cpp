@@ -142,9 +142,12 @@ void testWalk()
         if (isFirstIteration) {
             for (const std::string& name : Leph::NamesDOF) {
                 sim.setPos(name, goalModel.getDOF(name));
+                sim.setGoal(name, goalModel.getDOF(name));
                 sim.setVel(name, 0.0);
             }
             sim.putOnGround();
+            sim.putFootAt(0.0, 0.0, 
+                Leph::HumanoidFixedModel::LeftSupportFoot);
             isFirstIteration = false;
         }
         //Run simulation
