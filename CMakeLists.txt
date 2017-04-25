@@ -180,7 +180,7 @@ set(APPS_FILES
     appTrajectoriesLogFitting
     appMapSeriesLogsCut
     appModelParametersViewer
-    appHumanoidSimulationLearning
+    #appHumanoidSimulationLearning
     appCameraModelLearning
 )
 
