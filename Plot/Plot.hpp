@@ -377,7 +377,8 @@ class Plot
                 }
                 int written = write(_pipeFd, commands.c_str(), commands.length());
                 if (written != (int)commands.length()) {
-                    std::cerr << "Leph::Plot::render: failed to write in pipe" << std::endl;
+                    std::cerr << "Plot failed to write in pipe: " 
+                        << std::to_string(written) << std::endl;
                 }
                 if (waitExit) {
                     waitCloseGnuplotInstance();
