@@ -28,35 +28,6 @@ void printLine(
 
 /**
  * Display and compare given two 
- * joint parameters with given name
- */
-void printJointParams(
-    const std::string& name, 
-    const Eigen::VectorXd& data1, 
-    const Eigen::VectorXd& data2)
-{
-    printLine(name, "friction_vel_limit", data1(0), data2(0));
-    printLine(name, "friction_viscous_out", data1(1), data2(1));
-    printLine(name, "friction_break_out", data1(2), data2(2));
-    printLine(name, "friction_coulomb_out", data1(3), data2(3));
-    printLine(name, "inertia_out", data1(4), data2(4));
-    printLine(name, "control_lag", data1(5), data2(5));
-    printLine(name, "friction_viscous_in", data1(6), data2(6));
-    printLine(name, "friction_break_in", data1(7), data2(7));
-    printLine(name, "friction_coulomb_in", data1(8), data2(8));
-    printLine(name, "inertia_in", data1(9), data2(9));
-    printLine(name, "backlash_range_max", data1(10), data2(10));
-    printLine(name, "backlash_threshold_deactivation", data1(11), data2(11));
-    printLine(name, "backlash_threshold_activation", data1(12), data2(12));
-    printLine(name, "electric_Ke", data1(13), data2(13));
-    printLine(name, "electric_voltage", data1(14), data2(14));
-    printLine(name, "electric_resistance", data1(15), data2(15));
-    printLine(name, "control_gainP", data1(16), data2(16));
-    printLine(name, "control_discretization", data1(17), data2(17));
-}
-
-/**
- * Display and compare given two 
  * inertia parameters with given name
  */
 void printInertiaParams(
@@ -139,11 +110,8 @@ int main(int argc, char** argv)
     for (const auto& it : jointName) {
         std::string name = it.first;
         size_t index1 = it.second;
-        size_t index2 = defaultJointName.at(name);
-        printJointParams(
-            name, 
-            jointData.row(index1).transpose(), 
-            defaultJointData.row(index2).transpose());
+        tmpJoint.setParameters(jointData.row(index1).transpose());
+        tmpJoint.printParameters();
     }
     for (const auto& it : inertiaName) {
         std::string name = it.first;
