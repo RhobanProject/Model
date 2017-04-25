@@ -72,6 +72,7 @@ set(SOURCES_FILES
     Utils/ComputeModelData.cpp
     Utils/FileEigen.cpp
     Utils/FileModelParameters.cpp
+    Utils/GaussianDistribution.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -179,6 +180,8 @@ set(APPS_FILES
     appTrajectoriesLogFitting
     appMapSeriesLogsCut
     appModelParametersViewer
+    appHumanoidSimulationLearning
+    appCameraModelLearning
 )
 
 #Build App RhIO Viewer 
@@ -255,6 +258,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appDMPTrajectoryOptimization
         appTrajectoriesKickGeneration
         appHumanoidSimulationPlayer
+        appFeedForwardSimulation
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics
