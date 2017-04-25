@@ -504,6 +504,7 @@ static double scoreFitting(
             exit(1);
         }
         //Compute external torque on goal trajectories
+        //TODO XXX Only handle single support
         Eigen::VectorXd torques = modelGoal.get().inverseDynamics(dq, ddq);
         
         //Compute dof target for feed model

@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     }
     std::string logFileName = argv[1];
     std::string prefix = argv[2];
-    
+
     //Load data
     std::cout << "Loading " << logFileName 
         << " with prefix " << prefix << std::endl;
@@ -120,6 +120,12 @@ int main(int argc, char** argv)
         .plot("time", prefix + ":foot_roll")
         .plot("time", prefix + ":foot_pitch")
         .plot("time", prefix + ":foot_yaw")
+        .render();
+    series.plot()
+        .plot("time", "volt_power:*")
+        .render();
+    series.plot()
+        .plot("time", "volt_control:*")
         .render();
 
     //Display interface usage
