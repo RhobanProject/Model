@@ -151,6 +151,7 @@ class JointModel
         bool _featureOptimizationVoltage;
         bool _featureOptimizationResistance;
         bool _featureOptimizationRegularization;
+        bool _featureOptimizationControlGain;
 
         /**
          * Current integrated time in seconds
@@ -176,11 +177,19 @@ class JointModel
         double _stateBacklashVelocity;
 
         /**
-         * Firmware related coeficent
+         * Firmware related coefficent
          * from angular position error
-         * to electric tension
+         * to PWM ratio
          */
-        double _coefAnglePosToTension;
+        double _coefAnglePosToPWM;
+
+        /**
+         * Firmware related coefficient
+         * bounding the PWM control ratio
+         * between -100%*_coefPWMBound to
+         * 100%*_coefPWMBound.
+         */
+        double _coefPWMBound;
 
         /**
          * Model parameters.

@@ -13,9 +13,10 @@ JointModel::JointModel(
     _featureBacklash(true),
     _featureFrictionStribeck(true),
     _featureReadDiscretization(false),
-    _featureOptimizationVoltage(true),
+    _featureOptimizationVoltage(false),
     _featureOptimizationResistance(true),
-    _featureOptimizationRegularization(true),
+    _featureOptimizationRegularization(false),
+    _featureOptimizationControlGain(false),
     _goalTime(0.0),
     _goalHistory(),
     _isInitialized(false),
@@ -24,7 +25,8 @@ JointModel::JointModel(
     _stateBacklashPosition(0.0),
     _stateBacklashVelocity(0.0),
     //Firmware coefficients
-    _coefAnglePosToTension((4096.0/(2.0*M_PI))*(12.0/3000.0)),
+    _coefAnglePosToPWM((4096.0/(2.0*M_PI))/3000.0),
+    _coefPWMBound(0.983),
     //Default parameters value
     //Friction static regularization coefficient
     _paramFrictionRegularization(20.0),
@@ -51,40 +53,19 @@ JointModel::JointModel(
     //Electric motor resistance
     _paramElectricResistance(4.07),
     //Motor proportional control
-    _paramControlGainP(32.0),
+    _paramControlGainP(30.0),
     //Motor position discretization coefficient
     _paramControlDiscretization(2048.0),
     //Control lag in seconds
     _paramControlLag(0.030),
     //Backlash enable to disable position threshold
     //(Positive offset above activation)
-    _paramBacklashThresholdDeactivation(0.002),
+    _paramBacklashThresholdDeactivation(0.01),
     //Backlash disable to enable position threshold
-    _paramBacklashThresholdActivation(0.006),
+    _paramBacklashThresholdActivation(0.02),
     //Backlash maximum angular distance
-    _paramBacklashRangeMax(0.01)
+    _paramBacklashRangeMax(0.05)
 {
-    //TODO XXX
-    //Temporary identified parameters
-    _paramFrictionVelLimit = 0.2914428092;
-    _paramFrictionViscousOut = 0.003099660986;
-    _paramFrictionBreakOut = 0.04943333614;
-    _paramFrictionCoulombOut = 0.02171844766;
-    _paramInertiaOut = 0.0007936561532;
-    _paramControlLag = 0.03300551425;
-    _paramFrictionViscousIn = 0.1242307908;
-    _paramFrictionBreakIn = 0.10865058966;
-    _paramFrictionCoulombIn = 0.07522603114;
-    _paramInertiaIn = 0.005212544434;
-    _paramBacklashRangeMax = 0.006733195882;
-    _paramBacklashThresholdDeactivation = 0.002;
-    _paramBacklashThresholdActivation = 0.004;
-    _paramElectricKe = 1.951435691;
-    _paramElectricVoltage = 12.65527041;
-    _paramElectricResistance = 3.098613714;
-    _paramControlGainP = 39.32076467;
-    _paramControlDiscretization = 2048.0;
-
     //Initialize the parameters according to 
     //selected feature model
     Eigen::VectorXd tmpParams = getParameters();
@@ -135,11 +116,10 @@ const Eigen::VectorXd JointModel::getParameters() const
         index += 3;
     }
     //Other control and electric parameters
-    parameters.conservativeResize(index+3);
+    parameters.conservativeResize(index+2);
     parameters(index) = _paramControlLag;
     parameters(index+1) = _paramElectricKe;
-    parameters(index+2) = _paramControlGainP;
-    index += 3;
+    index += 2;
     //Read position encoder discretization
     if (_featureReadDiscretization) {
         parameters.conservativeResize(index+1);
@@ -162,6 +142,12 @@ const Eigen::VectorXd JointModel::getParameters() const
     if (_featureOptimizationRegularization) {
         parameters.conservativeResize(index+1);
         parameters(index) = _paramFrictionRegularization;
+        index++;
+    }
+    //Proportional control gain
+    if (_featureOptimizationControlGain) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramControlGainP;
         index++;
     }
 
@@ -213,11 +199,10 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
         index += 3;
     }
     //Other control and electric parameters
-    if ((size_t)tmpParams.size() < index+3) goto sizeError;
+    if ((size_t)tmpParams.size() < index+2) goto sizeError;
     _paramControlLag = tmpParams(index);
     _paramElectricKe = tmpParams(index+1);
-    _paramControlGainP = tmpParams(index+2);
-    index += 3;
+    index += 2;
     //Read position encoder discretization
     if (_featureReadDiscretization) {
         if ((size_t)tmpParams.size() < index+1) goto sizeError;
@@ -240,6 +225,12 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
     if (_featureOptimizationRegularization) {
         if ((size_t)tmpParams.size() < index+1) goto sizeError;
         _paramFrictionRegularization = tmpParams(index);
+        index++;
+    }
+    //Propotional control gain
+    if (_featureOptimizationControlGain) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramControlGainP = tmpParams(index);
         index++;
     }
     return;
@@ -463,17 +454,20 @@ double JointModel::computeFeedForward(
     double tensionGoal = computeElectricTension(
         velGoal, accGoal, torqueGoal);
 
-    //Bound tension to controller capability
-    if (tensionGoal > _paramElectricVoltage) {
-        tensionGoal = _paramElectricVoltage;
+    //Compute expected control PWM ratio
+    double controlRatioGoal = tensionGoal/(_paramElectricVoltage);
+
+    //Bound control ratio to controller capability
+    if (controlRatioGoal > _coefPWMBound) {
+        tensionGoal = _coefPWMBound;
     }
-    if (tensionGoal < -_paramElectricVoltage) {
-        tensionGoal = -_paramElectricVoltage;
+    if (tensionGoal < -_coefPWMBound) {
+        tensionGoal = -_coefPWMBound;
     }
 
     //Compute angular offset from tension
-    double angularOffset = 
-        tensionGoal/(_paramControlGainP*_coefAnglePosToTension);
+    double angularOffset = controlRatioGoal
+        /(_paramControlGainP*_coefAnglePosToPWM);
 
     return angularOffset;
 }
@@ -557,10 +551,6 @@ void JointModel::printParameters() const
         << std::setw(width1) << "ElectricKe:" 
         << std::setw(width2) << std::fixed << std::setprecision(10) 
         << _paramElectricKe << std::endl;
-    std::cout 
-        << std::setw(width1) << "ControlGainP:" 
-        << std::setw(width2) << std::fixed << std::setprecision(10) 
-        << _paramControlGainP << std::endl;
     if (_featureReadDiscretization) {
         std::cout 
             << std::setw(width1) << "ControlDiscretization:" 
@@ -584,6 +574,12 @@ void JointModel::printParameters() const
             << std::setw(width1) << "FrictionRegularization:" 
             << std::setw(width2) << std::fixed << std::setprecision(10) 
             << _paramFrictionRegularization << std::endl;
+    }
+    if (_featureOptimizationControlGain) {
+        std::cout 
+            << std::setw(width1) << "ControlGainP:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramControlGainP << std::endl;
     }
     std::cout << std::setiosflags(std::ios::right) ;
 }
@@ -642,17 +638,20 @@ double JointModel::computeControlTorque(
     //Retrieve delayed goal
     double delayedGoal = getDelayedGoal();
 
-    //Compute current tension with
-    //proportional controller
-    double error = AngleDistance(discretizedPos, delayedGoal);
-    double tension = _paramControlGainP*error*_coefAnglePosToTension;
-
-    //Bound to available voltage
-    if (tension > _paramElectricVoltage) {
-        tension = _paramElectricVoltage;
-    } else if (tension < -_paramElectricVoltage) {
-        tension = -_paramElectricVoltage;
+    //Angular distance in radian
+    double error = AngleDistance(delayedGoal, discretizedPos);
+    //Compute Motor control PWM ratio 
+    double controlRatio = -_paramControlGainP*error*_coefAnglePosToPWM;
+    //Bound the PWM control ratio between
+    //-1.0*_coefPWMBound and 1.0*_coefPWMBound
+    if (controlRatio > _coefPWMBound) {
+        controlRatio = _coefPWMBound;
+    } else if (controlRatio < -_coefPWMBound) {
+        controlRatio = -_coefPWMBound;
     }
+    //Compute the applied tension 
+    //on the electric motor by H-bridge
+    double tension = controlRatio*_paramElectricVoltage;
 
     //Compute applied electrical torque
     double torque = 
