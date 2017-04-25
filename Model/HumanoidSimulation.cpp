@@ -17,7 +17,8 @@ HumanoidSimulation::HumanoidSimulation(
     _simulation(_model),
     _isInitialized(false),
     _constraints(),
-    _cleats()
+    _cleats(),
+    _isFixedContact(false)
 {
     //Model initialization
     putOnGround();
@@ -113,13 +114,17 @@ void HumanoidSimulation::putFootAt(double x, double y)
 
 }
 void HumanoidSimulation::putFootAt(double x, double y, 
-    HumanoidFixedModel::SupportFoot foot)
+    HumanoidFixedModel::SupportFoot foot,
+    bool isContactFixed)
 {
+    bool isLeftFoot;
     std::string footName;
     if (foot == HumanoidFixedModel::LeftSupportFoot) {
         footName = "left_foot_tip";
+        isLeftFoot = true;
     } else {
         footName = "right_foot_tip";
+        isLeftFoot = false;
     }
 
     //Compute translation in origin frame
@@ -130,6 +135,23 @@ void HumanoidSimulation::putFootAt(double x, double y,
     //Update base position
     setPos("base_x", originToTrunk.x());
     setPos("base_y", originToTrunk.y());
+
+    //Set the foot fixed
+    if (isContactFixed) {
+        _isFixedContact = true;
+        unsigned int count = 0;
+        for (auto& it : _cleats) {
+            it.second.isActive = false;
+            it.second.isContact = false;
+            if (it.second.isLeftFoot == isLeftFoot && count < 3) {
+                it.second.isActive = true;
+                it.second.isContact = true;
+                count++;
+            }
+        }
+        _constraints = buildConstraintSet(
+            false, true, true);
+    }
 }
 
 const Eigen::VectorXd& HumanoidSimulation::positions() const
@@ -237,7 +259,9 @@ void HumanoidSimulation::update(double dt)
 
     bool isNeedLCPUpdate = false;
     bool isNeedImpulse = false;
-    checkAndUpdateCleatsState(isNeedLCPUpdate, isNeedImpulse);
+    if (!_isFixedContact) {
+        checkAndUpdateCleatsState(isNeedLCPUpdate, isNeedImpulse);
+    }
 
     //If needed, apply impulses on velocity 
     //to prevent collision
@@ -245,7 +269,10 @@ void HumanoidSimulation::update(double dt)
     }
 
     //If needed, recompute active constraints set
-    if (isNeedLCPUpdate || !_isInitialized) {
+    if (
+        (isNeedLCPUpdate || !_isInitialized) && 
+        !_isFixedContact
+    ) {
         RBDL::ConstraintSet tmpConstraints = buildConstraintSet(true, true /*XXX*/, false);
         // XXX std::cout << "Compute Impulse !" << std::endl;
         _simulation.computeImpulses(tmpConstraints);
@@ -256,6 +283,7 @@ void HumanoidSimulation::update(double dt)
 
     //TODO XXX
     //Check active cleat position
+    /*
     std::vector<Eigen::Vector3d> activeCleatsPos;
     size_t indexTODO = 0;
     for (const auto& it : _cleats) {
@@ -265,6 +293,7 @@ void HumanoidSimulation::update(double dt)
             indexTODO++;
         }
     }
+    */
 
     //Simulation update
     _simulation.update(dt, &_constraints);

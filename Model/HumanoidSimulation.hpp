@@ -56,11 +56,15 @@ class HumanoidSimulation
         /**
          * Set the floating base translation (trunk)
          * to set the lowest foot (or given foot) 
-         * at given position
+         * at given position.
+         * If isContactFixed is true, the given foot
+         * is assumed fixed on the ground and contacts
+         * are not updated.
          */
         void putFootAt(double x, double y);
         void putFootAt(double x, double y, 
-            HumanoidFixedModel::SupportFoot foot);
+            HumanoidFixedModel::SupportFoot foot,
+            bool isContactFixed = false);
 
         /**
          * Internal state access
@@ -178,6 +182,12 @@ class HumanoidSimulation
          * indexed by cleat name
          */
         std::map<std::string, CleatState> _cleats;
+
+        /**
+         * If true, the contact are assumed to
+         * be fixed and are not updated
+         */
+        bool _isFixedContact;
 
         /**
          * Add and configure a cleat with given name
