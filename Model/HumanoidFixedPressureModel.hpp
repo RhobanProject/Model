@@ -20,9 +20,17 @@ class HumanoidFixedPressureModel : public HumanoidFixedModel
     public:
         
         /**
-         * Initialization with given model type
+         * Initialization with given model type.
+         * If inertia data and name are not empty,
+         * given inertia override default model data.
+         * If geometry data and name are not empty,
+         * given geometry override default model data.
          */
-        HumanoidFixedPressureModel(RobotType type);
+        HumanoidFixedPressureModel(RobotType type,
+            const Eigen::MatrixXd& inertiaData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& inertiaName = {},
+            const Eigen::MatrixXd& geometryData = Eigen::MatrixXd(),
+            const std::map<std::string, size_t>& geometryName = {});
 
         /**
          * Set current pressure state

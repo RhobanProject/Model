@@ -3,9 +3,15 @@
 
 namespace Leph {
 
-HumanoidFixedPressureModel::HumanoidFixedPressureModel
-    (RobotType type) :
-    HumanoidFixedModel(type),
+HumanoidFixedPressureModel::HumanoidFixedPressureModel(
+    RobotType type,
+    const Eigen::MatrixXd& inertiaData,
+    const std::map<std::string, size_t>& inertiaName,
+    const Eigen::MatrixXd& geometryData,
+    const std::map<std::string, size_t>& geometryName) :
+    HumanoidFixedModel(type, 
+        inertiaData, inertiaName, 
+        geometryData, geometryName),
     _weight(0.0),
     _leftRatio(1.0),
     _rightRatio(0.0),
