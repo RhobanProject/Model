@@ -10,7 +10,7 @@
 #include <libcmaes/cmaes.h>
 #include "Plot/Plot.hpp"
 #include "Model/HumanoidFixedModel.hpp"
-#include "Model/OdometryModel.hpp"
+#include "Odometry/OdometryModel.hpp"
 #include "Utils/Angle.h"
 
 /**
@@ -32,7 +32,7 @@ static const unsigned int CMAESMaxIteration = 5000;
 static const unsigned int CMAESLambda = 10;
 static const unsigned int CMAESRestart = 3;
 static const bool CMAESQuiet = true;
-static const bool CMAESElitism = true;
+static const unsigned int CMAESElitism = 1;
 static const bool CMAESThreading = true;
 static const unsigned int NumberTries = 500;
 static const double AngularRangeFitness = 5.0*M_PI/180.0;
@@ -51,15 +51,22 @@ static std::default_random_engine generator(
     std::chrono::system_clock::now().time_since_epoch().count());
 
 /**
- * Odometry log data structure
+ * Odometry log data structure.
  */
 struct OdometryData {
+    //Model read and goal model cartesian 
+    //pose in origin at each log points at
+    //each log sequences
     std::vector<std::vector<Eigen::Vector3d>> readTrajsPose;
     std::vector<std::vector<Leph::HumanoidFixedModel::SupportFoot>> readTrajsSupport;
     std::vector<std::vector<Eigen::Vector3d>> goalTrajsPose;
     std::vector<std::vector<Leph::HumanoidFixedModel::SupportFoot>> goalTrajsSupport;
+    //Walk step,lateral,turn and phase walk order at each 
+    //logged point for each log sequences
     std::vector<std::vector<Eigen::Vector4d>> walkTrajsOrder;
     std::vector<std::vector<double>> walkTrajsPhase;
+    //Target measured cartesian displacement 
+    //for each log sequences
     std::vector<Eigen::Vector3d> targetDisplacements;
 };
 
@@ -136,7 +143,7 @@ void loadDataFromFile(OdometryData& data, const std::string& filename)
 }
 
 /**
- * Shuffle given odometry data 
+ * Shuffle sequences in given odometry data 
  */
 void shuffleData(OdometryData& data)
 {
@@ -265,7 +272,7 @@ double odometryModelFitness(
                 error += 1000.0 + 1000.0*(parameters(j) - upperBounds(j));
             }
         }
-        //Oterate over recorded point inside a sequence
+        //Iterate over recorded point inside a sequence
         double lastPhase = data.walkTrajsPhase[i].front();
         for (size_t j=0;j<data.readTrajsPose[i].size();j++) {
             double phase = data.walkTrajsPhase[i][j];

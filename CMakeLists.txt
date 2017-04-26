@@ -95,6 +95,7 @@ set(SOURCES_FILES
     Utils/ComputeModelData.cpp
     Utils/FileEigen.cpp
     Utils/FileModelParameters.cpp
+    Utils/GaussianDistribution.cpp
     Ncurses/InterfaceCLI.cpp
     Model/Model.cpp
     Model/HumanoidModel.cpp
@@ -104,11 +105,12 @@ set(SOURCES_FILES
     Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
+    Model/RBDLContactLCP.cpp
     Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/HumanoidSimulation.cpp
     Model/JointModel.cpp
-    Model/OdometryModel.cpp
+    Odometry/OdometryModel.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -125,9 +127,12 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
+    LCPMobyDrake/LCPSolver.cpp
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
+    TrajectoryDefinition/TrajKickSingleContact.cpp
     TrajectoryDefinition/TrajKickDouble.cpp
+    TrajectoryDefinition/TrajStaticPose.cpp
     TrajectoryDefinition/TrajLegLift.cpp
     TrajectoryDefinition/TrajWalk.cpp
 )
@@ -196,6 +201,10 @@ set(APPS_FILES
     appFeedForwardLogsComparison
     appHumanoidSimulationIdentification
     appTrajectoriesLogFitting
+    appMapSeriesLogsCut
+    appModelParametersViewer
+    #appHumanoidSimulationLearning
+    appCameraModelLearning
 )
 
 #Build App RhIO Viewer 
@@ -275,6 +284,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         appDMPTrajectoryOptimization
         appTrajectoriesKickGeneration
         appHumanoidSimulationPlayer
+        appFeedForwardSimulation
     )
     set(CODE_LIBRARIES ${CODE_LIBRARIES} 
         sfml-graphics

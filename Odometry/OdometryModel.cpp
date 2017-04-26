@@ -1,6 +1,6 @@
 #include <stdexcept>
 #include <Utils/Angle.h>
-#include "Model/OdometryModel.hpp"
+#include "Odometry/OdometryModel.hpp"
 
 namespace Leph {
         
@@ -457,6 +457,7 @@ void OdometryModel::reset(const Eigen::Vector3d& pose)
     _isInitialized = false;
     _state = pose;
     _corrected = pose;
+    _lastDiff = Eigen::Vector3d(0.0, 0.0, 0.0);
 }
 
 void OdometryModel::update(

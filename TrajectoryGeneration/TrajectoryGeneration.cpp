@@ -179,11 +179,12 @@ double TrajectoryGeneration::endScore(
 }
 
 double TrajectoryGeneration::scoreSim(
+    const Eigen::VectorXd& params,
     double t,
     HumanoidSimulation& sim,
     std::vector<double>& data) const
 {
-    return _scoreSimFunc(t, sim, data);
+    return _scoreSimFunc(params, t, sim, data);
 }
 double TrajectoryGeneration::endScoreSim(
     const Eigen::VectorXd& params,
@@ -442,8 +443,8 @@ double TrajectoryGeneration::scoreSimulation(
         sim.setPos(name, modelGoal.get().getDOF(name));
         size_t indexModel = modelGoal.get().getDOFIndex(name);
         sim.setVel(name, dqInit(indexModel));
-        //Reset backlash state
-        sim.jointModel(name).resetBacklashState();
+        //Reset backlash and goal state
+        sim.jointModel(name).resetHiddenState();
     }
     for (const std::string& name : Leph::NamesBase) {
         sim.setVel(name, 0.0); 
@@ -579,7 +580,7 @@ double TrajectoryGeneration::scoreSimulation(
             break;
         } 
         //Call user defined score function
-        cost += scoreSim(t, sim, data);
+        cost += scoreSim(params, t, sim, data);
     }
     //Call user defined end score function
     cost += endScoreSim(params, traj, cost, data, verbose);

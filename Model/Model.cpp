@@ -2,6 +2,7 @@
 #include <cmath>
 #include "Model/Model.hpp"
 #include "Model/RBDLClosedLoop.h"
+#include "Model/RBDLContactLCP.h"
 
 namespace Leph {
 
@@ -147,7 +148,11 @@ const VectorLabel& Model::getDOF()
 }
 double Model::getDOF(const std::string& name) const
 {
-    return _dofs(_dofNameToIndex.at(name));
+    try {
+        return _dofs(_dofNameToIndex.at(name));
+    } catch (const std::out_of_range& e) {
+        throw std::logic_error("Model unknown getDOF(): " + name);
+    }
 }
 double Model::getDOF(size_t index) const
 {
@@ -162,7 +167,11 @@ void Model::setDOF(const VectorLabel& vect, bool setBase)
 }
 void Model::setDOF(const std::string& name, double value)
 {
-    _dofs(_dofNameToIndex.at(name)) = value;
+    try {
+        _dofs(_dofNameToIndex.at(name)) = value;
+    } catch (const std::out_of_range& e) {
+        throw std::logic_error("Model unknown setDOF(): " + name);
+    }
 }
 void Model::setDOF(size_t index, double value)
 {
@@ -555,11 +564,10 @@ Eigen::VectorXd Model::forwardDynamics(
     return QDDot;
 }
 
-Eigen::VectorXd Model::forwardDynamicsPartial(
+Eigen::VectorXd Model::forwardDynamicsCustom(
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
-    const Eigen::VectorXi& enabled,
     const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
@@ -576,20 +584,23 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
         throw std::logic_error(
             "Model invalid acceleration vector size");
     }
-    if (enabled.size() != _model.dof_count) {
+    if (inertiaOffset.size() != _model.dof_count) {
         throw std::logic_error(
-            "Model invalid enabled vector size");
+            "Model invalid inertia vector size");
     }
+
+    //Retrieve size
+    size_t sizeDOF = position.size();
 
     //Initialize returned acceleration
     Eigen::VectorXd acceleration = 
-        Eigen::VectorXd::Zero(_model.dof_count);
+        Eigen::VectorXd::Zero(sizeDOF);
 
     //Compute full H anc C matrix
     RBDLMath::MatrixNd H = RBDLMath::MatrixNd::Zero(
-        _model.dof_count, _model.dof_count);
+        sizeDOF, sizeDOF);
     RBDLMath::VectorNd C = RBDLMath::VectorNd::Zero(
-        _model.dof_count);
+        sizeDOF);
     //Compute C with inverse dynamics
     acceleration.setZero();
     RBDL::InverseDynamics(_model, 
@@ -597,88 +608,36 @@ Eigen::VectorXd Model::forwardDynamicsPartial(
     //Compute H
     RBDL::CompositeRigidBodyAlgorithm(
         _model, position, H, false);
-
-    //Count activated DOF
-    size_t sizeEnabled = 0;
-    for (size_t i=0;i<(size_t)enabled.size();i++) {
-        if (enabled(i) != 0) {
-            sizeEnabled++;
-        }
-    }
-    if (sizeEnabled == 0) {
-        acceleration.setZero();
-        return acceleration;
-    }
-    //Build shrinked vector
-    RBDLMath::MatrixNd H2 = 
-        RBDLMath::MatrixNd::Zero(sizeEnabled, sizeEnabled);
-    RBDLMath::VectorNd C2 = 
-        RBDLMath::VectorNd::Zero(sizeEnabled);
-    RBDLMath::VectorNd pos2 = 
-        RBDLMath::VectorNd::Zero(sizeEnabled);
-    RBDLMath::VectorNd vel2 = 
-        RBDLMath::VectorNd::Zero(sizeEnabled);
-    RBDLMath::VectorNd acc2 = 
-        RBDLMath::VectorNd::Zero(sizeEnabled);
-    RBDLMath::VectorNd torque2 = 
-        RBDLMath::VectorNd::Zero(sizeEnabled);
-    size_t index = 0;
-    for (size_t i=0;i<(size_t)enabled.size();i++) {
-        if (enabled(i) != 0) {
-            pos2(index) = position(i);
-            vel2(index) = velocity(i);
-            acc2(index) = acceleration(i);
-            torque2(index) = torque(i);
-            C2(index) = C(i);
-            size_t index2 = 0;
-            for (size_t j=0;j<(size_t)enabled.size();j++) {
-                if (enabled(j) != 0) {
-                    H2(index, index2) = H(i, j);
-                    //Add inertial offset on diagonal
-                    if (i == j) {
-                        H2(index, index2) += inertiaOffset(i);
-                    }
-                    index2++;
-                }
-            }
-            index++;
-        }
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        H(i, i) += inertiaOffset(i);
     }
 
     //Solve the linear system
     switch (solver) {
         case RBDLMath::LinearSolverPartialPivLU:
-            acc2 = H2.partialPivLu().solve(-C2 + torque2);
+            acceleration = H.partialPivLu().solve(-C + torque);
             break;
         case RBDLMath::LinearSolverColPivHouseholderQR:
-            acc2 = H2.colPivHouseholderQr().solve(-C2 + torque2);
+            acceleration = H.colPivHouseholderQr().solve(-C + torque);
             break;
         case RBDLMath::LinearSolverHouseholderQR:
-            acc2 = H2.householderQr().solve(-C2 + torque2);
+            acceleration = H.householderQr().solve(-C + torque);
             break;
         case RBDLMath::LinearSolverLLT:
-            acc2 = H2.llt().solve(-C2 + torque2);
+            acceleration = H.llt().solve(-C + torque);
             break;
         case RBDLMath::LinearSolverFullPivLU:
-            acc2 = H2.fullPivLu().solve(-C2 + torque2);
+            acceleration = H.fullPivLu().solve(-C + torque);
             break;
         case RBDLMath::LinearSolverFullPivHouseholderQR:
-            acc2 = H2.fullPivHouseholderQr().solve(-C2 + torque2);
+            acceleration = H.fullPivHouseholderQr().solve(-C + torque);
             break;
         default:
             assert(0);
             break;
     }
     
-    //Re assign output acceleration vector
-    index = 0;
-    for (size_t i=0;i<(size_t)enabled.size();i++) {
-        if (enabled(i) != 0) {
-            acceleration(i) = acc2(index);
-            index++;
-        }
-    }
-
     return acceleration;
 }
 
@@ -709,12 +668,11 @@ Eigen::VectorXd Model::forwardDynamicsContacts(
     return QDDot;
 }
 
-Eigen::VectorXd Model::forwardDynamicsContactsPartial(
+Eigen::VectorXd Model::forwardDynamicsContactsCustom(
     RBDL::ConstraintSet& constraints,
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
     const Eigen::VectorXd& torque,
-    const Eigen::VectorXi& enabled,
     const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
@@ -731,117 +689,191 @@ Eigen::VectorXd Model::forwardDynamicsContactsPartial(
         throw std::logic_error(
             "Model invalid torque vector size");
     }
-    if (enabled.size() != _model.dof_count) {
+    if (inertiaOffset.size() != _model.dof_count) {
         throw std::logic_error(
-            "Model invalid enabled vector size");
+            "Model invalid inertia vector size");
     }
-
-    //Initialize returned acceleration
-    Eigen::VectorXd acceleration = 
-        Eigen::VectorXd::Zero(_model.dof_count);
+    
+    //Retrieve sizes
+    size_t sizeCst = constraints.size();
+    size_t sizeDOF = position.size();
     
     //Compute full H, G matrix and C, gamma 
     //vectors into the constraint set
     //(actually, torque is not used by RBDL)
     RBDL::CalcContactSystemVariables(
         _model, position, velocity, torque, constraints);
-
-    //Count activated DOF
-    size_t sizeConstraints = constraints.size();
-    size_t sizeAll = enabled.size();
-    size_t sizeEnabled = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            sizeEnabled++;
-        }
-    }
-    if (sizeEnabled == 0) {
-        acceleration.setZero();
-        return acceleration;
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        constraints.H(i, i) += inertiaOffset(i);
     }
 
-    //Build shrinked matrix and vectors
-    RBDLMath::VectorNd acc2 = RBDLMath::VectorNd::Zero(
-        sizeEnabled + sizeConstraints);
-    RBDLMath::MatrixNd A2 = RBDLMath::MatrixNd::Zero(
-        sizeEnabled + sizeConstraints, 
-        sizeEnabled + sizeConstraints);
-    RBDLMath::VectorNd b2 = RBDLMath::VectorNd::Zero(
-        sizeEnabled + sizeConstraints);
-    size_t index = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            b2(index) = torque(i) - constraints.C(i);
-            size_t index2 = 0;
-            for (size_t j=0;j<sizeAll;j++) {
-                if (enabled(j) != 0) {
-                    A2(index, index2) = constraints.H(i, j);
-                    //Add inertia offset on diagonal
-                    if (i == j) {
-                        A2(index, index2) += inertiaOffset(i);
-                    }
-                    index2++;
-                }
-            }
-            index++;
-        }
-    }
-    for (size_t i=0;i<sizeConstraints;i++) {
-        size_t index2 = 0;
-        for (size_t j=0;j<sizeAll;j++) {
-            if (enabled(j) != 0) {
-                A2(sizeEnabled+i, index2) = constraints.G(i, j);
-                A2(index2, sizeEnabled+i) = constraints.G(i, j);
-                index2++;
-            }
-        }
-    }
-    b2.block(sizeEnabled, 0, sizeConstraints, 1) = constraints.gamma;
+    //Build matrices Ax = b
+    //|H Gt| |acc    | = |tau-C|
+    //|G  0| |-lambda|   |gamma|
+    constraints.A.setZero();
+    constraints.b.setZero();
+    constraints.A.block(0, 0, sizeDOF, sizeDOF) = 
+        constraints.H;
+    constraints.A.block(sizeDOF, 0, sizeCst, sizeDOF) = 
+        constraints.G;
+    constraints.A.block(0, sizeDOF, sizeDOF, sizeCst) = 
+        constraints.G.transpose();
+    constraints.b.segment(0, sizeDOF) = 
+        torque - constraints.C;
+    constraints.b.segment(sizeDOF, sizeCst) = 
+        constraints.gamma;
 
     //Solve the linear system
     switch (solver) {
         case RBDLMath::LinearSolverPartialPivLU:
-            acc2 = A2.partialPivLu().solve(b2);
+            constraints.x = constraints.
+                A.partialPivLu().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverColPivHouseholderQR:
-            acc2 = A2.colPivHouseholderQr().solve(b2);
+            constraints.x = constraints.
+                A.colPivHouseholderQr().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverHouseholderQR:
-            acc2 = A2.householderQr().solve(b2);
+            constraints.x = constraints.
+                A.householderQr().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverFullPivLU:
-            acc2 = A2.fullPivLu().solve(b2);
+            constraints.x = constraints.
+                A.fullPivLu().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverFullPivHouseholderQR:
-            acc2 = A2.fullPivHouseholderQr().solve(b2);
+            constraints.x = constraints.
+                A.fullPivHouseholderQr().solve(constraints.b);
             break;
         default:
             assert(0);
             break;
     }
 	
-    //Copy back contact forces
-    for (unsigned int i=0;i<sizeConstraints;i++) {
-        constraints.force(i) = -acc2(sizeEnabled + i);
+    //Copy computed force
+    constraints.force = -constraints.x.segment(sizeDOF, sizeCst);
+    //Return computed acceleration
+    return constraints.x.segment(0, sizeDOF);
+}
+
+Eigen::VectorXd Model::forwardImpulseDynamicsContactsCustom(
+    double dt,
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXd& inertiaOffset,
+    RBDLMath::LinearSolver solver)
+{
+    //Sanity check
+    if (position.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid position vector size");
+    }
+    if (velocity.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid velocity vector size");
+    }
+    if (torque.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid torque vector size");
+    }
+    if (inertiaOffset.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid inertia vector size");
     }
     
-    //Re assign output acceleration vector
-    index = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            acceleration(i) = acc2(index);
-            index++;
-        }
-    }
+    //Retrieve sizes
+    size_t sizeDOF = position.size();
+    size_t sizeCst = constraints.size();
 
-    return acceleration;
+    //Compute full H, G matrix and C
+    //vectors into the constraint set
+    RBDL::CalcContactSystemVariables(
+        _model, position /*+ dt*velocity TODO XXX ??? usefull*/, 
+        velocity, torque, constraints);
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        constraints.H(i, i) += inertiaOffset(i);
+    }
+    
+    //XXX TODO --->
+    //Compute H inverse
+    auto HQR = constraints.H.colPivHouseholderQr();
+    if (!HQR.isInvertible()) {
+        throw std::logic_error(
+            "RBDLContactLCP non invertible H matrix");
+    }
+    RBDLMath::MatrixNd Hinv = HQR.inverse();
+    //Compute M matrix and d vector
+    Eigen::MatrixXd GG1 = constraints.G;
+    Eigen::VectorXd gg1 = constraints.gamma;
+    Eigen::MatrixXd M1 = GG1 * Hinv * GG1.transpose();
+    Eigen::VectorXd d1 = gg1 - GG1 * Hinv * (torque - constraints.C);
+    Eigen::VectorXd lll1 = M1.llt().solve(d1);
+    /* XXX
+    std::cout << "Solve 0 = M*l + d ---> Solve M*l = -d ###########" << std::endl;
+    std::cout << "LAMBDA MANUAL: " << lll1.transpose() << std::endl;
+    std::cout << "MANUAL gamma: " << gg1.transpose() << std::endl;
+    Eigen::VectorXd Zeta = GG1 * velocity;
+    std::cout << "ZETA: " << Zeta.transpose() << std::endl;
+    */
+    //XXX TODO <---
+
+    //Build matrix system
+    //|H -dt*Gt| |nextVel| = |dt*(tau - C) + H*oldVel|
+    //|G   0   | |lambda |   |         0             |
+    constraints.A.setZero();
+    constraints.b.setZero();
+    constraints.A.block(0, 0, sizeDOF, sizeDOF) = 
+        constraints.H;
+    constraints.A.block(sizeDOF, 0, sizeCst, sizeDOF) = 
+        constraints.G;
+    constraints.A.block(0, sizeDOF, sizeDOF, sizeCst) = 
+        -dt*constraints.G.transpose();
+    constraints.b.segment(0, sizeDOF) = 
+        dt*(torque - constraints.C) + constraints.H*velocity;
+    
+    //Solve the linear system
+    switch (solver) {
+        case RBDLMath::LinearSolverPartialPivLU:
+            constraints.x = constraints.
+                A.partialPivLu().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverColPivHouseholderQR:
+            constraints.x = constraints.
+                A.colPivHouseholderQr().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverHouseholderQR:
+            constraints.x = constraints.
+                A.householderQr().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverFullPivLU:
+            constraints.x = constraints.
+                A.fullPivLu().solve(constraints.b);
+            break;
+        case RBDLMath::LinearSolverFullPivHouseholderQR:
+            constraints.x = constraints.
+                A.fullPivHouseholderQr().solve(constraints.b);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+            
+    //Copy computed force
+    constraints.force = constraints.x.segment(sizeDOF, sizeCst);
+    //Return computed next velocity
+    return constraints.x.segment(0, sizeDOF);
 }
 
 Eigen::VectorXd Model::inverseDynamicsContacts(
     RBDL::ConstraintSet& constraints,
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
-    const Eigen::VectorXd& acceleration)
+    const Eigen::VectorXd& acceleration,
+    const Eigen::VectorXd& inertiaOffset)
 {
     //Sanity check
     if (position.size() != _model.dof_count) {
@@ -856,6 +888,10 @@ Eigen::VectorXd Model::inverseDynamicsContacts(
         throw std::logic_error(
             "Model invalid acceleration vector size");
     }
+    if (inertiaOffset.size() != _model.dof_count) {
+        throw std::logic_error(
+            "Model invalid inertia vector size");
+    }
     
     //Retrieve sizes
     size_t sizeDOF = position.size();
@@ -863,24 +899,34 @@ Eigen::VectorXd Model::inverseDynamicsContacts(
     
     //Compute full H, G matrix and C, gamma 
     //vectors into the constraint set
+    //(actually, torque is not used by RBDL)
     RBDL::CalcContactSystemVariables(
         _model, position, velocity, 
         Eigen::VectorXd::Zero(sizeDOF), constraints);
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        constraints.H(i, i) += inertiaOffset(i);
+    }
 
     //Build matrix system
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(
-        sizeDOF+sizeConstraints, sizeDOF+sizeConstraints);
-    Eigen::VectorXd b = Eigen::VectorXd::Zero(
-        sizeDOF+sizeConstraints);
-    A.block(0, 0, sizeDOF, sizeDOF) = constraints.H;
-    A.block(sizeDOF, 0, sizeConstraints, sizeDOF) = constraints.G;
-    A.block(0, sizeDOF, sizeDOF, sizeConstraints) = constraints.G.transpose();
-    b.segment(0, sizeDOF) = acceleration;
-    b.segment(sizeDOF, sizeConstraints) = -constraints.force;
+    //|H Gt| |acc    | = |tau - C|
+    //|G  0| |-lambda|   |gamma  |
+    constraints.A.setZero();
+    constraints.b.setZero();
+    constraints.A.block(0, 0, sizeDOF, sizeDOF) = 
+        constraints.H;
+    constraints.A.block(sizeDOF, 0, sizeConstraints, sizeDOF) = 
+        constraints.G;
+    constraints.A.block(0, sizeDOF, sizeDOF, sizeConstraints) = 
+        constraints.G.transpose();
+    constraints.b.segment(0, sizeDOF) = 
+        acceleration;
+    constraints.b.segment(sizeDOF, sizeConstraints) = 
+        -constraints.force;
 
     //Compute and retrieve DOF torques
-    Eigen::VectorXd tmpX = A*b;
-    return tmpX.segment(0, sizeDOF) + constraints.C;
+    constraints.x = constraints.A*constraints.b;
+    return constraints.x.segment(0, sizeDOF) + constraints.C;
 }
 
 Eigen::VectorXd Model::impulseContacts(
@@ -905,11 +951,10 @@ Eigen::VectorXd Model::impulseContacts(
     return newVel;
 }
 
-Eigen::VectorXd Model::impulseContactsPartial(
+Eigen::VectorXd Model::impulseContactsCustom(
     RBDL::ConstraintSet& constraints,
     const Eigen::VectorXd& position,
     const Eigen::VectorXd& velocity,
-    const Eigen::VectorXi& enabled,
     const Eigen::VectorXd& inertiaOffset,
     RBDLMath::LinearSolver solver)
 {
@@ -922,114 +967,95 @@ Eigen::VectorXd Model::impulseContactsPartial(
         throw std::logic_error(
             "Model invalid velocity vector size");
     }
-    if (enabled.size() != _model.dof_count) {
+    if (inertiaOffset.size() != _model.dof_count) {
         throw std::logic_error(
-            "Model invalid enabled vector size");
+            "Model invalid inertia vector size");
     }
     
-    //Initialize returned velocities
-    Eigen::VectorXd newVel = velocity;
+    //Retrieve sizes
+    size_t sizeCst = constraints.size();
+    size_t sizeDOF = position.size();
     
-    //Count activated DOF
-    size_t sizeConstraints = constraints.size();
-    size_t sizeAll = enabled.size();
-    size_t sizeEnabled = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            sizeEnabled++;
-        }
-    }
-    if (sizeEnabled == 0) {
-        newVel.setZero();
-        return newVel;
-    }
-    
-    //Compute full H, G matrix into the constraint set
-    //Compute H
+    //Compute full H, G matrix into the 
+    //constraint set Compute H
     RBDL::UpdateKinematicsCustom(
         _model, &position, NULL, NULL);
     RBDL::CompositeRigidBodyAlgorithm(
         _model, position, constraints.H, false);
+    //Add inertial diagonal offsets
+    for (size_t i=0;i<(size_t)inertiaOffset.size();i++) {
+        constraints.H(i, i) += inertiaOffset(i);
+    }
     //Compute G
     RBDL::CalcContactJacobian(
-        _model, position, constraints, constraints.G, false);
-	
-    //Build shrinked matrix and vectors
-    RBDLMath::VectorNd vel2 = RBDLMath::VectorNd::Zero(
-        sizeEnabled + sizeConstraints);
-    RBDLMath::MatrixNd H2 = RBDLMath::MatrixNd::Zero(
-        sizeEnabled, sizeEnabled);
-    RBDLMath::MatrixNd A2 = RBDLMath::MatrixNd::Zero(
-        sizeEnabled + sizeConstraints, 
-        sizeEnabled + sizeConstraints);
-    RBDLMath::VectorNd b2 = RBDLMath::VectorNd::Zero(
-        sizeEnabled + sizeConstraints);
-    RBDLMath::VectorNd v2 = RBDLMath::VectorNd::Zero(sizeEnabled);
-    size_t index = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            v2(index) = velocity(i);
-            size_t index2 = 0;
-            for (size_t j=0;j<sizeAll;j++) {
-                if (enabled(j) != 0) {
-                    H2(index, index2) = constraints.H(i, j);
-                    //Add inertia offset on diagonal
-                    if (i == j) {
-                        H2(index, index2) += inertiaOffset(i);
-                    }
-                    index2++;
-                }
-            }
-            index++;
-        }
-    }
-    for (size_t i=0;i<sizeConstraints;i++) {
-        size_t index2 = 0;
-        for (size_t j=0;j<sizeAll;j++) {
-            if (enabled(j) != 0) {
-                A2(sizeEnabled+i, index2) = constraints.G(i, j);
-                A2(index2, sizeEnabled+i) = constraints.G(i, j);
-                index2++;
-            }
-        }
-    }
-    b2.block(0, 0, sizeEnabled, 1) = H2*v2;
-    b2.block(sizeEnabled, 0, sizeConstraints, 1) = 
-        Eigen::VectorXd::Zero(sizeConstraints);
-    A2.block(0, 0, sizeEnabled, sizeEnabled) = H2;
+        _model, position, constraints, 
+        constraints.G, false);
+
+    //Build matrices Ax = b
+    //|H Gt| |newVel | = |H*oldVel|
+    //|G  0| |impulse|   |    0   |
+    constraints.A.setZero();
+    constraints.b.setZero();
+    constraints.A.block(0, 0, sizeDOF, sizeDOF) = 
+        constraints.H;
+    constraints.A.block(sizeDOF, 0, sizeCst, sizeDOF) = 
+        constraints.G;
+    constraints.A.block(0, sizeDOF, sizeDOF, sizeCst) = 
+        constraints.G.transpose();
+    constraints.b.segment(0, sizeDOF) = 
+        constraints.H * velocity;
+    constraints.b.segment(sizeDOF, sizeCst) = 
+        constraints.v_plus;
 
     //Solve the linear system
     switch (solver) {
         case RBDLMath::LinearSolverPartialPivLU:
-            vel2 = A2.partialPivLu().solve(b2);
+            constraints.x = constraints.
+                A.partialPivLu().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverColPivHouseholderQR:
-            vel2 = A2.colPivHouseholderQr().solve(b2);
+            constraints.x = constraints.
+                A.colPivHouseholderQr().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverHouseholderQR:
-            vel2 = A2.householderQr().solve(b2);
+            constraints.x = constraints.
+                A.householderQr().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverFullPivLU:
-            vel2 = A2.fullPivLu().solve(b2);
+            constraints.x = constraints.
+                A.fullPivLu().solve(constraints.b);
             break;
         case RBDLMath::LinearSolverFullPivHouseholderQR:
-            vel2 = A2.fullPivHouseholderQr().solve(b2);
+            constraints.x = constraints.
+                A.fullPivHouseholderQr().solve(constraints.b);
             break;
         default:
             assert(0);
             break;
     }
 
-    //Re assign output velocity vector
-    index = 0;
-    for (size_t i=0;i<sizeAll;i++) {
-        if (enabled(i) != 0) {
-            newVel(i) = vel2(index);
-            index++;
-        }
-    }
+    //Copy computed impulsed
+    constraints.impulse = constraints.x.segment(sizeDOF, sizeCst);
+    //Return computed new velocity
+    return constraints.x.segment(0, sizeDOF);
+}
 
-    return newVel;
+void Model::resolveContactConstraintLCP(
+    RBDL::ConstraintSet& constraints,
+    const Eigen::VectorXi& isBilateralConstraint,
+    const Eigen::VectorXd& position,
+    const Eigen::VectorXd& velocity,
+    const Eigen::VectorXd& torque,
+    const Eigen::VectorXd& inertiaOffset)
+{
+    RBDLContactLCP(
+        _model, 
+        position, 
+        velocity, 
+        torque, 
+        inertiaOffset, 
+        constraints,
+        isBilateralConstraint);
 }
         
 void Model::boundingBox(size_t frameIndex, 

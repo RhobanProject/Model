@@ -130,7 +130,11 @@ static double scoreFitness(
         defaultGeometryName);
     Leph::HumanoidModel modelRead(
         Leph::SigmabanModel, 
-        "left_foot_tip", false);
+        "left_foot_tip", true,
+        currentInertiaData, 
+        defaultInertiaName,
+        currentGeometryData,
+        defaultGeometryName);
 
     //Assign common joint parameters
     if (indexStartCommon != (size_t)-1) {
@@ -158,8 +162,8 @@ static double scoreFitness(
         sim.setPos(name, logs.get("read:" + name, minTime));
         sim.setGoal(name, logs.get("read:" + name, minTime));
         sim.setVel(name, 0.0);
-        //Reset backlash state
-        sim.jointModel(name).resetBacklashState();
+        //Reset backlash and goal state
+        sim.jointModel(name).resetHiddenState();
     }
     for (const std::string& name : Leph::NamesBase) {
         //Init base vel
@@ -208,6 +212,8 @@ static double scoreFitness(
             sim.setGoal(name, logs.get("goal:" + name, t));
             modelRead.setDOF(name, logs.get("read:" + name, t));
         }
+        modelRead.setDOF("base_roll", logs.get("read:base_roll", t));
+        modelRead.setDOF("base_pitch", logs.get("read:base_pitch", t));
         //Run simulation
         for (int k=0;k<incrLoop;k++) {
             sim.update(0.001);
@@ -663,28 +669,36 @@ int main(int argc, char** argv)
     for (size_t i=0;i<logsData.size();i++) {
         std::cout << "============" << std::endl;
         std::cout << "Initial learning score for: " << filenames[i] << std::endl;
-        scoreFitness(
-            logsData[i], initParams, 
-            indexStartCommon, indexStartJoints, 
-            indexStartInertias, indexStartGeometries,
-            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
-            defaultJointData, defaultJointName, 
-            defaultInertiaData, defaultInertiaName, 
-            defaultGeometryData, defaultGeometryName, 
-            3);
+        try {
+            scoreFitness(
+                logsData[i], initParams, 
+                indexStartCommon, indexStartJoints, 
+                indexStartInertias, indexStartGeometries,
+                sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                defaultJointData, defaultJointName, 
+                defaultInertiaData, defaultInertiaName, 
+                defaultGeometryData, defaultGeometryName, 
+                3);
+        } catch (const std::runtime_error& e) {
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
     }
     for (size_t i=0;i<logsValidation.size();i++) {
         std::cout << "============" << std::endl;
         std::cout << "Initial validation score for: " << filenamesValidation[i] << std::endl;
-        scoreFitness(
-            logsValidation[i], initParams, 
-            indexStartCommon, indexStartJoints, 
-            indexStartInertias, indexStartGeometries,
-            sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
-            defaultJointData, defaultJointName, 
-            defaultInertiaData, defaultInertiaName, 
-            defaultGeometryData, defaultGeometryName, 
-            3);
+        try {
+            scoreFitness(
+                logsValidation[i], initParams, 
+                indexStartCommon, indexStartJoints, 
+                indexStartInertias, indexStartGeometries,
+                sizeJointParameters, sizeInertiaParameters, sizeGeometryParameters,
+                defaultJointData, defaultJointName, 
+                defaultInertiaData, defaultInertiaName, 
+                defaultGeometryData, defaultGeometryName, 
+                3);
+        } catch (const std::runtime_error& e) {
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
     }
 
     //Normalization of initial parameters

@@ -11,19 +11,19 @@ TrajectoryParameters DefaultTrajParameters()
     //(No Optimized)
     TrajectoryParameters parameters;
     //CMA-ES parameters
-    parameters.add("cmaes_max_iterations", 1000.0);
-    parameters.add("cmaes_restarts", 3.0);
+    parameters.add("cmaes_max_iterations", 5000.0);
+    parameters.add("cmaes_restarts", 5.0);
     parameters.add("cmaes_lambda", 100.0);
     parameters.add("cmaes_sigma", -1.0);
     parameters.add("cmaes_elitism", 0.0);
     //Fitness maximum torque yaw
     parameters.add("fitness_max_torque_yaw", 1.5);
     //Fitness maximum voltage ratio
-    parameters.add("fitness_max_volt_ratio", 2.0);
+    parameters.add("fitness_max_volt_ratio", 1.0);
     //Double support static position
     parameters.add("static_double_pos_trunk_pos_x", 0.009816280388);
     parameters.add("static_double_pos_trunk_pos_y", -0.07149996496);
-    parameters.add("static_double_pos_trunk_pos_z", 0.2786133349);
+    parameters.add("static_double_pos_trunk_pos_z", 0.27351975164429987);
     parameters.add("static_double_pos_trunk_axis_x", 0.0);
     parameters.add("static_double_pos_trunk_axis_y", 0.1919862181);
     parameters.add("static_double_pos_trunk_axis_z", 0.0);
@@ -182,9 +182,10 @@ TrajectoryGeneration::ScoreFunc DefaultFuncScore(
                 dq(index), ddq(index), torques(index)));
             double maxVolt = trajParams.get("fitness_max_volt_ratio")
                 * fabs(joints.at(name).getMaxVoltage());
-            //Maximum voltage overload
-            if (volt > maxVolt && data[3] < (volt-maxVolt)) {
-                data[3] = volt-maxVolt;
+            double voltRatio = volt/maxVolt;
+            //Maximum voltage ratio
+            if (data[3] < voltRatio) {
+                data[3] = voltRatio;
             }
             data[0] += 1.0;
             data[1] += volt;
@@ -225,12 +226,12 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
             std::cout 
                 << "MeanVolt=" << data[1]/data[0] 
                 << " MaxZMP=" << data[2] 
-                << " MaxVoltOverload=" << data[3]
+                << " MaxVoltRatio=" << data[3]
                 << " MaxTorqueYaw=" << data[4] 
                 << std::endl;
         }
-        //Penalize high motor voltage overload
-        double costVoltOverload = data[3];
+        //Penalize high motor voltage ratio
+        double costVoltRatio = data[3];
         //Penalize motor mean voltage
         double costVoltMean = (data[1]/data[0])/5.0;
         //Penalize max ZMP
@@ -245,14 +246,14 @@ TrajectoryGeneration::EndScoreFunc DefaultFuncEndScore(
             std::cout 
                 << "MeanVoltCost=" << costVoltMean
                 << " MaxZMPCost=" << costZMP
-                << " MaxVoltOverloadCost=" << costVoltOverload
+                << " MaxVoltRatioCost=" << costVoltRatio
                 << " MaxTorqueYawCost=" << costTorqueYaw
                 << std::endl;
         }
         return 
             costVoltMean + 
             costZMP + 
-            costVoltOverload + 
+            costVoltRatio + 
             costTorqueYaw;
     };
 }

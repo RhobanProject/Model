@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
 #include "Model/HumanoidSimulation.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 #include "Model/JointModel.hpp"
@@ -117,6 +119,11 @@ int main(int argc, char** argv)
             geometryData, geometryName);
     }
         
+    //GUI state
+    bool isPause = false;
+    unsigned int displayMode = 0;
+    unsigned int loopIterations = 0;
+    unsigned int speedCycle = 1;
     //Main loop
     Leph::Plot plot;
     bool isFirstLoop = true;
@@ -178,6 +185,9 @@ int main(int argc, char** argv)
                     modelGoal.get().setDOF(name, logs.get("goal:" + name, t));
                     modelRead.get().setDOF(name, logs.get("read:" + name, t));
                 }
+                //Assign read base state
+                modelRead.get().setDOF("base_pitch", logs.get("read:base_pitch", t));
+                modelRead.get().setDOF("base_roll", logs.get("read:base_roll", t));
             } 
             //State Initialization
             if (!isInitialized) {
@@ -191,8 +201,8 @@ int main(int argc, char** argv)
                     } else {
                         sim.setVel(name, 0.0);
                     }
-                    //Reset backlash state
-                    sim.jointModel(name).resetBacklashState();
+                    //Reset backlash and goal state
+                    sim.jointModel(name).resetHiddenState();
                 }
                 //Put the model flat on left support 
                 //foot at origin
@@ -233,20 +243,57 @@ int main(int argc, char** argv)
                 isInitialized = true;
             }
             //Run simulation
-            for (int k=0;k<10;k++) {
-                sim.update(0.001);
+            if (!isPause && loopIterations % speedCycle == 0) {
+                for (int k=0;k<10;k++) {
+                    sim.update(0.001);
+                }
+                sim.printCleatsStatus();
             }
             //Display
-            if (!isTrajMode) {
-                Leph::ModelDraw(modelRead.get(), viewer, 0.3);
-            } else {
-                Leph::ModelDraw(modelGoal.get(), viewer, 0.3); 
+            if (displayMode == 0 || displayMode == 2) {
+                if (!isTrajMode) {
+                    Leph::ModelDraw(modelRead.get(), viewer, 0.3);
+                } else {
+                    Leph::ModelDraw(modelGoal.get(), viewer, 0.3); 
+                }
             }
-            Leph::ModelDraw(sim.model(), viewer);
-            Leph::CleatsDraw(sim, viewer);
+            if (displayMode == 0 || displayMode == 1) {
+                Leph::ModelDraw(sim.model(), viewer);
+                Leph::CleatsDraw(sim, viewer);
+            }
             //Viewer update
             if (!viewer.update()) {
                 isContinue = false;
+                break;
+            }
+            //Check user inputs
+            if (viewer.isKeyPressed(sf::Keyboard::Space)) {
+                isPause = !isPause;
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(100));
+            }
+            if (viewer.isKeyPressed(sf::Keyboard::M)) {
+                speedCycle++;
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(100));
+            }
+            if (viewer.isKeyPressed(sf::Keyboard::P)) {
+                speedCycle--;
+                if (speedCycle < 1) {
+                    speedCycle = 1;
+                }
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(100));
+            }
+            if (viewer.isKeyPressed(sf::Keyboard::V)) {
+                displayMode = (displayMode+1) % 3;
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(100));
+            }
+            if (viewer.isKeyPressed(sf::Keyboard::R)) {
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(100));
+                isFirstLoop = false;
                 break;
             }
             //Plot
@@ -327,8 +374,11 @@ int main(int argc, char** argv)
                     });
                 }
             }
-            //Time update
-            t += 0.01;
+            if (!isPause && loopIterations % speedCycle == 0) {
+                //Time update
+                t += 0.01;
+            }
+            loopIterations++;
             //Cycle mode
             if (isCycleMode && t > timeMax) {
                 t -= timeMax-timeMin;

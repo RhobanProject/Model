@@ -332,8 +332,8 @@ static double scoreTrajectories(
                 sim.setPos(name, modelFeed.get().getDOF(name));
                 sim.setGoal(name, modelFeed.get().getDOF(name));
                 sim.setVel(name, dqFeed(modelFeed.get().getDOFIndex(name)));
-                //Reset backlash state
-                sim.jointModel(name).resetBacklashState();
+                //Reset backlash and goal state
+                sim.jointModel(name).resetHiddenState();
             }
             //Put the model flat on left support 
             //foot at origin
@@ -504,6 +504,7 @@ static double scoreFitting(
             exit(1);
         }
         //Compute external torque on goal trajectories
+        //TODO XXX Only handle single support
         Eigen::VectorXd torques = modelGoal.get().inverseDynamics(dq, ddq);
         
         //Compute dof target for feed model

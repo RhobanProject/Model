@@ -412,7 +412,7 @@ void testSequence2()
 {
     Leph::Plot plot;
     std::vector<double> series;
-    int state = 2;
+    //int state = 2;
     for (size_t k=0;k<1000;k++) {
         /*
         double t = 0.0;

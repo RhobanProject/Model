@@ -2,7 +2,7 @@
 #include "Plot/Plot.hpp"
 #include "IKWalk/IKWalk.hpp"
 #include "Model/HumanoidFixedModel.hpp"
-#include "Model/OdometryModel.hpp"
+#include "Odometry/OdometryModel.hpp"
 
 int main()
 {

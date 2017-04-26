@@ -68,6 +68,16 @@ double Polynom::acc(double x) const
     }
     return val;
 }
+double Polynom::jerk(double x) const
+{
+    double xx = 1.0;
+    double val = 0.0;
+    for (size_t i=3;i<_coefs.size();i++) {
+        val += (i-2)*(i-1)*i*xx*_coefs[i];
+        xx *= x;
+    }
+    return val;
+}
 
 void Polynom::operator*=(double coef)
 {

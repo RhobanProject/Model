@@ -38,11 +38,9 @@ void testForward()
                 vect.append("backlash_enabled:" + model.getDOFName(i), sim.jointModel(i).getBacklashStateEnabled());
                 vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
                 vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
-                vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
+                vect.append("joint:" + model.getDOFName(i), sim.jointTorques()(i));
                 vect.append("friction:" + model.getDOFName(i), sim.frictionTorques()(i));
                 vect.append("control:" + model.getDOFName(i), sim.controlTorques()(i));
-                vect.append("active:" + model.getDOFName(i), sim.actives()(i));
-                vect.append("input:" + model.getDOFName(i), sim.inputTorques()(i));
                 vect.append("pos:" + model.getDOFName(i), sim.positions()(i));
                 vect.append("vel:" + model.getDOFName(i), sim.velocities()(i));
             }
@@ -56,14 +54,12 @@ void testForward()
         .plot("index", "backlash_enabled:*")
         .render();
     plot.plot("index", "acc:*").render();
-    plot.plot("index", "active:*").render();
-    plot.plot("index", "output:*").render();
+    plot.plot("index", "joint:*").render();
     plot
-        .plot("index", "output:*")
+        .plot("index", "joint:*")
         .plot("index", "friction:*")
         .plot("index", "control:*")
         .render();
-    plot.plot("index", "input:*").render();
     plot.plot("index", "pos:*").render();
     plot.plot("index", "vel:*").render();
     plot.plot("index", "goal:*").render();
@@ -193,11 +189,9 @@ void testConstraints()
             for (size_t i=0;i<model.sizeDOF();i++) {
                 vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
                 vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
-                vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
+                vect.append("joint:" + model.getDOFName(i), sim.jointTorques()(i));
                 vect.append("friction:" + model.getDOFName(i), sim.frictionTorques()(i));
                 vect.append("control:" + model.getDOFName(i), sim.controlTorques()(i));
-                vect.append("active:" + model.getDOFName(i), sim.actives()(i));
-                vect.append("input:" + model.getDOFName(i), sim.inputTorques()(i));
                 vect.append("pos:" + model.getDOFName(i), sim.positions()(i));
                 vect.append("vel:" + model.getDOFName(i), sim.velocities()(i));
             }
@@ -211,14 +205,12 @@ void testConstraints()
     }
     plot.plot("index", "force:*").render();
     plot.plot("index", "acc:*").render();
-    plot.plot("index", "active:*").render();
-    plot.plot("index", "output:*").render();
+    plot.plot("index", "joint:*").render();
     plot
-        .plot("index", "output:*")
+        .plot("index", "joint:*")
         .plot("index", "friction:*")
         .plot("index", "control:*")
         .render();
-    plot.plot("index", "input:*").render();
     plot.plot("index", "pos:*").render();
     plot.plot("index", "vel:*").render();
     plot.plot("index", "goal:*").render();
@@ -304,11 +296,9 @@ void testFullConstraints()
             for (size_t i=0;i<model.sizeDOF();i++) {
                 vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
                 vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
-                vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
+                vect.append("joint:" + model.getDOFName(i), sim.jointTorques()(i));
                 vect.append("friction:" + model.getDOFName(i), sim.frictionTorques()(i));
                 vect.append("control:" + model.getDOFName(i), sim.controlTorques()(i));
-                vect.append("active:" + model.getDOFName(i), sim.actives()(i));
-                vect.append("input:" + model.getDOFName(i), sim.inputTorques()(i));
                 vect.append("pos:" + model.getDOFName(i), sim.positions()(i));
                 vect.append("vel:" + model.getDOFName(i), sim.velocities()(i));
             }
@@ -319,14 +309,12 @@ void testFullConstraints()
         Leph::ModelDraw(model, viewer);
     }
     plot.plot("index", "acc:*").render();
-    plot.plot("index", "active:*").render();
-    plot.plot("index", "output:*").render();
+    plot.plot("index", "joint:*").render();
     plot
-        .plot("index", "output:*")
+        .plot("index", "joint:*")
         .plot("index", "friction:*")
         .plot("index", "control:*")
         .render();
-    plot.plot("index", "input:*").render();
     plot.plot("index", "pos:*").render();
     plot.plot("index", "vel:*").render();
     plot.plot("index", "goal:*").render();
@@ -463,11 +451,9 @@ void testHumanoid()
         for (size_t i=0;i<model.sizeDOF();i++) {
             vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
             vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
-            vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
+            vect.append("joint:" + model.getDOFName(i), sim.jointTorques()(i));
             vect.append("friction:" + model.getDOFName(i), sim.frictionTorques()(i));
             vect.append("control:" + model.getDOFName(i), sim.controlTorques()(i));
-            vect.append("active:" + model.getDOFName(i), sim.actives()(i));
-            vect.append("input:" + model.getDOFName(i), sim.inputTorques()(i));
             vect.append("pos:" + model.getDOFName(i), sim.positions()(i));
             vect.append("vel:" + model.getDOFName(i), sim.velocities()(i));
         }
@@ -480,14 +466,12 @@ void testHumanoid()
     }
     plot.plot("index", "force:*").render();
     plot.plot("index", "acc:*").render();
-    plot.plot("index", "active:*").render();
-    plot.plot("index", "output:*").render();
+    plot.plot("index", "joint:*").render();
     plot
-        .plot("index", "output:*")
+        .plot("index", "joint:*")
         .plot("index", "friction:*")
         .plot("index", "control:*")
         .render();
-    plot.plot("index", "input:*").render();
     plot.plot("index", "pos:*").render();
     plot.plot("index", "vel:*").render();
     plot.plot("index", "goal:*").render();
@@ -579,11 +563,9 @@ void testHumanoidFullConstraints()
         for (size_t i=0;i<model.sizeDOF();i++) {
             vect.append("goal:" + model.getDOFName(i), sim.goals()(i));
             vect.append("acc:" + model.getDOFName(i), sim.accelerations()(i));
-            vect.append("output:" + model.getDOFName(i), sim.outputTorques()(i));
+            vect.append("joint:" + model.getDOFName(i), sim.jointTorques()(i));
             vect.append("friction:" + model.getDOFName(i), sim.frictionTorques()(i));
             vect.append("control:" + model.getDOFName(i), sim.controlTorques()(i));
-            vect.append("active:" + model.getDOFName(i), sim.actives()(i));
-            vect.append("input:" + model.getDOFName(i), sim.inputTorques()(i));
             vect.append("pos:" + model.getDOFName(i), sim.positions()(i));
             vect.append("vel:" + model.getDOFName(i), sim.velocities()(i));
         }
@@ -596,14 +578,12 @@ void testHumanoidFullConstraints()
     }
     plot.plot("index", "force:*").render();
     plot.plot("index", "acc:*").render();
-    plot.plot("index", "active:*").render();
-    plot.plot("index", "output:*").render();
+    plot.plot("index", "joint:*").render();
     plot
-        .plot("index", "output:*")
+        .plot("index", "joint:*")
         .plot("index", "friction:*")
         .plot("index", "control:*")
         .render();
-    plot.plot("index", "input:*").render();
     plot.plot("index", "pos:*").render();
     plot.plot("index", "vel:*").render();
     plot.plot("index", "goal:*").render();

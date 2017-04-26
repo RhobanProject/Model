@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include <stdexcept>
 #include <cmath>
 #include "Model/JointModel.hpp"
@@ -6,20 +8,28 @@
 namespace Leph {
 
 JointModel::JointModel(
-    JointModelType type, 
     const std::string& name) :
-    _type(type),
     _name(name),
+    _featureBacklash(true),
+    _featureFrictionStribeck(true),
+    _featureReadDiscretization(false),
+    _featureOptimizationVoltage(false),
+    _featureOptimizationResistance(true),
+    _featureOptimizationRegularization(false),
+    _featureOptimizationControlGain(false),
     _goalTime(0.0),
     _goalHistory(),
     _isInitialized(false),
     //Backlash initial state
-    _stateBacklashIsEnabled(true),
+    _stateBacklashIsEnabled(false),
     _stateBacklashPosition(0.0),
     _stateBacklashVelocity(0.0),
-    //Firmware coeficients
-    _coefAnglePosToTension((4096.0/(2.0*M_PI))*(12.0/3000.0)),
+    //Firmware coefficients
+    _coefAnglePosToPWM((4096.0/(2.0*M_PI))/3000.0),
+    _coefPWMBound(0.983),
     //Default parameters value
+    //Friction static regularization coefficient
+    _paramFrictionRegularization(20.0),
     //Friction velocity limit
     _paramFrictionVelLimit(0.2),
     //Joint internal gearbox inertia
@@ -37,55 +47,29 @@ JointModel::JointModel(
     _paramFrictionBreakOut(0.03),
     _paramFrictionCoulombOut(0.02),
     //Electric motor voltage
-    _paramElectricVoltage(12.0),
+    _paramElectricVoltage(10.5),
     //Electric motor ke
     _paramElectricKe(1.4),
     //Electric motor resistance
     _paramElectricResistance(4.07),
     //Motor proportional control
-    _paramControlGainP(32.0),
-    //Motor position discretization coef
+    _paramControlGainP(30.0),
+    //Motor position discretization coefficient
     _paramControlDiscretization(2048.0),
     //Control lag in seconds
     _paramControlLag(0.030),
     //Backlash enable to disable position threshold
     //(Positive offset above activation)
-    _paramBacklashThresholdDeactivation(0.002),
+    _paramBacklashThresholdDeactivation(0.01),
     //Backlash disable to enable position threshold
-    _paramBacklashThresholdActivation(0.006),
+    _paramBacklashThresholdActivation(0.02),
     //Backlash maximum angular distance
-    _paramBacklashRangeMax(0.01)
+    _paramBacklashRangeMax(0.05)
 {
-    //Check joint type
-    if (type != JointFree && type != JointActuated) {
-        throw std::logic_error(
-            "JointModel invalid joint type");
-    }
-
-    //Temporary identified parameters
-    _paramFrictionVelLimit = 0.2914428092;
-    _paramFrictionViscousOut = 0.003099660986;
-    _paramFrictionBreakOut = 0.04943333614;
-    _paramFrictionCoulombOut = 0.02171844766;
-    _paramInertiaOut = 0.0007936561532;
-    _paramControlLag = 0.03300551425;
-    _paramFrictionViscousIn = 0.1242307908;
-    _paramFrictionBreakIn = 0.10865058966;
-    _paramFrictionCoulombIn = 0.07522603114;
-    _paramInertiaIn = 0.005212544434;
-    _paramBacklashRangeMax = 0.006733195882;
-    _paramBacklashThresholdDeactivation = 0.002;
-    _paramBacklashThresholdActivation = 0.004;
-    _paramElectricKe = 1.951435691;
-    _paramElectricVoltage = 12.65527041;
-    _paramElectricResistance = 3.098613714;
-    _paramControlGainP = 39.32076467;
-    _paramControlDiscretization = 2048.0;
-}
-        
-JointModel::JointModelType JointModel::getType() const
-{
-    return _type;
+    //Initialize the parameters according to 
+    //selected feature model
+    Eigen::VectorXd tmpParams = getParameters();
+    setParameters(tmpParams);
 }
         
 const std::string& JointModel::getName() const
@@ -95,40 +79,83 @@ const std::string& JointModel::getName() const
 
 const Eigen::VectorXd JointModel::getParameters() const
 {
-    if (_type != JointActuated) {
-        return Eigen::VectorXd();
-    } 
-    
     //Build parameters vector
-    Eigen::VectorXd parameters(18);
-    parameters(0) = _paramFrictionVelLimit;
-    parameters(1) = _paramFrictionViscousOut;
-    parameters(2) = _paramFrictionBreakOut;
-    parameters(3) = _paramFrictionCoulombOut;
-    parameters(4) = _paramInertiaOut;
-    parameters(5) = _paramControlLag;
-    parameters(6) = _paramFrictionViscousIn;
-    parameters(7) = _paramFrictionBreakIn;
-    parameters(8) = _paramFrictionCoulombIn;
-    parameters(9) = _paramInertiaIn;
-    parameters(10) = _paramBacklashRangeMax;
-    parameters(11) = _paramBacklashThresholdDeactivation;
-    parameters(12) = _paramBacklashThresholdActivation;
-    parameters(13) = _paramElectricKe;
-    parameters(14) = _paramElectricVoltage;
-    parameters(15) = _paramElectricResistance;
-    parameters(16) = _paramControlGainP;
-    parameters(17) = _paramControlDiscretization;
+    Eigen::VectorXd parameters;
+    size_t index = 0;
+    //External friction parameters
+    parameters.conservativeResize(index+3);
+    parameters(index) = _paramFrictionViscousOut;
+    parameters(index+1) = _paramFrictionCoulombOut;
+    parameters(index+2) = _paramInertiaOut;
+    index += 3;
+    if (_featureFrictionStribeck) {
+        parameters.conservativeResize(index+2);
+        parameters(index) = _paramFrictionVelLimit;
+        parameters(index+1) = _paramFrictionBreakOut;
+        index += 2;
+    }
+    //Internal friction parameters
+    if (_featureBacklash) {
+        parameters.conservativeResize(index+3);
+        parameters(index) = _paramFrictionViscousIn;
+        parameters(index+1) = _paramFrictionCoulombIn;
+        parameters(index+2) = _paramInertiaIn;
+        index += 3;
+        if (_featureFrictionStribeck) {
+            parameters.conservativeResize(index+1);
+            parameters(index) = _paramFrictionBreakIn;
+            index++;
+        }
+    }
+    //Backlash internal
+    if (_featureBacklash) {
+        parameters.conservativeResize(index+3);
+        parameters(index) = _paramBacklashRangeMax;
+        parameters(index+1) = _paramBacklashThresholdDeactivation;
+        parameters(index+2) = _paramBacklashThresholdActivation;
+        index += 3;
+    }
+    //Other control and electric parameters
+    parameters.conservativeResize(index+2);
+    parameters(index) = _paramControlLag;
+    parameters(index+1) = _paramElectricKe;
+    index += 2;
+    //Read position encoder discretization
+    if (_featureReadDiscretization) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramControlDiscretization;
+        index++;
+    }
+    //Electric power voltage
+    if (_featureOptimizationVoltage) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramElectricVoltage;
+        index++;
+    }
+    //Electric resistance
+    if (_featureOptimizationResistance) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramElectricResistance;
+        index++;
+    }
+    //Friction force regularization coefficient
+    if (_featureOptimizationRegularization) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramFrictionRegularization;
+        index++;
+    }
+    //Proportional control gain
+    if (_featureOptimizationControlGain) {
+        parameters.conservativeResize(index+1);
+        parameters(index) = _paramControlGainP;
+        index++;
+    }
 
     return parameters;
 }
 void JointModel::setParameters(const Eigen::VectorXd& parameters)
 {
-    if (_type != JointActuated) {
-        return;
-    }
-    
-    //Skrink to positive value
+    //Shrink to positive value
     Eigen::VectorXd tmpParams = parameters;
     for (size_t i=0;i<(size_t)tmpParams.size();i++) {
         if (tmpParams(i) < 0.0) {
@@ -136,47 +163,106 @@ void JointModel::setParameters(const Eigen::VectorXd& parameters)
         }
     }
 
-    //Check size
-    if (tmpParams.size() != 18) {
-        throw std::logic_error(
-            "JointModel invalid parameters size: "
-            + std::to_string(tmpParams.size()));
+    //Read parameters vector
+    size_t index = 0;
+    //External friction parameters
+    if ((size_t)tmpParams.size() < index+3) goto sizeError;
+    _paramFrictionViscousOut = tmpParams(index);
+    _paramFrictionCoulombOut = tmpParams(index+1);
+    _paramInertiaOut = tmpParams(index+2);
+    index += 3;
+    if (_featureFrictionStribeck) {
+        if ((size_t)tmpParams.size() < index+2) goto sizeError;
+        _paramFrictionVelLimit = tmpParams(index);
+        _paramFrictionBreakOut = tmpParams(index+1);
+        index += 2;
     }
+    //Internal friction parameters
+    if (_featureBacklash) {
+        if ((size_t)tmpParams.size() < index+3) goto sizeError;
+        _paramFrictionViscousIn = tmpParams(index);
+        _paramFrictionCoulombIn = tmpParams(index+1);
+        _paramInertiaIn = tmpParams(index+2);
+        index += 3;
+        if (_featureFrictionStribeck) {
+            if ((size_t)tmpParams.size() < index+1) goto sizeError;
+            _paramFrictionBreakIn = tmpParams(index);
+            index++;
+        }
+    }
+    //Backlash internal
+    if (_featureBacklash) {
+        if ((size_t)tmpParams.size() < index+3) goto sizeError;
+        _paramBacklashRangeMax = tmpParams(index);
+        _paramBacklashThresholdDeactivation = tmpParams(index+1);
+        _paramBacklashThresholdActivation = tmpParams(index+2);
+        index += 3;
+    }
+    //Other control and electric parameters
+    if ((size_t)tmpParams.size() < index+2) goto sizeError;
+    _paramControlLag = tmpParams(index);
+    _paramElectricKe = tmpParams(index+1);
+    index += 2;
+    //Read position encoder discretization
+    if (_featureReadDiscretization) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramControlDiscretization = tmpParams(index);
+        index++;
+    }
+    //Electric power voltage
+    if (_featureOptimizationVoltage) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramElectricVoltage = tmpParams(index);
+        index++;
+    }
+    //Electric resistance
+    if (_featureOptimizationResistance) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramElectricResistance = tmpParams(index);
+        index++;
+    }
+    //Friction force regularization coefficient
+    if (_featureOptimizationRegularization) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramFrictionRegularization = tmpParams(index);
+        index++;
+    }
+    //Propotional control gain
+    if (_featureOptimizationControlGain) {
+        if ((size_t)tmpParams.size() < index+1) goto sizeError;
+        _paramControlGainP = tmpParams(index);
+        index++;
+    }
+    return;
 
-    //Assign parameters
-    _paramFrictionVelLimit = tmpParams(0);
-    _paramFrictionViscousOut = tmpParams(1);
-    _paramFrictionBreakOut = tmpParams(2);
-    _paramFrictionCoulombOut = tmpParams(3);
-    _paramInertiaOut = tmpParams(4);
-    _paramControlLag = tmpParams(5);
-    _paramFrictionViscousIn = tmpParams(6);
-    _paramFrictionBreakIn = tmpParams(7);
-    _paramFrictionCoulombIn = tmpParams(8);
-    _paramInertiaIn = tmpParams(9);
-    _paramBacklashRangeMax = tmpParams(10);
-    _paramBacklashThresholdDeactivation = tmpParams(11);
-    _paramBacklashThresholdActivation = tmpParams(12);
-    _paramElectricKe = tmpParams(13);
-    _paramElectricVoltage = tmpParams(14);
-    _paramElectricResistance = tmpParams(15);
-    _paramControlGainP = tmpParams(16);
-    _paramControlDiscretization = tmpParams(17);
+    sizeError:
+    throw std::logic_error(
+        "JointModel invalid parameters size: "
+        + std::to_string(tmpParams.size()));
 }
         
 double JointModel::getInertia() const
 {
-    if (_type != JointActuated) {
-        return 0.0;
-    }
-    
-    if (_stateBacklashIsEnabled) {
-        return _paramInertiaOut;
+    if (_featureBacklash) {
+        if (_stateBacklashIsEnabled) {
+            return _paramInertiaOut;
+        } else {
+            return _paramInertiaIn + _paramInertiaOut;
+        }
     } else {
-        return _paramInertiaIn + _paramInertiaOut;
+        return _paramInertiaOut;
     }
 }
         
+void JointModel::setMaxVoltage(double volt)
+{
+    if (volt < 0.0) {
+        throw std::logic_error(
+            "JointModel invalid maximum voltage: "
+            + std::to_string(volt));
+    }
+    _paramElectricVoltage = volt;
+}
 double JointModel::getMaxVoltage() const
 {
     return _paramElectricVoltage;
@@ -184,10 +270,6 @@ double JointModel::getMaxVoltage() const
 
 double JointModel::frictionTorque(double vel) const
 {
-    if (_type != JointActuated) {
-        return 0.0;
-    }
-
     if (_stateBacklashIsEnabled) {
         return computeFrictionTorque(
             vel, nullptr, false, true);
@@ -199,10 +281,6 @@ double JointModel::frictionTorque(double vel) const
         
 double JointModel::controlTorque(double pos, double vel) const
 {
-    if (_type != JointActuated) {
-        return 0.0;
-    }
-
     if (_stateBacklashIsEnabled) {
         return 0.0;
     } else {
@@ -213,13 +291,13 @@ double JointModel::controlTorque(double pos, double vel) const
 void JointModel::updateState(
     double dt, double goal, double pos, double vel)
 {
-    if (_type != JointActuated) {
-        return;
-    }
-
     //Hidden state initialization
     if (!_isInitialized) {
-        _stateBacklashIsEnabled = true;
+        _goalTime = 0.0;
+        while (!_goalHistory.empty()) {
+            _goalHistory.pop();
+        }
+        _stateBacklashIsEnabled = false;
         _stateBacklashPosition = pos;
         _stateBacklashVelocity = vel;
         _isInitialized = true;
@@ -238,49 +316,51 @@ void JointModel::updateState(
         _goalHistory.pop();
     }
 
-    //Compute backlash acceleration
-    double backlashControlTorque = computeControlTorque(
-        pos, vel);
-    double backlashFrictionTorque = computeFrictionTorque(
-        vel, &backlashControlTorque, true, false);
-    double backlashAcc = 
-        (backlashControlTorque + backlashFrictionTorque)/_paramInertiaIn;
-    //Update backlash velocity and position
-    double backlashNextVel = 
-        _stateBacklashVelocity + dt*backlashAcc;
-    _stateBacklashVelocity = 
-        0.5*_stateBacklashVelocity + 0.5*backlashNextVel;
-    _stateBacklashPosition = 
-        _stateBacklashPosition + dt*_stateBacklashVelocity;
-    //Compute bask
-    //Update backlash state
-    double relativePos = fabs(AngleDistance(pos, _stateBacklashPosition));
-    //Used state transition thresholds
-    double usedThresholdDeactivation = 
-        _paramBacklashThresholdDeactivation 
-        + _paramBacklashThresholdActivation;
-    double usedThresholdActivation = _paramBacklashThresholdActivation;
-    if (
-        _stateBacklashIsEnabled && 
-        relativePos > usedThresholdDeactivation
-    ) {
-        _stateBacklashIsEnabled = false;
-    } else if (
-        !_stateBacklashIsEnabled && 
-        relativePos < usedThresholdActivation
-    ) {
-        _stateBacklashIsEnabled = true;
+    //Update backlash model
+    if (_featureBacklash) {
+        //Compute backlash acceleration
+        double backlashControlTorque = computeControlTorque(
+            pos, vel);
+        double backlashFrictionTorque = computeFrictionTorque(
+            vel, &backlashControlTorque, true, false);
+        double backlashAcc = 
+            (backlashControlTorque + backlashFrictionTorque)/_paramInertiaIn;
+        //Update backlash velocity and position
+        double backlashNextVel = 
+            _stateBacklashVelocity + dt*backlashAcc;
+        _stateBacklashVelocity = 
+            0.5*_stateBacklashVelocity + 0.5*backlashNextVel;
+        _stateBacklashPosition = 
+            _stateBacklashPosition + dt*_stateBacklashVelocity;
+        //Update backlash state
+        double relativePos = fabs(AngleDistance(pos, _stateBacklashPosition));
+        //Used state transition thresholds
+        double usedThresholdDeactivation = 
+            _paramBacklashThresholdDeactivation 
+            + _paramBacklashThresholdActivation;
+        double usedThresholdActivation = _paramBacklashThresholdActivation;
+        if (
+            _stateBacklashIsEnabled && 
+            relativePos > usedThresholdDeactivation
+        ) {
+            _stateBacklashIsEnabled = false;
+        } else if (
+            !_stateBacklashIsEnabled && 
+            relativePos < usedThresholdActivation
+        ) {
+            _stateBacklashIsEnabled = true;
+        }
+        //Bound backlash position
+        if (AngleDistance(pos, _stateBacklashPosition) >= _paramBacklashRangeMax) {
+            _stateBacklashPosition = pos + _paramBacklashRangeMax;
+            _stateBacklashVelocity = 0.0;
+        }
+        if (AngleDistance(pos, _stateBacklashPosition) <= -_paramBacklashRangeMax) {
+            _stateBacklashPosition = pos - _paramBacklashRangeMax;
+            _stateBacklashVelocity = 0.0;
+        }
+        _stateBacklashPosition = AngleBound(_stateBacklashPosition);
     }
-    //Bound backlash position
-    if (AngleDistance(pos, _stateBacklashPosition) >= _paramBacklashRangeMax) {
-        _stateBacklashPosition = pos + _paramBacklashRangeMax;
-        _stateBacklashVelocity = 0.0;
-    }
-    if (AngleDistance(pos, _stateBacklashPosition) <= -_paramBacklashRangeMax) {
-        _stateBacklashPosition = pos - _paramBacklashRangeMax;
-        _stateBacklashVelocity = 0.0;
-    }
-    _stateBacklashPosition = AngleBound(_stateBacklashPosition);
 }
         
 double JointModel::getDelayedGoal() const
@@ -305,9 +385,13 @@ double JointModel::getBacklashStateVel() const
     return _stateBacklashVelocity;
 }
         
-void JointModel::resetBacklashState()
+void JointModel::resetHiddenState()
 {
     _isInitialized = false;
+    _goalTime = 0.0;
+    while (!_goalHistory.empty()) {
+        _goalHistory.pop();
+    }
     _stateBacklashIsEnabled = true;
     _stateBacklashPosition = 0.0;
     _stateBacklashVelocity = 0.0;
@@ -324,9 +408,7 @@ void JointModel::boundState(double& pos, double& vel)
             + std::string(" vel=") + std::to_string(vel));
     }
     //Bound position angle inside [-PI:PI]
-    if (_type == JointActuated) {
-        pos = AngleBound(pos);
-    }
+    pos = AngleBound(pos);
 }
 
 double JointModel::computeElectricTension(
@@ -335,13 +417,19 @@ double JointModel::computeElectricTension(
     double torqueGoal) const
 {
     //Compute friction torque 
-    //(backlask is not considered)
+    //(backlash is not considered)
     double frictionTorque = computeFrictionTorque(
         velGoal, &torqueGoal, true, true);
 
     //Compute torque from gears inertia
-    //(backlask is not considered)
-    double inertiaTorque = accGoal*(_paramInertiaIn + _paramInertiaOut);
+    //(backlash is not considered)
+    double usedInertia = 0.0;
+    if (!_featureBacklash) {
+        usedInertia = _paramInertiaOut;
+    } else {
+        usedInertia = _paramInertiaIn + _paramInertiaOut;
+    }
+    double inertiaTorque = accGoal*usedInertia;
 
     //Compute internal torque seen by the motor
     //to produce expected motion
@@ -366,19 +454,134 @@ double JointModel::computeFeedForward(
     double tensionGoal = computeElectricTension(
         velGoal, accGoal, torqueGoal);
 
-    //Bound tension to controller capability
-    if (tensionGoal > _paramElectricVoltage) {
-        tensionGoal = _paramElectricVoltage;
+    //Compute expected control PWM ratio
+    double controlRatioGoal = tensionGoal/(_paramElectricVoltage);
+
+    //Bound control ratio to controller capability
+    if (controlRatioGoal > _coefPWMBound) {
+        tensionGoal = _coefPWMBound;
     }
-    if (tensionGoal < -_paramElectricVoltage) {
-        tensionGoal = -_paramElectricVoltage;
+    if (tensionGoal < -_coefPWMBound) {
+        tensionGoal = -_coefPWMBound;
     }
 
     //Compute angular offset from tension
-    double angularOffset = 
-        tensionGoal/(_paramControlGainP*_coefAnglePosToTension);
+    double angularOffset = controlRatioGoal
+        /(_paramControlGainP*_coefAnglePosToPWM);
 
     return angularOffset;
+}
+        
+void JointModel::printParameters() const
+{
+    std::cout << "JointParameters: " << _name
+        << " ("
+        << "Backlash:" << _featureBacklash
+        << " Stribeck:" << _featureFrictionStribeck
+        << " Discretization:" << _featureReadDiscretization
+        << " OptimVoltage:" << _featureOptimizationVoltage
+        << " OptimResistance:" << _featureOptimizationResistance
+        << " OptimRegularization:" << _featureOptimizationRegularization
+        << ")"
+        << std::endl;
+    unsigned int width1 = 31;
+    unsigned int width2 = 15;
+    std::cout << std::setiosflags(std::ios::left) ;
+    std::cout 
+        << std::setw(width1) << "FrictionViscousOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramFrictionViscousOut << std::endl;
+    std::cout 
+        << std::setw(width1) << "FrictionCoulombOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramFrictionCoulombOut << std::endl;
+    std::cout 
+        << std::setw(width1) << "InertiaOut:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramInertiaOut << std::endl;
+    if (_featureFrictionStribeck) {
+        std::cout 
+            << std::setw(width1) << "FrictionVelLimit:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionVelLimit << std::endl;
+        std::cout 
+            << std::setw(width1) << "FrictionBreakOut:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionBreakOut << std::endl;
+    }
+    if (_featureBacklash) {
+        std::cout 
+            << std::setw(width1) << "FrictionViscousIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionViscousIn << std::endl;
+        std::cout 
+            << std::setw(width1) << "FrictionCoulombIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionCoulombIn << std::endl;
+        std::cout 
+            << std::setw(width1) << "InertiaIn:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramInertiaIn << std::endl;
+        if (_featureFrictionStribeck) {
+            std::cout 
+                << std::setw(width1) << "FrictionBreakIn:" 
+                << std::setw(width2) << std::fixed << std::setprecision(10) 
+                << _paramFrictionBreakIn << std::endl;
+        }
+    }
+    if (_featureBacklash) {
+        std::cout 
+            << std::setw(width1) << "BacklashRangeMax:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashRangeMax << std::endl;
+        std::cout 
+            << std::setw(width1) << "BacklashThresholdDeactivation:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashThresholdDeactivation << std::endl;
+        std::cout 
+            << std::setw(width1) << "BacklashThresholdActivation:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramBacklashThresholdActivation << std::endl;
+    }
+    std::cout 
+        << std::setw(width1) << "ControlLag:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramControlLag << std::endl;
+    std::cout 
+        << std::setw(width1) << "ElectricKe:" 
+        << std::setw(width2) << std::fixed << std::setprecision(10) 
+        << _paramElectricKe << std::endl;
+    if (_featureReadDiscretization) {
+        std::cout 
+            << std::setw(width1) << "ControlDiscretization:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramControlDiscretization << std::endl;
+    }
+    if (_featureOptimizationVoltage) {
+        std::cout 
+            << std::setw(width1) << "ElectricVoltage:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramElectricVoltage << std::endl;
+    }
+    if (_featureOptimizationResistance) {
+        std::cout 
+            << std::setw(width1) << "ElectricResistance:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramElectricResistance << std::endl;
+    }
+    if (_featureOptimizationRegularization) {
+        std::cout 
+            << std::setw(width1) << "FrictionRegularization:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramFrictionRegularization << std::endl;
+    }
+    if (_featureOptimizationControlGain) {
+        std::cout 
+            << std::setw(width1) << "ControlGainP:" 
+            << std::setw(width2) << std::fixed << std::setprecision(10) 
+            << _paramControlGainP << std::endl;
+    }
+    std::cout << std::setiosflags(std::ios::right) ;
 }
 
 double JointModel::computeFrictionTorque(
@@ -390,7 +593,7 @@ double JointModel::computeFrictionTorque(
     double usedFrictionViscous = 0.0;
     double usedFrictionBreak = 0.0;
     double usedFrictionCoulomb = 0.0;
-    if (isInFriction) {
+    if (isInFriction && _featureBacklash) {
         usedFrictionViscous += _paramFrictionViscousIn;
         usedFrictionBreak += 
             _paramFrictionBreakIn + _paramFrictionCoulombIn;
@@ -402,48 +605,53 @@ double JointModel::computeFrictionTorque(
             _paramFrictionBreakOut + _paramFrictionCoulombOut;
         usedFrictionCoulomb += _paramFrictionCoulombOut;
     } 
-
-    //Compute torque direction
-    double sign;
-    if (torque == nullptr || fabs(vel) > 1e-6) {
-        sign = (vel >= 0.0 ? 1.0 : -1.0);
-    } else if (torque != nullptr && fabs(*torque) > 1e-6) {
-        sign = (*torque >= 0.0 ? 1.0 : -1.0);
-    } else {
-        //No information
-        return 0.0;
+    if (!_featureFrictionStribeck) {
+        usedFrictionBreak = usedFrictionCoulomb;
     }
 
     //Compute friction
     double beta = exp(-fabs(vel/usedFrictionVelLimit));
     double forceViscous = -usedFrictionViscous*vel;
-    double forceStatic1 = -sign*beta*usedFrictionBreak;
-    double forceStatic2 = -sign*(1.0-beta)*usedFrictionCoulomb;
+    double forceStatic1 = -beta*usedFrictionBreak;
+    double forceStatic2 = -(1.0-beta)*usedFrictionCoulomb;
+    //Static friction regularization passing by zero
+    //to prevent too stiff dynamics and allows for nice
+    //continuous forces and accelerations.
+    double forceStaticRegularized = 
+        (forceStatic1 + forceStatic2)*tanh(
+            _paramFrictionRegularization*vel);
 
-    return forceViscous + forceStatic1 + forceStatic2;
+    return forceViscous + forceStaticRegularized;
 }
         
 double JointModel::computeControlTorque(
     double pos, double vel) const
 {
     //Apply position discretization
-    double motorStepCoef = M_PI/_paramControlDiscretization;
-    double discretizedPos = std::floor(pos/motorStepCoef)*motorStepCoef;
+    double discretizedPos = pos;
+    if (_featureReadDiscretization) {
+        double motorStepCoef = M_PI/_paramControlDiscretization;
+        discretizedPos = 
+            std::floor(pos/motorStepCoef)*motorStepCoef;
+    }
 
     //Retrieve delayed goal
     double delayedGoal = getDelayedGoal();
 
-    //Compute current tension with
-    //proportional controler
-    double error = AngleDistance(discretizedPos, delayedGoal);
-    double tension = _paramControlGainP*error*_coefAnglePosToTension;
-
-    //Bound to available voltage
-    if (tension > _paramElectricVoltage) {
-        tension = _paramElectricVoltage;
-    } else if (tension < -_paramElectricVoltage) {
-        tension = -_paramElectricVoltage;
+    //Angular distance in radian
+    double error = AngleDistance(delayedGoal, discretizedPos);
+    //Compute Motor control PWM ratio 
+    double controlRatio = -_paramControlGainP*error*_coefAnglePosToPWM;
+    //Bound the PWM control ratio between
+    //-1.0*_coefPWMBound and 1.0*_coefPWMBound
+    if (controlRatio > _coefPWMBound) {
+        controlRatio = _coefPWMBound;
+    } else if (controlRatio < -_coefPWMBound) {
+        controlRatio = -_coefPWMBound;
     }
+    //Compute the applied tension 
+    //on the electric motor by H-bridge
+    double tension = controlRatio*_paramElectricVoltage;
 
     //Compute applied electrical torque
     double torque = 
@@ -452,6 +660,6 @@ double JointModel::computeControlTorque(
     
     return torque;
 }
-        
+
 }
 

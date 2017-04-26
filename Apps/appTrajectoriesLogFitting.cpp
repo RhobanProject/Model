@@ -48,6 +48,9 @@ double scoreTrajectoryFitting(
     //Check parameters validity
     double cost = generator.checkParameters(params);
     if (cost > 0.0) {
+        if (verboseLevel >= 1) {
+            std::cout << "Error parameters" << std::endl;
+        }
         return cost;
     }
 
@@ -67,6 +70,12 @@ double scoreTrajectoryFitting(
     }
 
     //Sigmaban fixed model
+    Leph::HumanoidFixedModel modelTarget(
+        Leph::SigmabanModel, 
+        inertiaData, inertiaName, 
+        geometryData, geometryName);
+    modelTarget.setSupportFoot(
+        Leph::HumanoidFixedModel::LeftSupportFoot);
     Leph::HumanoidFixedModel modelGoal(
         Leph::SigmabanModel, 
         inertiaData, inertiaName, 
@@ -94,8 +103,8 @@ double scoreTrajectoryFitting(
             sim.setPos(name, logs.get("read:" + name, timeMin));
             sim.setGoal(name, logs.get("read:" + name, timeMin));
             sim.setVel(name, 0.0);
-            //Reset backlash state
-            sim.jointModel(name).resetBacklashState();
+            //Reset backlash and goal state
+            sim.jointModel(name).resetHiddenState();
         }
         for (const std::string& name : Leph::NamesBase) {
             //Init base vel
@@ -134,24 +143,24 @@ double scoreTrajectoryFitting(
         }
 #endif
         //Compute DOF targets
-        Eigen::Vector3d trunkPos;
-        Eigen::Vector3d trunkAxis;
-        Eigen::Vector3d footPos;
-        Eigen::Vector3d footAxis;
+        Eigen::Vector3d trunkPosGoal;
+        Eigen::Vector3d trunkAxisGoal;
+        Eigen::Vector3d footPosGoal;
+        Eigen::Vector3d footAxisGoal;
         bool isDoubleSupport;
         Leph::HumanoidFixedModel::SupportFoot supportFoot;
         Leph::TrajectoriesTrunkFootPos(
             t-timeMin, traj,
-            trunkPos, trunkAxis,
-            footPos, footAxis);
+            trunkPosGoal, trunkAxisGoal,
+            footPosGoal, footAxisGoal);
         Leph::TrajectoriesSupportFootState(
             t-timeMin, traj, isDoubleSupport, supportFoot);
         //Check Cartesian State
         if (!isSimulation) {
             double costState = generator.checkState(
                 params, t-timeMin, 
-                trunkPos, trunkAxis, 
-                footPos, footAxis);
+                trunkPosGoal, trunkAxisGoal, 
+                footPosGoal, footAxisGoal);
             if (costState > 0.0) {
                 cost += 1000.0 + costState;
                 continue;
@@ -161,10 +170,10 @@ double scoreTrajectoryFitting(
         double boundIKDistance = 0.0;
         bool isIKSuccess = modelGoal.trunkFootIK(
             supportFoot,
-            trunkPos,
-            Leph::AxisToMatrix(trunkAxis),
-            footPos,
-            Leph::AxisToMatrix(footAxis),
+            trunkPosGoal,
+            Leph::AxisToMatrix(trunkAxisGoal),
+            footPosGoal,
+            Leph::AxisToMatrix(footAxisGoal),
             &boundIKDistance);
         //Cost near IK bound
         double boundIKThreshold = 1e-2;
@@ -173,7 +182,7 @@ double scoreTrajectoryFitting(
                 + 1000.0*(boundIKThreshold - boundIKDistance);
         }
         if (!isIKSuccess) {
-            cost += 1000.0;
+            cost += 2000.0;
             continue;
         }
         //Check Joint DOF
@@ -195,21 +204,50 @@ double scoreTrajectoryFitting(
             for (int k=0;k<10;k++) {
                 sim.update(0.001);
             }
+            //Assign target model
+            for (const std::string& name : Leph::NamesDOFLeg) {
+                modelTarget.get().setDOF(name, logs.get("read:"+name, t));
+            }
+        } else {
+            //Assign target model
+            for (const std::string& name : Leph::NamesDOFLeg) {
+                modelTarget.get().setDOF(name, logs.get("goal:"+name, t));
+            }
+        }
+        //Compute cartesian state on target model
+        Eigen::Vector3d trunkPosTarget = 
+            modelTarget.get().position("trunk", "left_foot_tip");
+        Eigen::Vector3d footPosTarget = 
+            modelTarget.get().position("right_foot_tip", "left_foot_tip");
+        Eigen::Vector3d trunkAxisTarget = Leph::MatrixToAxis(
+            modelTarget.get().orientation("trunk", "left_foot_tip").transpose());
+        Eigen::Vector3d footAxisTarget = Leph::MatrixToAxis(
+            modelTarget.get().orientation("right_foot_tip", "left_foot_tip").transpose());
+        //Compute cost fitness
+        if (isSimulation) {
             //Score the error from simulation
             for (const std::string& name : Leph::NamesDOFLeg) {
                 double error = 
                     sim.model().getDOF(name) 
-                    - logs.get("read:"+name, t);
+                    - modelTarget.get().getDOF(name);
                 cost += pow(error, 2);
             }
         } else {
-            //Score the error from log goal
-            for (const std::string& name : Leph::NamesDOFLeg) {
-                double error = 
-                    modelGoal.get().getDOF(name) 
-                    - logs.get("goal:"+name, t);
-                cost += pow(error, 2);
+            //Compute cartesian error for goal fitting
+            double errorTrunkPos = (trunkPosGoal-trunkPosTarget).lpNorm<1>();
+            double errorTrunkAxis = (trunkAxisGoal-trunkAxisTarget).lpNorm<1>();
+            double errorFootPos = (footPosGoal-footPosTarget).lpNorm<1>();
+            double errorFootAxis = (footAxisGoal-footAxisTarget).lpNorm<1>();
+            double errorPos = pow(errorTrunkPos, 2) + pow(errorFootPos, 2);
+            double errorAxis = pow(errorTrunkAxis, 2) + pow(errorFootAxis, 2);
+            double sumJerk = 0.0;
+            double countJerk = 0.0;
+            for (const std::string& name : Leph::NamesCart) {
+                sumJerk += fabs(traj.get(name).jerk(t-timeMin));
+                countJerk += 1.0;
             }
+            double meanJerk = sumJerk/countJerk;
+            cost += errorPos + 0.05*errorAxis + 0.0001*meanJerk; //XXX TODO Jerk cost coefficient to be tunned
         }
         //Verbose
 #ifdef LEPH_VIEWER_ENABLED
@@ -217,10 +255,41 @@ double scoreTrajectoryFitting(
             for (const std::string& name : Leph::NamesDOFLeg) {
                 plot.add({
                     "t", t-timeMin,
-                    "goal:"+name, logs.get("goal:"+name, t),
-                    "fitted:"+name, modelGoal.get().getDOF(name),
+                    "target:"+name, 180.0/M_PI*logs.get("goal:"+name, t),
+                    "fitted:"+name, 180.0/M_PI*modelGoal.get().getDOF(name),
                 });
             }
+            plot.add({
+                "t", t-timeMin,
+                "target:trunk_x", trunkPosTarget.x(),
+                "fitted:trunk_x", trunkPosGoal.x(),
+                "target:trunk_y", trunkPosTarget.y(),
+                "fitted:trunk_y", trunkPosGoal.y(),
+                "target:trunk_z", trunkPosTarget.z(),
+                "fitted:trunk_z", trunkPosGoal.z(),
+                "target:foot_x", footPosTarget.x(),
+                "fitted:foot_x", footPosGoal.x(),
+                "target:foot_y", footPosTarget.y(),
+                "fitted:foot_y", footPosGoal.y(),
+                "target:foot_z", footPosTarget.z(),
+                "fitted:foot_z", footPosGoal.z(),
+            });
+            plot.add({
+                "t", t-timeMin,
+                "target:trunk_axis_x", trunkAxisTarget.x(),
+                "fitted:trunk_axis_x", trunkAxisGoal.x(),
+                "target:trunk_axis_y", trunkAxisTarget.y(),
+                "fitted:trunk_axis_y", trunkAxisGoal.y(),
+                "target:trunk_axis_z", trunkAxisTarget.z(),
+                "fitted:trunk_axis_z", trunkAxisGoal.z(),
+                "target:foot_axis_x", footAxisTarget.x(),
+                "fitted:foot_axis_x", footAxisGoal.x(),
+                "target:foot_axis_y", footAxisTarget.y(),
+                "fitted:foot_axis_y", footAxisGoal.y(),
+                "target:foot_axis_z", footAxisTarget.z(),
+                "fitted:foot_axis_z", footAxisGoal.z(),
+            });
+            Leph::ModelDraw(modelTarget.get(), *viewer, 0.5);
             Leph::ModelDraw(modelGoal.get(), *viewer, 1.0);
             if (isSimulation) {
                 Leph::ModelDraw(sim.model(), *viewer, 1.0);
@@ -231,17 +300,40 @@ double scoreTrajectoryFitting(
 #ifdef LEPH_VIEWER_ENABLED
     if (verboseLevel >= 1) {
         delete viewer;
+        plot.plot("t", "target:trunk_x");
+        plot.plot("t", "fitted:trunk_x");
+        plot.plot("t", "target:trunk_y");
+        plot.plot("t", "fitted:trunk_y");
+        plot.plot("t", "target:trunk_z");
+        plot.plot("t", "fitted:trunk_z");
+        plot.render();
+        plot.plot("t", "target:foot_x");
+        plot.plot("t", "fitted:foot_x");
+        plot.plot("t", "target:foot_y");
+        plot.plot("t", "fitted:foot_y");
+        plot.plot("t", "target:foot_z");
+        plot.plot("t", "fitted:foot_z");
+        plot.render();
+        plot.plot("t", "target:trunk_axis_x");
+        plot.plot("t", "fitted:trunk_axis_x");
+        plot.plot("t", "target:trunk_axis_y");
+        plot.plot("t", "fitted:trunk_axis_y");
+        plot.plot("t", "target:trunk_axis_z");
+        plot.plot("t", "fitted:trunk_axis_z");
+        plot.render();
+        plot.plot("t", "target:foot_axis_x");
+        plot.plot("t", "fitted:foot_axis_x");
+        plot.plot("t", "target:foot_axis_y");
+        plot.plot("t", "fitted:foot_axis_y");
+        plot.plot("t", "target:foot_axis_z");
+        plot.plot("t", "fitted:foot_axis_z");
+        plot.render();
+        for (const std::string& name : Leph::NamesDOFLeg) {
+            plot.plot("t", "target:"+name);
+            plot.plot("t", "fitted:"+name);
+            plot.render();
+        }
     }
-    for (const std::string& name : Leph::NamesDOFLegLeft) {
-        plot.plot("t", "goal:"+name);
-        plot.plot("t", "fitted:"+name);
-    }
-    plot.render();
-    for (const std::string& name : Leph::NamesDOFLegRight) {
-        plot.plot("t", "goal:"+name);
-        plot.plot("t", "fitted:"+name);
-    }
-    plot.render();
 #endif
 
     return cost;
