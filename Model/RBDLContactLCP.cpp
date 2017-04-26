@@ -171,6 +171,7 @@ void RBDLContactLCP(
     Drake::MobyLCPSolver solverTMP;
     bool isSuccessTMP = solverTMP.
         SolveLcpLemkeRegularized(MMM, DDD, &LLL);
+    (void)isSuccessTMP;
     /* XXX
     std::cout << isSuccessTMP << " ?????? LAMBDA   = " << LLL.transpose() << std::endl;
     std::cout << isSuccessTMP << " ?????? ZETA_DOT = " << (MMM*LLL+DDD).transpose() << std::endl;
@@ -208,6 +209,7 @@ void RBDLContactLCP(
     Drake::MobyLCPSolver solverTMP_;
     bool isSuccessTMP_ = solverTMP_.
         SolveLcpLemkeRegularized(MMM_, DDD_, &LLL_);
+    (void)isSuccessTMP_;
     /* XXX
     std::cout << isSuccessTMP_ << " ###### LAMBDA   = " << LLL_.transpose() << std::endl;
     std::cout << isSuccessTMP_ << " ###### ZETA     = " << (MMM_*LLL_+DDD_).transpose() << std::endl;
