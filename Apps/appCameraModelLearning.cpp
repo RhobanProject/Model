@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <Eigen/Dense>
 #include <random>
@@ -9,6 +10,8 @@
 #include "Model/HumanoidFixedModel.hpp"
 #include "Model/JointModel.hpp"
 #include "Model/NamesModel.h"
+#include "Utils/FileEigen.h"
+#include "Utils/FileMap.h"
 #include "Utils/FileModelParameters.h"
 
 /**
@@ -26,24 +29,56 @@ static const double learningDataRatio = 0.75;
  * CMA-ES optimization configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 300;
+static const unsigned int cmaesMaxIterations = 200;
 static const unsigned int cmaesRestarts = 1;
 static const unsigned int cmaesLambda = 10;
 static const double cmaesSigma = -1.0;
 
 /**
- * Load default sigmaban model
- * parameters into given structures
+ * Enable (for testing purpose) 
+ * the lens distortion model
  */
-void loadDefaultModelParameters(
-    Eigen::MatrixXd& geometryData,
-    std::map<std::string, size_t>& geometryName)
+static const bool useCameraDistortion = false;
+
+/**
+ * Global default geometry data
+ */
+static Eigen::MatrixXd defaultGeometryData;
+static std::map<std::string, size_t> defaultGeometryName;
+
+/**
+ * Build and return the geometryData matrix
+ * from default data and given parameters vector
+ */
+Eigen::MatrixXd getGeometryDataFromParameters(
+    const Eigen::VectorXd& params)
 {
-    //Load default geometry data from model
-    Leph::HumanoidModel tmpModel(
-        Leph::SigmabanModel, "left_foot_tip", false);
-    geometryData = tmpModel.getGeometryData();
-    geometryName = tmpModel.getGeometryName();
+    //Retrieve camera angular offset
+    //6: camera angle offset roll (radian)
+    double camOffsetRoll = params(6);
+    //7: camera angle offset pitch (radian)
+    double camOffsetPitch = params(7);
+    //8: camera angle offset yaw (radian)
+    double camOffsetYaw = params(8);
+    //12: neck angle offset roll (radian)
+    double neckOffsetRoll = params(12);
+    //13: neck angle offset pitch (radian)
+    double neckOffsetPitch = params(13);
+    //14: neck angle offset yaw (radian)
+    double neckOffsetYaw = params(14);
+    
+    //Copy default geometry model
+    Eigen::MatrixXd geometryData = defaultGeometryData;
+    //Assign model angular offset 
+    //on camera transformation
+    geometryData(defaultGeometryName.at("camera"), 0) += camOffsetRoll;
+    geometryData(defaultGeometryName.at("camera"), 1) += camOffsetPitch;
+    geometryData(defaultGeometryName.at("camera"), 2) += camOffsetYaw;
+    geometryData(defaultGeometryName.at("head_yaw"), 0) += neckOffsetRoll;
+    geometryData(defaultGeometryName.at("head_yaw"), 1) += neckOffsetPitch;
+    geometryData(defaultGeometryName.at("head_yaw"), 2) += neckOffsetYaw;
+
+    return geometryData;
 }
 
 /**
@@ -53,7 +88,7 @@ void loadDefaultModelParameters(
 Eigen::VectorXd buildInitialParameters()
 {
     //Parameters initialization
-    Eigen::VectorXd initParams(17);
+    Eigen::VectorXd initParams(useCameraDistortion ? 17 : 15);
     //0: offset base X position (meters)
     initParams(0) = 0.0;
     //1: offset base Y position (meters)
@@ -84,10 +119,12 @@ Eigen::VectorXd buildInitialParameters()
     initParams(13) = 0.0;
     //14: neck angle offset yaw (radian)
     initParams(14) = 0.0;
-    //15: distorsion coef 2
-    initParams(15) = 0.0;
-    //16: distorsion coef 4
-    initParams(16) = 0.0;
+    if (useCameraDistortion) {
+        //15: distorsion coef 2
+        initParams(15) = 0.0;
+        //16: distorsion coef 4
+        initParams(16) = 0.0;
+    }
 
     return initParams;
 }
@@ -99,7 +136,7 @@ Eigen::VectorXd buildInitialParameters()
 Eigen::VectorXd buildNormalizationCoef()
 {
     //Parameters initialization
-    Eigen::VectorXd normCoef(17);
+    Eigen::VectorXd normCoef(useCameraDistortion ? 17 : 15);
     //0: offset base X position (meters)
     normCoef(0) = 0.01;
     //1: offset base Y position (meters)
@@ -130,10 +167,12 @@ Eigen::VectorXd buildNormalizationCoef()
     normCoef(13) = 1.0*M_PI/180.0;
     //14: neck angle offset yaw (radian)
     normCoef(14) = 1.0*M_PI/180.0;
-    //15: distorsion coef 2
-    normCoef(15) = 0.01;
-    //16: distorsion coef 4
-    normCoef(16) = 0.01;
+    if (useCameraDistortion) {
+        //15: distorsion coef 2
+        normCoef(15) = 0.01;
+        //16: distorsion coef 4
+        normCoef(16) = 0.01;
+    }
 
     return normCoef;
 }
@@ -168,9 +207,15 @@ double boundParameters(
     if (params(4) <= 0.0) {
         cost += 1000.0 - 1000.0*(params(4));
     }
+    if (params(4) >= M_PI) {
+        cost += 1000.0 + 1000.0*(params(4)-M_PI);
+    }
     //5: camera aperture height (radian)
     if (params(5) <= 0.0) {
         cost += 1000.0 - 1000.0*(params(5));
+    }
+    if (params(5) >= M_PI) {
+        cost += 1000.0 + 1000.0*(params(5)-M_PI);
     }
     //6: camera angle offset roll (radian)
     if (fabs(params(6)) > 20.0*M_PI/180.0) {
@@ -208,8 +253,10 @@ double boundParameters(
     if (fabs(params(14)) > 20.0*M_PI/180.0) {
         cost += 1000.0 + 1000.0*(fabs(params(14)) - 20.0*M_PI/180.0);
     }
-    //15: distorsion coef 2
-    //16: distorsion coef 4 
+    if (useCameraDistortion) {
+        //15: distorsion coef 2
+        //16: distorsion coef 4 
+    }
 
     return cost;
 }
@@ -220,40 +267,16 @@ double boundParameters(
 Leph::HumanoidFixedModel initModel(
     const Eigen::VectorXd& params)
 {
-    //Retrieve camera angular offset
-    //6: camera angle offset roll (radian)
-    double camOffsetRoll = params(6);
-    //7: camera angle offset pitch (radian)
-    double camOffsetPitch = params(7);
-    //8: camera angle offset yaw (radian)
-    double camOffsetYaw = params(8);
-    //12: neck angle offset roll (radian)
-    double neckOffsetRoll = params(12);
-    //13: neck angle offset pitch (radian)
-    double neckOffsetPitch = params(13);
-    //14: neck angle offset yaw (radian)
-    double neckOffsetYaw = params(14);
-    
-    //Load default geometry model
-    Eigen::MatrixXd geometryData;
-    std::map<std::string, size_t> geometryName;
-    loadDefaultModelParameters(
-        geometryData, geometryName);
-    //Assign model angular offset 
-    //on camera transformation
-    geometryData(geometryName.at("camera"), 0) = camOffsetRoll;
-    geometryData(geometryName.at("camera"), 1) = camOffsetPitch;
-    geometryData(geometryName.at("camera"), 2) = camOffsetYaw;
-    geometryData(geometryName.at("head_yaw"), 0) = neckOffsetRoll;
-    geometryData(geometryName.at("head_yaw"), 1) = neckOffsetPitch;
-    geometryData(geometryName.at("head_yaw"), 2) = neckOffsetYaw;
+    //Build the geometry from parameters
+    Eigen::MatrixXd geometryData = 
+        getGeometryDataFromParameters(params);
 
     //Load the model with 
     //the geometry updated
     Leph::HumanoidFixedModel model(
         Leph::SigmabanModel,
         Eigen::MatrixXd(), {},
-        geometryData, geometryName);
+        geometryData, defaultGeometryName);
 
     return model;
 }
@@ -290,10 +313,6 @@ Eigen::VectorXd evaluateParameters(
     double imuOffsetPitch = params(10);
     //11: imu angle offset yaw (radian)
     double imuOffsetYaw = params(11);
-    //15: distorsion coef 2
-    double distortionCoef2 = params(15);
-    //16: distorsion coef 4
-    double distortionCoef4 = params(16);
 
     //Disable caching optimization
     model.get().setAutoUpdate(true);
@@ -326,9 +345,17 @@ Eigen::VectorXd evaluateParameters(
     pixelPoint.y() = data("pixel_y");
 
     //Distortion correction model
-    double radius2 = pixelPoint.squaredNorm();
-    pixelPoint.x() = pixelPoint.x()*(1.0 + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
-    pixelPoint.y() = pixelPoint.y()*(1.0 + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
+    if (useCameraDistortion) {
+        //15: distorsion coef 2
+        double distortionCoef2 = params(15);
+        //16: distorsion coef 4
+        double distortionCoef4 = params(16);
+        double radius2 = pixelPoint.squaredNorm();
+        pixelPoint.x() = pixelPoint.x()*(1.0 
+            + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
+        pixelPoint.y() = pixelPoint.y()*(1.0 
+            + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
+    }
 
     //Add offset on cartesian base position
     model.get().setDOF("base_x", offsetBasePosX);
@@ -372,17 +399,30 @@ Eigen::VectorXd evaluateParameters(
 int main(int argc, char** argv)
 {
     //Parse user inputs
-    if (argc != 2 && argc != 3) {
+    if (argc != 3 && argc != 5) {
         std::cout 
             << "Usage: ./app "
-            << "calibrationLogs.matrixlabel model.modelparams" 
+            << "calibrationLogs.matrixlabel"
+            << " outputPrefix"
+            << " [MODEL model.modelparams]" 
+            << std::endl;
+        std::cout 
+            << "Usage: ./app "
+            << "calibrationLogs.matrixlabel"
+            << " outputPrefix"
+            << " [SEED  seed.camparams]" 
             << std::endl;
         return 1;
     }
     std::string logPath = argv[1];
+    std::string outPath = argv[2];
     std::string modelPath = "";
-    if (argc == 3) {
-        modelPath = argv[2];
+    std::string seedPath = "";
+    if (argc == 5 && std::string(argv[3]) == "MODEL") {
+        modelPath = argv[4];
+    }
+    if (argc == 5 && std::string(argv[3]) == "SEED") {
+        seedPath = argv[4];
     }
     
     //Loading data
@@ -391,36 +431,96 @@ int main(int argc, char** argv)
     std::cout << "Loading data from " << logPath 
         << ": " << logs.size() << " points" << std::endl;
     
-    //Load model parameters
-    Eigen::MatrixXd geometryData;
-    std::map<std::string, size_t> geometryName;
+    //Load default model parameters
+    Eigen::MatrixXd jointData;
+    std::map<std::string, size_t> jointName;
+    Eigen::MatrixXd inertiaData;
+    std::map<std::string, size_t> inertiaName;
     if (modelPath == "") {
-        std::cout << "Loading default model parameters" << std::endl;
-        loadDefaultModelParameters(
-            geometryData, geometryName);
+        std::cout << "Loading default Sigmaban model parameters" << std::endl;
+        //Load default geometry and inertia
+        //data from Sigmaban model
+        Leph::HumanoidModel tmpModel(
+            Leph::SigmabanModel, "left_foot_tip", false);
+        defaultGeometryData = tmpModel.getGeometryData();
+        defaultGeometryName = tmpModel.getGeometryName();
+        inertiaData = tmpModel.getInertiaData();
+        inertiaName = tmpModel.getInertiaName();
+        //Build default joint parameters matrix
+        Leph::JointModel tmpJoint;
+        Eigen::VectorXd jointParams = tmpJoint.getParameters();
+        jointData = Eigen::MatrixXd(
+            Leph::NamesDOF.size(), jointParams.size());
+        size_t tmpIndex = 0;
+        for (const std::string& name : Leph::NamesDOF) {
+            jointName[name] = tmpIndex;
+            jointData.block(
+                tmpIndex, 0, 1, jointParams.size()) = 
+                jointParams.transpose();
+            tmpIndex++;
+        }
     } else {
         std::cout << "Loading model parameters from: " 
             << modelPath << std::endl;
-        Eigen::MatrixXd jointData;
-        std::map<std::string, size_t> jointName;
-        Eigen::MatrixXd inertiaData;
-        std::map<std::string, size_t> inertiaName;
         Leph::ReadModelParameters(
             modelPath,
             jointData, jointName,
             inertiaData, inertiaName,
-            geometryData, geometryName);
+            defaultGeometryData, defaultGeometryName);
     }
 
-    Leph::LogLikelihoodMaximization<Leph::VectorLabel, Leph::HumanoidFixedModel> calibration;
+    //Get the initial parameters
+    Eigen::VectorXd initParams = buildInitialParameters();
+    //If given, seed initial parameters
+    if (seedPath != "") {
+        std::cout << "Loading seed parameters from: " 
+            << seedPath << std::endl;
+        //Open file
+        std::ifstream file(seedPath);
+        if (!file.is_open()) {
+            throw std::runtime_error(
+                "Unable to open file: " + seedPath);
+        }
+        //Read data from file
+        Eigen::VectorXd camData = Leph::ReadEigenVectorFromStream(file);
+        Eigen::VectorXd imuData = Leph::ReadEigenVectorFromStream(file);
+        Eigen::MatrixXd tmpGeometryData  = 
+            Leph::ReadEigenMatrixFromStream(file);
+        std::map<std::string, size_t> tmpGeometryName = 
+            Leph::ReadMapFromStream<std::string, size_t>(file);
+        file.close();
+        //Camera aperture width and height
+        initParams(4) = camData(0);
+        initParams(5) = camData(1);
+        //IMU roll, pitch, yaw offset
+        initParams(9) = imuData(0);
+        initParams(10) = imuData(1);
+        initParams(11) = imuData(2);
+        //Geometry camera offsets
+        initParams(6) = tmpGeometryData(tmpGeometryName.at("camera"), 0);
+        initParams(7) = tmpGeometryData(tmpGeometryName.at("camera"), 1);
+        initParams(8) = tmpGeometryData(tmpGeometryName.at("camera"), 2);
+        //Geometry neck offsets
+        initParams(12) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 0);
+        initParams(13) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 1);
+        initParams(14) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 2);
+    }
+
+    //Initialize the logLikelihood 
+    //maximisation process
+    Leph::LogLikelihoodMaximization
+        <Leph::VectorLabel, Leph::HumanoidFixedModel> calibration;
     calibration.setInitialParameters(
-        buildInitialParameters(), buildNormalizationCoef());
+        initParams, buildNormalizationCoef());
     calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
+    //Add observations data
     for (size_t i=0;i<logs.size();i++) {
         Eigen::VectorXd obs(2);
         obs << logs[i]("ground_x"), logs[i]("ground_y");
         calibration.addObservation(obs, logs[i]);
     }
+
+    //Start the CMA-ES optimization
     Leph::Plot plot;
     calibration.runOptimization(
         samplingNumber, 
@@ -431,23 +531,53 @@ int main(int argc, char** argv)
         cmaesSigma, 
         cmaesElitismLevel,
         &plot);
-    std::cout << "offsetBaseX:    " << calibration.getParameters()(0) << std::endl;
-    std::cout << "offsetBaseY:    " << calibration.getParameters()(1) << std::endl;
-    std::cout << "offsetBaseA:    " << calibration.getParameters()(2)*180.0/M_PI << std::endl;
-    std::cout << "noisePixel:     " << calibration.getParameters()(3) << std::endl;
-    std::cout << "apertureWidth:  " << calibration.getParameters()(4)*180.0/M_PI << std::endl;
-    std::cout << "apertureHeight: " << calibration.getParameters()(5)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetRoll:  " << calibration.getParameters()(6)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetPitch: " << calibration.getParameters()(7)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetYaw:   " << calibration.getParameters()(8)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetRoll:  " << calibration.getParameters()(9)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetPitch: " << calibration.getParameters()(10)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetYaw:   " << calibration.getParameters()(11)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetRoll:  " << calibration.getParameters()(12)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetPitch: " << calibration.getParameters()(13)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetYaw:   " << calibration.getParameters()(14)*180.0/M_PI << std::endl;
-    std::cout << "DistortionCoef2: " << calibration.getParameters()(15) << std::endl;
-    std::cout << "DistortionCoef4: " << calibration.getParameters()(16) << std::endl;
+
+    //Display the best found parameters
+    Eigen::VectorXd bestParams = calibration.getParameters();
+    std::cout << "offsetBaseX:    " << bestParams(0) << std::endl;
+    std::cout << "offsetBaseY:    " << bestParams(1) << std::endl;
+    std::cout << "offsetBaseA:    " << bestParams(2)*180.0/M_PI << std::endl;
+    std::cout << "noisePixel:     " << bestParams(3) << std::endl;
+    std::cout << "apertureWidth:  " << bestParams(4)*180.0/M_PI << std::endl;
+    std::cout << "apertureHeight: " << bestParams(5)*180.0/M_PI << std::endl;
+    std::cout << "CamOffsetRoll:  " << bestParams(6)*180.0/M_PI << std::endl;
+    std::cout << "CamOffsetPitch: " << bestParams(7)*180.0/M_PI << std::endl;
+    std::cout << "CamOffsetYaw:   " << bestParams(8)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetRoll:  " << bestParams(9)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetPitch: " << bestParams(10)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetYaw:   " << bestParams(11)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetRoll:  " << bestParams(12)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetPitch: " << bestParams(13)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetYaw:   " << bestParams(14)*180.0/M_PI << std::endl;
+    if (useCameraDistortion) {
+        std::cout << "DistortionCoef2: " << bestParams(15) << std::endl;
+        std::cout << "DistortionCoef4: " << bestParams(16) << std::endl;
+    }
+
+    //Export the optimized model parameters
+    //Imu roll, pitch, yaw in radian
+    Eigen::VectorXd imuOffsets(3);
+    imuOffsets << bestParams(9), bestParams(10), bestParams(11);
+    //Camera angular aperture width, height in radian
+    Eigen::VectorXd camApertures(2);
+    camApertures << bestParams(4), bestParams(5);
+    //Write to file
+    std::string camParamsPath = outPath + "cameraModel.params";
+    std::cout << "Writing geometry and camera data to: " 
+        << camParamsPath << std::endl;
+    std::ofstream file(camParamsPath);
+    if (!file.is_open()) {
+        throw std::runtime_error(
+            "Unable to open file: " + camParamsPath);
+    }
+    Leph::WriteEigenVectorToStream(file, camApertures);
+    Leph::WriteEigenVectorToStream(file, imuOffsets);
+    Leph::WriteEigenMatrixToStream(file, 
+        getGeometryDataFromParameters(bestParams));
+    Leph::WriteMapToStream(file, defaultGeometryName);
+    file.close();
+
+    //Plot the convergence graphic
     plot.plot("iteration", "all").render();
     
     return 0;
