@@ -10,7 +10,7 @@
 #include <libcmaes/cmaes.h>
 #include "Plot/Plot.hpp"
 #include "Model/HumanoidFixedModel.hpp"
-#include "Odometry/OdometryModel.hpp"
+#include "Odometry/Odometry.hpp"
 #include "Utils/Angle.h"
 
 /**
@@ -231,7 +231,7 @@ double distanceFromArc(double x, double y, double targetX, double targetY, doubl
  */
 double odometryModelFitness(
     const OdometryData& data, OdometryType type, 
-    Leph::OdometryModel::OdometryModelType model, 
+    Leph::Odometry::OdometryModelType model, 
     const Eigen::VectorXd parameters, 
     size_t indexStart, size_t indexEnd,
     bool isLearningScore,
@@ -242,19 +242,19 @@ double odometryModelFitness(
     //Iterate over given sequences
     for (size_t i=indexStart;i<=indexEnd;i++) {
         //Assign odometry model parameters
-        Leph::OdometryModel odometry(model);
+        Leph::Odometry odometry(model);
         odometry.parameters() = parameters;
         odometry.reset();
         //Plot model
-        Leph::OdometryModel* odometryDebugRead = nullptr;
-        Leph::OdometryModel* odometryDebugGoal = nullptr;
-        Leph::OdometryModel* odometryDebugOrder = nullptr;
+        Leph::Odometry* odometryDebugRead = nullptr;
+        Leph::Odometry* odometryDebugGoal = nullptr;
+        Leph::Odometry* odometryDebugOrder = nullptr;
         if (plot != nullptr) {
-            odometryDebugRead = new Leph::OdometryModel(model);
+            odometryDebugRead = new Leph::Odometry(model);
             odometryDebugRead->reset();
-            odometryDebugGoal = new Leph::OdometryModel(model);
+            odometryDebugGoal = new Leph::Odometry(model);
             odometryDebugGoal->reset();
-            odometryDebugOrder = new Leph::OdometryModel(model);
+            odometryDebugOrder = new Leph::Odometry(model);
             odometryDebugOrder->reset();
             plot->add(Leph::VectorLabel(
                 "target_x", 0.0,
@@ -381,9 +381,9 @@ double odometryModelFitness(
  * Return default parameters for given model
  */
 Eigen::VectorXd defaultParameters(
-    Leph::OdometryModel::OdometryModelType model)
+    Leph::Odometry::OdometryModelType model)
 {
-    Leph::OdometryModel odometry(model);
+    Leph::Odometry odometry(model);
     return odometry.parameters();
 }
 
@@ -394,7 +394,7 @@ Eigen::VectorXd defaultParameters(
  */
 Eigen::VectorXd odometryModelOptimization(
     const OdometryData& data, OdometryType type, 
-    Leph::OdometryModel::OdometryModelType model, 
+    Leph::Odometry::OdometryModelType model, 
     size_t indexStart, size_t indexEnd)
 {
     //Fitness function
@@ -506,22 +506,22 @@ int main(int argc, char** argv)
     }
     
     //Experimented Odometry models
-    std::vector<std::pair<std::string,Leph::OdometryModel::OdometryModelType>> models = {
-        //{"ScalarX", Leph::OdometryModel::CorrectionScalarX},
-        //{"ScalarXY", Leph::OdometryModel::CorrectionScalarXY},
-        //{"ScalarXYA", Leph::OdometryModel::CorrectionScalarXYA},
-        //{"ProportionalXY", Leph::OdometryModel::CorrectionProportionalXY},
-        {"ProportionalXYA", Leph::OdometryModel::CorrectionProportionalXYA},
-        //{"LinearSimpleXY", Leph::OdometryModel::CorrectionLinearSimpleXY},
-        {"LinearSimpleXYA", Leph::OdometryModel::CorrectionLinearSimpleXYA},
-        //{"LinearFullXY", Leph::OdometryModel::CorrectionLinearFullXY},
-        {"LinearFullXYA", Leph::OdometryModel::CorrectionLinearFullXYA},
-        //{"ProportionalHistoryXY", Leph::OdometryModel::CorrectionProportionalHistoryXY},
-        //{"ProportionalHistoryXYA", Leph::OdometryModel::CorrectionProportionalHistoryXYA},
-        //{"LinearSimpleHistoryXY", Leph::OdometryModel::CorrectionLinearSimpleHistoryXY},
-        //{"LinearSimpleHistoryXYA", Leph::OdometryModel::CorrectionLinearSimpleHistoryXYA},
-        //{"LinearFullHistoryXY", Leph::OdometryModel::CorrectionLinearFullHistoryXY},
-        //{"LinearFullHistoryXYA", Leph::OdometryModel::CorrectionLinearFullHistoryXYA},
+    std::vector<std::pair<std::string,Leph::Odometry::OdometryModelType>> models = {
+        //{"ScalarX", Leph::Odometry::CorrectionScalarX},
+        //{"ScalarXY", Leph::Odometry::CorrectionScalarXY},
+        //{"ScalarXYA", Leph::Odometry::CorrectionScalarXYA},
+        //{"ProportionalXY", Leph::Odometry::CorrectionProportionalXY},
+        {"ProportionalXYA", Leph::Odometry::CorrectionProportionalXYA},
+        //{"LinearSimpleXY", Leph::Odometry::CorrectionLinearSimpleXY},
+        {"LinearSimpleXYA", Leph::Odometry::CorrectionLinearSimpleXYA},
+        //{"LinearFullXY", Leph::Odometry::CorrectionLinearFullXY},
+        {"LinearFullXYA", Leph::Odometry::CorrectionLinearFullXYA},
+        //{"ProportionalHistoryXY", Leph::Odometry::CorrectionProportionalHistoryXY},
+        //{"ProportionalHistoryXYA", Leph::Odometry::CorrectionProportionalHistoryXYA},
+        //{"LinearSimpleHistoryXY", Leph::Odometry::CorrectionLinearSimpleHistoryXY},
+        //{"LinearSimpleHistoryXYA", Leph::Odometry::CorrectionLinearSimpleHistoryXYA},
+        //{"LinearFullHistoryXY", Leph::Odometry::CorrectionLinearFullHistoryXY},
+        //{"LinearFullHistoryXYA", Leph::Odometry::CorrectionLinearFullHistoryXYA},
     };
     if (argMethodName != "") {
         for (size_t i=0;i<models.size();i++) {

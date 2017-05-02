@@ -1,10 +1,10 @@
 #include <stdexcept>
 #include <Utils/Angle.h>
-#include "Odometry/OdometryModel.hpp"
+#include "Odometry/Odometry.hpp"
 
 namespace Leph {
         
-OdometryModel::OdometryModel(OdometryModelType type) :
+Odometry::Odometry(OdometryModelType type) :
     _type(type),
     _isInitialized(false),
     _odometryParameters(),
@@ -434,25 +434,25 @@ OdometryModel::OdometryModel(OdometryModelType type) :
             identityPastBound;    //dA = da_past
     } else {
         throw std::logic_error(
-            "OdometryModel invalid type");
+            "Odometry invalid type");
     }
     //Ask reset
     reset();
 }
         
-OdometryModel::OdometryModelType OdometryModel::getType() const
+Odometry::OdometryModelType Odometry::getType() const
 {
     return _type;
 }
         
-void OdometryModel::reset()
+void Odometry::reset()
 {
     _isInitialized = false;
     _state = Eigen::Vector3d(0.0, 0.0, 0.0);
     _corrected = Eigen::Vector3d(0.0, 0.0, 0.0);
     _lastDiff = Eigen::Vector3d(0.0, 0.0, 0.0);
 }
-void OdometryModel::reset(const Eigen::Vector3d& pose)
+void Odometry::reset(const Eigen::Vector3d& pose)
 {
     _isInitialized = false;
     _state = pose;
@@ -460,7 +460,7 @@ void OdometryModel::reset(const Eigen::Vector3d& pose)
     _lastDiff = Eigen::Vector3d(0.0, 0.0, 0.0);
 }
 
-void OdometryModel::update(
+void Odometry::update(
     const Eigen::Vector3d& current, 
     Leph::HumanoidFixedModel::SupportFoot supportFoot)
 {
@@ -499,13 +499,13 @@ void OdometryModel::update(
         odometryInt(diff, _corrected);
     }
 }
-void OdometryModel::update(
+void Odometry::update(
     HumanoidFixedModel& model)
 {
     update(model.get().getPose(), model.getSupportFoot());
 }
         
-void OdometryModel::updateFullStep(
+void Odometry::updateFullStep(
     const Eigen::Vector3d& deltaPose)
 {
     if (!_isInitialized) {
@@ -526,21 +526,21 @@ void OdometryModel::updateFullStep(
     _corrected = _state;
 }
 
-const Eigen::VectorXd& OdometryModel::parameters() const
+const Eigen::VectorXd& Odometry::parameters() const
 {
     return _odometryParameters;
 }
-Eigen::VectorXd& OdometryModel::parameters()
+Eigen::VectorXd& Odometry::parameters()
 {
     return _odometryParameters;
 }
         
-const Eigen::Vector3d& OdometryModel::state() const
+const Eigen::Vector3d& Odometry::state() const
 {
     return _corrected;
 }
 
-Eigen::Vector3d OdometryModel::odometryDiff(
+Eigen::Vector3d Odometry::odometryDiff(
     const Eigen::Vector3d& state1, 
     const Eigen::Vector3d& state2) const
 {
@@ -555,7 +555,7 @@ Eigen::Vector3d OdometryModel::odometryDiff(
     return Eigen::Vector3d(vectInSrcX, vectInSrcY, angle);
 }
 
-void OdometryModel::odometryInt(
+void Odometry::odometryInt(
     const Eigen::Vector3d& diff,
     Eigen::Vector3d& state) const
 {
@@ -571,7 +571,7 @@ void OdometryModel::odometryInt(
     if (state.z() < -M_PI) state.z() += 2.0*M_PI;
 }
         
-Eigen::Vector3d OdometryModel::correctiveModel(
+Eigen::Vector3d Odometry::correctiveModel(
     const Eigen::Vector3d& diff,
     const Eigen::Vector3d& lastDiff) const
 {
@@ -736,17 +736,17 @@ Eigen::Vector3d OdometryModel::correctiveModel(
             _odometryParameters(20)*lastDiff.z();
     } else {
         throw std::logic_error(
-            "OdometryModel invalid type");
+            "Odometry invalid type");
     }
 
     return Eigen::Vector3d(diffX, diffY, diffZ);
 }
 
-const Eigen::VectorXd& OdometryModel::parameterLowerBounds() const
+const Eigen::VectorXd& Odometry::parameterLowerBounds() const
 {
     return _odometryLowerBounds;
 }
-const Eigen::VectorXd& OdometryModel::parameterUpperBounds() const
+const Eigen::VectorXd& Odometry::parameterUpperBounds() const
 {
     return _odometryUpperBounds;
 }

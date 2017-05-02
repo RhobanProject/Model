@@ -1,5 +1,5 @@
-#ifndef LEPH_ODOMETRYMODEL_HPP
-#define LEPH_ODOMETRYMODEL_HPP
+#ifndef LEPH_ODOMETRY_HPP
+#define LEPH_ODOMETRY_HPP
 
 #include <Eigen/Dense>
 #include "Model/HumanoidFixedModel.hpp"
@@ -7,17 +7,16 @@
 namespace Leph {
 
 /**
- * OdometryModel
+ * Odometry
  *
- * Compute and correct relative odometry 
- * displacement with simple linear model.
+ * TODO
  */
-class OdometryModel
+class Odometry
 {
     public:
 
         /**
-         * OdometryModel regression type
+         * Odometry regression type
          */
         enum OdometryModelType {
             CorrectionIdentity,
@@ -41,7 +40,7 @@ class OdometryModel
         /**
          * Initialization
          */
-        OdometryModel(OdometryModelType type);
+        Odometry(OdometryModelType type);
 
         /**
          * Return instance Correction type
@@ -123,7 +122,7 @@ class OdometryModel
     private:
 
         /**
-         * Seleted correction type
+         * Selected correction type
          */
         const OdometryModelType _type;
 

@@ -2,7 +2,7 @@
 #include "Plot/Plot.hpp"
 #include "IKWalk/IKWalk.hpp"
 #include "Model/HumanoidFixedModel.hpp"
-#include "Odometry/OdometryModel.hpp"
+#include "Odometry/Odometry.hpp"
 
 int main()
 {
@@ -47,9 +47,9 @@ int main()
     params.extraRightPitch = 0.0;
     params.extraRightRoll = 0.0;
 
-    //OdometryModel
-    Leph::OdometryModel odometry(
-        Leph::OdometryModel::CorrectionLinearSimpleXY);
+    //Odometry
+    Leph::Odometry odometry(
+        Leph::Odometry::CorrectionLinearSimpleXY);
     odometry.parameters()(1) = 1.5;
     odometry.parameters()(6) = 1.2;
 
@@ -66,7 +66,7 @@ int main()
             return -1;
         }
         model.updateBase();
-        //OdometryModel
+        //Odometry
         odometry.update(model);
         //Plot
         plot.add(Leph::VectorLabel(
