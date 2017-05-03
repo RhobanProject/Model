@@ -102,16 +102,16 @@ set(SOURCES_FILES
     Model/HumanoidFloatingModel.cpp
     Model/HumanoidFixedModel.cpp
     Model/HumanoidFixedPressureModel.cpp
-    Model/InverseKinematics.cpp
+    #Model/InverseKinematics.cpp
     Model/RBDLRootUpdate.cpp
     Model/RBDLClosedLoop.cpp
     Model/RBDLContactLCP.cpp
-    Model/NullSpace.cpp
+    #Model/NullSpace.cpp
     Model/ForwardSimulation.cpp
     Model/HumanoidSimulation.cpp
     Model/JointModel.cpp
     Odometry/OdometryModel.cpp
-    StaticWalk/StaticWalk.cpp
+    #StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
     Spline/SmoothSpline.cpp
@@ -127,7 +127,7 @@ set(SOURCES_FILES
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
     DMP/DMPSpline.cpp
-    LCPMobyDrake/LCPSolver.cpp
+    #LCPMobyDrake/LCPSolver.cpp
     TrajectoryDefinition/CommonTrajs.cpp
     TrajectoryDefinition/TrajKickSingle.cpp
     TrajectoryDefinition/TrajKickSingleContact.cpp

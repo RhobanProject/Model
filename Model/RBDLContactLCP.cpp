@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include <sstream>
 #include "Model/RBDLContactLCP.h"
-#include "LCPMobyDrake/LCPSolver.hpp"
+//#include "LCPMobyDrake/LCPSolver.hpp"
 
 namespace RBDL = RigidBodyDynamics;
 namespace RBDLMath = RigidBodyDynamics::Math;
@@ -168,10 +168,12 @@ void RBDLContactLCP(
     Eigen::MatrixXd HHHinv = HHHQR.inverse();
     MMM = TTT*HHHinv*TTT.transpose();
     DDD = TTT*HHHinv*CCC - gammaUnilateral;
+    /*
     Drake::MobyLCPSolver solverTMP;
     bool isSuccessTMP = solverTMP.
         SolveLcpLemkeRegularized(MMM, DDD, &LLL);
     (void)isSuccessTMP;
+    */
     /* XXX
     std::cout << isSuccessTMP << " ?????? LAMBDA   = " << LLL.transpose() << std::endl;
     std::cout << isSuccessTMP << " ?????? ZETA_DOT = " << (MMM*LLL+DDD).transpose() << std::endl;
@@ -206,10 +208,12 @@ void RBDLContactLCP(
     Eigen::MatrixXd HHH_inv = HHH_QR.inverse();
     MMM_ = TTT_*HHH_inv*(0.0001*TTT_.transpose());
     DDD_ = TTT_*HHH_inv*CCC_;
+    /*
     Drake::MobyLCPSolver solverTMP_;
     bool isSuccessTMP_ = solverTMP_.
         SolveLcpLemkeRegularized(MMM_, DDD_, &LLL_);
     (void)isSuccessTMP_;
+    */
     /* XXX
     std::cout << isSuccessTMP_ << " ###### LAMBDA   = " << LLL_.transpose() << std::endl;
     std::cout << isSuccessTMP_ << " ###### ZETA     = " << (MMM_*LLL_+DDD_).transpose() << std::endl;
@@ -217,24 +221,11 @@ void RBDLContactLCP(
     
     //Compute LCP solution
     RBDLMath::VectorNd lambda(sizeUnilateral);
+    /*
     Drake::MobyLCPSolver solver;
     bool isSuccess = solver.
         SolveLcpLemkeRegularized(MUnilateral, dUnilateral, &lambda);
-    if (!isSuccess) {
-        std::ostringstream ss;
-        ss << std::endl;
-        ss << "size:" << sizeUnilateral << std::endl;
-        ss << "success:" << isSuccess << std::endl;
-        ss << "lambda:" << lambda.transpose() << std::endl;
-        ss << "zetaDot:" << (MUnilateral*lambda+dUnilateral).transpose() << std::endl;
-        ss << "zeta:" << (GUnilateral * QDot).transpose() << std::endl;
-        //XXX std::cout << "RBDLContactLCP LCP not success: " + ss.str() << std::endl;
-        /*
-        throw std::logic_error(
-            "RBDLContactLCP LCP not success." 
-            + ss.str());
-        */
-    }
+*/
     /* XXX
     std::cout << "size:" << sizeUnilateral << std::endl;
     std::cout << "isBilateralConstraint:" << isBilateralConstraint.transpose() << std::endl;
