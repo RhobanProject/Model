@@ -110,7 +110,9 @@ set(SOURCES_FILES
     Model/ForwardSimulation.cpp
     Model/HumanoidSimulation.cpp
     Model/JointModel.cpp
-    Odometry/OdometryModel.cpp
+    Odometry/Odometry.cpp
+    Odometry/OdometryDisplacementModel.cpp
+    Odometry/OdometryNoiseModel.cpp
     #StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -177,7 +179,7 @@ set(TESTS_FILES
     testAxisAngle
     testEncoderFilter
     testMapSeries
-    testOdometryModel
+    testOdometry
     benchModel
     testDMP
     testDMPSpline
