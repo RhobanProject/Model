@@ -156,7 +156,7 @@ class LogLikelihoodMaximization
             Leph::Plot* plot = nullptr)
         {
             //Check size
-            if (_observations.size() < 3) {
+            if (_observations.size() < 4) {
                 throw std::logic_error(
                     "LogLikelihoodMaximization not enough observations");
             }
@@ -172,13 +172,16 @@ class LogLikelihoodMaximization
             if (learningSize <= 2) {
                 learningSize = 2;
             }
+            while (_observations.size() - learningSize < 2) {
+                learningSize--;
+            }
             dataDispatch(learningSize); 
             
             //Assign sampling number
             _samplingNumber = samplingNumber;
 
             //Iteration counter
-            unsigned long iterations = 0;
+            unsigned long iterations = 1;
             
             //Fitness function
             libcmaes::FitFuncEigen fitness = 
@@ -502,7 +505,8 @@ class LogLikelihoodMaximization
             //Check size
             if (usedSet.size() < 2) {
                 throw std::logic_error(
-                    "LogLikelihoodMaximization not enough learning");
+                    "LogLikelihoodMaximization not enough points: "
+                    + std::to_string(usedSet.size()));
             }
 
             //Check parameters

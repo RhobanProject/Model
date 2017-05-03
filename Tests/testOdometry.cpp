@@ -49,9 +49,12 @@ int main()
 
     //Odometry
     Leph::Odometry odometry(
-        Leph::Odometry::CorrectionLinearSimpleXY);
-    odometry.parameters()(1) = 1.5;
-    odometry.parameters()(6) = 1.2;
+        Leph::OdometryDisplacementModel::DisplacementLinearSimpleXY,
+        Leph::OdometryNoiseModel::NoiseDisable);
+    Eigen::VectorXd tmpParams = odometry.getParameters();
+    tmpParams(1) = 1.5;
+    tmpParams(6) = 1.2;
+    odometry.setParameters(tmpParams);
 
     Leph::Plot plot;
     double phase = 0.0;
@@ -67,7 +70,7 @@ int main()
         }
         model.updateBase();
         //Odometry
-        odometry.update(model);
+        odometry.update(model, nullptr);
         //Plot
         plot.add(Leph::VectorLabel(
             "t", t, 

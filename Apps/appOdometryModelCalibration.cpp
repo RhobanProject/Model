@@ -231,7 +231,7 @@ double distanceFromArc(double x, double y, double targetX, double targetY, doubl
  */
 double odometryModelFitness(
     const OdometryData& data, OdometryType type, 
-    Leph::Odometry::OdometryModelType model, 
+    Leph::OdometryDisplacementModel::Type model, 
     const Eigen::VectorXd parameters, 
     size_t indexStart, size_t indexEnd,
     bool isLearningScore,
@@ -243,7 +243,7 @@ double odometryModelFitness(
     for (size_t i=indexStart;i<=indexEnd;i++) {
         //Assign odometry model parameters
         Leph::Odometry odometry(model);
-        odometry.parameters() = parameters;
+        double errorBounds = odometry.setParameters(parameters);
         odometry.reset();
         //Plot model
         Leph::Odometry* odometryDebugRead = nullptr;
@@ -262,15 +262,8 @@ double odometryModelFitness(
             ));
         }
         //Check parameter bounds
-        Eigen::VectorXd lowerBounds = odometry.parameterLowerBounds();
-        Eigen::VectorXd upperBounds = odometry.parameterUpperBounds();
-        for (size_t j=0;j<(size_t)parameters.size();j++) {
-            if (parameters(j) < lowerBounds(j)) {
-                error += 1000.0 + 1000.0*(lowerBounds(j) - parameters(j));
-            }
-            if (parameters(j) > upperBounds(j)) {
-                error += 1000.0 + 1000.0*(parameters(j) - upperBounds(j));
-            }
+        if (errorBounds > 0.0) {
+            error += 1000.0 + 1000.0*errorBounds;
         }
         //Iterate over recorded point inside a sequence
         double lastPhase = data.walkTrajsPhase[i].front();
@@ -282,31 +275,37 @@ double odometryModelFitness(
                     double enableGain = data.walkTrajsOrder[i][j](3);
                     odometry.updateFullStep(
                         2.0*data.walkTrajsOrder[i][j].segment(0, 3)
-                        *enableGain);
+                        *enableGain,
+                        nullptr);
                 }
             } else if (type == OdometryGoal) {
                 odometry.update(
                     data.goalTrajsPose[i][j], 
-                    data.goalTrajsSupport[i][j]);
+                    data.goalTrajsSupport[i][j],
+                    nullptr);
             } else if (type == OdometryRead) {
                 odometry.update(
                     data.readTrajsPose[i][j], 
-                    data.readTrajsSupport[i][j]);
+                    data.readTrajsSupport[i][j],
+                    nullptr);
             } else {
                 throw std::logic_error("Invalid odometry type");
             }
             if (plot != nullptr) {
                 odometryDebugRead->update(
                     data.readTrajsPose[i][j], 
-                    data.readTrajsSupport[i][j]);
+                    data.readTrajsSupport[i][j],
+                    nullptr);
                 odometryDebugGoal->update(
                     data.goalTrajsPose[i][j], 
-                    data.goalTrajsSupport[i][j]);
+                    data.goalTrajsSupport[i][j],
+                    nullptr);
                 if (lastPhase > 0.8 && phase < 0.2) {
                     double enableGain = data.walkTrajsOrder[i][j](3);
                     odometryDebugOrder->updateFullStep(
                         2.0*data.walkTrajsOrder[i][j].segment(0, 3)
-                        *enableGain);
+                        *enableGain,
+                        nullptr);
                 }
                 plot->add(Leph::VectorLabel(
                     "odometry_x", odometry.state().x(),
@@ -381,10 +380,10 @@ double odometryModelFitness(
  * Return default parameters for given model
  */
 Eigen::VectorXd defaultParameters(
-    Leph::Odometry::OdometryModelType model)
+    Leph::OdometryDisplacementModel::Type model)
 {
     Leph::Odometry odometry(model);
-    return odometry.parameters();
+    return odometry.getParameters();
 }
 
 /**
@@ -394,7 +393,7 @@ Eigen::VectorXd defaultParameters(
  */
 Eigen::VectorXd odometryModelOptimization(
     const OdometryData& data, OdometryType type, 
-    Leph::Odometry::OdometryModelType model, 
+    Leph::OdometryDisplacementModel::Type model, 
     size_t indexStart, size_t indexEnd)
 {
     //Fitness function
@@ -506,16 +505,16 @@ int main(int argc, char** argv)
     }
     
     //Experimented Odometry models
-    std::vector<std::pair<std::string,Leph::Odometry::OdometryModelType>> models = {
+    std::vector<std::pair<std::string,Leph::OdometryDisplacementModel::Type>> models = {
         //{"ScalarX", Leph::Odometry::CorrectionScalarX},
         //{"ScalarXY", Leph::Odometry::CorrectionScalarXY},
         //{"ScalarXYA", Leph::Odometry::CorrectionScalarXYA},
         //{"ProportionalXY", Leph::Odometry::CorrectionProportionalXY},
-        {"ProportionalXYA", Leph::Odometry::CorrectionProportionalXYA},
+        {"ProportionalXYA", Leph::OdometryDisplacementModel::DisplacementProportionalXYA},
         //{"LinearSimpleXY", Leph::Odometry::CorrectionLinearSimpleXY},
-        {"LinearSimpleXYA", Leph::Odometry::CorrectionLinearSimpleXYA},
+        {"LinearSimpleXYA", Leph::OdometryDisplacementModel::DisplacementLinearSimpleXYA},
         //{"LinearFullXY", Leph::Odometry::CorrectionLinearFullXY},
-        {"LinearFullXYA", Leph::Odometry::CorrectionLinearFullXYA},
+        {"LinearFullXYA", Leph::OdometryDisplacementModel::DisplacementLinearFullXYA},
         //{"ProportionalHistoryXY", Leph::Odometry::CorrectionProportionalHistoryXY},
         //{"ProportionalHistoryXYA", Leph::Odometry::CorrectionProportionalHistoryXYA},
         //{"LinearSimpleHistoryXY", Leph::Odometry::CorrectionLinearSimpleHistoryXY},

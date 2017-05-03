@@ -1,51 +1,73 @@
 #ifndef LEPH_ODOMETRY_HPP
 #define LEPH_ODOMETRY_HPP
 
+#include <random>
 #include <Eigen/Dense>
 #include "Model/HumanoidFixedModel.hpp"
+#include "Odometry/OdometryDisplacementModel.hpp"
+#include "Odometry/OdometryNoiseModel.hpp"
 
 namespace Leph {
 
 /**
  * Odometry
  *
- * TODO
+ * Utilities for differentiate and
+ * integrate the robot displacement.
+ * Manage displacement and noise model.
  */
 class Odometry
 {
     public:
 
         /**
-         * Odometry regression type
+         * Initialization with displacement
+         * and noise model types
          */
-        enum OdometryModelType {
-            CorrectionIdentity,
-            CorrectionScalarX,
-            CorrectionScalarXY,
-            CorrectionScalarXYA,
-            CorrectionProportionalXY,
-            CorrectionProportionalXYA,
-            CorrectionLinearSimpleXY,
-            CorrectionLinearSimpleXYA,
-            CorrectionLinearFullXY,
-            CorrectionLinearFullXYA,
-            CorrectionProportionalHistoryXY,
-            CorrectionProportionalHistoryXYA,
-            CorrectionLinearSimpleHistoryXY,
-            CorrectionLinearSimpleHistoryXYA,
-            CorrectionLinearFullHistoryXY,
-            CorrectionLinearFullHistoryXYA,
-        };
+        Odometry(
+            OdometryDisplacementModel::Type typeDisplacement,
+            OdometryNoiseModel::Type typeNoise 
+                = OdometryNoiseModel::NoiseDisable);
 
         /**
-         * Initialization
+         * Return displacement and noise 
+         * model internal types.
          */
-        Odometry(OdometryModelType type);
+        OdometryDisplacementModel::Type getDisplacementType() const;
+        OdometryNoiseModel::Type getNoiseType() const;
+        
+        /**
+         * Return current or default
+         * parameters for displacement 
+         * and noise models.
+         */
+        Eigen::VectorXd getParameters() const;
 
         /**
-         * Return instance Correction type
+         * Assign given displacement and noise 
+         * model parameters. 
+         * If given parameters does not
+         * comply with min or max bounds, 
+         * a positive distance (for fitness scoring)
+         * from given parameters is given.
+         * Else, the parameters are assigned
+         * and zero is returned.
          */
-        OdometryModelType getType() const;
+        double setParameters(
+            const Eigen::VectorXd& params);
+
+        /**
+         * Return parameter normalization 
+         * coefficients for displacement 
+         * and noise models.
+         */
+        Eigen::VectorXd getNormalization() const;
+
+        /**
+         * Print current parameters on
+         * standart output
+         */
+        void printParameters() const;
 
         /**
          * Reset to zero or given pose integrated state
@@ -57,12 +79,15 @@ class Odometry
         /**
          * Update with given input pose state or input Model
          * the internal data and compute corrected odometry.
+         * If engine is not null, the noise model is apply.
          */
         void update(
             const Eigen::Vector3d& pose, 
-            Leph::HumanoidFixedModel::SupportFoot supportFoot);
+            Leph::HumanoidFixedModel::SupportFoot supportFoot,
+            std::default_random_engine* engine);
         void update(
-            HumanoidFixedModel& model);
+            HumanoidFixedModel& model,
+            std::default_random_engine* engine);
 
         /**
          * Update pose state by integrating given
@@ -71,14 +96,8 @@ class Odometry
          * (meter, radian).
          */
         void updateFullStep(
-            const Eigen::Vector3d& deltaPose);
-
-        /**
-         * Read/Write access to 
-         * odometry parameters
-         */
-        const Eigen::VectorXd& parameters() const;
-        Eigen::VectorXd& parameters();
+            const Eigen::Vector3d& deltaPose,
+            std::default_random_engine* engine);
 
         /**
          * Return current corrected odometry state
@@ -102,29 +121,13 @@ class Odometry
             const Eigen::Vector3d& diff,
             Eigen::Vector3d& state) const;
 
-        /**
-         * Correct and return given relative displacement 
-         * and last relative displacement 
-         * [dX,dY,dTheta] using current model parameters.
-         */
-        Eigen::Vector3d correctiveModel(
-            const Eigen::Vector3d& diff,
-            const Eigen::Vector3d& lastDiff) const;
-
-        /**
-         * Return minimum and maximum (indicative)
-         * constrains for current Odometry model
-         * parameters
-         */
-        const Eigen::VectorXd& parameterLowerBounds() const;
-        const Eigen::VectorXd& parameterUpperBounds() const;
-
     private:
 
         /**
-         * Selected correction type
+         * Displacement and noise models
          */
-        const OdometryModelType _type;
+        OdometryDisplacementModel _modelDisplacement;
+        OdometryNoiseModel _modelNoise;
 
         /**
          * If false, the next update() will
@@ -133,15 +136,6 @@ class Odometry
          */
         bool _isInitialized;
 
-        /**
-         * Odometry parameters depending
-         * on OdometryModelType.
-         * Lower and upper parameter bounds.
-         */
-        Eigen::VectorXd _odometryParameters;
-        Eigen::VectorXd _odometryLowerBounds;
-        Eigen::VectorXd _odometryUpperBounds;
-        
         /**
          * Last seen support foot 
          * of input Model.

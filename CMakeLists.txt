@@ -88,6 +88,8 @@ set(SOURCES_FILES
     Model/HumanoidSimulation.cpp
     Model/JointModel.cpp
     Odometry/Odometry.cpp
+    Odometry/OdometryDisplacementModel.cpp
+    Odometry/OdometryNoiseModel.cpp
     StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
