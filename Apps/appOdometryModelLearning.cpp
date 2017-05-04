@@ -37,7 +37,7 @@ static const double learningDataRatio = 0.8;
  * CMA-ES optimization configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 200;
+static const unsigned int cmaesMaxIterations = 100;
 static const unsigned int cmaesRestarts = 1;
 static const unsigned int cmaesLambda = 10;
 static const double cmaesSigma = -1.0;
@@ -47,9 +47,9 @@ static const double cmaesSigma = -1.0;
  * and noise models
  */
 static Leph::OdometryDisplacementModel::Type typeDisplacement = 
-    Leph::OdometryDisplacementModel::DisplacementProportionalXYA;
+    Leph::OdometryDisplacementModel::DisplacementLinearSimpleXYA;
 static Leph::OdometryNoiseModel::Type typeNoise = 
-    Leph::OdometryNoiseModel::NoiseProportional;
+    Leph::OdometryNoiseModel::NoiseLinearSimple;
 
 /**
  * Used odometry mode
@@ -415,6 +415,13 @@ int main(int argc, char** argv)
             (Leph::OdometryNoiseModel::Type)tmpTypeNoise;
         initParams = Leph::ReadEigenVectorFromStream(file);
         file.close();
+        //Check bounds
+        Leph::Odometry tmpOdometry(typeDisplacement, typeNoise);
+        double isError = tmpOdometry.setParameters(initParams);
+        if (isError > 0.0) {
+            std::cout << "Seed parameters out of bounds: " 
+                << isError << std::endl;
+        }
     }
     
     //Initialize the logLikelihood 
@@ -434,7 +441,7 @@ int main(int argc, char** argv)
                 -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
         calibration.addObservation(obs, logs[i]);
     }
-
+    
     //Start the CMA-ES optimization
     Leph::Plot plot;
     calibration.runOptimization(

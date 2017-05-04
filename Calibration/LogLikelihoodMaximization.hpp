@@ -543,6 +543,8 @@ class LogLikelihoodMaximization
          */
         void dataDispatch(size_t learningSize)
         {
+            _indexesLearning.clear();
+            _indexesTesting.clear();
             if (learningSize > _observations.size()-1) {
                 throw std::logic_error(
                     "LogLikelihoodMaximization invalid learning size");

@@ -34,7 +34,12 @@ int main()
         double pixelTarget = 0.5;
 
         //Compute head Inverse Kinematics
-        model.get().cameraLookAt(camParams, target, pixelTarget);
+        bool isSucess = model.get().cameraLookAt(
+            camParams, target, pixelTarget);
+        if (!isSucess) {
+            std::cout << "!!! CAMERA IK LOOKAT ERROR" << std::endl;
+            return 1;
+        }
         //Draw target
         viewer.drawFrame(target, Eigen::Matrix3d::Identity());
         //Draw view line on pixel target
