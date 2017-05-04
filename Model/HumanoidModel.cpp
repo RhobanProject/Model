@@ -650,9 +650,6 @@ bool HumanoidModel::cameraLookAtNoUpdate(
     Eigen::Vector3d viewVectorInBase = orientation*viewVector;
 
     //Compute yaw rotation arround Z aligned with the target
-    if (viewVectorInBase.z() >= 0.0) {
-        return false;
-    }
     double yaw = atan2(viewVectorInBase.y(), viewVectorInBase.x());
     //Assign head yaw DOF
     panDOF = yaw;
