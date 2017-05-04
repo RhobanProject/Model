@@ -8,9 +8,9 @@ constexpr double IdentityBound = 1.0;
 constexpr double ConstantDistanceBound = 0.1;
 constexpr double ConstantAngularBound = M_PI/2.0;
 constexpr double MixedBound = 1.0;
-constexpr double DefaultIdentityBound = 0.05;
-constexpr double DefaultConstantDistanceBound = 0.005;
-constexpr double DefaultConstantAngularBound = 2.0*M_PI/180.0;
+constexpr double DefaultIdentityBound = 0.01;
+constexpr double DefaultConstantDistanceBound = 0.001;
+constexpr double DefaultConstantAngularBound = 1.0*M_PI/180.0;
 
 namespace Leph {
 
