@@ -251,12 +251,14 @@ class HumanoidModel : public Model
          * In NoUpdate version, the underlying model
          * is not updated and given reference dof 
          * are assigned.
+         * If the computation fails, the model
+         * is not updated and false is returned.
          */
-        void cameraLookAt(
+        bool cameraLookAt(
             const CameraParameters& params,
             const Eigen::Vector3d& posTarget,
             double offsetPixelTilt = 0.0);
-        void cameraLookAtNoUpdate(
+        bool cameraLookAtNoUpdate(
             double& panDOF,
             double& tiltDOF,
             const CameraParameters& params,

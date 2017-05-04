@@ -618,21 +618,25 @@ bool HumanoidModel::cameraPanTiltToPixel(
     return cameraWorldToPixel(params, pointInWorld, pixel);
 }
 
-void HumanoidModel::cameraLookAt(
+bool HumanoidModel::cameraLookAt(
     const CameraParameters& params,
     const Eigen::Vector3d& posTarget, 
     double offsetPixelTilt)
 {
     double panDOF;
     double tiltDOF;
-    cameraLookAtNoUpdate(panDOF, tiltDOF, 
+    bool isSucess = cameraLookAtNoUpdate(panDOF, tiltDOF, 
         params, posTarget, offsetPixelTilt);
-    Model::setDOF("head_yaw", panDOF);
-    Model::setDOF("head_pitch", tiltDOF);
-    //Update the model when optimization is enabled
-    Model::updateDOFPosition();
+    if (isSucess) {
+        Model::setDOF("head_yaw", panDOF);
+        Model::setDOF("head_pitch", tiltDOF);
+        //Update the model when optimization is enabled
+        Model::updateDOFPosition();
+    }
+
+    return isSucess;
 }
-void HumanoidModel::cameraLookAtNoUpdate(
+bool HumanoidModel::cameraLookAtNoUpdate(
     double& panDOF,
     double& tiltDOF,
     const CameraParameters& params,
@@ -646,6 +650,9 @@ void HumanoidModel::cameraLookAtNoUpdate(
     Eigen::Vector3d viewVectorInBase = orientation*viewVector;
 
     //Compute yaw rotation arround Z aligned with the target
+    if (viewVectorInBase.z() >= 0.0) {
+        return false;
+    }
     double yaw = atan2(viewVectorInBase.y(), viewVectorInBase.x());
     //Assign head yaw DOF
     panDOF = yaw;
@@ -686,14 +693,21 @@ void HumanoidModel::cameraLookAtNoUpdate(
     //Use Maxima for system of 3 equations, 3 unknown solving
     double B = sin(beta);
     double cosAngle = r/R;
-    cosAngle = -(B*sqrt(R*R+r*r*B*B-r*r)+r*B*B-r)/R;
+    if (R*R+r*r*B*B-r*r <= 0.0) {
+        return false;
+    }
     cosAngle = (B*sqrt(R*R+r*r*B*B-r*r)-r*B*B+r)/R;
+    if (cosAngle >= 1.0 || cosAngle <= -1.0) {
+        return false;
+    }
     double alpha = M_PI/2.0 - acos(cosAngle) - gamma;
     //Apply (inverse) angular correction to pitch 
     alpha += -epsilon;
 
     //Assignement head pitch DOF
     tiltDOF = alpha;
+
+    return true;
 }
 
 double HumanoidModel::cameraScreenHorizon(
