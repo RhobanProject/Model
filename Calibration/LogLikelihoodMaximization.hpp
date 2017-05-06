@@ -69,6 +69,15 @@ class LogLikelihoodMaximization
             InitFunc;
 
         /**
+         * Optional transformation function
+         * to directly compare final observation 
+         * and estimation.
+         */
+        typedef std::function<Eigen::VectorXd(
+            const Eigen::VectorXd& obs)>
+            TransformFunc;
+
+        /**
          * Default initialization
          */
         LogLikelihoodMaximization() :
@@ -79,6 +88,7 @@ class LogLikelihoodMaximization
             _evalFunc(),
             _boundFunc(),
             _initFunc(),
+            _transformFunc(),
             _samplingNumber(2),
             _indexesLearning(),
             _indexesTesting()
@@ -113,11 +123,17 @@ class LogLikelihoodMaximization
          * the model initialization function.
          */
         void setUserFunctions(
-            EvalFunc func1, BoundFunc func2, InitFunc func3)
+            EvalFunc func1, 
+            BoundFunc func2, 
+            InitFunc func3,
+            TransformFunc func4 = TransformFunc())
         {
             _evalFunc = func1;
             _boundFunc = func2;
             _initFunc = func3;
+            if (func4) {
+                _transformFunc = func4;
+            } 
         }
 
         /**
@@ -371,30 +387,56 @@ class LogLikelihoodMaximization
                 size_t indexSet = _indexesLearning[i];
                 Eigen::VectorXd estimate = _evalFunc(
                     params, _dataContainer[indexSet], true, model, engine);
-                Eigen::VectorXd error = estimate - _observations[indexSet];
-                double cartError = error.norm();
-                sumErrorLearn += cartError;
-                sum2ErrorLearn += pow(cartError, 2);
-                if (minLearn < 0.0 || minLearn > cartError) {
-                    minLearn = cartError;
+                //Compute distance between 
+                //observation and estimation
+                double cmpError = 0.0;
+                if (_transformFunc) {
+                    //If available, apply user transformation
+                    //before comparison
+                    Eigen::VectorXd error = 
+                        _transformFunc(estimate) 
+                        - _transformFunc(_observations[indexSet]);
+                    cmpError = error.norm();
+                } else {
+                    Eigen::VectorXd error = 
+                        estimate - _observations[indexSet];
+                    cmpError = error.norm();
                 }
-                if (maxLearn < 0.0 || maxLearn < cartError) {
-                    maxLearn = cartError;
+                sumErrorLearn += cmpError;
+                sum2ErrorLearn += pow(cmpError, 2);
+                if (minLearn < 0.0 || minLearn > cmpError) {
+                    minLearn = cmpError;
+                }
+                if (maxLearn < 0.0 || maxLearn < cmpError) {
+                    maxLearn = cmpError;
                 }
             }
             for (size_t i=0;i<_indexesTesting.size();i++) {
                 size_t indexSet = _indexesTesting[i];
                 Eigen::VectorXd estimate = _evalFunc(
                     params, _dataContainer[indexSet], true, model, engine);
-                Eigen::VectorXd error = estimate - _observations[indexSet];
-                double cartError = error.norm();
-                sumErrorTest += cartError;
-                sum2ErrorTest += pow(cartError, 2);
-                if (minTest < 0.0 || minTest > cartError) {
-                    minTest = cartError;
+                //Compute distance between 
+                //observation and estimation
+                double cmpError = 0.0;
+                if (_transformFunc) {
+                    //If available, apply user transformation
+                    //before comparison
+                    Eigen::VectorXd error = 
+                        _transformFunc(estimate) 
+                        - _transformFunc(_observations[indexSet]);
+                    cmpError = error.norm();
+                } else {
+                    Eigen::VectorXd error = 
+                        estimate - _observations[indexSet];
+                    cmpError = error.norm();
                 }
-                if (maxTest < 0.0 || maxTest < cartError) {
-                    maxTest = cartError;
+                sumErrorTest += cmpError;
+                sum2ErrorTest += pow(cmpError, 2);
+                if (minTest < 0.0 || minTest > cmpError) {
+                    minTest = cmpError;
+                }
+                if (maxTest < 0.0 || maxTest < cmpError) {
+                    maxTest = cmpError;
                 }
             }
             meanLearn = 
@@ -438,6 +480,13 @@ class LogLikelihoodMaximization
         EvalFunc _evalFunc;
         BoundFunc _boundFunc;
         InitFunc _initFunc;
+
+        /**
+         * Tranformation function for
+         * direct comparaison between 
+         * observation and estimation
+         */
+        TransformFunc _transformFunc;
 
         /**
          * The number of time the user function
