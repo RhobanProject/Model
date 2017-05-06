@@ -430,7 +430,17 @@ int main(int argc, char** argv)
         <OdometrySequence, Leph::Odometry> calibration;
     calibration.setInitialParameters(
         initParams, buildNormalizationCoef());
-    calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
+    calibration.setUserFunctions(
+        evaluateParameters, 
+        boundParameters, 
+        initModel,
+        [](const Eigen::VectorXd& vect) -> Eigen::VectorXd 
+        { 
+            //For estimation and observation 
+            //direct comparison, use only 
+            //cartesian distance
+            return vect.segment(0, 2); 
+        });
     //Add observations data
     for (size_t i=0;i<logs.size();i++) {
         Eigen::VectorXd obs(3);
