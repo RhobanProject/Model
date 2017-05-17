@@ -184,6 +184,7 @@ set(APPS_FILES
     appModelParametersViewer
     #appHumanoidSimulationLearning
     appCameraModelLearning
+    appOdometryModelLearning
 )
 
 #Build App RhIO Viewer 
