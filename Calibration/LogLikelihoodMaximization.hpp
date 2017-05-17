@@ -141,13 +141,38 @@ class LogLikelihoodMaximization
             _dataContainer.push_back(data);
         }
 
+        void runOptimization(
+            unsigned int samplingNumber,
+            double learningDataRatio,
+            unsigned int maxIterations,
+            unsigned int restart,
+            unsigned int populationSize = 10,
+            double sigma = -1.0,
+            unsigned int elitismLevel = 0,
+            Leph::Plot* plot = nullptr)
+        {
+            //Check ratio
+            if (learningDataRatio <= 0.0 || learningDataRatio >= 1.0) {
+                throw std::logic_error(
+                    "LogLikelihoodMaximization invalid learning ratio");
+            }
+
+            //Shuffle learning and testing set
+            unsigned int learningSize = 
+                std::floor(learningDataRatio*_observations.size());
+            runOptimization(samplingNumber, learningSize,
+                            maxIterations, restart, populationSize,
+                            sigma, elitismLevel, plot);
+        }
+
+
         /**
          * Start and run CMA-ES parameters
          * optimization with given configuration
          */
         void runOptimization(
             unsigned int samplingNumber,
-            double learningDataRatio,
+            unsigned int learningSize,
             unsigned int maxIterations,
             unsigned int restart,
             unsigned int populationSize = 10,
@@ -160,18 +185,12 @@ class LogLikelihoodMaximization
                 throw std::logic_error(
                     "LogLikelihoodMaximization not enough observations");
             }
-            //Check ratio
-            if (learningDataRatio <= 0.0 || learningDataRatio >= 1.0) {
+            if (learningSize <= 2) {
                 throw std::logic_error(
-                    "LogLikelihoodMaximization invalid learning ratio");
+                    "LogLikelihoodMaximization invalid learning size: "
+                    + std::to_string(learningSize));
             }
 
-            //Shuffle learning and testing set
-            unsigned int learningSize = 
-                std::floor(learningDataRatio*_observations.size());
-            if (learningSize <= 2) {
-                learningSize = 2;
-            }
             while (_observations.size() - learningSize < 2) {
                 learningSize--;
             }

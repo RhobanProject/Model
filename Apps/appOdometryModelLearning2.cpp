@@ -82,6 +82,7 @@ void readLearningConfig(const std::string & filename,
   conf->odometry_type = parseOdometryType(input);
   conf->displacement_type = parseDisplacementType(input);
   conf->noise_type = parseNoiseType(input);
+  // TODO: produces silent error on invalid content, should be fixed
   input >> conf->sampling_number
         >> conf->learning_set_size
         >> conf->cmaes_elitism
@@ -379,10 +380,9 @@ int main(int argc, char** argv)
   }
     
   //Start the CMA-ES optimization
-  double learningDataRatio = 0.5;//TODO -> solve it
   calibration.runOptimization(
     conf.sampling_number, 
-    learningDataRatio,
+    conf.learning_set_size,
     conf.cmaes_max_iterations, 
     conf.cmaes_restarts, 
     conf.cmaes_lambda, 
