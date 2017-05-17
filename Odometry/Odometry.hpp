@@ -121,6 +121,11 @@ class Odometry
             const Eigen::Vector3d& diff,
             Eigen::Vector3d& state) const;
 
+        /**
+         * Build an odometry from the specified file
+         */
+        static Odometry loadFromFile(const std::string & path);
+
     private:
 
         /**

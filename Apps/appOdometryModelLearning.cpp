@@ -26,12 +26,12 @@ enum OdometryType {
  * Number of sampling per parameters evaluation
  * for log likelyhood maximisation
  */
-static const unsigned int samplingNumber = 1000;
+static const unsigned int samplingNumber = 200;
 
 /**
  * Learning/Testing data ratio between 0 and 1
  */
-static const double learningDataRatio = 0.8;
+static const double learningDataRatio = 0.75;
 
 /**
  * CMA-ES optimization configuration
@@ -47,14 +47,14 @@ static const double cmaesSigma = -1.0;
  * and noise models
  */
 static Leph::OdometryDisplacementModel::Type typeDisplacement = 
-    Leph::OdometryDisplacementModel::DisplacementLinearSimpleXYA;
+    Leph::OdometryDisplacementModel::DisplacementProportionalXYA;
 static Leph::OdometryNoiseModel::Type typeNoise = 
-    Leph::OdometryNoiseModel::NoiseLinearSimple;
+    Leph::OdometryNoiseModel::NoiseConstant;
 
 /**
  * Used odometry mode
  */
-static OdometryType typeOdometry = OdometryRead;
+static OdometryType typeOdometry = OdometryOrder;
 
 /**
  * Odometry data for one 
@@ -475,7 +475,7 @@ int main(int argc, char** argv)
     file.close();
 
     //Plot the convergence graphic
-    plot.plot("iteration", "all").render();
+    //plot.plot("iteration", "all").render();
     //Plot the sequences with best parameters
     displaySequences(logs, bestParams);
     

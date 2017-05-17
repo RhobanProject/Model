@@ -1,6 +1,9 @@
+#include <fstream>
 #include <stdexcept>
 #include <Utils/Angle.h>
+#include <Utils/FileEigen.h>
 #include "Odometry/Odometry.hpp"
+
 
 namespace Leph {
         
@@ -240,6 +243,36 @@ void Odometry::odometryInt(
     state.z() += diff.z();
     //Shrink to -PI,PI
     state.z() = AngleBound(state.z());
+}
+
+Odometry Odometry::loadFromFile(const std::string & path)
+{
+    //Open file
+  std::ifstream file(path);
+  if (!file.is_open()) {
+    throw std::runtime_error("Unable to open file: " + path);
+  }
+  //Read data
+  int tmpTypeDisplacement;
+  int tmpTypeNoise;
+  file >> tmpTypeDisplacement;
+  file >> tmpTypeNoise;
+  OdometryDisplacementModel::Type typeDisplacement = 
+    (OdometryDisplacementModel::Type)tmpTypeDisplacement;
+  OdometryNoiseModel::Type typeNoise = 
+    (OdometryNoiseModel::Type)tmpTypeNoise;
+  Eigen::VectorXd initParams = ReadEigenVectorFromStream(file);
+  file.close();
+  //Check bounds
+  Odometry odometry(typeDisplacement, typeNoise);
+  double isError = odometry.setParameters(initParams);
+  if (isError > 0.0) {
+    std::ostringstream oss;
+    oss << "Odometry parameters are out of bounds: " 
+        << isError << std::endl;
+    throw std::runtime_error(oss.str());
+  }
+  return odometry;
 }
 
 }

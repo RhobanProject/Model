@@ -113,6 +113,7 @@ set(SOURCES_FILES
     Odometry/Odometry.cpp
     Odometry/OdometryDisplacementModel.cpp
     Odometry/OdometryNoiseModel.cpp
+    Odometry/OdometrySequence.cpp
     #StaticWalk/StaticWalk.cpp
     Spline/Polynom.cpp
     Spline/Spline.cpp
@@ -207,7 +208,9 @@ set(APPS_FILES
     appModelParametersViewer
     #appHumanoidSimulationLearning
     appCameraModelLearning
+    appOdometryModelLearning
     appOdometryModelLearning2
+    appOdometrySimulator
 )
 
 #Build App RhIO Viewer 

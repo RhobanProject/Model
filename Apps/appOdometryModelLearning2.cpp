@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include "Model/HumanoidFixedModel.hpp"
 #include "Odometry/Odometry.hpp"
+#include "Odometry/OdometrySequence.hpp"
 #include "Calibration/LogLikelihoodMaximization.hpp"
 #include "Utils/FileEigen.h"
 
@@ -108,112 +109,6 @@ void writeLearningConfig(std::ostream & out, struct LearningConfig * conf)
 }
 
 /**
- * Odometry data for one 
- * recorded sequence
- */
-struct OdometrySequence {
-  //Model read and goal model cartesian 
-  //pose in origin at each logged point
-  //(X,Y,Theta).
-  std::vector<Eigen::Vector3d> readTrajsPose;
-  std::vector<Leph::HumanoidFixedModel::SupportFoot> readTrajsSupport;
-  std::vector<Eigen::Vector3d> goalTrajsPose;
-  std::vector<Leph::HumanoidFixedModel::SupportFoot> goalTrajsSupport;
-  //Walk step, lateral, turn and phase 
-  //walk order at each logged point 
-  std::vector<Eigen::Vector4d> walkTrajsOrder;
-  std::vector<double> walkTrajsPhase;
-  //Target observed cartesian 
-  //displacement  (X,Y,Theta)
-  Eigen::Vector3d targetDisplacements;
-};
-
-/**
- * Append data loaded from fiven filename to
- * given OdometrySequence container
- */
-static void loadOdometryDataFromFile(
-  std::vector<OdometrySequence>& data, 
-  const std::string& filename)
-{
-  //Open file
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    throw std::runtime_error(
-      "Unable to open log file: " + filename);
-  }
-
-  //Loop over file entries
-  size_t lastSeq = -1;
-  while (file.good() && file.peek() != EOF) {
-    //Skip end of line
-    while (file.peek() == ' ' || file.peek() == '\n') {
-      file.ignore();
-    }
-    if (!file.good() || file.peek() == EOF) {
-      break;
-    }
-    //Retrieve one file line
-    size_t seq;
-    size_t index;
-    double readPoseX;
-    double readPoseY;
-    double readPoseYaw;
-    int readSupportFoot;
-    double goalPoseX;
-    double goalPoseY;
-    double goalPoseYaw;
-    int goalSupportFoot;
-    double walkOrderX;
-    double walkOrderY;
-    double walkOrderTheta;
-    double walkOrderEnabled;
-    double walkPhase;
-    double targetX;
-    double targetY;
-    double targetA;
-    file >> seq;
-    file >> index;
-    file >> readPoseX;
-    file >> readPoseY;
-    file >> readPoseYaw;
-    file >> readSupportFoot;
-    file >> goalPoseX;
-    file >> goalPoseY;
-    file >> goalPoseYaw;
-    file >> goalSupportFoot;
-    file >> walkOrderX;
-    file >> walkOrderY;
-    file >> walkOrderTheta;
-    file >> walkOrderEnabled;
-    file >> walkPhase;
-    file >> targetX;
-    file >> targetY;
-    file >> targetA;
-    if (lastSeq != seq) {
-      //Start a new sequence
-      data.push_back(OdometrySequence());
-      data.back().targetDisplacements = 
-        Eigen::Vector3d(targetX, targetY, targetA);
-    }
-    lastSeq = seq;
-    data.back().readTrajsPose.push_back(
-      Eigen::Vector3d(readPoseX, readPoseY, readPoseYaw));
-    data.back().readTrajsSupport.push_back(
-      (Leph::HumanoidFixedModel::SupportFoot)readSupportFoot);
-    data.back().goalTrajsPose.push_back(
-      Eigen::Vector3d(goalPoseX, goalPoseY, goalPoseYaw));
-    data.back().goalTrajsSupport.push_back(
-      (Leph::HumanoidFixedModel::SupportFoot)goalSupportFoot);
-    data.back().walkTrajsOrder.push_back(
-      Eigen::Vector4d(walkOrderX, walkOrderY, walkOrderTheta, walkOrderEnabled));
-    data.back().walkTrajsPhase.push_back(
-      walkPhase);
-  }
-  file.close();
-}
-
-/**
  * Build and return the initial 
  * parameters vector
  */
@@ -246,7 +141,7 @@ double boundParameters(
     conf.displacement_type, conf.noise_type);
   double cost = odometry.setParameters(params);
   if (cost > 0.0) {
-    return 1000.0 + 1000.0*cost;
+    return 100.0 + 100.0*cost;
   } else {
     return 0.0;
   }
@@ -275,7 +170,7 @@ Leph::Odometry initModel(const Eigen::VectorXd& params)
  */
 Eigen::VectorXd evaluateParameters(
   const Eigen::VectorXd& params,
-  const OdometrySequence& data,
+  const Leph::OdometrySequence& data,
   bool noRandom,
   Leph::Odometry& odometry,
   std::default_random_engine& engine)
@@ -351,7 +246,7 @@ int main(int argc, char** argv)
   writeLearningConfig(std::cout, &conf);
     
   //Loading log sequences
-  std::vector<OdometrySequence> logs;
+  std::vector<Leph::OdometrySequence> logs;
   loadOdometryDataFromFile(logs, logPath);
   std::cout << "Loading odometry data from: " 
             << logPath << " with " 
@@ -364,7 +259,7 @@ int main(int argc, char** argv)
   //Initialize the logLikelihood 
   //maximisation process
   Leph::LogLikelihoodMaximization
-    <OdometrySequence, Leph::Odometry> calibration;
+    <Leph::OdometrySequence, Leph::Odometry> calibration;
   calibration.setInitialParameters(
     initParams, buildNormalizationCoef());
   calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
