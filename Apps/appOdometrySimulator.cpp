@@ -74,11 +74,13 @@ int main(int argc, char** argv)
               << odometry.state()(2) << std::endl;
     }
 
-    // Saving observation
+    // Saving observation (converting hours to rad)
+    double obs_theta = - log.targetDisplacements(2) * 2.0 * M_PI / 12;
+    if (obs_theta < M_PI) obs_theta += 2 * M_PI;
     results << logId << ",observation,NA,"
             << log.targetDisplacements(0) << ","
             << log.targetDisplacements(1) << ","
-            << log.targetDisplacements(2) << std::endl;
+            << obs_theta << std::endl;
   }
   
   results.close();
