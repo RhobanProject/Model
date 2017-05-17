@@ -190,7 +190,7 @@ set(TESTS_FILES
 
 #Applications main files
 set(APPS_FILES
-    appSplineGenerationCircle
+#    appSplineGenerationCircle #Depends on LevenbergMarquardt which contains a unknown type Index
     appTestLearningFromLogs
     appExperimentOdometry
     appOdometryOffline
@@ -207,15 +207,17 @@ set(APPS_FILES
     appModelParametersViewer
     #appHumanoidSimulationLearning
     appCameraModelLearning
+    appOdometryModelLearning2
 )
 
 #Build App RhIO Viewer 
-if (RhIOClient_FOUND)
-    set(APPS_FILES ${APPS_FILES}
-        appRhIOViewerModel
-        appRhIOViewerRobocup
-    )
-endif (RhIOClient_FOUND)
+#LH: Producing undefined references
+#if (RhIOClient_FOUND)
+#    set(APPS_FILES ${APPS_FILES}
+#        appRhIOViewerModel
+#        appRhIOViewerRobocup
+#    )
+#endif (RhIOClient_FOUND)
 
 #LephCode linked libraries
 set(CODE_LIBRARIES
