@@ -10,6 +10,17 @@
 #include "Calibration/LogLikelihoodMaximization.hpp"
 #include "Utils/FileEigen.h"
 
+double dirty_factor = 100;
+
+/**
+ * How is position evaluated
+ */
+enum PosEvalType {
+  Cartesian,
+  Polar,
+  None
+};
+
 /**
  * Odometry computation type
  */
@@ -24,6 +35,8 @@ enum OdometryType {
 
 // The whole configuration of the learner is included here
 struct LearningConfig{
+  PosEvalType pos_eval_type;
+  bool evaluate_angle;
   OdometryType odometry_type;
   Leph::OdometryDisplacementModel::Type displacement_type;
   Leph::OdometryNoiseModel::Type noise_type;
@@ -37,6 +50,86 @@ struct LearningConfig{
 };
 
 struct LearningConfig conf;
+
+Eigen::VectorXd buildObservation(const Eigen::Vector3d & final_state,
+                                 LearningConfig * conf)
+{
+  int output_dim = 0;
+  if (conf->pos_eval_type != PosEvalType::None) output_dim += 2;
+  if (conf->evaluate_angle) output_dim++;
+  if (output_dim == 0) {
+    throw std::logic_error("Conf should eval at least pos or angle");
+  }
+  Eigen::VectorXd observation(output_dim);
+  int index = 0;
+  switch(conf->pos_eval_type) {
+    case PosEvalType::None: break;
+    case PosEvalType::Cartesian:
+      observation(index) = final_state(0);
+      observation(index+1) = final_state(1);
+      index += 2;
+      break;
+    case PosEvalType::Polar:
+    {
+      double x = final_state(0);
+      double y = final_state(1);
+      double dist = std::sqrt(x*x + y*y);
+      double theta = std::atan2(y,x);
+      observation(index) = dist;
+      observation(index+1) = theta;
+      index += 2;
+      break;
+    }
+  }
+  if (conf->evaluate_angle) {
+    observation(index) = final_state(2);
+    index++;
+  }
+  return observation;
+}
+
+Eigen::VectorXi getCyclicDims(LearningConfig * conf)
+{
+  int output_dim = 0;
+  if (conf->pos_eval_type != PosEvalType::None) output_dim += 2;
+  if (conf->evaluate_angle) output_dim++;
+  if (output_dim == 0) {
+    throw std::logic_error("Conf should eval at least pos or angle");
+  }
+  Eigen::VectorXi result(output_dim);
+  int index = 0;
+  switch(conf->pos_eval_type) {
+    case PosEvalType::None: break;
+    case PosEvalType::Cartesian:
+      result(index) = 0;
+      result(index+1) = 0;
+      index += 2;
+      break;
+    case PosEvalType::Polar:
+    {
+      result(index)   = 0;
+      result(index+1) = 1;
+      index += 2;
+      break;
+    }
+  }
+  if (conf->evaluate_angle) {
+    result(index) = 1;
+    index++;
+  }
+  return result;
+}
+
+// Read next line as a PosEvalType
+PosEvalType parsePosEvalType(std::istream & in)
+{
+  std::string line;
+  std::getline(in,line);
+  if (line == "Cartesian") return PosEvalType::Cartesian;
+  if (line == "Polar")     return PosEvalType::Polar;
+  if (line == "None")      return PosEvalType::None;
+  throw std::runtime_error("Unknown type of position evaluation: '" + line + "'");
+}
 
 // Read next line as an OdometryType
 OdometryType parseOdometryType(std::istream & in)
@@ -75,11 +168,24 @@ Leph::OdometryNoiseModel::Type parseNoiseType(std::istream & in)
   throw std::runtime_error("Unknown type of noise Model: '" + line + "'");
 }
 
+// Read next line as a bool
+bool parseBool(std::istream & in)
+{
+  std::string line;
+  std::getline(in,line);
+  if (line == "true")  return true;
+  if (line == "false") return false;
+  throw std::runtime_error("Invalid line for bool: '" + line + "'");
+}
+
+
 /// Dirty code: read config
 void readLearningConfig(const std::string & filename,
                         struct LearningConfig * conf)
 {
   std::ifstream input(filename);
+  conf->pos_eval_type = parsePosEvalType(input);
+  conf->evaluate_angle = parseBool(input);
   conf->odometry_type = parseOdometryType(input);
   conf->displacement_type = parseDisplacementType(input);
   conf->noise_type = parseNoiseType(input);
@@ -96,7 +202,9 @@ void readLearningConfig(const std::string & filename,
 
 void writeLearningConfig(std::ostream & out, struct LearningConfig * conf)
 {
-  out << "OdometryType    : " << conf->odometry_type        << std::endl
+  out << "PosEvalType     : " << conf->pos_eval_type        << std::endl
+      << "EvaluateAngle   : " << conf->evaluate_angle       << std::endl
+      << "OdometryType    : " << conf->odometry_type        << std::endl
       << "DisplacementType: " << conf->displacement_type    << std::endl
       << "NoiseType       : " << conf->noise_type           << std::endl
       << "SamplingNumber  : " << conf->sampling_number      << std::endl
@@ -216,12 +324,7 @@ Eigen::VectorXd evaluateParameters(
   }
 
   //Final integrated state
-  Eigen::VectorXd estimate(3);
-  estimate << 
-    odometry.state().x(),
-    odometry.state().y(),
-    odometry.state().z();
-  return estimate;
+  return buildObservation(odometry.state(), &conf);
 }
 
 /**
@@ -253,57 +356,70 @@ int main(int argc, char** argv)
             << logs.size()
             << " sequences" << std::endl;
 
-  //Parameters initialization
-  Eigen::VectorXd initParams = buildInitialParameters();
-    
-  //Initialize the logLikelihood 
-  //maximisation process
-  Leph::LogLikelihoodMaximization
-    <Leph::OdometrySequence, Leph::Odometry> calibration;
-  calibration.setInitialParameters(
-    initParams, buildNormalizationCoef());
-  calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
-  //Add observations data
-  for (size_t i=0;i<logs.size();i++) {
-    Eigen::VectorXd obs(3);
-    obs << 
-      logs[i].targetDisplacements.x(), 
-      logs[i].targetDisplacements.y(), 
-      Leph::AngleBound(
-        -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
-    calibration.addObservation(obs, logs[i]);
+  // Diagnose mode:
+  for (unsigned int logId = 0; logId < logs.size(); logId++) {
+    // Build validation sets
+    std::vector<size_t> learningSet;
+    std::vector<size_t> validationSet = {logId};
+    for (unsigned int i = 0; i < logs.size(); i++) {
+      if (i != logId) learningSet.push_back(i);
+    }
+
+    //Parameters initialization
+    Eigen::VectorXd initParams = buildInitialParameters();
+      
+    //Initialize the logLikelihood 
+    //maximisation process
+    Leph::LogLikelihoodMaximization
+      <Leph::OdometrySequence, Leph::Odometry> calibration;
+    calibration.setCyclicObsDims(getCyclicDims(&conf));
+    calibration.setInitialParameters(
+      initParams, buildNormalizationCoef());
+    calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
+    //Add observations data
+    for (size_t i=0;i<logs.size();i++) {
+      Eigen::VectorXd final_state(3);
+      final_state << 
+        logs[i].targetDisplacements.x(), 
+        logs[i].targetDisplacements.y(),
+        Leph::AngleBound(
+          -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
+      calibration.addObservation(buildObservation(final_state, &conf), logs[i]);
+    }
+  
+  
+    //Start the CMA-ES optimization
+    calibration.runOptimization(
+      conf.sampling_number,
+      learningSet,
+      validationSet,
+      conf.cmaes_max_iterations, 
+      conf.cmaes_restarts, 
+      conf.cmaes_lambda, 
+      conf.cmaes_sigma, 
+      conf.cmaes_elitism,
+      nullptr);
+      
+    //Display the best found parameters
+    Eigen::VectorXd bestParams = calibration.getParameters();
+    double validationResult = calibration.scoreFitness(bestParams,true);
+    std::cout << "Validation score for " << logId << ": "
+              << validationResult << std::endl;
+
+    // Saving file
+    Leph::Odometry tmpOdometry = initModel(bestParams);
+    std::string odoParamsPath = "without_" +std::to_string(logId) + ".params";
+    std::ofstream file(odoParamsPath);
+    if (!file.is_open()) {
+      throw std::runtime_error(
+        "Unable to open file: " + odoParamsPath);
+    }
+    file 
+      << (int)tmpOdometry.getDisplacementType() << " " 
+      << (int)tmpOdometry.getNoiseType() << std::endl;
+    Leph::WriteEigenVectorToStream(file, bestParams);
+    file.close();
   }
-    
-  //Start the CMA-ES optimization
-  calibration.runOptimization(
-    conf.sampling_number, 
-    conf.learning_set_size,
-    conf.cmaes_max_iterations, 
-    conf.cmaes_restarts, 
-    conf.cmaes_lambda, 
-    conf.cmaes_sigma, 
-    conf.cmaes_elitism,
-    nullptr);
-    
-  //Display the best found parameters
-  Eigen::VectorXd bestParams = calibration.getParameters();
-  Leph::Odometry tmpOdometry = initModel(bestParams);
-  tmpOdometry.printParameters();
-  //Export the optimized model parameters
-  //Write to file
-  std::string odoParamsPath = outPath + "odometryModel.params";
-  std::cout << "Writing odometry parameters to: " 
-            << odoParamsPath << std::endl;
-  std::ofstream file(odoParamsPath);
-  if (!file.is_open()) {
-    throw std::runtime_error(
-      "Unable to open file: " + odoParamsPath);
-  }
-  file 
-    << (int)tmpOdometry.getDisplacementType() << " " 
-    << (int)tmpOdometry.getNoiseType() << std::endl;
-  Leph::WriteEigenVectorToStream(file, bestParams);
-  file.close();
 
   return 0;
 }

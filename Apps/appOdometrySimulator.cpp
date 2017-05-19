@@ -7,6 +7,7 @@
 #include "Model/HumanoidFixedModel.hpp"
 #include "Odometry/Odometry.hpp"
 #include "Odometry/OdometrySequence.hpp"
+#include "Utils/Angle.h"
 
 static Leph::OdometryType odometry_type = Leph::OdometryType::OdometryOrder;
 
@@ -75,8 +76,7 @@ int main(int argc, char** argv)
     }
 
     // Saving observation (converting hours to rad)
-    double obs_theta = - log.targetDisplacements(2) * 2.0 * M_PI / 12;
-    if (obs_theta < M_PI) obs_theta += 2 * M_PI;
+    double obs_theta = Leph::AngleBound(-log.targetDisplacements(2) * 2.0 * M_PI / 12);
     results << logId << ",observation,NA,"
             << log.targetDisplacements(0) << ","
             << log.targetDisplacements(1) << ","

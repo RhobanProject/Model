@@ -69,6 +69,15 @@ class LogLikelihoodMaximization
             InitFunc;
 
         /**
+         * Optional transformation function
+         * to directly compare final observation 
+         * and estimation.
+         */
+        typedef std::function<Eigen::VectorXd(
+            const Eigen::VectorXd& obs)>
+            TransformFunc;
+
+        /**
          * Default initialization
          */
         LogLikelihoodMaximization() :
@@ -79,6 +88,8 @@ class LogLikelihoodMaximization
             _evalFunc(),
             _boundFunc(),
             _initFunc(),
+            _transformFunc(),
+            _cyclicObservationDims(),
             _samplingNumber(2),
             _indexesLearning(),
             _indexesTesting()
@@ -113,11 +124,25 @@ class LogLikelihoodMaximization
          * the model initialization function.
          */
         void setUserFunctions(
-            EvalFunc func1, BoundFunc func2, InitFunc func3)
+            EvalFunc func1, 
+            BoundFunc func2, 
+            InitFunc func3,
+            TransformFunc func4 = TransformFunc())
         {
             _evalFunc = func1;
             _boundFunc = func2;
             _initFunc = func3;
+            if (func4) {
+                _transformFunc = func4;
+            } 
+        }
+
+        /**
+         * Assign the cyclic dimensions for observations
+         */
+        void setCyclicObsDims(const Eigen::VectorXi & cyclicDims)
+        {
+            _cyclicObservationDims = cyclicDims;          
         }
 
         /**
@@ -190,11 +215,33 @@ class LogLikelihoodMaximization
                     "LogLikelihoodMaximization invalid learning size: "
                     + std::to_string(learningSize));
             }
-
-            while (_observations.size() - learningSize < 2) {
-                learningSize--;
+            unsigned int validationSize = _observations.size() - learningSize;
+            if (validationSize < 2) {
+              throw std::logic_error(
+                "RunOptimization require at least 2 validation observations");
             }
-            dataDispatch(learningSize); 
+            std::vector<size_t> learningIndices, testIndices;
+            dataDispatch(learningSize, _observations.size(),
+                         learningIndices, testIndices);
+            runOptimization(samplingNumber, learningIndices, testIndices,
+                            maxIterations, restart, populationSize,
+                            sigma, elitismLevel, plot);
+        }
+
+        void runOptimization(
+            unsigned int samplingNumber,
+            const std::vector<size_t> & learningIndices,
+            const std::vector<size_t> & testIndices,
+            unsigned int maxIterations,
+            unsigned int restart,
+            unsigned int populationSize = 10,
+            double sigma = -1.0,
+            unsigned int elitismLevel = 0,
+            Leph::Plot* plot = nullptr)
+        {
+            // Assign test and learn sets
+            _indexesLearning = learningIndices;
+            _indexesTesting = testIndices;
             
             //Assign sampling number
             _samplingNumber = samplingNumber;
@@ -369,6 +416,12 @@ class LogLikelihoodMaximization
             double& meanTest, double& varTest,
             double& minTest, double& maxTest) const
         {
+            // If the parameters are out of bound, it is forbidden to test
+            if (_boundFunc(params) > 0) {
+              //TODO: set all values to nan?
+              return;
+            }
+
             //Random device initialization
             std::random_device rd;
             std::default_random_engine engine(rd());
@@ -390,30 +443,56 @@ class LogLikelihoodMaximization
                 size_t indexSet = _indexesLearning[i];
                 Eigen::VectorXd estimate = _evalFunc(
                     params, _dataContainer[indexSet], true, model, engine);
-                Eigen::VectorXd error = estimate - _observations[indexSet];
-                double cartError = error.norm();
-                sumErrorLearn += cartError;
-                sum2ErrorLearn += pow(cartError, 2);
-                if (minLearn < 0.0 || minLearn > cartError) {
-                    minLearn = cartError;
+                //Compute distance between 
+                //observation and estimation
+                double cmpError = 0.0;
+                if (_transformFunc) {
+                    //If available, apply user transformation
+                    //before comparison
+                    Eigen::VectorXd error = 
+                        _transformFunc(estimate) 
+                        - _transformFunc(_observations[indexSet]);
+                    cmpError = error.norm();
+                } else {
+                    Eigen::VectorXd error = 
+                        estimate - _observations[indexSet];
+                    cmpError = error.norm();
                 }
-                if (maxLearn < 0.0 || maxLearn < cartError) {
-                    maxLearn = cartError;
+                sumErrorLearn += cmpError;
+                sum2ErrorLearn += pow(cmpError, 2);
+                if (minLearn < 0.0 || minLearn > cmpError) {
+                    minLearn = cmpError;
+                }
+                if (maxLearn < 0.0 || maxLearn < cmpError) {
+                    maxLearn = cmpError;
                 }
             }
             for (size_t i=0;i<_indexesTesting.size();i++) {
                 size_t indexSet = _indexesTesting[i];
                 Eigen::VectorXd estimate = _evalFunc(
                     params, _dataContainer[indexSet], true, model, engine);
-                Eigen::VectorXd error = estimate - _observations[indexSet];
-                double cartError = error.norm();
-                sumErrorTest += cartError;
-                sum2ErrorTest += pow(cartError, 2);
-                if (minTest < 0.0 || minTest > cartError) {
-                    minTest = cartError;
+                //Compute distance between 
+                //observation and estimation
+                double cmpError = 0.0;
+                if (_transformFunc) {
+                    //If available, apply user transformation
+                    //before comparison
+                    Eigen::VectorXd error = 
+                        _transformFunc(estimate) 
+                        - _transformFunc(_observations[indexSet]);
+                    cmpError = error.norm();
+                } else {
+                    Eigen::VectorXd error = 
+                        estimate - _observations[indexSet];
+                    cmpError = error.norm();
                 }
-                if (maxTest < 0.0 || maxTest < cartError) {
-                    maxTest = cartError;
+                sumErrorTest += cmpError;
+                sum2ErrorTest += pow(cmpError, 2);
+                if (minTest < 0.0 || minTest > cmpError) {
+                    minTest = cmpError;
+                }
+                if (maxTest < 0.0 || maxTest < cmpError) {
+                    maxTest = cmpError;
                 }
             }
             meanLearn = 
@@ -426,6 +505,46 @@ class LogLikelihoodMaximization
             varTest = 
                 sum2ErrorTest/(double)_indexesTesting.size() 
                 - pow(meanTest, 2);
+        }
+
+        /**
+         * Score given parameters using 
+         * the user observations.
+         * If useTestData is true, the testing set
+         * is used instead of learning set.
+         */
+        double scoreFitness(
+            const Eigen::VectorXd& params, bool useTestData) const
+        {
+            const std::vector<size_t>& usedSet = 
+                useTestData ? _indexesTesting : _indexesLearning;
+
+            //Check parameters
+            double costBound = _boundFunc(params);
+            if (costBound > 0) {
+                return costBound;
+            }
+            
+            //Random device initialization
+            std::random_device rd;
+            std::default_random_engine engine(rd());
+            
+            //Model initialization
+            TypeModel model = _initFunc(params);
+    
+            //Iterate over all observations
+            double logLikelihood = 0.0;
+            for (size_t i=0;i<usedSet.size();i++) {
+                size_t indexSet = usedSet[i];
+                double tmpScore = scoreParametersLogLikelihood(
+                    params, _observations[indexSet], 
+                    _dataContainer[indexSet], model, engine);
+                logLikelihood += tmpScore;
+            }
+
+            //Return normalized inversed score
+            //(minimization)
+            return -logLikelihood/(double)usedSet.size();
         }
 
     private:
@@ -457,6 +576,19 @@ class LogLikelihoodMaximization
         EvalFunc _evalFunc;
         BoundFunc _boundFunc;
         InitFunc _initFunc;
+
+        /**
+         * Tranformation function for
+         * direct comparaison between 
+         * observation and estimation
+         */
+        TransformFunc _transformFunc;
+
+        /**
+         * Cyclicity of observations
+         * val[i] != 0 -> dim 'i' is cyclic
+         */
+        Eigen::VectorXi _cyclicObservationDims;
 
         /**
          * The number of time the user function
@@ -504,66 +636,25 @@ class LogLikelihoodMaximization
             
             //Estimate the gaussian distribution
             Leph::GaussianDistribution dist;
-            dist.fit(estimations);
+            dist.fit(estimations, _cyclicObservationDims);
 
             //Compute the log likelihood
             return dist.logProbability(obs);
         }
 
         /**
-         * Score given parameters using 
-         * the user observations.
-         * If useTestData is true, the testing set
-         * is used instead of learning set.
+         * Randomly separate set {0, 1, ..., nbObservations-1} in two sets
+         * The learning set of size 'learningSize'
+         * the testing set of size 'nbObservations - learningSize'
+         * Resulting indices are placed in the provided vectors
          */
-        double scoreFitness(
-            const Eigen::VectorXd& params, bool useTestData) const
+        void dataDispatch(size_t learningSize,
+                          size_t nbObservations,
+                          std::vector<size_t> & learningIndexes,
+                          std::vector<size_t> & testingIndexes)
         {
-            const std::vector<size_t>& usedSet = 
-                useTestData ? _indexesTesting : _indexesLearning;
-            //Check size
-            if (usedSet.size() < 2) {
-                throw std::logic_error(
-                    "LogLikelihoodMaximization not enough points: "
-                    + std::to_string(usedSet.size()));
-            }
-
-            //Check parameters
-            double costBound = _boundFunc(params);
-            if (costBound > 0) {
-                return costBound;
-            }
-            
-            //Random device initialization
-            std::random_device rd;
-            std::default_random_engine engine(rd());
-            
-            //Model initialization
-            TypeModel model = _initFunc(params);
-    
-            //Iterate over all observations
-            double logLikelihood = 0.0;
-            for (size_t i=0;i<usedSet.size();i++) {
-                size_t indexSet = usedSet[i];
-                double tmpScore = scoreParametersLogLikelihood(
-                    params, _observations[indexSet], 
-                    _dataContainer[indexSet], model, engine);
-                logLikelihood += tmpScore;
-            }
-
-            //Return normalized inversed score
-            //(minimization)
-            return -logLikelihood/(double)usedSet.size();
-        }
-
-        /**
-         * Dispatch and shuffle input observations 
-         * data into learning and testing set
-         */
-        void dataDispatch(size_t learningSize)
-        {
-            _indexesLearning.clear();
-            _indexesTesting.clear();
+            learningIndexes.clear();
+            testingIndexes.clear();
             if (learningSize > _observations.size()-1) {
                 throw std::logic_error(
                     "LogLikelihoodMaximization invalid learning size");
@@ -573,17 +664,17 @@ class LogLikelihoodMaximization
             std::default_random_engine engine(rd());
             //Create the vector of sorted indexes
             std::vector<size_t> tmpIndexes;
-            for (size_t i=0;i<_observations.size();i++) {
+            for (size_t i=0;i<nbObservations;i++) {
                 tmpIndexes.push_back(i);
             }
             //Shuffle the vector
             std::shuffle(tmpIndexes.begin(), tmpIndexes.end(), engine);
             //Split under learning and testing set
             for (size_t i=0;i<learningSize;i++) {
-                _indexesLearning.push_back(tmpIndexes[i]);
+                learningIndexes.push_back(tmpIndexes[i]);
             }
-            for (size_t i=learningSize;i<_observations.size();i++) {
-                _indexesTesting.push_back(tmpIndexes[i]);
+            for (size_t i=learningSize;i<nbObservations;i++) {
+                testingIndexes.push_back(tmpIndexes[i]);
             }
         }
 };
