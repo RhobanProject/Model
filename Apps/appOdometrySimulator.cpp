@@ -40,7 +40,8 @@ int main(int argc, char** argv)
             << " sequences" << std::endl;
 
   //Loading odometry
-  Leph::Odometry odometry = Leph::Odometry::loadFromFile(paramsPath);
+  Leph::Odometry odometry;
+  odometry.loadFromFile(paramsPath);
 
   // Initializing random
   std::random_device rd;

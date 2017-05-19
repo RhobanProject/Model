@@ -10,7 +10,14 @@
 #include "Calibration/LogLikelihoodMaximization.hpp"
 #include "Utils/FileEigen.h"
 
-double dirty_factor = 100;
+/**
+ *
+ */
+enum RunType {
+  Diagnose, // Try to identify which logs are likely to be 'wrong'
+  Classic,  // Simple calibration run on the data
+  Ascending // Increase the size of the learning_set
+};
 
 /**
  * How is position evaluated
@@ -35,6 +42,8 @@ enum OdometryType {
 
 // The whole configuration of the learner is included here
 struct LearningConfig{
+  RunType run_type;
+  int nb_replicates;// How much replicate of the run are used?
   PosEvalType pos_eval_type;
   bool evaluate_angle;
   OdometryType odometry_type;
@@ -120,6 +129,17 @@ Eigen::VectorXi getCyclicDims(LearningConfig * conf)
   return result;
 }
 
+// Read next line as a RunType
+RunType parseRunType(std::istream & in)
+{
+  std::string line;
+  std::getline(in,line);
+  if (line == "Diagnose" ) return RunType::Diagnose;
+  if (line == "Classic"  ) return RunType::Classic;
+  if (line == "Ascending") return RunType::Ascending;
+  throw std::runtime_error("Unknown type of run: '" + line + "'");
+}
+
 // Read next line as a PosEvalType
 PosEvalType parsePosEvalType(std::istream & in)
 {
@@ -178,12 +198,25 @@ bool parseBool(std::istream & in)
   throw std::runtime_error("Invalid line for bool: '" + line + "'");
 }
 
+// Read next line as an int
+int parseInt(std::istream & in)
+{
+  std::string line;
+  std::getline(in,line);
+  try {
+    return std::stoi(line);
+  } catch(const std::invalid_argument & exc) {
+    throw std::runtime_error("Failed to parse '" + line + "' as an int");
+  }
+}
 
 /// Dirty code: read config
 void readLearningConfig(const std::string & filename,
                         struct LearningConfig * conf)
 {
   std::ifstream input(filename);
+  conf->run_type = parseRunType(input);
+  conf->nb_replicates = parseInt(input);
   conf->pos_eval_type = parsePosEvalType(input);
   conf->evaluate_angle = parseBool(input);
   conf->odometry_type = parseOdometryType(input);
@@ -327,6 +360,152 @@ Eigen::VectorXd evaluateParameters(
   return buildObservation(odometry.state(), &conf);
 }
 
+
+void writeResultHeader(std::ostream & out)
+{
+  out << "learningSize,testLog,displacementModel,"
+      << "noiseModel,learningScore,testScore" << std::endl;
+}
+
+void writeResultLine(std::ostream & out,
+                     double learningScore,
+                     double validationScore,
+                     size_t * logId)
+{
+  if (logId != nullptr) {
+    out << "NA," << (*logId) << ",";
+  } else {
+    out << conf.learning_set_size << ",NA,";
+  }
+  out << conf.displacement_type << ","
+      << conf.noise_type << ","
+      << learningScore << ","
+      << validationScore << std::endl;
+}
+
+void writeParamsHeader(std::ostream & out)
+{
+  out << "learningSize,testLog,displacementModel,noiseModel,";
+  // Getting number of odometry parameters
+  Leph::Odometry o(conf.displacement_type, conf.noise_type);
+  int nbParams = o.getParameters().rows();
+  for (int i = 0; i < nbParams; i++) {
+    out << "param" << i;
+    if (i < nbParams - 1) out << ",";
+  }
+  out << std::endl;
+}
+
+void writeParamsLine(std::ostream & out,
+                     const Eigen::VectorXd & params,
+                     size_t * logId)
+{
+  if (logId != nullptr) {
+    out << "NA," << (*logId) << ",";
+  } else {
+    out << conf.learning_set_size << ",NA,";
+  }
+  out << conf.displacement_type << "," << conf.noise_type << ",";
+  for (int i = 0; i < params.rows(); i++) {
+    out << params(i);
+    if (i < params.rows() - 1) out << ",";
+  }
+  out << std::endl;
+}
+
+void runLearning(const std::vector<Leph::OdometrySequence> & logs,
+                 std::ostream & result_output,
+                 std::ostream & params_output,
+                 size_t * logId)
+{
+  //Parameters initialization
+  Eigen::VectorXd initParams = buildInitialParameters();
+      
+  //Initialize the logLikelihood 
+  //maximisation process
+  Leph::LogLikelihoodMaximization
+    <Leph::OdometrySequence, Leph::Odometry> calibration;
+  calibration.setCyclicObsDims(getCyclicDims(&conf));
+  calibration.setInitialParameters(
+    initParams, buildNormalizationCoef());
+  calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
+  //Add observations data
+  for (size_t i=0;i<logs.size();i++) {
+    Eigen::VectorXd final_state(3);
+    final_state << 
+      logs[i].targetDisplacements.x(), 
+      logs[i].targetDisplacements.y(),
+      Leph::AngleBound(
+        -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
+    calibration.addObservation(buildObservation(final_state, &conf), logs[i]);
+  }
+
+  // If learningSet have been specified use it
+  if (logId != nullptr) {
+    // Build validation sets
+    std::vector<size_t> learningSet;
+    std::vector<size_t> validationSet = {*logId};
+    for (size_t i = 0; i < logs.size(); i++) {
+      if (i != *logId) learningSet.push_back(i);
+    }
+    calibration.runOptimization(conf.sampling_number,
+                                learningSet,
+                                validationSet,
+                                conf.cmaes_max_iterations, 
+                                conf.cmaes_restarts, 
+                                conf.cmaes_lambda, 
+                                conf.cmaes_sigma, 
+                                conf.cmaes_elitism,
+                                nullptr);
+  }
+  else {
+    calibration.runOptimization(conf.sampling_number,
+                                conf.learning_set_size,
+                                conf.cmaes_max_iterations, 
+                                conf.cmaes_restarts, 
+                                conf.cmaes_lambda, 
+                                conf.cmaes_sigma, 
+                                conf.cmaes_elitism,
+                                nullptr);
+  }
+
+  // Get calibrationResult
+  Eigen::VectorXd bestParams = calibration.getParameters();
+  double learningScore = calibration.scoreFitness(bestParams, false);
+  double validationScore = calibration.scoreFitness(bestParams, true);
+  writeResultLine(result_output, learningScore, validationScore, logId);
+  writeParamsLine(params_output, bestParams, logId);
+}
+
+void diagnose(const std::vector<Leph::OdometrySequence> & logs,
+              std::ostream & result_output,
+              std::ostream & params_output)
+{
+  for (size_t logId = 0; logId < logs.size(); logId++) {
+    runLearning(logs, result_output, params_output, &logId);
+  }
+}
+
+void classic(const std::vector<Leph::OdometrySequence> & logs,
+             std::ostream & result_output,
+             std::ostream & params_output)
+{
+  runLearning(logs, result_output, params_output, nullptr);
+}
+
+void ascending(const std::vector<Leph::OdometrySequence> & logs,
+               std::ostream & result_output,
+               std::ostream & params_output)
+{
+  int max_learning_set_size = conf.learning_set_size;
+  for (int i=1; i <= max_learning_set_size; i++) {
+    conf.learning_set_size = i;       
+    runLearning(logs, result_output, params_output, nullptr);
+  }
+  // Restore old value
+  conf.learning_set_size = max_learning_set_size;
+}
+
 /**
  * Calibrate the Odometry correction and noise 
  * parameters using log likelihood maximisation 
@@ -356,69 +535,23 @@ int main(int argc, char** argv)
             << logs.size()
             << " sequences" << std::endl;
 
-  // Diagnose mode:
-  for (unsigned int logId = 0; logId < logs.size(); logId++) {
-    // Build validation sets
-    std::vector<size_t> learningSet;
-    std::vector<size_t> validationSet = {logId};
-    for (unsigned int i = 0; i < logs.size(); i++) {
-      if (i != logId) learningSet.push_back(i);
-    }
+  std::ofstream result_out(outPath + "results.csv");
+  std::ofstream params_out(outPath + "params.csv");
+  writeResultHeader(result_out);
+  writeParamsHeader(params_out);
 
-    //Parameters initialization
-    Eigen::VectorXd initParams = buildInitialParameters();
-      
-    //Initialize the logLikelihood 
-    //maximisation process
-    Leph::LogLikelihoodMaximization
-      <Leph::OdometrySequence, Leph::Odometry> calibration;
-    calibration.setCyclicObsDims(getCyclicDims(&conf));
-    calibration.setInitialParameters(
-      initParams, buildNormalizationCoef());
-    calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
-    //Add observations data
-    for (size_t i=0;i<logs.size();i++) {
-      Eigen::VectorXd final_state(3);
-      final_state << 
-        logs[i].targetDisplacements.x(), 
-        logs[i].targetDisplacements.y(),
-        Leph::AngleBound(
-          -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
-      calibration.addObservation(buildObservation(final_state, &conf), logs[i]);
+  for (int i = 0; i < conf.nb_replicates; i++) {
+    switch(conf.run_type) {
+      case RunType::Diagnose:
+        diagnose(logs,result_out,params_out);
+        break;
+      case RunType::Classic:
+        classic(logs,result_out,params_out);
+        break;
+      case RunType::Ascending:
+        ascending(logs,result_out,params_out);
+        break;
     }
-  
-  
-    //Start the CMA-ES optimization
-    calibration.runOptimization(
-      conf.sampling_number,
-      learningSet,
-      validationSet,
-      conf.cmaes_max_iterations, 
-      conf.cmaes_restarts, 
-      conf.cmaes_lambda, 
-      conf.cmaes_sigma, 
-      conf.cmaes_elitism,
-      nullptr);
-      
-    //Display the best found parameters
-    Eigen::VectorXd bestParams = calibration.getParameters();
-    double validationResult = calibration.scoreFitness(bestParams,true);
-    std::cout << "Validation score for " << logId << ": "
-              << validationResult << std::endl;
-
-    // Saving file
-    Leph::Odometry tmpOdometry = initModel(bestParams);
-    std::string odoParamsPath = "without_" +std::to_string(logId) + ".params";
-    std::ofstream file(odoParamsPath);
-    if (!file.is_open()) {
-      throw std::runtime_error(
-        "Unable to open file: " + odoParamsPath);
-    }
-    file 
-      << (int)tmpOdometry.getDisplacementType() << " " 
-      << (int)tmpOdometry.getNoiseType() << std::endl;
-    Leph::WriteEigenVectorToStream(file, bestParams);
-    file.close();
   }
 
   return 0;

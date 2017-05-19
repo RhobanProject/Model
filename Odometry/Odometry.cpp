@@ -6,6 +6,9 @@
 
 
 namespace Leph {
+Odometry::Odometry()
+  : Odometry(OdometryDisplacementModel::Type::DisplacementIdentity)
+{}
         
 Odometry::Odometry(
     OdometryDisplacementModel::Type typeDisplacement,
@@ -245,34 +248,49 @@ void Odometry::odometryInt(
     state.z() = AngleBound(state.z());
 }
 
-Odometry Odometry::loadFromFile(const std::string & path)
+void Odometry::saveToFile(const std::string & path) const
+{
+    std::ofstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Unable to open file: " + path);
+    }
+    file << (int)getDisplacementType() << " " 
+         << (int)getNoiseType() << std::endl;
+    Leph::WriteEigenVectorToStream(file, getParameters());
+    file.close();
+}
+
+void Odometry::loadFromFile(const std::string & path)
 {
     //Open file
-  std::ifstream file(path);
-  if (!file.is_open()) {
-    throw std::runtime_error("Unable to open file: " + path);
-  }
-  //Read data
-  int tmpTypeDisplacement;
-  int tmpTypeNoise;
-  file >> tmpTypeDisplacement;
-  file >> tmpTypeNoise;
-  OdometryDisplacementModel::Type typeDisplacement = 
-    (OdometryDisplacementModel::Type)tmpTypeDisplacement;
-  OdometryNoiseModel::Type typeNoise = 
-    (OdometryNoiseModel::Type)tmpTypeNoise;
-  Eigen::VectorXd initParams = ReadEigenVectorFromStream(file);
-  file.close();
-  //Check bounds
-  Odometry odometry(typeDisplacement, typeNoise);
-  double isError = odometry.setParameters(initParams);
-  if (isError > 0.0) {
-    std::ostringstream oss;
-    oss << "Odometry parameters are out of bounds: " 
-        << isError << std::endl;
-    throw std::runtime_error(oss.str());
-  }
-  return odometry;
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Unable to open file: " + path);
+    }
+    //Read data
+    int tmpTypeDisplacement;
+    int tmpTypeNoise;
+    file >> tmpTypeDisplacement;
+    file >> tmpTypeNoise;
+    OdometryDisplacementModel::Type typeDisplacement = 
+        (OdometryDisplacementModel::Type)tmpTypeDisplacement;
+    OdometryNoiseModel::Type typeNoise = 
+        (OdometryNoiseModel::Type)tmpTypeNoise;
+    Eigen::VectorXd initParams = ReadEigenVectorFromStream(file);
+    file.close();
+    //Check bounds
+    
+    _modelDisplacement = OdometryDisplacementModel(typeDisplacement);
+    _modelNoise = OdometryNoiseModel(typeNoise);
+    reset();
+    
+    double isError = setParameters(initParams);
+    if (isError > 0.0) {
+        std::ostringstream oss;
+        oss << "Odometry parameters are out of bounds: " 
+            << isError << std::endl;
+        throw std::runtime_error(oss.str());
+    }
 }
 
 }

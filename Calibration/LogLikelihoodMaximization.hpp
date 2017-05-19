@@ -210,7 +210,7 @@ class LogLikelihoodMaximization
                 throw std::logic_error(
                     "LogLikelihoodMaximization not enough observations");
             }
-            if (learningSize <= 2) {
+            if (learningSize <= 0) {
                 throw std::logic_error(
                     "LogLikelihoodMaximization invalid learning size: "
                     + std::to_string(learningSize));

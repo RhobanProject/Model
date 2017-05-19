@@ -20,6 +20,7 @@ class Odometry
 {
     public:
 
+        Odometry();
         /**
          * Initialization with displacement
          * and noise model types
@@ -124,7 +125,12 @@ class Odometry
         /**
          * Build an odometry from the specified file
          */
-        static Odometry loadFromFile(const std::string & path);
+        void saveToFile(const std::string & path) const;
+
+        /**
+         * Build an odometry from the specified file
+         */
+        void loadFromFile(const std::string & path);
 
     private:
 
