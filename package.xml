@@ -15,6 +15,7 @@
   <build_depend>lwpr</build_depend> <!-- rhobandeps/lwpr -->
   <build_depend>libgp</build_depend> <!-- rhobandeps/libgp -->
   <build_depend>libcmaes</build_depend> <!-- rhobandeps/libcmaes -->
+  <build_depend>console_bridge</build_depend> <!-- rhobandeps/console_bridge -->
   <build_depend>rbdl_urdfreader</build_depend> <!-- rhobandeps/rbdl -->
   <build_depend>RhIO</build_depend> <!-- rhoban/rhio -->
   <build_depend>RhAL</build_depend> <!-- rhoban/rhal -->
@@ -23,9 +24,10 @@
   <run_depend>lwpr</run_depend>
   <run_depend>libgp</run_depend>
   <run_depend>libcmaes</run_depend>
+  <run_depend>console_bridge</run_depend>
   <run_depend>rbdl_urdfreader</run_depend>
-  <build_depend>RhIO</build_depend>
-  <build_depend>RhAL</build_depend>
+  <run_depend>RhIO</run_depend>
+  <run_depend>RhAL</run_depend>
 
   <export>
   </export>
