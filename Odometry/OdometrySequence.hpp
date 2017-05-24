@@ -21,10 +21,12 @@ enum OdometryType {
  * Odometry data for one 
  * recorded sequence
  */
-struct OdometrySequence {
+class OdometrySequence {
+public:
   //Model read and goal model cartesian 
   //pose in origin at each logged point
   //(X,Y,Theta).
+  std::vector<double> timestamps;
   std::vector<Eigen::Vector3d> readTrajsPose;
   std::vector<HumanoidFixedModel::SupportFoot> readTrajsSupport;
   std::vector<Eigen::Vector3d> goalTrajsPose;
@@ -36,7 +38,16 @@ struct OdometrySequence {
   //Target observed cartesian 
   //displacement  (X,Y,Theta)
   Eigen::Vector3d targetDisplacements;
+
+  void pushEntry(double timestamp,
+                 Leph::HumanoidFixedModel & readModel,
+                 Leph::HumanoidFixedModel & goalModel,
+                 const Eigen::Vector4d & walkOrder,
+                 double walkPhase);
 };
+
+void dumpOdometryDataToFile(const std::vector<OdometrySequence> & data, 
+                            const std::string & filename);
 
 /**
  * Append data loaded from fiven filename to

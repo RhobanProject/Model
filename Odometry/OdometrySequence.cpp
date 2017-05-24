@@ -6,6 +6,53 @@ namespace Leph
 {
 
 
+void OdometrySequence::pushEntry(double timestamp,
+                                 Leph::HumanoidFixedModel & readModel,
+                                 Leph::HumanoidFixedModel & goalModel,
+                                 const Eigen::Vector4d & walkOrder,
+                                 double walkPhase)
+{
+  timestamps.push_back(timestamp);
+  readTrajsPose.push_back(readModel.get().getPose());
+  readTrajsSupport.push_back(readModel.getSupportFoot());
+  goalTrajsPose.push_back(goalModel.get().getPose());
+  goalTrajsSupport.push_back(goalModel.getSupportFoot());
+  walkTrajsOrder.push_back(walkOrder);
+  walkTrajsPhase.push_back(walkPhase);
+}
+
+
+void dumpOdometryDataToFile(const std::vector<OdometrySequence> & data, 
+                            const std::string & filename)
+{
+  std::ofstream file(filename);
+  for (size_t seqId=0; seqId < data.size(); seqId++) {
+    const OdometrySequence & seq = data[seqId];
+    for (size_t row=0;row < seq.readTrajsPose.size();row++) {
+      file << seqId << " " << row << " "
+           << seq.timestamps[row] << " "
+           << seq.readTrajsPose[row].x() << " "
+           << seq.readTrajsPose[row].y() << " "
+           << seq.readTrajsPose[row].z() << " "
+           << (int)seq.readTrajsSupport[row] << " "
+           << seq.goalTrajsPose[row].x() << " "
+           << seq.goalTrajsPose[row].y() << " "
+           << seq.goalTrajsPose[row].z() << " "
+           << (int)seq.goalTrajsSupport[row] << " "
+           << seq.walkTrajsOrder[row].x() << " "
+           << seq.walkTrajsOrder[row].y() << " "
+           << seq.walkTrajsOrder[row].z() << " "
+           << seq.walkTrajsOrder[row](3) << " "
+           << seq.walkTrajsPhase[row] << " "
+           << seq.targetDisplacements.x() << " "
+           << seq.targetDisplacements.y() << " "
+           << seq.targetDisplacements.z()
+           << std::endl;
+    }
+  }
+  file.close();
+}
+
 void loadOdometryDataFromFile(
   std::vector<OdometrySequence>& data, 
   const std::string& filename)
@@ -30,6 +77,7 @@ void loadOdometryDataFromFile(
     //Retrieve one file line
     size_t seq;
     size_t index;
+    double timestamp;
     double readPoseX;
     double readPoseY;
     double readPoseYaw;
@@ -48,6 +96,7 @@ void loadOdometryDataFromFile(
     double targetA;
     file >> seq;
     file >> index;
+    file >> timestamp;
     file >> readPoseX;
     file >> readPoseY;
     file >> readPoseYaw;
@@ -71,6 +120,7 @@ void loadOdometryDataFromFile(
         Eigen::Vector3d(targetX, targetY, targetA);
     }
     lastSeq = seq;
+    data.back().timestamps.push_back(timestamp);
     data.back().readTrajsPose.push_back(
       Eigen::Vector3d(readPoseX, readPoseY, readPoseYaw));
     data.back().readTrajsSupport.push_back(
