@@ -7,12 +7,14 @@ namespace Leph
 
 
 void OdometrySequence::pushEntry(double timestamp,
+                                 int stepIndex,
                                  Leph::HumanoidFixedModel & readModel,
                                  Leph::HumanoidFixedModel & goalModel,
                                  const Eigen::Vector4d & walkOrder,
                                  double walkPhase)
 {
   timestamps.push_back(timestamp);
+  stepIndices.push_back(stepIndex);
   readTrajsPose.push_back(readModel.get().getPose());
   readTrajsSupport.push_back(readModel.getSupportFoot());
   goalTrajsPose.push_back(goalModel.get().getPose());
@@ -31,6 +33,7 @@ void dumpOdometryDataToFile(const std::vector<OdometrySequence> & data,
     for (size_t row=0;row < seq.readTrajsPose.size();row++) {
       file << seqId << " " << row << " "
            << seq.timestamps[row] << " "
+           << seq.stepIndices[row] << " "
            << seq.readTrajsPose[row].x() << " "
            << seq.readTrajsPose[row].y() << " "
            << seq.readTrajsPose[row].z() << " "
@@ -78,6 +81,7 @@ void loadOdometryDataFromFile(
     size_t seq;
     size_t index;
     double timestamp;
+    int stepIndex;
     double readPoseX;
     double readPoseY;
     double readPoseYaw;
@@ -97,6 +101,7 @@ void loadOdometryDataFromFile(
     file >> seq;
     file >> index;
     file >> timestamp;
+    file >> stepIndex;
     file >> readPoseX;
     file >> readPoseY;
     file >> readPoseYaw;
@@ -121,6 +126,7 @@ void loadOdometryDataFromFile(
     }
     lastSeq = seq;
     data.back().timestamps.push_back(timestamp);
+    data.back().stepIndices.push_back(stepIndex);
     data.back().readTrajsPose.push_back(
       Eigen::Vector3d(readPoseX, readPoseY, readPoseYaw));
     data.back().readTrajsSupport.push_back(
@@ -155,18 +161,17 @@ Eigen::VectorXd simulateOdometry(
   }
 
   //Iterate over recorded point inside the sequence
-  double lastPhase = data.walkTrajsPhase.front();
+  int lastStep = -1;
   for (size_t i=0;i<data.readTrajsPose.size();i++) {
-    double phase = data.walkTrajsPhase[i];
+    int stepIndex = data.stepIndices[i];
     bool skipStep = false;
     //Use given odometry type
     if (odometry_type == OdometryOrder) {
-      if (lastPhase > 0.8 && phase < 0.2) {
+      //TODO: update it each step instead of each cycle
+      if (stepIndex > lastStep) {
+        Eigen::Vector3d walkOrders = data.walkTrajsOrder[i].segment(0, 3);
         double enableGain = data.walkTrajsOrder[i](3);
-        odometry.updateFullStep(
-          2.0*data.walkTrajsOrder[i].segment(0, 3)
-          *enableGain,
-          usedEngine);
+        odometry.updateFullStep(walkOrders*enableGain, usedEngine);
       }
       else {
         skipStep = true;
@@ -184,7 +189,6 @@ Eigen::VectorXd simulateOdometry(
     } else {
       throw std::logic_error("Invalid odometry type");
     }
-    lastPhase = phase;
     if (positions != nullptr && !skipStep) {
       positions->push_back(odometry.state());
     }

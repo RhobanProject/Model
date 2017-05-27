@@ -27,6 +27,7 @@ public:
   //pose in origin at each logged point
   //(X,Y,Theta).
   std::vector<double> timestamps;
+  std::vector<int> stepIndices;
   std::vector<Eigen::Vector3d> readTrajsPose;
   std::vector<HumanoidFixedModel::SupportFoot> readTrajsSupport;
   std::vector<Eigen::Vector3d> goalTrajsPose;
@@ -40,6 +41,7 @@ public:
   Eigen::Vector3d targetDisplacements;
 
   void pushEntry(double timestamp,
+                 int stepIndex,
                  Leph::HumanoidFixedModel & readModel,
                  Leph::HumanoidFixedModel & goalModel,
                  const Eigen::Vector4d & walkOrder,
