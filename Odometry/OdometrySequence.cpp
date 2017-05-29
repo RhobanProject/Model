@@ -23,6 +23,10 @@ void OdometrySequence::pushEntry(double timestamp,
   walkTrajsPhase.push_back(walkPhase);
 }
 
+size_t OdometrySequence::getNbRows() const {
+  return timestamps.size();
+}
+
 static std::string odometryDataHeader(){
   std::ostringstream oss;
   oss << "seqId " << "rowId " << "timestamp " << "stepIndex "
