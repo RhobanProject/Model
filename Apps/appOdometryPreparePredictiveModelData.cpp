@@ -34,6 +34,7 @@ int main(int argc, char ** argv)
     // Simulating odometry without noise
     Eigen::VectorXd final_pos;
     std::vector<Eigen::Vector3d> positions;
+    //TODO: change OdometryGoal to OdometryRead
     final_pos  = simulateOdometry(seq, true, odom,
                                   Leph::OdometryType::OdometryGoal,
                                   engine, &positions);
@@ -43,7 +44,7 @@ int main(int argc, char ** argv)
     for (size_t row = 0; row < seq.getNbRows(); row++) {
       int step = seq.stepIndices[row];
       if (step != last_step) {
-        //TODO: apparently not working that well... require investigation
+        //TODO: Still requiring to create sub-logs
         newSeq.timestamps.push_back      (seq.timestamps[row]      );
         newSeq.stepIndices.push_back     (seq.stepIndices[row]     );
         newSeq.readTrajsPose.push_back   (seq.readTrajsPose[row]   );
