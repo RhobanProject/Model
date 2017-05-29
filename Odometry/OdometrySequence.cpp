@@ -189,6 +189,7 @@ Eigen::VectorXd simulateOdometry(
     } else {
       throw std::logic_error("Invalid odometry type");
     }
+    lastStep = stepIndex;
     if (positions != nullptr && !skipStep) {
       positions->push_back(odometry.state());
     }

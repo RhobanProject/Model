@@ -282,7 +282,7 @@ double boundParameters(
     conf.displacement_type, conf.noise_type);
   double cost = odometry.setParameters(params);
   if (cost > 0.0) {
-    return 100.0 + 100.0*cost;
+    return 1000.0 + 1000.0*cost;
   } else {
     return 0.0;
   }
@@ -431,12 +431,7 @@ void runLearning(const std::vector<Leph::OdometrySequence> & logs,
   calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
   //Add observations data
   for (size_t i=0;i<logs.size();i++) {
-    Eigen::VectorXd final_state(3);
-    final_state << 
-      logs[i].targetDisplacements.x(), 
-      logs[i].targetDisplacements.y(),
-      Leph::AngleBound(
-        -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
+    Eigen::Vector3d final_state = logs[i].targetDisplacements;
     calibration.addObservation(buildObservation(final_state, &conf), logs[i]);
   }
 
