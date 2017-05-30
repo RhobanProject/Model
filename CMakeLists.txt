@@ -225,7 +225,6 @@ set(APPS_FILES
 #LephCode linked libraries
 set(CODE_LIBRARIES
     ncurses
-    console_bridge 
     ${catkin_LIBRARIES}
 )
 
