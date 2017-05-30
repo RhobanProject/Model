@@ -46,6 +46,8 @@ public:
                  Leph::HumanoidFixedModel & goalModel,
                  const Eigen::Vector4d & walkOrder,
                  double walkPhase);
+
+  size_t getNbRows() const;
 };
 
 void dumpOdometryDataToFile(const std::vector<OdometrySequence> & data, 

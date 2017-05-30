@@ -28,25 +28,13 @@ enum PosEvalType {
   None
 };
 
-/**
- * Odometry computation type
- */
-enum OdometryType {
-  //No model. Use walk order as input
-  OdometryOrder,
-  //Use goal model state as input
-  OdometryGoal,
-  //Use read model state as input
-  OdometryRead,
-};
-
 // The whole configuration of the learner is included here
 struct LearningConfig{
   RunType run_type;
   int nb_replicates;// How much replicate of the run are used?
   PosEvalType pos_eval_type;
   bool evaluate_angle;
-  OdometryType odometry_type;
+  Leph::OdometryType odometry_type;
   Leph::OdometryDisplacementModel::Type displacement_type;
   Leph::OdometryNoiseModel::Type noise_type;
   unsigned int sampling_number;
@@ -152,13 +140,13 @@ PosEvalType parsePosEvalType(std::istream & in)
 }
 
 // Read next line as an OdometryType
-OdometryType parseOdometryType(std::istream & in)
+Leph::OdometryType parseOdometryType(std::istream & in)
 {
   std::string line;
   std::getline(in,line);
-  if (line == "OdometryOrder") return OdometryType::OdometryOrder;
-  if (line == "OdometryGoal")  return OdometryType::OdometryGoal;
-  if (line == "OdometryRead")  return OdometryType::OdometryRead;
+  if (line == "OdometryOrder") return Leph::OdometryType::OdometryOrder;
+  if (line == "OdometryGoal")  return Leph::OdometryType::OdometryGoal;
+  if (line == "OdometryRead")  return Leph::OdometryType::OdometryRead;
   throw std::runtime_error("Unknown type of odometry: '" + line + "'");
 }
 
@@ -282,7 +270,7 @@ double boundParameters(
     conf.displacement_type, conf.noise_type);
   double cost = odometry.setParameters(params);
   if (cost > 0.0) {
-    return 100.0 + 100.0*cost;
+    return 1000.0 + 1000.0*cost;
   } else {
     return 0.0;
   }
@@ -318,43 +306,8 @@ Eigen::VectorXd evaluateParameters(
 {
   (void)params;
 
-  odometry.reset();
-
-  std::default_random_engine* usedEngine = &engine;
-  if (noRandom) {
-    //Disable the random engien to disable
-    //the noise model in odometry
-    usedEngine = nullptr;
-  }
-
-  //Iterate over recorded point inside the sequence
-  double lastPhase = data.walkTrajsPhase.front();
-  for (size_t i=0;i<data.readTrajsPose.size();i++) {
-    double phase = data.walkTrajsPhase[i];
-    //Use given odometry type
-    if (conf.odometry_type == OdometryOrder) {
-      if (lastPhase > 0.8 && phase < 0.2) {
-        double enableGain = data.walkTrajsOrder[i](3);
-        odometry.updateFullStep(
-          2.0*data.walkTrajsOrder[i].segment(0, 3)
-          *enableGain,
-          usedEngine);
-      }
-    } else if (conf.odometry_type == OdometryGoal) {
-      odometry.update(
-        data.goalTrajsPose[i], 
-        data.goalTrajsSupport[i],
-        usedEngine);
-    } else if (conf.odometry_type == OdometryRead) {
-      odometry.update(
-        data.readTrajsPose[i], 
-        data.readTrajsSupport[i],
-        usedEngine);
-    } else {
-      throw std::logic_error("Invalid odometry type");
-    }
-    lastPhase = phase;
-  }
+  simulateOdometry(data, noRandom, odometry, conf.odometry_type, engine,
+                   nullptr);
 
   //Final integrated state
   return buildObservation(odometry.state(), &conf);
@@ -431,12 +384,7 @@ void runLearning(const std::vector<Leph::OdometrySequence> & logs,
   calibration.setUserFunctions(evaluateParameters, boundParameters, initModel);
   //Add observations data
   for (size_t i=0;i<logs.size();i++) {
-    Eigen::VectorXd final_state(3);
-    final_state << 
-      logs[i].targetDisplacements.x(), 
-      logs[i].targetDisplacements.y(),
-      Leph::AngleBound(
-        -logs[i].targetDisplacements.z()*2.0*M_PI/12.0);
+    Eigen::Vector3d final_state = logs[i].targetDisplacements;
     calibration.addObservation(buildObservation(final_state, &conf), logs[i]);
   }
 

@@ -23,11 +23,28 @@ void OdometrySequence::pushEntry(double timestamp,
   walkTrajsPhase.push_back(walkPhase);
 }
 
+size_t OdometrySequence::getNbRows() const {
+  return timestamps.size();
+}
+
+static std::string odometryDataHeader(){
+  std::ostringstream oss;
+  oss << "seqId " << "rowId " << "timestamp " << "stepIndex "
+      << "readTrajPoseX " << "readTrajPoseY " << "readTrajPoseZ "
+      << "readTrajSupport "
+      << "goalTrajPoseX " << "goalTrajPoseY " << "goalTrajPoseZ "
+      << "goalTrajSupport "
+      << "walkOrderX " << "walkOrderY " << "walkOrderZ " << "walkSmoothing "
+      << "walkPhase "
+      << "targetX " << "targetY " << "targetZ";
+  return oss.str();    
+}
 
 void dumpOdometryDataToFile(const std::vector<OdometrySequence> & data, 
                             const std::string & filename)
 {
   std::ofstream file(filename);
+  file << odometryDataHeader() << std::endl;
   for (size_t seqId=0; seqId < data.size(); seqId++) {
     const OdometrySequence & seq = data[seqId];
     for (size_t row=0;row < seq.readTrajsPose.size();row++) {
@@ -65,6 +82,12 @@ void loadOdometryDataFromFile(
   if (!file.is_open()) {
     throw std::runtime_error(
       "Unable to open log file: " + filename);
+  }
+
+  std::string line;
+  std::getline(file,line);
+  if (line != odometryDataHeader()) {
+    throw std::logic_error("Invalid header for OdometrySequence: '" + line + "'");
   }
 
   //Loop over file entries
@@ -189,6 +212,7 @@ Eigen::VectorXd simulateOdometry(
     } else {
       throw std::logic_error("Invalid odometry type");
     }
+    lastStep = stepIndex;
     if (positions != nullptr && !skipStep) {
       positions->push_back(odometry.state());
     }
