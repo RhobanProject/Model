@@ -216,13 +216,14 @@ set(APPS_FILES
 )
 
 #Build App RhIO Viewer 
-#LH: Producing undefined references
-#if (RhIOClient_FOUND)
-#    set(APPS_FILES ${APPS_FILES}
-#        appRhIOViewerModel
-#        appRhIOViewerRobocup
-#    )
-#endif (RhIOClient_FOUND)
+if (BUILD_LEPH_CODE_VIEWER)
+    if (RhIOClient_FOUND)
+        set(APPS_FILES ${APPS_FILES}
+            appRhIOViewerModel
+            appRhIOViewerRobocup
+        )
+    endif (RhIOClient_FOUND)
+endif (BUILD_LEPH_CODE_VIEWER)
 
 #LephCode linked libraries
 set(CODE_LIBRARIES
