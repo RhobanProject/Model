@@ -92,7 +92,7 @@ class Odometry
 
         /**
          * Update pose state by integrating given
-         * relative displacement between two right to left
+         * relative displacement between two
          * support foot transition (dX, dY, dTheta) 
          * (meter, radian).
          */
@@ -155,16 +155,15 @@ class Odometry
         Leph::HumanoidFixedModel::SupportFoot _support;
 
         /**
-         * Input Model robot pose (self in 
+         * Input Model robot pose (self in <
          * origin) in world frame at last 
-         * right to left support foot swap
+         * support foot swap
          */
         Eigen::Vector3d _last;
 
         /**
          * Output corrected robot pose in
-         * world frame at last right to left
-         * support foot swap.
+         * world frame at last support foot swap.
          */
         Eigen::Vector3d _state;
 

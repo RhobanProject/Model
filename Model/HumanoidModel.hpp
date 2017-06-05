@@ -4,6 +4,8 @@
 #include "Model/Model.hpp"
 #include "LegIK/LegIK.hpp"
 
+#include <Eigen/StdVector>
+
 namespace Leph {
 
 /**
@@ -185,7 +187,7 @@ class HumanoidModel : public Model
             double radius,
             Eigen::Vector3d& ballCenter,
             Eigen::Vector2d* ballCenterPixel = nullptr,
-            std::vector<Eigen::Vector2d>* bordersPixel = nullptr,
+            std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>* bordersPixel = nullptr,
             std::vector<Eigen::Vector3d>* borders = nullptr);
 
         /**

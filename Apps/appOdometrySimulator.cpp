@@ -9,7 +9,7 @@
 #include "Odometry/OdometrySequence.hpp"
 #include "Utils/Angle.h"
 
-static Leph::OdometryType odometry_type = Leph::OdometryType::OdometryOrder;
+static Leph::OdometryType odometry_type = Leph::OdometryType::OdometryRead;
 
 /**
  * Run simulations on the provided models, output is stored in a csv file

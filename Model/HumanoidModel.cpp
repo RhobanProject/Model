@@ -409,7 +409,7 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
     double radius,
     Eigen::Vector3d& ballCenter,
     Eigen::Vector2d* ballCenterPixel,
-    std::vector<Eigen::Vector2d>* bordersPixel,
+    std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>* bordersPixel,
     std::vector<Eigen::Vector3d>* borders)
 {
     //Unnormalize forward pixel vector 

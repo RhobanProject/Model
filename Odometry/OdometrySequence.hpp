@@ -3,6 +3,8 @@
 #include "Odometry/Odometry.hpp"
 #include "Model/HumanoidFixedModel.hpp"
 
+#include <Eigen/StdVector>
+
 namespace Leph {
 
 /**
@@ -34,7 +36,8 @@ public:
   std::vector<HumanoidFixedModel::SupportFoot> goalTrajsSupport;
   //Walk step, lateral, turn and phase 
   //walk order at each logged point 
-  std::vector<Eigen::Vector4d> walkTrajsOrder;
+  std::vector<Eigen::Vector4d,
+              Eigen::aligned_allocator<Eigen::Vector4d>> walkTrajsOrder;
   std::vector<double> walkTrajsPhase;
   //Target observed cartesian 
   //displacement  (X,Y,Theta)

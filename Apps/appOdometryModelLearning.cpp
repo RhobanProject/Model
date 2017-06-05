@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include <Eigen/Dense>
+#include <Eigen/StdVector>
 #include "Model/HumanoidFixedModel.hpp"
 #include "Odometry/Odometry.hpp"
 #include "Calibration/LogLikelihoodMaximization.hpp"
@@ -70,7 +71,8 @@ struct OdometrySequence {
     std::vector<Leph::HumanoidFixedModel::SupportFoot> goalTrajsSupport;
     //Walk step, lateral, turn and phase 
     //walk order at each logged point 
-    std::vector<Eigen::Vector4d> walkTrajsOrder;
+    std::vector<Eigen::Vector4d,
+                Eigen::aligned_allocator<Eigen::Vector4d>> walkTrajsOrder;
     std::vector<double> walkTrajsPhase;
     //Target observed cartesian 
     //displacement  (X,Y,Theta)

@@ -212,6 +212,7 @@ set(APPS_FILES
     appOdometryModelLearning2
     appOdometrySimulator
     appOdometryPreparePredictiveModelData
+    appOdometryLogsTK
 )
 
 #Build App RhIO Viewer 

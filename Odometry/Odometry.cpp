@@ -153,10 +153,7 @@ void Odometry::update(
     diff = _modelDisplacement.displacementCorrection(diff);
 
     //Update corrected odometry at support swap
-    if (
-        lastSupport == Leph::HumanoidFixedModel::RightSupportFoot &&
-        _support == Leph::HumanoidFixedModel::LeftSupportFoot
-    ) {
+    if (lastSupport != _support) {
         //Apply noise generation if available
         if (engine != nullptr) {
             diff += _modelNoise.noiseGeneration(diff, *engine);
