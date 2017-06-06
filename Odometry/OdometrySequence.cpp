@@ -185,37 +185,40 @@ Eigen::VectorXd simulateOdometry(
 
   //Iterate over recorded point inside the sequence
   int lastStep = -1;
+  int lastSwapIndex = -1;
   for (size_t i=0;i<data.readTrajsPose.size();i++) {
     int stepIndex = data.stepIndices[i];
-    bool skipStep = false;
-    //Use given odometry type
-    if (odometry_type == OdometryOrder) {
-      //TODO: update it each step instead of each cycle
-      if (stepIndex > lastStep) {
+    // Update only on step changes
+    if (stepIndex > lastStep) {
+      //Use given odometry type to compute rawDelta (before correction
+      Eigen::Vector3d rawDelta = Eigen::Vector3d::Zero();
+      if (odometry_type == OdometryOrder) {
         Eigen::Vector3d walkOrders = data.walkTrajsOrder[i].segment(0, 3);
         double enableGain = data.walkTrajsOrder[i](3);
-        odometry.updateFullStep(walkOrders*enableGain, usedEngine);
+        rawDelta = walkOrders*enableGain;
       }
-      else {
-        skipStep = true;
+      else if (odometry_type == OdometryGoal) {
+        if (lastSwapIndex >= 0) {
+          rawDelta = odometry.odometryDiff(data.goalTrajsPose[lastSwapIndex],
+                                           data.goalTrajsPose[i]);
+        }
+      } else if (odometry_type == OdometryRead) {
+        if (lastSwapIndex >= 0) {
+          rawDelta = odometry.odometryDiff(data.readTrajsPose[lastSwapIndex],
+                                           data.readTrajsPose[i]);
+        }
+      } else {
+        throw std::logic_error("Invalid odometry type");
       }
-    } else if (odometry_type == OdometryGoal) {
-      odometry.update(
-        data.goalTrajsPose[i], 
-        data.goalTrajsSupport[i],
-        usedEngine);
-    } else if (odometry_type == OdometryRead) {
-      odometry.update(
-        data.readTrajsPose[i], 
-        data.readTrajsSupport[i],
-        usedEngine);
-    } else {
-      throw std::logic_error("Invalid odometry type");
+      odometry.updateFullStep(rawDelta, usedEngine);
+      // If user asked positions provide them
+      if (positions != nullptr) {
+        positions->push_back(odometry.state());
+      }
+      // Update lastSwapIndex
+      lastSwapIndex = i;
     }
     lastStep = stepIndex;
-    if (positions != nullptr && !skipStep) {
-      positions->push_back(odometry.state());
-    }
   }
 
   //Final integrated state
