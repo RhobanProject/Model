@@ -193,13 +193,7 @@ void Odometry::updateFullStep(
     }
 
     //Apply displacement correction
-    Eigen::Vector3d diff = _modelDisplacement
-        .displacementCorrection(deltaPose);
-    //Apply noise generation if available
-    if (engine != nullptr) {
-        diff += _modelNoise
-            .noiseGeneration(diff, *engine);
-    }
+    Eigen::Vector3d diff = getDiffFullStep(deltaPose, engine);
     //Save applied delta
     _lastDiff = deltaPose;
     
@@ -208,6 +202,19 @@ void Odometry::updateFullStep(
     _last = _state;
     odometryInt(diff, _state);
     _corrected = _state;
+}
+
+Eigen::Vector3d Odometry::getDiffFullStep(
+  const Eigen::Vector3d & deltaPose,
+  std::default_random_engine * engine) const
+{
+  //Apply displacement correction
+  Eigen::Vector3d diff = _modelDisplacement.displacementCorrection(deltaPose);
+  //Apply noise generation if available
+  if (engine != nullptr) {
+    diff += _modelNoise.noiseGeneration(diff, *engine);
+  }
+  return diff;
 }
 
 const Eigen::Vector3d& Odometry::state() const

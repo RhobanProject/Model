@@ -101,6 +101,13 @@ class Odometry
             std::default_random_engine* engine);
 
         /**
+         * Sample the difference of position in the robot referential
+         */
+        Eigen::Vector3d getDiffFullStep(
+            const Eigen::Vector3d& deltaPose,
+            std::default_random_engine* engine) const;
+
+        /**
          * Return current corrected odometry state
          * [x,y,theta]
          */
