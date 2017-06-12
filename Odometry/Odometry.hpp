@@ -57,6 +57,8 @@ class Odometry
         double setParameters(
             const Eigen::VectorXd& params);
 
+        std::vector<std::string> getParametersNames() const;
+
         /**
          * Return parameter normalization 
          * coefficients for displacement 

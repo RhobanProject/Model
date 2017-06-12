@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <random>
 #include <string>
 #include <stdexcept>
 #include <Eigen/Dense>
@@ -8,6 +9,7 @@
 #include "Odometry/Odometry.hpp"
 #include "Odometry/OdometrySequence.hpp"
 #include "Calibration/LogLikelihoodMaximization.hpp"
+#include "Utils/Angle.h"
 #include "Utils/FileEigen.h"
 
 /**
@@ -47,6 +49,32 @@ struct LearningConfig{
 };
 
 struct LearningConfig conf;
+
+// Bounds for cartesian noise of the localisation process (direction is random)
+double minLocCartNoise = std::pow(10,-3);
+double maxLocCartNoise = 1;
+// Bounds for angular noise of the localisation process [rad]
+double minLocAngNoise = 0.1 * M_PI / 180;
+double maxLocAngNoise = 20 * M_PI / 180;
+
+// Noise parameters: devPos [m], devTheta [rad]
+// Result: pos_x, pos_y, pos_theta
+Eigen::Vector3d sampleObservationNoise(const Eigen::VectorXd & noiseParameters,
+                                       std::default_random_engine * engine)
+{
+  double devPos = noiseParameters(0);
+  double devTheta = noiseParameters(1);
+  // Generatic noise
+  double posErrNorm, posErrArg, thetaErr;
+  posErrNorm = std::normal_distribution<double>(0.0, devPos)(*engine);
+  posErrArg  = std::uniform_real_distribution<double>(0, 2*M_PI)(*engine);
+  thetaErr   = std::normal_distribution<double>(0.0, devTheta)(*engine);
+  // Generating noise
+  return Eigen::Vector3d(posErrNorm * cos(posErrArg),
+                         posErrArg * sin(posErrArg),
+                         Leph::AngleBound(thetaErr));
+
+}
 
 Eigen::VectorXd buildObservation(const Eigen::Vector3d & final_state,
                                  LearningConfig * conf)
@@ -244,7 +272,12 @@ void writeLearningConfig(std::ostream & out, struct LearningConfig * conf)
 Eigen::VectorXd buildInitialParameters()
 {
   Leph::Odometry odometry(conf.displacement_type, conf.noise_type);
-  return odometry.getParameters();
+  Eigen::VectorXd odomParameters = odometry.getParameters();
+  Eigen::VectorXd parameters(odomParameters.rows() + 2);
+  parameters(0) = 0.01;
+  parameters(1) = 5 * M_PI / 180;
+  parameters.segment(2, odomParameters.rows()) = odomParameters;
+  return parameters;
 }
 
 /**
@@ -254,7 +287,12 @@ Eigen::VectorXd buildInitialParameters()
 Eigen::VectorXd buildNormalizationCoef()
 {
   Leph::Odometry odometry(conf.displacement_type, conf.noise_type);
-  return odometry.getNormalization();
+  Eigen::VectorXd odomCoeffs = odometry.getNormalization();
+  Eigen::VectorXd coeffs(odomCoeffs.rows() + 2);
+  coeffs(0) = maxLocCartNoise;
+  coeffs(1) = maxLocAngNoise;
+  coeffs.segment(2, odomCoeffs.rows()) = odomCoeffs;
+  return coeffs;
 }
 
 /**
@@ -266,9 +304,22 @@ Eigen::VectorXd buildNormalizationCoef()
 double boundParameters(
   const Eigen::VectorXd& params)
 {
-  Leph::Odometry odometry(
-    conf.displacement_type, conf.noise_type);
-  double cost = odometry.setParameters(params);
+  // Creating vectors for easy comparison
+  Eigen::Vector2d minLocNoise(minLocCartNoise, minLocAngNoise);
+  Eigen::Vector2d maxLocNoise(maxLocCartNoise, maxLocAngNoise);
+  // Cost for Localisation noises
+  double cost = 0;
+  for (int dim=0;dim<minLocNoise.rows();dim++) {
+    if (params(dim) < minLocNoise(dim)) {
+      cost += minLocNoise(dim) - params(dim);
+    }
+    if (params(dim) > maxLocNoise(dim)) {
+      cost += params(dim) - maxLocNoise(dim);
+    }
+  }
+  // Cost for odometry parameters
+  Leph::Odometry odometry(conf.displacement_type, conf.noise_type);
+  cost += odometry.setParameters(params.segment(2, params.rows() -2));
   if (cost > 0.0) {
     return 1000.0 + 1000.0*cost;
   } else {
@@ -282,7 +333,7 @@ double boundParameters(
 Leph::Odometry initModel(const Eigen::VectorXd& params)
 {
   Leph::Odometry odometry(conf.displacement_type, conf.noise_type);
-  double cost = odometry.setParameters(params);
+  double cost = odometry.setParameters(params.segment(2, params.rows()-2));
   if (cost > 0.0) {
     std::cout << "Parameters: " 
               << params.transpose() << std::endl;
@@ -309,8 +360,17 @@ Eigen::VectorXd evaluateParameters(
   simulateOdometry(data, noRandom, odometry, conf.odometry_type, engine,
                    nullptr);
 
+  Eigen::Vector3d initialObsNoise = sampleObservationNoise(params.segment(0,2), &engine);
+  Eigen::Vector3d finalObsNoise   = sampleObservationNoise(params.segment(0,2), &engine);
+
+  Eigen::Vector3d state(0,0,0);
+  odometry.odometryInt(initialObsNoise, state);
+  odometry.odometryInt(odometry.state(), state);
+  odometry.odometryInt(finalObsNoise, state);
+
+
   //Final integrated state
-  return buildObservation(odometry.state(), &conf);
+  return buildObservation(state, &conf);
 }
 
 
@@ -338,13 +398,13 @@ void writeResultLine(std::ostream & out,
 
 void writeParamsHeader(std::ostream & out)
 {
-  out << "learningSize,testLog,displacementModel,noiseModel,";
+  out << "learningSize,testLog,displacementModel,noiseModel,loc_cart_noise,loc_angle_noise,";
   // Getting number of odometry parameters
   Leph::Odometry o(conf.displacement_type, conf.noise_type);
-  int nbParams = o.getParameters().rows();
-  for (int i = 0; i < nbParams; i++) {
-    out << "param" << i;
-    if (i < nbParams - 1) out << ",";
+  std::vector<std::string> names = o.getParametersNames();
+  for (size_t i = 0; i < names.size(); i++) {
+    out << names[i];
+    if (i < names.size() - 1) out << ",";
   }
   out << std::endl;
 }

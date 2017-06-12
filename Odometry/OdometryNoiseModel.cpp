@@ -135,6 +135,26 @@ double OdometryNoiseModel::setParameters(
     //Return distance for fitness scoring
     return error;
 }
+
+std::vector<std::string> OdometryNoiseModel::getParametersNames() const
+{
+    if (_type == NoiseDisable) {
+      return {};
+    } else if (_type == NoiseConstant) {
+      return {"dx_bias","dy_bias","dz_bias"};
+    } else if (_type == NoiseProportional) {
+      return {"dx_from_dx","dy_from_dy","dz_from_z"};
+    } else if (_type == NoiseLinearSimple) {
+      return {"dx_bias","dx_from_dx","dy_bias","dy_from_dy", "dz_bias", "dz_from_dz"};
+    } else if (_type == NoiseLinearFull) {
+      return {"dx_bias","dx_from_dx","dx_from_dy","dx_from_dz",
+          "dy_bias","dy_from_dx","dy_from_dy","dy_from_dz",
+          "dz_bias","dz_from_dx","dz_from_dy","dz_from_dz"};
+    } else {
+        throw std::logic_error(
+            "OdometryDisplacementModel invalid type");
+    }
+}
         
 const Eigen::VectorXd& OdometryNoiseModel::getNormalization() const
 {

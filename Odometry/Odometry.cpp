@@ -88,6 +88,24 @@ double Odometry::setParameters(
     }
     return error;
 }
+
+std::vector<std::string> Odometry::getParametersNames() const
+{
+  std::vector<std::string> displacementNames, noiseNames, result;
+  displacementNames = _modelDisplacement.getParametersNames();
+  noiseNames = _modelNoise.getParametersNames();
+  std::cout << "Nb displacements params: " << displacementNames.size() << std::endl;
+  std::cout << "Nb noise params: " << noiseNames.size() << std::endl;
+  // Adding displacement names (with prefix)
+  for (const std::string & name : displacementNames) {
+    result.push_back("displacement_" + name);
+  }
+  // Adding noise names (with prefix)
+  for (const std::string & name : noiseNames) {
+    result.push_back("noise_" + name);
+  }
+  return result;
+}
         
 Eigen::VectorXd Odometry::getNormalization() const
 {
