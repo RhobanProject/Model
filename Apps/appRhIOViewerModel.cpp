@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     //Parse command line arguments
     if (argc <= 1 || argc >= 5) {
         std::cout 
-            << "Usage: ./app robothost [rhio_prefix] [sigmaban|grosban]" 
+            << "Usage: ./app robothost [rhio_prefix] [sigmaban|sigmaban_plus|grosban]" 
             << std::endl;
         return -1;
     }
@@ -35,6 +35,8 @@ int main(int argc, char** argv)
     if (argc >= 4) {
         if (std::string(argv[3]) == "sigmaban") {
             type = Leph::SigmabanModel;
+        } else if (std::string(argv[3]) == "sigmaban_plus") {
+            type = Leph::SigmabanPlusModel;
         } else if (std::string(argv[3]) == "grosban") {
             type = Leph::GrosbanModel;
         } else {

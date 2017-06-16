@@ -18,7 +18,7 @@
 void usage()
 {
     std::cout 
-        << "Usage: ./app robothost [goal|read|corrected] [sigmaban|grosban]" 
+        << "Usage: ./app robothost [goal|read|corrected] [sigmaban|sigmaban_plus|grosban]" 
         << std::endl;
     exit(1);
 }
@@ -41,6 +41,8 @@ int main(int argc, char** argv)
     Leph::RobotType type = Leph::SigmabanModel;
     if (std::string(argv[3]) == "sigmaban") {
         type = Leph::SigmabanModel;
+    } else if (std::string(argv[3]) == "sigmaban_plus") {
+        type = Leph::SigmabanPlusModel;
     } else if (std::string(argv[3]) == "grosban") {
         type = Leph::GrosbanModel;
     } else {

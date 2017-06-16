@@ -18,6 +18,8 @@ HumanoidModel::HumanoidModel(
     std::string urdfFile;
     if (_type == SigmabanModel) {
         urdfFile = "sigmaban.urdf";
+    } else if (_type == SigmabanPlusModel) {
+        urdfFile = "sigmaban_plus.urdf";
     } else if (_type == GrosbanModel) {
         urdfFile = "grosban.urdf";
     }
@@ -120,6 +122,21 @@ void HumanoidModel::boundingBox(size_t frameIndex,
             sizeY = 0.040;
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.000, -0.003, 0.01);
+        } else {
+            Model::boundingBox(frameIndex, 
+                sizeX, sizeY, sizeZ, center);
+        }
+    } else if (_type == SigmabanPlusModel) {
+        if (Model::getFrameName(frameIndex) == "left_foot_tip") {
+            sizeX = 0.098;
+            sizeY = 0.051;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.0244, 0.0135, 0.01);
+        } else if (Model::getFrameName(frameIndex) == "right_foot_tip") {
+            sizeX = 0.098;
+            sizeY = 0.051;
+            sizeZ = 0.01;
+            center = Eigen::Vector3d(0.0244, -0.0135, 0.01);
         } else {
             Model::boundingBox(frameIndex, 
                 sizeX, sizeY, sizeZ, center);

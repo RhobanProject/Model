@@ -15,6 +15,7 @@ namespace Leph {
  */
 enum RobotType {
     SigmabanModel,
+    SigmabanPlusModel,
     GrosbanModel,
 };
 
