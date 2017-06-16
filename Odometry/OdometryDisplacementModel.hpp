@@ -1,6 +1,7 @@
 #ifndef LEPH_ODOMETRYDISPLACEMENTMODEL_HPP
 #define LEPH_ODOMETRYDISPLACEMENTMODEL_HPP
 
+#include <vector>
 #include <Eigen/Dense>
 
 namespace Leph {
