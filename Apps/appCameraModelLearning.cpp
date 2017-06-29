@@ -51,7 +51,7 @@ static Eigen::MatrixXd defaultGeometryData;
 static std::map<std::string, size_t> defaultGeometryName;
 
 // The angles can be in [-margin, margin]
-static float margin = 5.0;
+static float margin = 8.0;
 static float maxPixelNoise = 0.2; // 66% of measures are supposed to be in the ~~[-5°, 5°] margin 
 /**
  * Build and return the geometryData matrix
@@ -280,6 +280,7 @@ Eigen::VectorXd evaluateParameters(
     std::default_random_engine& engine)
 {
     //Parse parameters
+    // The other parameters are handled in the getGeometryData (called in initModel)
     //0: noise aiming pixel (pixel space)
     double noiseAimingPixel = params(0);
     //1: camera aperture width (radian)
@@ -368,13 +369,28 @@ Eigen::VectorXd evaluateParameters(
     return estimate;
 }
 
-void viewLog(Leph::MatrixLabel & log) {
-  //Load the model
-  Leph::HumanoidFixedModel model(Leph::SigmabanModel);
+void viewLog(const Leph::MatrixLabel & log, const Eigen::VectorXd & params) {
   Leph::ModelViewer viewer(1200, 900);
+
+  // Applying some of the params and creating the model
+  Leph::HumanoidFixedModel model = initModel(params);
+  
+  //Parse parameters
+  //1: camera aperture width (radian)
+  Leph::CameraParameters camParams;
+  camParams.widthAperture = params(1);
+  //2: camera aperture height (radian)
+  camParams.heightAperture = params(2);
+  //6: imu angle offset roll (radian)
+  double imuOffsetRoll = params(6);
+  //7: imu angle offset pitch (radian)
+  double imuOffsetPitch = params(7);
+  //8: imu angle offset yaw (radian)
+  double imuOffsetYaw = params(8);
+  
   //Leph::VectorLabel data = log
   for (unsigned int i = 0; i < log.size(); i++) {
-    Leph::VectorLabel & data = log[i];
+    const Leph::VectorLabel & data = log[i];
     while (viewer.update()) {
       //Assign DOF state
       model.setSupportFoot(Leph::HumanoidFixedModel::LeftSupportFoot);
@@ -385,9 +401,9 @@ void viewLog(Leph::MatrixLabel & log) {
       double imuPitch = data("imu_pitch");
       double imuRoll = data("imu_roll");
       Eigen::Matrix3d imuMatrix = 
-        Eigen::AngleAxisd(0, Eigen::Vector3d::UnitZ()).toRotationMatrix()
-        * Eigen::AngleAxisd(imuPitch, Eigen::Vector3d::UnitY()).toRotationMatrix()
-        * Eigen::AngleAxisd(imuRoll, Eigen::Vector3d::UnitX()).toRotationMatrix();
+        Eigen::AngleAxisd(imuOffsetYaw, Eigen::Vector3d::UnitZ()).toRotationMatrix()
+        * Eigen::AngleAxisd(imuPitch + imuOffsetPitch, Eigen::Vector3d::UnitY()).toRotationMatrix()
+        * Eigen::AngleAxisd(imuRoll + imuOffsetRoll, Eigen::Vector3d::UnitX()).toRotationMatrix();
       model.setOrientation(imuMatrix);
       //Assign the left foot to origin
       model.get().setDOF("base_x", 0.0);
@@ -395,14 +411,37 @@ void viewLog(Leph::MatrixLabel & log) {
       model.get().setDOF("base_z", 0.0);
       model.get().setDOF("base_yaw", 0.0);
 
+      
       Eigen::Vector3d ground(data("ground_x"), data("ground_y"), data("ground_z"));
       //viewer.drawFrame(ground, Eigen::Matrix3d::Identity());
-      viewer.drawSphere(ground, 0.07);
-      //Display model and view box
+      viewer.drawSphere(ground, 0.03);
+
+      Eigen::Vector2d pixelPoint;
+      pixelPoint.x() = data("pixel_x");
+      pixelPoint.y() = data("pixel_y");
+      
+      // Compute head view vector in world
+      Eigen::Vector3d viewVectorInWorld =
+          model.get().cameraPixelToViewVector(camParams, pixelPoint);
+      
+      // Compute the cartesian position estimation.
+      //(the computed point is in world frame which
+      // is coincident with the left foot).
+      Eigen::Vector3d groundEstimation;
+      // Astuce ! We're giving the z of the object here, the function calculates
+      // the intersection
+      // with a plan parallel to ground of height ground_z
+      bool isSuccess = model.get().cameraViewVectorToWorld(
+          viewVectorInWorld, groundEstimation, data("ground_z"));
+
+      if (!isSuccess) {
+        std::cout << "Failed to cameraViewVectorToWorld" << std::endl;
+      }
+      viewer.drawFrame(groundEstimation, Eigen::Matrix3d::Identity());
+      // Display model and view box
       Leph::ModelDraw(model.get(), viewer);
     }
   }
-
 }
 
 /**
@@ -446,7 +485,6 @@ int main(int argc, char** argv)
         << ": " << logs.size() << " points" << std::endl;
 
     std::cout << "Viewing log" << std::endl;
-    viewLog(logs);
     //Load default model parameters
     Eigen::MatrixXd jointData;
     std::map<std::string, size_t> jointName;
@@ -487,6 +525,7 @@ int main(int argc, char** argv)
 
     //Get the initial parameters
     Eigen::VectorXd initParams = buildInitialParameters();
+    
     //If given, seed initial parameters
     if (seedPath != "") {
         std::cout << "Loading seed parameters from: " 
@@ -522,6 +561,7 @@ int main(int argc, char** argv)
         initParams(11) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 2);
     }
 
+    viewLog(logs, initParams);
     //Initialize the logLikelihood 
     //maximisation process
     Leph::LogLikelihoodMaximization
@@ -593,6 +633,7 @@ int main(int argc, char** argv)
 
     //Plot the convergence graphic
     plot.plot("iteration", "all").render();
+    viewLog(logs, bestParams);
     
     return 0;
 }

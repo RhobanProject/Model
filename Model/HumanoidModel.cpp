@@ -410,7 +410,7 @@ bool HumanoidModel::cameraViewVectorToWorld(
         isBelowHorizon = false;
     }
 
-    //Line abscisse intersection in the ground
+    //Line abscisse intersection on the plance parallel to the ground of height groundHeight
     double t = (groundHeight - center.z())/forward.z();
 
     if (t < 0) {
