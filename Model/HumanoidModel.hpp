@@ -169,7 +169,7 @@ class HumanoidModel : public Model
          */
         bool cameraViewVectorToWorld(
             const Eigen::Vector3d& viewVector,
-            Eigen::Vector3d& pos);
+            Eigen::Vector3d& pos, double groundHeight = 0.0);
 
         /**
          * Compute cartesian position in world

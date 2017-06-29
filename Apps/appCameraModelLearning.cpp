@@ -13,12 +13,14 @@
 #include "Utils/FileEigen.h"
 #include "Utils/FileMap.h"
 #include "Utils/FileModelParameters.h"
+#include "Viewer/ModelViewer.hpp"
+#include "Viewer/ModelDraw.hpp"
 
 /**
  * Number of sampling per parameters evaluation
  * for log likelyhood maximisation
  */
-static const unsigned int samplingNumber = 1000;
+static const unsigned int samplingNumber = 100;
 
 /**
  * Learning/Testing data ratio between 0 and 1
@@ -29,9 +31,11 @@ static const double learningDataRatio = 0.75;
  * CMA-ES optimization configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 200;
+static const unsigned int cmaesMaxIterations = 60;
 static const unsigned int cmaesRestarts = 1;
-static const unsigned int cmaesLambda = 10;
+// Choses the number of points created when exploring (pop size)
+static const unsigned int cmaesLambda = 100;
+// Choses the distance of the exploration. -1=auto.
 static const double cmaesSigma = -1.0;
 
 /**
@@ -46,6 +50,9 @@ static const bool useCameraDistortion = false;
 static Eigen::MatrixXd defaultGeometryData;
 static std::map<std::string, size_t> defaultGeometryName;
 
+// The angles can be in [-margin, margin]
+static float margin = 5.0;
+static float maxPixelNoise = 0.2; // 66% of measures are supposed to be in the ~~[-5°, 5°] margin 
 /**
  * Build and return the geometryData matrix
  * from default data and given parameters vector
@@ -92,9 +99,9 @@ Eigen::VectorXd buildInitialParameters()
     //0: noise aiming pixel (pixel space)
     initParams(0) = 0.05;
     //1: camera aperture width (radian)
-    initParams(1) = 80*M_PI/180.0;
+    initParams(1) = 67*M_PI/180.0;
     //2: camera aperture height (radian)
-    initParams(2) = 50*M_PI/180.0;
+    initParams(2) = 52.47*M_PI/180.0;
     //3: camera angle offset roll (radian)
     initParams(3) = 0.0;
     //4: camera angle offset pitch (radian)
@@ -134,27 +141,27 @@ Eigen::VectorXd buildNormalizationCoef()
     //0: noise aiming pixel (pixel space)
     normCoef(0) = 0.05;
     //1: camera aperture width (radian)
-    normCoef(1) = 80.0*M_PI/180.0;
+    normCoef(1) = 5.0*M_PI/180.0;
     //2: camera aperture height (radian)
-    normCoef(2) = 50.0*M_PI/180.0;
+    normCoef(2) = 5.0*M_PI/180.0;
     //3: camera angle offset roll (radian)
-    normCoef(3) = 2.0*M_PI/180.0;
+    normCoef(3) = 2*margin*M_PI/180.0;
     //4: camera angle offset pitch (radian)
-    normCoef(4) = 2.0*M_PI/180.0;
+    normCoef(4) = 2*margin*M_PI/180.0;
     //5: camera angle offset yaw (radian)
-    normCoef(5) = 2.0*M_PI/180.0;
+    normCoef(5) = 2*margin*M_PI/180.0;
     //6: imu angle offset roll (radian)
-    normCoef(6) = 1.0*M_PI/180.0;
+    normCoef(6) = 2*margin*M_PI/180.0;
     //7: imu angle offset pitch (radian)
-    normCoef(7) = 1.0*M_PI/180.0;
+    normCoef(7) = 2*margin*M_PI/180.0;
     //8: imu angle offset yaw (radian)
-    normCoef(8) = 1.0*M_PI/180.0;
+    normCoef(8) = 2*margin*M_PI/180.0;
     //9: neck angle offset roll (radian)
-    normCoef(9) = 1.0*M_PI/180.0;
+    normCoef(9) = 2*margin*M_PI/180.0;
     //10: neck angle offset pitch (radian)
-    normCoef(10) = 1.0*M_PI/180.0;
+    normCoef(10) = 2*margin*M_PI/180.0;
     //11: neck angle offset yaw (radian)
-    normCoef(11) = 1.0*M_PI/180.0;
+    normCoef(11) = 2*margin*M_PI/180.0;
     if (useCameraDistortion) {
         //12: distorsion coef 2
         normCoef(12) = 0.01;
@@ -179,55 +186,58 @@ double boundParameters(
     if (params(0) <= 0.0) {
         cost += 1000.0 - 1000.0*(params(0));
     }
-    //1: camera aperture width (radian)
-    if (params(1) <= 0.0) {
-        cost += 1000.0 - 1000.0*(params(1));
+    if (params(0) >= maxPixelNoise) {
+        cost += 1000.0 + 1000.0*(params(0) - maxPixelNoise);
     }
-    if (params(1) >= M_PI) {
-        cost += 1000.0 + 1000.0*(params(1)-M_PI);
+    //1: camera aperture width (radian)
+    if (params(1) <= 64*M_PI/180.0) {
+      cost += 1000.0 - 1000.0*(params(1)-64*M_PI/180.0);
+    }
+    if (params(1) >= 70*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(params(1)-70*M_PI/180.0);
     }
     //2: camera aperture height (radian)
-    if (params(2) <= 0.0) {
-        cost += 1000.0 - 1000.0*(params(2));
+    if (params(2) <= 50*M_PI/180.0) {
+        cost += 1000.0 - 1000.0*(params(2) - 50*M_PI/180.0);
     }
-    if (params(2) >= M_PI) {
-        cost += 1000.0 + 1000.0*(params(2)-M_PI);
+    if (params(2) >= 55*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(params(2)-55*M_PI/180.0);
     }
     //3: camera angle offset roll (radian)
-    if (fabs(params(3)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(3)) - 20.0*M_PI/180.0);
+    if (fabs(params(3)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(3)) - margin*M_PI/180.0);
     }
     //4: camera angle offset pitch (radian)
-    if (fabs(params(4)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(4)) - 20.0*M_PI/180.0);
+    if (fabs(params(4)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(4)) - margin*M_PI/180.0);
     }
     //5: camera angle offset yaw (radian)
-    if (fabs(params(5)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(5)) - 20.0*M_PI/180.0);
+    if (fabs(params(5)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(5)) - margin*M_PI/180.0);
     }
     //6: imu angle offset roll (radian)
-    if (fabs(params(6)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(6)) - 20.0*M_PI/180.0);
+    if (fabs(params(6)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(6)) - margin*M_PI/180.0);
     }
     //7: imu angle offset pitch (radian)
-    if (fabs(params(7)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(7)) - 20.0*M_PI/180.0);
+    if (fabs(params(7)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(7)) - margin*M_PI/180.0);
     }
     //8: imu angle offset yaw (radian)
-    if (fabs(params(8)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(8)) - 20.0*M_PI/180.0);
+    if (fabs(params(8)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(8)) - margin*M_PI/180.0);
     }
     //9: neck angle offset roll (radian)
-    if (fabs(params(9)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(9)) - 20.0*M_PI/180.0);
+    if (fabs(params(9)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(9)) - margin*M_PI/180.0);
     }
     //10: neck angle offset pitch (radian)
-    if (fabs(params(10)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(10)) - 20.0*M_PI/180.0);
+    if (fabs(params(10)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(10)) - margin*M_PI/180.0);
     }
     //11: neck angle offset yaw (radian)
-    if (fabs(params(11)) > 20.0*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(11)) - 20.0*M_PI/180.0);
+    if (fabs(params(11)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(11)) - margin*M_PI/180.0);
     }
     if (useCameraDistortion) {
         //12: distorsion coef 2
@@ -342,17 +352,57 @@ Eigen::VectorXd evaluateParameters(
     //(the computed point is in world frame which 
     //is coincident with the left foot).
     Eigen::Vector3d groundEstimation;
+    // Astuce ! We're giving the z of the object here, the function calculates
+    // the intersection
+    // with a plan parallel to ground of height ground_z
     bool isSuccess = model.get().cameraViewVectorToWorld(
-        viewVectorInWorld, groundEstimation);
-    
+        viewVectorInWorld, groundEstimation, data("ground_z"));
+
     //Return cartesian estimation
     Eigen::VectorXd estimate(2);
     if (!isSuccess) {
         estimate << 1000.0, 1000.0;
     } else {
-        estimate << groundEstimation.x(), groundEstimation.y();
+      estimate << groundEstimation.x(), groundEstimation.y();
     }
     return estimate;
+}
+
+void viewLog(Leph::MatrixLabel & log) {
+  //Load the model
+  Leph::HumanoidFixedModel model(Leph::SigmabanModel);
+  Leph::ModelViewer viewer(1200, 900);
+  //Leph::VectorLabel data = log
+  for (unsigned int i = 0; i < log.size(); i++) {
+    Leph::VectorLabel & data = log[i];
+    while (viewer.update()) {
+      //Assign DOF state
+      model.setSupportFoot(Leph::HumanoidFixedModel::LeftSupportFoot);
+      for (const std::string& name : Leph::NamesDOF) {
+        model.get().setDOF(name, data(name));
+      }
+      //Assign trunk orientation from IMU
+      double imuPitch = data("imu_pitch");
+      double imuRoll = data("imu_roll");
+      Eigen::Matrix3d imuMatrix = 
+        Eigen::AngleAxisd(0, Eigen::Vector3d::UnitZ()).toRotationMatrix()
+        * Eigen::AngleAxisd(imuPitch, Eigen::Vector3d::UnitY()).toRotationMatrix()
+        * Eigen::AngleAxisd(imuRoll, Eigen::Vector3d::UnitX()).toRotationMatrix();
+      model.setOrientation(imuMatrix);
+      //Assign the left foot to origin
+      model.get().setDOF("base_x", 0.0);
+      model.get().setDOF("base_y", 0.0);
+      model.get().setDOF("base_z", 0.0);
+      model.get().setDOF("base_yaw", 0.0);
+
+      Eigen::Vector3d ground(data("ground_x"), data("ground_y"), data("ground_z"));
+      //viewer.drawFrame(ground, Eigen::Matrix3d::Identity());
+      viewer.drawSphere(ground, 0.07);
+      //Display model and view box
+      Leph::ModelDraw(model.get(), viewer);
+    }
+  }
+
 }
 
 /**
@@ -394,7 +444,9 @@ int main(int argc, char** argv)
     logs.load(logPath);
     std::cout << "Loading data from " << logPath 
         << ": " << logs.size() << " points" << std::endl;
-    
+
+    std::cout << "Viewing log" << std::endl;
+    viewLog(logs);
     //Load default model parameters
     Eigen::MatrixXd jointData;
     std::map<std::string, size_t> jointName;
@@ -498,7 +550,8 @@ int main(int argc, char** argv)
 
     //Display the best found parameters
     Eigen::VectorXd bestParams = calibration.getParameters();
-    std::cout << "noisePixel:     " << bestParams(0) << std::endl;
+    std::cout << "(Angles in degrees, noisePixel in 640 pixel image)" << std::endl;
+    std::cout << "noisePixel:     " << bestParams(0)*320 << std::endl;
     std::cout << "apertureWidth:  " << bestParams(1)*180.0/M_PI << std::endl;
     std::cout << "apertureHeight: " << bestParams(2)*180.0/M_PI << std::endl;
     std::cout << "CamOffsetRoll:  " << bestParams(3)*180.0/M_PI << std::endl;
