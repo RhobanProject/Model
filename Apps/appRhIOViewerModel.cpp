@@ -51,10 +51,13 @@ int main(int argc, char** argv)
     std::cout << "Connecting to RhIO " << host << ":" << prefix << " with ";
     std::cout << (type == Leph::SigmabanModel ? "Sigmaban" : "Grosban") 
         << " model" << std::endl;
-    RhIO::ClientSub clientSub(
-        std::string("tcp://" + host + ":") + RhIO::ServerPubPort);
-    RhIO::ClientReq clientReq(
-        std::string("tcp://" + host + ":") + RhIO::ServerRepPort);
+
+    std::stringstream ss;
+    ss << "tcp://" << host << ":" << (RhIO::ServersPortBase);
+    RhIO::ClientSub clientSub(ss.str());
+    ss.str("");
+    ss << "tcp://" << host << ":" << (RhIO::ServersPortBase+1);
+    RhIO::ClientReq clientReq(ss.str());
     
     //Initialize model instances
     Leph::HumanoidFixedPressureModel model(type);
