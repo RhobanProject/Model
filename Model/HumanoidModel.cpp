@@ -392,7 +392,7 @@ Eigen::Vector3d HumanoidModel::cameraPanTiltToViewVector(
 
 bool HumanoidModel::cameraViewVectorToWorld(
     const Eigen::Vector3d& viewVector,
-    Eigen::Vector3d& pos)
+    Eigen::Vector3d& pos, double groundHeight)
 {
     //Optical center
     Eigen::Vector3d center = Model::position("camera", "origin");
@@ -410,9 +410,13 @@ bool HumanoidModel::cameraViewVectorToWorld(
         isBelowHorizon = false;
     }
 
-    //Line abscisse intersection in the ground
-    double t = -center.z()/forward.z();
+    //Line abscisse intersection on the plance parallel to the ground of height groundHeight
+    double t = (groundHeight - center.z())/forward.z();
 
+    if (t < 0) {
+      // Actually, the target is above us
+      isBelowHorizon = true;
+    }
     //Intersection point
     Eigen::Vector3d pt = center + t*forward;
 
