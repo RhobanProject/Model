@@ -39,12 +39,6 @@ static const unsigned int cmaesLambda = 100;
 static const double cmaesSigma = -1.0;
 
 /**
- * Enable (for testing purpose) 
- * the lens distortion model
- */
-static const bool useCameraDistortion = false;
-
-/**
  * Global default geometry data
  */
 static Eigen::MatrixXd defaultGeometryData;
@@ -53,6 +47,24 @@ static std::map<std::string, size_t> defaultGeometryName;
 // The angles can be in [-margin, margin]
 static float margin = 8.0;
 static float maxPixelNoise = 0.2; // 66% of measures are supposed to be in the ~~[-5°, 5°] margin 
+// These parameters are not optimized anymore (in radians)
+Leph::CameraParameters camParams;
+
+enum PARAMS_ID {
+  PIXEL_NOISE,
+  CAMERA_ROLL,
+  CAMERA_PITCH,
+  CAMERA_YAW,
+  IMU_ROLL,
+  IMU_PITCH,
+  IMU_YAW,
+  NECK_ROLL,
+  NECK_PITCH,
+  NECK_YAW
+};
+// Adding NB_IDS at the end of the enum was a decent idea but Eigen doesn't like it.
+static const int NB_IDS = 10;
+
 /**
  * Build and return the geometryData matrix
  * from default data and given parameters vector
@@ -62,17 +74,17 @@ Eigen::MatrixXd getGeometryDataFromParameters(
 {
     //Retrieve camera angular offset
     //3: camera angle offset roll (radian)
-    double camOffsetRoll = params(3);
+    double camOffsetRoll = params(CAMERA_ROLL);
     //4: camera angle offset pitch (radian)
-    double camOffsetPitch = params(4);
+    double camOffsetPitch = params(CAMERA_PITCH);
     //5: camera angle offset yaw (radian)
-    double camOffsetYaw = params(5);
+    double camOffsetYaw = params(CAMERA_YAW);
     //9: neck angle offset roll (radian)
-    double neckOffsetRoll = params(9);
+    double neckOffsetRoll = params(NECK_ROLL);
     //10: neck angle offset pitch (radian)
-    double neckOffsetPitch = params(10);
+    double neckOffsetPitch = params(NECK_PITCH);
     //11: neck angle offset yaw (radian)
-    double neckOffsetYaw = params(11);
+    double neckOffsetYaw = params(NECK_YAW);
     
     //Copy default geometry model
     Eigen::MatrixXd geometryData = defaultGeometryData;
@@ -81,6 +93,7 @@ Eigen::MatrixXd getGeometryDataFromParameters(
     geometryData(defaultGeometryName.at("camera"), 0) += camOffsetRoll;
     geometryData(defaultGeometryName.at("camera"), 1) += camOffsetPitch;
     geometryData(defaultGeometryName.at("camera"), 2) += camOffsetYaw;
+    // Tried replacing head_yaw by head_pitch, worked poorer on the 1 test I did
     geometryData(defaultGeometryName.at("head_yaw"), 0) += neckOffsetRoll;
     geometryData(defaultGeometryName.at("head_yaw"), 1) += neckOffsetPitch;
     geometryData(defaultGeometryName.at("head_yaw"), 2) += neckOffsetYaw;
@@ -95,37 +108,13 @@ Eigen::MatrixXd getGeometryDataFromParameters(
 Eigen::VectorXd buildInitialParameters()
 {
     //Parameters initialization
-    Eigen::VectorXd initParams(useCameraDistortion ? 14 : 12);
-    //0: noise aiming pixel (pixel space)
-    initParams(0) = 0.05;
-    //1: camera aperture width (radian)
-    initParams(1) = 67*M_PI/180.0;
-    //2: camera aperture height (radian)
-    initParams(2) = 52.47*M_PI/180.0;
-    //3: camera angle offset roll (radian)
-    initParams(3) = 0.0;
-    //4: camera angle offset pitch (radian)
-    initParams(4) = 0.0;
-    //5: camera angle offset yaw (radian)
-    initParams(5) = 0.0;
-    //6: imu angle offset roll (radian)
-    initParams(6) = 0.0;
-    //7: imu angle offset pitch (radian)
-    initParams(7) = 0.0;
-    //8: imu angle offset yaw (radian)
-    initParams(8) = 0.0;
-    //9: neck angle offset roll (radian)
-    initParams(9) = 0.0;
-    //10: neck angle offset pitch (radian)
-    initParams(10) = 0.0;
-    //11: neck angle offset yaw (radian)
-    initParams(11) = 0.0;
-    if (useCameraDistortion) {
-        //12: distorsion coef 2
-        initParams(12) = 0.0;
-        //13: distorsion coef 4
-        initParams(13) = 0.0;
+    Eigen::VectorXd initParams(NB_IDS);
+    // All of the offsets are angular in radians and start at 0 except the pixel
+    // noise (it's a stadard deviation on the famous [-1, 1] pixel space)
+    for (unsigned int i = 0; i < NB_IDS; i++) {
+      initParams(i) = 0.0;
     }
+    initParams(PIXEL_NOISE) = 0.05;
 
     return initParams;
 }
@@ -137,37 +126,13 @@ Eigen::VectorXd buildInitialParameters()
 Eigen::VectorXd buildNormalizationCoef()
 {
     //Parameters initialization
-    Eigen::VectorXd normCoef(useCameraDistortion ? 14 : 12);
-    //0: noise aiming pixel (pixel space)
-    normCoef(0) = 0.05;
-    //1: camera aperture width (radian)
-    normCoef(1) = 5.0*M_PI/180.0;
-    //2: camera aperture height (radian)
-    normCoef(2) = 5.0*M_PI/180.0;
-    //3: camera angle offset roll (radian)
-    normCoef(3) = 2*margin*M_PI/180.0;
-    //4: camera angle offset pitch (radian)
-    normCoef(4) = 2*margin*M_PI/180.0;
-    //5: camera angle offset yaw (radian)
-    normCoef(5) = 2*margin*M_PI/180.0;
-    //6: imu angle offset roll (radian)
-    normCoef(6) = 2*margin*M_PI/180.0;
-    //7: imu angle offset pitch (radian)
-    normCoef(7) = 2*margin*M_PI/180.0;
-    //8: imu angle offset yaw (radian)
-    normCoef(8) = 2*margin*M_PI/180.0;
-    //9: neck angle offset roll (radian)
-    normCoef(9) = 2*margin*M_PI/180.0;
-    //10: neck angle offset pitch (radian)
-    normCoef(10) = 2*margin*M_PI/180.0;
-    //11: neck angle offset yaw (radian)
-    normCoef(11) = 2*margin*M_PI/180.0;
-    if (useCameraDistortion) {
-        //12: distorsion coef 2
-        normCoef(12) = 0.01;
-        //13: distorsion coef 4
-        normCoef(13) = 0.01;
+    Eigen::VectorXd normCoef(NB_IDS);
+    
+    for (unsigned int i = 0; i < NB_IDS; i++) {
+      normCoef(i) = 2*margin*M_PI/180.0;
     }
+    //noise aiming pixel (pixel space)
+    normCoef(PIXEL_NOISE) = 0.05;
 
     return normCoef;
 }
@@ -182,66 +147,19 @@ double boundParameters(
     const Eigen::VectorXd& params)
 {
     double cost = 0.0;
-    //0: noise aiming pixel (pixel space)
-    if (params(0) <= 0.0) {
+
+    for (unsigned int i = 0; i < NB_IDS; i++) {
+      if (fabs(params(i)) > margin*M_PI/180.0) {
+        cost += 1000.0 + 1000.0*(fabs(params(i)) - margin*M_PI/180.0);
+      }
+    }
+    
+    //noise aiming pixel (pixel space)
+    if (params(PIXEL_NOISE) <= 0.0) {
         cost += 1000.0 - 1000.0*(params(0));
     }
-    if (params(0) >= maxPixelNoise) {
+    if (params(PIXEL_NOISE) >= maxPixelNoise) {
         cost += 1000.0 + 1000.0*(params(0) - maxPixelNoise);
-    }
-    //1: camera aperture width (radian)
-    if (params(1) <= 64*M_PI/180.0) {
-      cost += 1000.0 - 1000.0*(params(1)-64*M_PI/180.0);
-    }
-    if (params(1) >= 70*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(params(1)-70*M_PI/180.0);
-    }
-    //2: camera aperture height (radian)
-    if (params(2) <= 50*M_PI/180.0) {
-        cost += 1000.0 - 1000.0*(params(2) - 50*M_PI/180.0);
-    }
-    if (params(2) >= 55*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(params(2)-55*M_PI/180.0);
-    }
-    //3: camera angle offset roll (radian)
-    if (fabs(params(3)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(3)) - margin*M_PI/180.0);
-    }
-    //4: camera angle offset pitch (radian)
-    if (fabs(params(4)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(4)) - margin*M_PI/180.0);
-    }
-    //5: camera angle offset yaw (radian)
-    if (fabs(params(5)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(5)) - margin*M_PI/180.0);
-    }
-    //6: imu angle offset roll (radian)
-    if (fabs(params(6)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(6)) - margin*M_PI/180.0);
-    }
-    //7: imu angle offset pitch (radian)
-    if (fabs(params(7)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(7)) - margin*M_PI/180.0);
-    }
-    //8: imu angle offset yaw (radian)
-    if (fabs(params(8)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(8)) - margin*M_PI/180.0);
-    }
-    //9: neck angle offset roll (radian)
-    if (fabs(params(9)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(9)) - margin*M_PI/180.0);
-    }
-    //10: neck angle offset pitch (radian)
-    if (fabs(params(10)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(10)) - margin*M_PI/180.0);
-    }
-    //11: neck angle offset yaw (radian)
-    if (fabs(params(11)) > margin*M_PI/180.0) {
-        cost += 1000.0 + 1000.0*(fabs(params(11)) - margin*M_PI/180.0);
-    }
-    if (useCameraDistortion) {
-        //12: distorsion coef 2
-        //13: distorsion coef 4 
     }
 
     return cost;
@@ -281,19 +199,14 @@ Eigen::VectorXd evaluateParameters(
 {
     //Parse parameters
     // The other parameters are handled in the getGeometryData (called in initModel)
-    //0: noise aiming pixel (pixel space)
-    double noiseAimingPixel = params(0);
-    //1: camera aperture width (radian)
-    Leph::CameraParameters camParams;
-    camParams.widthAperture = params(1);
-    //2: camera aperture height (radian)
-    camParams.heightAperture = params(2);
+    // noise aiming pixel (pixel space)
+    double noiseAimingPixel = params(PIXEL_NOISE);
     //6: imu angle offset roll (radian)
-    double imuOffsetRoll = params(6);
+    double imuOffsetRoll = params(IMU_ROLL);
     //7: imu angle offset pitch (radian)
-    double imuOffsetPitch = params(7);
+    double imuOffsetPitch = params(IMU_PITCH);
     //8: imu angle offset yaw (radian)
-    double imuOffsetYaw = params(8);
+    double imuOffsetYaw = params(IMU_YAW);
 
     //Disable caching optimization
     model.get().setAutoUpdate(true);
@@ -324,19 +237,6 @@ Eigen::VectorXd evaluateParameters(
     Eigen::Vector2d pixelPoint;
     pixelPoint.x() = data("pixel_x");
     pixelPoint.y() = data("pixel_y");
-
-    //Distortion correction model
-    if (useCameraDistortion) {
-        //15: distorsion coef 2
-        double distortionCoef2 = params(12);
-        //16: distorsion coef 4
-        double distortionCoef4 = params(13);
-        double radius2 = pixelPoint.squaredNorm();
-        pixelPoint.x() = pixelPoint.x()*(1.0 
-            + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
-        pixelPoint.y() = pixelPoint.y()*(1.0 
-            + distortionCoef2*radius2 + distortionCoef4*pow(radius2, 2));
-    }
 
     //Add random gaussian on recorded pixel
     if (!noRandom) {
@@ -376,17 +276,12 @@ void viewLog(const Leph::MatrixLabel & log, const Eigen::VectorXd & params) {
   Leph::HumanoidFixedModel model = initModel(params);
   
   //Parse parameters
-  //1: camera aperture width (radian)
-  Leph::CameraParameters camParams;
-  camParams.widthAperture = params(1);
-  //2: camera aperture height (radian)
-  camParams.heightAperture = params(2);
   //6: imu angle offset roll (radian)
-  double imuOffsetRoll = params(6);
+  double imuOffsetRoll = params(IMU_ROLL);
   //7: imu angle offset pitch (radian)
-  double imuOffsetPitch = params(7);
+  double imuOffsetPitch = params(IMU_PITCH);
   //8: imu angle offset yaw (radian)
-  double imuOffsetYaw = params(8);
+  double imuOffsetYaw = params(IMU_YAW);
   
   //Leph::VectorLabel data = log
   for (unsigned int i = 0; i < log.size(); i++) {
@@ -414,7 +309,7 @@ void viewLog(const Leph::MatrixLabel & log, const Eigen::VectorXd & params) {
       
       Eigen::Vector3d ground(data("ground_x"), data("ground_y"), data("ground_z"));
       //viewer.drawFrame(ground, Eigen::Matrix3d::Identity());
-      viewer.drawSphere(ground, 0.03);
+      viewer.drawSphere(ground, 0.01);
 
       Eigen::Vector2d pixelPoint;
       pixelPoint.x() = data("pixel_x");
@@ -451,19 +346,24 @@ void viewLog(const Leph::MatrixLabel & log, const Eigen::VectorXd & params) {
  */
 int main(int argc, char** argv)
 {
+  // TODO read a value instead of having a constant value
+  camParams.widthAperture = 67*M_PI/180.0;
+  camParams.heightAperture = 52.47*M_PI/180.0;
     //Parse user inputs
     if (argc != 3 && argc != 5) {
         std::cout 
             << "Usage: ./app "
             << "calibrationLogs.matrixlabel"
             << " outputPrefix"
-            << " [MODEL model.modelparams]" 
+            << " [MODEL model.modelparams]"
+            << " [-v]" 
             << std::endl;
         std::cout 
             << "Usage: ./app "
             << "calibrationLogs.matrixlabel"
             << " outputPrefix"
-            << " [SEED  seed.camparams]" 
+            << " [SEED  seed.camparams]"
+            << " [-v]" 
             << std::endl;
         return 1;
     }
@@ -544,21 +444,18 @@ int main(int argc, char** argv)
         std::map<std::string, size_t> tmpGeometryName = 
             Leph::ReadMapFromStream<std::string, size_t>(file);
         file.close();
-        //Camera aperture width and height
-        initParams(1) = camData(0);
-        initParams(2) = camData(1);
         //IMU roll, pitch, yaw offset
-        initParams(6) = imuData(0);
-        initParams(7) = imuData(1);
-        initParams(8) = imuData(2);
+        initParams(IMU_ROLL) = imuData(0);
+        initParams(IMU_PITCH) = imuData(1);
+        initParams(IMU_YAW) = imuData(2);
         //Geometry camera offsets
-        initParams(3) = tmpGeometryData(tmpGeometryName.at("camera"), 0);
-        initParams(4) = tmpGeometryData(tmpGeometryName.at("camera"), 1);
-        initParams(5) = tmpGeometryData(tmpGeometryName.at("camera"), 2);
+        initParams(CAMERA_ROLL) = tmpGeometryData(tmpGeometryName.at("camera"), 0);
+        initParams(CAMERA_PITCH) = tmpGeometryData(tmpGeometryName.at("camera"), 1);
+        initParams(CAMERA_YAW) = tmpGeometryData(tmpGeometryName.at("camera"), 2);
         //Geometry neck offsets
-        initParams(9) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 0);
-        initParams(10) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 1);
-        initParams(11) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 2);
+        initParams(NECK_ROLL) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 0);
+        initParams(NECK_PITCH) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 1);
+        initParams(NECK_YAW) = tmpGeometryData(tmpGeometryName.at("head_yaw"), 2);
     }
 
     viewLog(logs, initParams);
@@ -591,30 +488,25 @@ int main(int argc, char** argv)
     //Display the best found parameters
     Eigen::VectorXd bestParams = calibration.getParameters();
     std::cout << "(Angles in degrees, noisePixel in 640 pixel image)" << std::endl;
-    std::cout << "noisePixel:     " << bestParams(0)*320 << std::endl;
-    std::cout << "apertureWidth:  " << bestParams(1)*180.0/M_PI << std::endl;
-    std::cout << "apertureHeight: " << bestParams(2)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetRoll:  " << bestParams(3)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetPitch: " << bestParams(4)*180.0/M_PI << std::endl;
-    std::cout << "CamOffsetYaw:   " << bestParams(5)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetRoll:  " << bestParams(6)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetPitch: " << bestParams(7)*180.0/M_PI << std::endl;
-    std::cout << "IMUOffsetYaw:   " << bestParams(8)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetRoll:  " << bestParams(9)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetPitch: " << bestParams(10)*180.0/M_PI << std::endl;
-    std::cout << "NeckOffsetYaw:   " << bestParams(11)*180.0/M_PI << std::endl;
-    if (useCameraDistortion) {
-        std::cout << "DistortionCoef2: " << bestParams(12) << std::endl;
-        std::cout << "DistortionCoef4: " << bestParams(13) << std::endl;
-    }
+    std::cout << "noisePixel:     " << bestParams(PIXEL_NOISE)*320 << std::endl;
+    std::cout << "CamOffsetRoll:  " << bestParams(CAMERA_ROLL)*180.0/M_PI << std::endl;
+    std::cout << "CamOffsetPitch: " << bestParams(CAMERA_PITCH)*180.0/M_PI << std::endl;
+    std::cout << "CamOffsetYaw:   " << bestParams(CAMERA_YAW)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetRoll:  " << bestParams(IMU_ROLL)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetPitch: " << bestParams(IMU_PITCH)*180.0/M_PI << std::endl;
+    std::cout << "IMUOffsetYaw:   " << bestParams(IMU_YAW)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetRoll:  " << bestParams(NECK_ROLL)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetPitch: " << bestParams(NECK_PITCH)*180.0/M_PI << std::endl;
+    std::cout << "NeckOffsetYaw:   " << bestParams(NECK_YAW)*180.0/M_PI << std::endl;
 
     //Export the optimized model parameters
     //Imu roll, pitch, yaw in radian
     Eigen::VectorXd imuOffsets(3);
-    imuOffsets << bestParams(6), bestParams(7), bestParams(8);
+    imuOffsets << bestParams(IMU_ROLL), bestParams(IMU_PITCH), bestParams(IMU_YAW);
     //Camera angular aperture width, height in radian
     Eigen::VectorXd camApertures(2);
-    camApertures << bestParams(1), bestParams(2);
+    camApertures << camParams.widthAperture, camParams.heightAperture;
+    
     //Write to file
     std::string camParamsPath = outPath + "cameraModel.params";
     std::cout << "Writing geometry and camera data to: " 
@@ -624,6 +516,7 @@ int main(int argc, char** argv)
         throw std::runtime_error(
             "Unable to open file: " + camParamsPath);
     }
+    
     Leph::WriteEigenVectorToStream(file, camApertures);
     Leph::WriteEigenVectorToStream(file, imuOffsets);
     Leph::WriteEigenMatrixToStream(file, 
