@@ -126,6 +126,8 @@ set(SOURCES_FILES
     TrajectoryGeneration/TrajectoryUtils.cpp
     LegIK/LegIK.cpp
     IKWalk/IKWalk.cpp
+    QuinticWalk/Footstep.cpp
+    QuinticWalk/QuinticExperiment.cpp
     QuinticWalk/QuinticWalk.cpp
     TimeSeries/SeriesUtils.cpp
     DMP/DMP.cpp
@@ -273,6 +275,7 @@ if (BUILD_LEPH_CODE_VIEWER)
         testHumanoidPressureModel
         testTrunkFootIK
         testForwardSimulation
+        testQuinticExperiment
         testQuinticWalk
         testCameraModel
         testHumanoidSimulation
