@@ -1,32 +1,32 @@
-#include "QuinticWalk/QuinticWalk.hpp"
+#include "QuinticWalk/QuinticExperiment.hpp"
 #include "Utils/AxisAngle.h"
 
 namespace Leph {
 
-QuinticWalk::QuinticWalk() :
+QuinticExperiment::QuinticExperiment() :
     _params(defaultParameters()),
     _trajs()
 {
     _trajs = generateTrajectories(); 
 }
         
-void QuinticWalk::setParameters(const Parameters& params)
+void QuinticExperiment::setParameters(const Parameters& params)
 {
     _params = params;
     _trajs = generateTrajectories(); 
 }
         
-const QuinticWalk::Parameters QuinticWalk::getParameters() const
+const QuinticExperiment::Parameters QuinticExperiment::getParameters() const
 {
     return _params;
 }
         
-const Trajectories& QuinticWalk::getTrajectories() const
+const Trajectories& QuinticExperiment::getTrajectories() const
 {
     return _trajs;
 }
         
-bool QuinticWalk::computePose(
+bool QuinticExperiment::computePose(
     HumanoidFixedModel& model, double phase) const
 {
     //Compute cartesian target form splines
@@ -51,7 +51,7 @@ bool QuinticWalk::computePose(
     return isSuccess;
 }
 
-double QuinticWalk::updatePhase(double phase, double dt) const
+double QuinticExperiment::updatePhase(double phase, double dt) const
 {
     double time = _params(0)*phase;
     time += dt;
@@ -63,12 +63,12 @@ double QuinticWalk::updatePhase(double phase, double dt) const
     return phaseNext;
 }
         
-double QuinticWalk::phaseToTime(double phase) const
+double QuinticExperiment::phaseToTime(double phase) const
 {
     return _params(0)*phase;
 }
         
-QuinticWalk::Parameters QuinticWalk::defaultParameters()
+QuinticExperiment::Parameters QuinticExperiment::defaultParameters()
 {
     Eigen::VectorXd params = Eigen::VectorXd::Zero(44);
     params <<
@@ -120,7 +120,7 @@ QuinticWalk::Parameters QuinticWalk::defaultParameters()
     return params;
 }
         
-Trajectories QuinticWalk::generateTrajectories() const
+Trajectories QuinticExperiment::generateTrajectories() const
 {
     //Walk configuration
     double cycleLength = _params(0);

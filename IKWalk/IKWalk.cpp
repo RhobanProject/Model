@@ -39,16 +39,16 @@ bool IKWalk::walk(HumanoidModel& model,
     //Trajectory "smoothness" can be tunned with
     //swingVel updating splines tangents. 
     CubicSpline swingSpline;
-    swingSpline.addPoint(0.0, -1.0);
-    swingSpline.addPoint(params.swingPause/2.0, -1.0);
-    swingSpline.addPoint(params.swingPause/2.0, -1.0, params.swingVel);
-    swingSpline.addPoint(0.5-params.swingPause/2.0, 1.0, params.swingVel);
-    swingSpline.addPoint(0.5-params.swingPause/2.0, 1.0);
-    swingSpline.addPoint(0.5+params.swingPause/2.0, 1.0);
-    swingSpline.addPoint(0.5+params.swingPause/2.0, 1.0, -params.swingVel);
-    swingSpline.addPoint(1.0-params.swingPause/2.0, -1.0, -params.swingVel);
-    swingSpline.addPoint(1.0-params.swingPause/2.0, -1.0);
-    swingSpline.addPoint(1.0, -1.0, 0.0);
+    swingSpline.addPoint(0.0, 1.0);
+    swingSpline.addPoint(params.swingPause/2.0, 1.0);
+    swingSpline.addPoint(params.swingPause/2.0, 1.0, -params.swingVel);
+    swingSpline.addPoint(0.5-params.swingPause/2.0, -1.0, -params.swingVel);
+    swingSpline.addPoint(0.5-params.swingPause/2.0, -1.0);
+    swingSpline.addPoint(0.5+params.swingPause/2.0, -1.0);
+    swingSpline.addPoint(0.5+params.swingPause/2.0, -1.0, params.swingVel);
+    swingSpline.addPoint(1.0-params.swingPause/2.0, 1.0, params.swingVel);
+    swingSpline.addPoint(1.0-params.swingPause/2.0, 1.0);
+    swingSpline.addPoint(1.0, 1.0, 0.0);
 
     //Build Z foot rise spline.
     //The foot stays on the ground during backward step and then
@@ -76,7 +76,7 @@ bool IKWalk::walk(HumanoidModel& model,
     //Compute swing value
     double swingVal = params.enabledGain
         * params.swingGain
-        * swingSpline.posMod(0.5 + phaseLeft + params.swingPhase);
+        * swingSpline.posMod(phaseLeft + params.swingPhase);
 
     //Compute feet forward (step) oscillation
     double leftX = params.enabledGain
