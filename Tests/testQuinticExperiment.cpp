@@ -1,7 +1,7 @@
 #include <iostream>
 #include <libcmaes/cmaes.h>
 #include "Model/HumanoidFixedModel.hpp"
-#include "QuinticWalk/QuinticWalk.hpp"
+#include "QuinticWalk/QuinticExperiment.hpp"
 #include "IKWalk/IKWalk.hpp"
 #include "Utils/AxisAngle.h"
 #include "Viewer/ModelViewer.hpp"
@@ -9,15 +9,15 @@
 #include "Utils/Scheduling.hpp"
 #include "Plot/Plot.hpp"
 
-double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool display)
+double scoreWalkDistance(const Leph::QuinticExperiment::Parameters& params, bool display)
 {
     double cost = 0.0;
     
     //Model initialization
-    Leph::QuinticWalk quinticWalk;
-    quinticWalk.setParameters(params);
+    Leph::QuinticExperiment quinticExperiment;
+    quinticExperiment.setParameters(params);
     if (display) {
-        quinticWalk.getTrajectories().exportData("/tmp/QuinticWalk.splines");
+        quinticExperiment.getTrajectories().exportData("/tmp/QuinticExperiment.splines");
     }
     Leph::HumanoidFixedModel quinticModel(Leph::SigmabanModel);
     Leph::HumanoidFixedModel ikModel(Leph::SigmabanModel);
@@ -72,9 +72,9 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
     double step = 0.01;
     Leph::Plot plot;
     for (double t=0.0;t<1.0/1.7 || display;t+=step) {
-        //Compute Quintic Walk
-        bool isQuinticSuccess = quinticWalk.computePose(quinticModel, quinticPhase);
-        quinticPhase = quinticWalk.updatePhase(quinticPhase, step);
+        //Compute Quintic Experiment
+        bool isQuinticSuccess = quinticExperiment.computePose(quinticModel, quinticPhase);
+        quinticPhase = quinticExperiment.updatePhase(quinticPhase, step);
         //Compute IK Walk
         bool isIKSuccess = Leph::IKWalk::walk(
             ikModel.get(), ikParams, ikPhase, step);
@@ -180,7 +180,7 @@ double scoreWalkDistance(const Leph::QuinticWalk::Parameters& params, bool displ
 }
 
 /**
- * Find the QuinticWalk parameters 
+ * Find the QuinticExperiment parameters 
  * to match the IKWalk motion
  */
 int main()
@@ -190,7 +190,7 @@ int main()
     unsigned int restart = 2;
     unsigned int maxIterations = 1000;
 
-    Leph::QuinticWalk::Parameters params = Leph::QuinticWalk::defaultParameters();
+    Leph::QuinticExperiment::Parameters params = Leph::QuinticExperiment::defaultParameters();
     std::cout << scoreWalkDistance(params, true) << std::endl;
     
     //Fitness function
