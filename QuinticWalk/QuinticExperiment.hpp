@@ -1,5 +1,5 @@
-#ifndef LEPH_QUINTICWALK_HPP
-#define LEPH_QUINTICWALK_HPP
+#ifndef LEPH_QUINTICEXPERIMENT_HPP
+#define LEPH_QUINTICEXPERIMENT_HPP
 
 #include <Eigen/Dense>
 #include "Model/HumanoidFixedModel.hpp"
@@ -10,7 +10,7 @@
 namespace Leph {
 
 /**
- * QuinticWalk
+ * QuinticExperiment
  *
  * Walk generator based on polynomial 
  * degree 5th splines in cartesian space.
@@ -19,12 +19,12 @@ namespace Leph {
  * allowing to compute analytical velocity and
  * acceleration trajectories
  */
-class QuinticWalk
+class QuinticExperiment
 {
     public:
 
         /**
-         * QuinticWalk parameters
+         * QuinticExperiment parameters
          */
         typedef Eigen::VectorXd Parameters;
 
@@ -32,7 +32,7 @@ class QuinticWalk
          * Initialization with 
          * default parameters
          */
-        QuinticWalk();
+        QuinticExperiment();
 
         /**
          * Set walk parameters and re-generate 

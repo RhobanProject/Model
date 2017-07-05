@@ -172,7 +172,11 @@ class MapSeries
         {
             checkSeries(name);
             if (_data.at(name).size() <= index) {
-                throw std::logic_error("MapSeries unbound index: " + name);
+                throw std::logic_error(
+                    "MapSeries unbound index: " 
+                    + name
+                    + std::string(" index ")
+                    + std::to_string(index));
             }
             return _data.at(name)[index];
         }
@@ -180,7 +184,11 @@ class MapSeries
         {
             checkSeries(name);
             if (_data.at(name).size() <= index) {
-                throw std::logic_error("MapSeries unbound index: " + name);
+                throw std::logic_error(
+                    "MapSeries unbound index: " 
+                    + name
+                    + std::string(" index ")
+                    + std::to_string(index));
             }
             return _data.at(name)[index];
         }

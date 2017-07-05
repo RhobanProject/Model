@@ -42,7 +42,7 @@ inline Eigen::Matrix3d AxisToMatrix(const Eigen::Vector3d& axis)
 inline Eigen::Vector3d MatrixToAxis(const Eigen::Matrix3d& mat)
 {
     //Skew is the anti-symetric matrix
-    Eigen::Matrix3d skew = mat -mat.transpose();
+    Eigen::Matrix3d skew = mat - mat.transpose();
     //Rotation axis extraction
     Eigen::Vector3d axis;
     axis(0) = skew(2, 1);
