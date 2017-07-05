@@ -15,6 +15,9 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <ctime>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 /**
  * Number of sampling per parameters evaluation
@@ -31,7 +34,7 @@ static const double learningDataRatio = 0.75;
  * CMA-ES optimization configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 60;
+static const unsigned int cmaesMaxIterations = 45;
 static const unsigned int cmaesRestarts = 1;
 // Choses the number of points created when exploring (pop size)
 static const unsigned int cmaesLambda = 100;
@@ -66,6 +69,77 @@ enum PARAMS_ID {
 // Adding NB_IDS at the end of the enum was a decent idea but Eigen doesn't like
 // it.
 static const int NB_IDS = 10;
+
+std::string getTime() {
+  time_t rawtime;
+  struct tm * timeinfo;
+  char buffer[80];
+
+  time (&rawtime);
+  timeinfo = localtime(&rawtime);
+
+  strftime(buffer,sizeof(buffer),"%Y-%m-%d_%I-%M-%S",timeinfo);
+  std::string str(buffer);
+  return str;
+}
+
+int createDir(const char *path) {
+  // read/write/search permissions for owner and group, and with read/search
+  // permissions for others. Why not
+  return mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
+
+void saveHumanParams(std::string & path, const Eigen::VectorXd & bestParams) {
+  std::ofstream file;
+  std::string name = path + "/human.results";
+  file.open(name, std::ios_base::trunc);
+  file << "(Angles in degrees, noisePixel in 640 pixel image)"
+            << "\n";
+  file << "noisePixel:     " << bestParams(PIXEL_NOISE) * 320 << "\n";
+  file << "CamOffsetRoll:  " << bestParams(CAMERA_ROLL) * 180.0 / M_PI
+            << "\n";
+  file << "CamOffsetPitch: " << bestParams(CAMERA_PITCH) * 180.0 / M_PI
+            << "\n";
+  file << "CamOffsetYaw:   " << bestParams(CAMERA_YAW) * 180.0 / M_PI
+            << "\n";
+  file << "IMUOffsetRoll:  " << bestParams(IMU_ROLL) * 180.0 / M_PI
+            << "\n";
+  file << "IMUOffsetPitch: " << bestParams(IMU_PITCH) * 180.0 / M_PI
+            << "\n";
+  file << "IMUOffsetYaw:   " << bestParams(IMU_YAW) * 180.0 / M_PI
+            << "\n";
+  file << "NeckOffsetRoll:  " << bestParams(NECK_ROLL) * 180.0 / M_PI
+            << "\n";
+  file << "NeckOffsetPitch: " << bestParams(NECK_PITCH) * 180.0 / M_PI
+            << "\n";
+  file << "NeckOffsetYaw:   " << bestParams(NECK_YAW) * 180.0 / M_PI
+            << "\n";
+
+  // Best code EUW
+  std::cout << "(Angles in degrees, noisePixel in 640 pixel image)"
+            << "\n";
+  std::cout << "noisePixel:     " << bestParams(PIXEL_NOISE) * 320 << "\n";
+  std::cout << "CamOffsetRoll:  " << bestParams(CAMERA_ROLL) * 180.0 / M_PI
+            << "\n";
+  std::cout << "CamOffsetPitch: " << bestParams(CAMERA_PITCH) * 180.0 / M_PI
+            << "\n";
+  std::cout << "CamOffsetYaw:   " << bestParams(CAMERA_YAW) * 180.0 / M_PI
+            << "\n";
+  std::cout << "IMUOffsetRoll:  " << bestParams(IMU_ROLL) * 180.0 / M_PI
+            << "\n";
+  std::cout << "IMUOffsetPitch: " << bestParams(IMU_PITCH) * 180.0 / M_PI
+            << "\n";
+  std::cout << "IMUOffsetYaw:   " << bestParams(IMU_YAW) * 180.0 / M_PI
+            << "\n";
+  std::cout << "NeckOffsetRoll:  " << bestParams(NECK_ROLL) * 180.0 / M_PI
+            << "\n";
+  std::cout << "NeckOffsetPitch: " << bestParams(NECK_PITCH) * 180.0 / M_PI
+            << "\n";
+  std::cout << "NeckOffsetYaw:   " << bestParams(NECK_YAW) * 180.0 / M_PI
+            << "\n";
+  file.close();
+}
+
 
 /**
  * Build and return the geometryData matrix
@@ -195,7 +269,7 @@ Eigen::VectorXd evaluateParameters(const Eigen::VectorXd &params,
   // 7: imu angle offset pitch (radian)
   double imuOffsetPitch = params(IMU_PITCH);
   // 8: imu angle offset yaw (radian)
-  double imuOffsetYaw = params(IMU_YAW);
+  double imuOffsetYaw = 0.0;// TODO doesn't change anything to put pi/2 here...//params(IMU_YAW);
 
   // Disable caching optimization
   model.get().setAutoUpdate(true);
@@ -272,7 +346,7 @@ void viewLog(const Leph::MatrixLabel &log, const Eigen::VectorXd &params) {
   // 7: imu angle offset pitch (radian)
   double imuOffsetPitch = params(IMU_PITCH);
   // 8: imu angle offset yaw (radian)
-  double imuOffsetYaw = params(IMU_YAW);
+  double imuOffsetYaw = 0.0;//TODO I put PI/2 and it didn't change anything...//params(IMU_YAW);
 
   // Leph::VectorLabel data = log
   for (unsigned int i = 0; i < log.size(); i++) {
@@ -339,9 +413,6 @@ void viewLog(const Leph::MatrixLabel &log, const Eigen::VectorXd &params) {
  * matching given observations
  */
 int main(int argc, char **argv) {
-  // TODO read a value instead of having a constant value
-  camParams.widthAperture = 67 * M_PI / 180.0;
-  camParams.heightAperture = 52.47 * M_PI / 180.0;
   // Parse user inputs
   if (argc != 3 && argc != 5) {
     std::cout << "Usage: ./app "
@@ -367,6 +438,26 @@ int main(int argc, char **argv) {
     seedPath = argv[4];
   }
 
+  std::string path = outPath + "_" + getTime();
+  std::cout << "The outputs will be saved in the folder " << path << std::endl;
+  if (createDir(path.c_str())) {
+    std::cout << "Failed to create directory at " << path << std::endl;
+    return -1;
+  }
+  std::string symLink = "last";
+  if (remove(symLink.c_str())) {
+    std::cout << "Couldn't delete " << symLink << std::endl;
+  }
+  if (symlink(path.c_str(), "last")) {
+    std::cout << "Couldn't create the symlink to '" << symLink << "', moving on."  << std::endl;
+  }
+
+  // TODO read a value instead of having a constant value
+  camParams.widthAperture = 67 * M_PI / 180.0;
+  camParams.heightAperture = 52.47 * M_PI / 180.0;
+  std::cout << "Using a camera width of " << camParams.widthAperture*180.0/M_PI << "°, and a camera height of " << camParams.heightAperture*180.0/M_PI << std::endl;
+
+  
   // Loading data
   Leph::MatrixLabel logs;
   logs.load(logPath);
@@ -405,7 +496,7 @@ int main(int argc, char **argv) {
                               inertiaName, defaultGeometryData,
                               defaultGeometryName);
   }
-
+  std::cout << "Loaded." << std::endl;
   // Get the initial parameters
   Eigen::VectorXd initParams = buildInitialParameters();
 
@@ -458,29 +549,9 @@ int main(int argc, char **argv) {
                               cmaesMaxIterations, cmaesRestarts, cmaesLambda,
                               cmaesSigma, cmaesElitismLevel, &plot);
 
-  // Display the best found parameters
+  // Display and save the best found parameters
   Eigen::VectorXd bestParams = calibration.getParameters();
-  std::cout << "(Angles in degrees, noisePixel in 640 pixel image)"
-            << std::endl;
-  std::cout << "noisePixel:     " << bestParams(PIXEL_NOISE) * 320 << std::endl;
-  std::cout << "CamOffsetRoll:  " << bestParams(CAMERA_ROLL) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "CamOffsetPitch: " << bestParams(CAMERA_PITCH) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "CamOffsetYaw:   " << bestParams(CAMERA_YAW) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "IMUOffsetRoll:  " << bestParams(IMU_ROLL) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "IMUOffsetPitch: " << bestParams(IMU_PITCH) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "IMUOffsetYaw:   " << bestParams(IMU_YAW) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "NeckOffsetRoll:  " << bestParams(NECK_ROLL) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "NeckOffsetPitch: " << bestParams(NECK_PITCH) * 180.0 / M_PI
-            << std::endl;
-  std::cout << "NeckOffsetYaw:   " << bestParams(NECK_YAW) * 180.0 / M_PI
-            << std::endl;
+  saveHumanParams(path, bestParams);
 
   // Export the optimized model parameters
   // Imu roll, pitch, yaw in radian
@@ -492,7 +563,7 @@ int main(int argc, char **argv) {
   camApertures << camParams.widthAperture, camParams.heightAperture;
 
   // Write to file
-  std::string camParamsPath = outPath + "cameraModel.params";
+  std::string camParamsPath = path + "/cameraModel.params";
   std::cout << "Writing geometry and camera data to: " << camParamsPath
             << std::endl;
   std::ofstream file(camParamsPath);
