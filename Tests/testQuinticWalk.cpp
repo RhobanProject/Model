@@ -54,17 +54,14 @@ int main()
         scheduling.wait();
         t += 0.01;
         //Set orders
-        std::cout << "t=" << t << std::endl;
         if (t < 1.7) {
             walk.setOrders(Eigen::Vector3d(0.0, 0.0, 0.0), false);
         } else if (t < 3.0) {
             walk.setOrders(Eigen::Vector3d(0.0, 0.0, 0.0), true, true);
         } else if (t < 4.0) {
             walk.setOrders(Eigen::Vector3d(0.04, 0.0, 0.0), true);
-            params("trunkPitch") = 0.8;
         } else if (t < 6.0) {
-            walk.setOrders(Eigen::Vector3d(0.0, -0.04, 0.0), true);
-            params("trunkPitch") = 0.2;
+            walk.setOrders(Eigen::Vector3d(0.0, -0.03, 0.0), true);
         } else if (t < 8.0) {
             walk.setOrders(Eigen::Vector3d(0.0, 0.0, 0.2), true);
         } else if (t < 10.0) {
@@ -76,8 +73,8 @@ int main()
         }
         walk.setParameters(params);
         /*
-        if (t > 1.8 && t < 1.9) {
-            walk.setOrders(Eigen::Vector3d(0.0, 0.04, 0.0), true, false);
+        if (t > 1.8 && t < 2.4) {
+            walk.setOrders(Eigen::Vector3d(0.04, -0.05, 0.0), true, false);
         } else {
            walk.setOrders(Eigen::Vector3d(0.0, 0.0, 0.0), false, false);
         }

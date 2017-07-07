@@ -24,24 +24,27 @@ QuinticWalk::QuinticWalk() :
     //Full walk cycle frequency 
     //(in Hz, > 0)
     _params.append("freq", 1.5);
+    //Length of double support phase in half cycle
+    //(ratio, [0:1])
+    _params.append("doubleSupportRatio", 0.2);
     //Lateral distance between the feet center 
     //(in m, >= 0)
-    _params.append("footDistance", 0.14);
+    _params.append("footDistance", 0.13);
     //Maximum flying foot height
     //(in m, >= 0)
-    _params.append("footRise", 0.03);
+    _params.append("footRise", 0.035);
     //Phase of flying foot apex
-    //(half cycle phase, [0:1])
+    //(single support cycle phase, [0:1])
     _params.append("footApexPhase", 0.5);
     //Foot X/Y overshoot in ratio of step length
     //(ratio, >= 0)
     _params.append("footOvershootRatio", 0.05);
     //Foot X/Y overshoot phase
-    //(half cycle, [footApexPhase:1]
+    //(single support cycle phase, [footApexPhase:1]
     _params.append("footOvershootPhase", 0.85);
     //Height of the trunk from ground
     //(in m, > 0)
-    _params.append("trunkHeight", 0.25);
+    _params.append("trunkHeight", 0.27);
     //Trunk pitch orientation
     //(in rad)
     _params.append("trunkPitch", 0.2);
@@ -50,14 +53,29 @@ QuinticWalk::QuinticWalk() :
     _params.append("trunkPhase", 0.4);
     //Trunk forward offset
     //(in m)
-    _params.append("trunkXOffset", 0.0);
+    _params.append("trunkXOffset", 0.005);
     //Trunk lateral offset
     //(in m)
     _params.append("trunkYOffset", 0.0);
     //Trunk lateral oscillation amplitude ratio
     //(ratio, >= 0)
-    _params.append("trunkSwing", 0.5);
+    _params.append("trunkSwing", 0.3);
+    //Trunk forward offset proportional to forward step
+    //(in 1)
+    _params.append("trunkXOffsetPCoefForward", 0.0);
+    //Trunk forward offset proportional to rotation step
+    //(in m/rad)
+    _params.append("trunkXOffsetPCoefTurn", 0.0);
+    //Trunk pitch orientation proportional to forward step
+    //(in rad/m)
+    _params.append("trunkPitchPCoefForward", 0.0);
+    //Trunk pitch orientation proportional to rotation step
+    //(in 1)
+    _params.append("trunkPitchPCoefTurn", 0.0);
 
+    //Initialize the footstep
+    _footstep.setFootDistance(_params("footDistance"));
+    _footstep.reset(true);
     //Reset the trunk saved state
     resetTrunkLastState();
     //Trajectories initialization
@@ -118,19 +136,18 @@ void QuinticWalk::setOrders(
         //Reset the footsteps
         if (beginWithLeftSupport) {
             _phase = 0.0 + 1e-6;
-            _footstep.reset(false);
+            _footstep.reset(true);
         } else {
             _phase = 0.5 + 1e-6;
-            _footstep.reset(true);
+            _footstep.reset(false);
         }
-        //Directly do the asked step
-        _footstep.stepFromOrders(_orders);
-        _wasEnabled = true;
         //Reset the trunk saved state 
         //as the support foot as been updated
         resetTrunkLastState();
         //Rebuild the trajectories
         buildTrajectories();
+        //Save last enabled value
+        _wasEnabled = _isEnabled;
     }
 }
         
@@ -143,9 +160,19 @@ void QuinticWalk::update(double dt)
 {
     //Check for negative time step
     if (dt <= 0.0) {
+        std::cerr << "QuinticWalk exception negative dt phase=" 
+            << _phase << " dt="
+            << dt << std::endl;
         throw std::logic_error(
             "QuinticWalk negative dt: " 
             + std::to_string(dt));
+    }
+    //Check for too long dt
+    if (dt > 0.25/_params("freq")) {
+        std::cerr << "QuinticWalk error too long dt phase=" 
+            << _phase << " dt="
+            << dt << std::endl;
+        return;
     }
 
     //Update the phase
@@ -243,6 +270,10 @@ void QuinticWalk::update(double dt)
         (_phase < 0.5 && !_footstep.isLeftSupport()) ||
         (_phase >= 0.5 && _footstep.isLeftSupport())
     ) {
+        std::cerr << "QuinticWalk exception invalid state phase=" 
+            << _phase << " support=" 
+            << _footstep.isLeftSupport() << " dt=" 
+            << dt << std::endl;
         throw std::logic_error(
             "QuinticWalk invalid support state");
     }
@@ -289,6 +320,11 @@ void QuinticWalk::buildTrajectories()
     double halfPeriod = 1.0/(2.0*_params("freq"));
     double period = 2.0*halfPeriod;
 
+    //Time length of double and single 
+    //support phase during the half cycle
+    double doubleSupportLength = _params("doubleSupportRatio")*halfPeriod;
+    double singleSupportLength = halfPeriod-doubleSupportLength;
+
     //Sign of support foot with 
     //respect to lateral
     double supportSign = (_footstep.isLeftSupport() ? 1.0 : -1.0);
@@ -310,18 +346,24 @@ void QuinticWalk::buildTrajectories()
         _trajs.get("foot_pos_x").addPoint(
             0.0, _footstep.getLast().x());
         _trajs.get("foot_pos_x").addPoint(
-            halfPeriod*_params("footOvershootPhase"), 
+            doubleSupportLength, _footstep.getLast().x());
+        _trajs.get("foot_pos_x").addPoint(
+            doubleSupportLength 
+                + singleSupportLength*_params("footOvershootPhase"), 
             0.0 + (0.0-_footstep.getLast().x())
-            *_params("footOvershootRatio"));
+                *_params("footOvershootRatio"));
         _trajs.get("foot_pos_x").addPoint(
             halfPeriod, 0.0);
         _trajs.get("foot_pos_y").addPoint(
             0.0, _footstep.getLast().y());
         _trajs.get("foot_pos_y").addPoint(
-            halfPeriod*_params("footOvershootPhase"), 
+            doubleSupportLength, _footstep.getLast().y());
+        _trajs.get("foot_pos_y").addPoint(
+            doubleSupportLength 
+                + singleSupportLength*_params("footOvershootPhase"), 
             -supportSign*_params("footDistance")
-            + (-supportSign*_params("footDistance")-_footstep.getLast().y())
-            *_params("footOvershootRatio"));
+                + (-supportSign*_params("footDistance")-_footstep.getLast().y())
+                *_params("footOvershootRatio"));
         _trajs.get("foot_pos_y").addPoint(
             halfPeriod, -supportSign*_params("footDistance"));
         //If the walk has just been disabled,
@@ -330,7 +372,10 @@ void QuinticWalk::buildTrajectories()
             _trajs.get("foot_pos_z").addPoint(
                 0.0, 0.0);
             _trajs.get("foot_pos_z").addPoint(
-                halfPeriod*_params("footApexPhase"), 
+                doubleSupportLength, 0.0);
+            _trajs.get("foot_pos_z").addPoint(
+                doubleSupportLength 
+                    + singleSupportLength*_params("footApexPhase"), 
                 _params("footRise"));
             _trajs.get("foot_pos_z").addPoint(
                 halfPeriod, 0.0);
@@ -351,6 +396,8 @@ void QuinticWalk::buildTrajectories()
             halfPeriod, 0.0);
         _trajs.get("foot_axis_z").addPoint(
             0.0, _footstep.getLast().z());
+        _trajs.get("foot_axis_z").addPoint(
+            doubleSupportLength, _footstep.getLast().z());
         _trajs.get("foot_axis_z").addPoint(
             halfPeriod, 0.0);
         //Trunk position
@@ -403,6 +450,13 @@ void QuinticWalk::buildTrajectories()
         return;
     }
     
+    //Only move the trunk on the first 
+    //half cycle after a walk enable
+    if (_isEnabled && !_wasEnabled) {
+        doubleSupportLength = halfPeriod;
+        singleSupportLength = 0.0;
+    }
+    
     //Set double support phase
     _trajs.get("is_double_support").addPoint(
         0.0, 0.0);
@@ -418,25 +472,34 @@ void QuinticWalk::buildTrajectories()
     _trajs.get("foot_pos_x").addPoint(
         0.0, _footstep.getLast().x());
     _trajs.get("foot_pos_x").addPoint(
-        halfPeriod*_params("footOvershootPhase"), 
+        doubleSupportLength, _footstep.getLast().x());
+    _trajs.get("foot_pos_x").addPoint(
+        doubleSupportLength 
+            + singleSupportLength*_params("footOvershootPhase"), 
         _footstep.getNext().x() 
-        + (_footstep.getNext().x()-_footstep.getLast().x())
-        *_params("footOvershootRatio"));
+            + (_footstep.getNext().x()-_footstep.getLast().x())
+            *_params("footOvershootRatio"));
     _trajs.get("foot_pos_x").addPoint(
         halfPeriod, _footstep.getNext().x());
     _trajs.get("foot_pos_y").addPoint(
         0.0, _footstep.getLast().y());
     _trajs.get("foot_pos_y").addPoint(
-        halfPeriod*_params("footOvershootPhase"), 
+        doubleSupportLength, _footstep.getLast().y());
+    _trajs.get("foot_pos_y").addPoint(
+        doubleSupportLength 
+            + singleSupportLength*_params("footOvershootPhase"), 
         _footstep.getNext().y() 
-        + (_footstep.getNext().y()-_footstep.getLast().y())
-        *_params("footOvershootRatio"));
+            + (_footstep.getNext().y()-_footstep.getLast().y())
+            *_params("footOvershootRatio"));
     _trajs.get("foot_pos_y").addPoint(
         halfPeriod, _footstep.getNext().y());
     _trajs.get("foot_pos_z").addPoint(
         0.0, 0.0);
     _trajs.get("foot_pos_z").addPoint(
-        halfPeriod*_params("footApexPhase"), 
+        doubleSupportLength, 0.0);
+    _trajs.get("foot_pos_z").addPoint(
+        doubleSupportLength 
+            + singleSupportLength*_params("footApexPhase"), 
         _params("footRise"));
     _trajs.get("foot_pos_z").addPoint(
         halfPeriod, 0.0);
@@ -453,6 +516,8 @@ void QuinticWalk::buildTrajectories()
     _trajs.get("foot_axis_z").addPoint(
         0.0, _footstep.getLast().z());
     _trajs.get("foot_axis_z").addPoint(
+        doubleSupportLength, _footstep.getLast().z());
+    _trajs.get("foot_axis_z").addPoint(
         halfPeriod, _footstep.getNext().z());
 
     //The trunk trajectory is defined for a
@@ -464,10 +529,14 @@ void QuinticWalk::buildTrajectories()
     //support foot external 
     //oscillating position 
     Eigen::Vector2d trunkPointSupport(
-        _params("trunkXOffset"), 
+        _params("trunkXOffset") 
+            + _params("trunkXOffsetPCoefForward")*_footstep.getNext().x()
+            + _params("trunkXOffsetPCoefTurn")*std::fabs(_footstep.getNext().z()), 
         _params("trunkYOffset"));
     Eigen::Vector2d trunkPointNext(
-        _footstep.getNext().x() + _params("trunkXOffset"), 
+        _footstep.getNext().x() + _params("trunkXOffset")
+            + _params("trunkXOffsetPCoefForward")*_footstep.getNext().x()
+            + _params("trunkXOffsetPCoefTurn")*std::fabs(_footstep.getNext().z()), 
         _footstep.getNext().y() + _params("trunkYOffset"));
     //Trunk middle neutral (no swing) position
     Eigen::Vector2d trunkPointMiddle = 
@@ -531,11 +600,15 @@ void QuinticWalk::buildTrajectories()
     //to axis vector
     Eigen::Vector3d eulerAtSuport(
         0.0, 
-        _params("trunkPitch"), 
+        _params("trunkPitch") 
+            + _params("trunkPitchPCoefForward")*_footstep.getNext().x()
+            + _params("trunkPitchPCoefTurn")*std::fabs(_footstep.getNext().z()), 
         0.5*_footstep.getLast().z()+0.5*_footstep.getNext().z());
     Eigen::Vector3d eulerAtNext(
         0.0, 
-        _params("trunkPitch"), 
+        _params("trunkPitch")
+            + _params("trunkPitchPCoefForward")*_footstep.getNext().x()
+            + _params("trunkPitchPCoefTurn")*std::fabs(_footstep.getNext().z()), 
         _footstep.getNext().z());
     Eigen::Matrix3d matAtSupport = EulerIntrinsicToMatrix(eulerAtSuport);
     Eigen::Matrix3d matAtNext = EulerIntrinsicToMatrix(eulerAtNext);
