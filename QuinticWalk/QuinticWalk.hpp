@@ -63,6 +63,14 @@ class QuinticWalk
         void setParameters(const VectorLabel& params);
 
         /**
+         * Rebuilt the trajectories and
+         * reset saved state as disable.
+         * Used to directly apply 
+         * newly parameters.
+         */
+        void forceRebuildTrajectories();
+
+        /**
          * Set used walk footstep orders,
          * enable or disable the walk oscillations
          * and optionnaly set the starting 
