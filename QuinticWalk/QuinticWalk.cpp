@@ -60,6 +60,9 @@ QuinticWalk::QuinticWalk() :
     //Trunk lateral oscillation amplitude ratio
     //(ratio, >= 0)
     _params.append("trunkSwing", 0.3);
+    //Trunk swing pause length in phase at apex
+    //(half cycle ratio, [0:1])
+    _params.append("trunkPause", 0.0);
     //Trunk forward offset proportional to forward step
     //(in 1)
     _params.append("trunkXOffsetPCoefForward", 0.0);
@@ -118,6 +121,14 @@ void QuinticWalk::setParameters(const VectorLabel& params)
 {
     _params = params;
     _footstep.setFootDistance(_params("footDistance"));
+}
+        
+void QuinticWalk::forceRebuildTrajectories()
+{
+    //Reset the trunk saved state
+    resetTrunkLastState();
+    //Rebuild the trajectories
+    buildTrajectories();
 }
         
 void QuinticWalk::setOrders(
@@ -523,7 +534,11 @@ void QuinticWalk::buildTrajectories()
     //The trunk trajectory is defined for a
     //complete cycle to handle trunk phase shift
     //Trunk phase shift.
-    double phaseOffset = -_params("trunkPhase")*halfPeriod; 
+    double timeShift = -_params("trunkPhase")*halfPeriod; 
+
+    //Half pause length of trunk swing 
+    //lateral oscillation
+    double pauseLength = 0.5*_params("trunkPause")*halfPeriod;
 
     //Trunk support foot and next 
     //support foot external 
@@ -564,11 +579,11 @@ void QuinticWalk::buildTrajectories()
         _trunkVelAtLast.x(), 
         _trunkAccAtLast.x());
     _trajs.get("trunk_pos_x").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift, 
         trunkApexSupport.x(), 
         trunkVelSupport);
     _trajs.get("trunk_pos_x").addPoint(
-        period+phaseOffset, 
+        period+timeShift, 
         trunkApexNext.x(), 
         trunkVelNext);
     _trajs.get("trunk_pos_y").addPoint(
@@ -577,10 +592,16 @@ void QuinticWalk::buildTrajectories()
         _trunkVelAtLast.y(), 
         _trunkAccAtLast.y());
     _trajs.get("trunk_pos_y").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift-pauseLength, 
         trunkApexSupport.y());
     _trajs.get("trunk_pos_y").addPoint(
-        period+phaseOffset, 
+        halfPeriod+timeShift+pauseLength, 
+        trunkApexSupport.y());
+    _trajs.get("trunk_pos_y").addPoint(
+        period+timeShift-pauseLength, 
+        trunkApexNext.y());
+    _trajs.get("trunk_pos_y").addPoint(
+        period+timeShift+pauseLength, 
         trunkApexNext.y());
     _trajs.get("trunk_pos_z").addPoint(
         0.0, 
@@ -588,10 +609,10 @@ void QuinticWalk::buildTrajectories()
         _trunkVelAtLast.z(), 
         _trunkAccAtLast.z());
     _trajs.get("trunk_pos_z").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift, 
         _params("trunkHeight"));
     _trajs.get("trunk_pos_z").addPoint(
-        period+phaseOffset, 
+        period+timeShift, 
         _params("trunkHeight"));
 
     //Define trunk yaw target 
@@ -627,11 +648,11 @@ void QuinticWalk::buildTrajectories()
         _trunkAxisVelAtLast.x(), 
         _trunkAxisAccAtLast.x());
     _trajs.get("trunk_axis_x").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift, 
         axisAtSupport.x(),
         axisVel.x());
     _trajs.get("trunk_axis_x").addPoint(
-        period+phaseOffset, 
+        period+timeShift, 
         axisAtNext.x(),
         axisVel.x());
     _trajs.get("trunk_axis_y").addPoint(
@@ -640,11 +661,11 @@ void QuinticWalk::buildTrajectories()
         _trunkAxisVelAtLast.y(),
         _trunkAxisAccAtLast.y());
     _trajs.get("trunk_axis_y").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift, 
         axisAtSupport.y(),
         axisVel.y());
     _trajs.get("trunk_axis_y").addPoint(
-        period+phaseOffset, 
+        period+timeShift, 
         axisAtNext.y(),
         axisVel.y());
     _trajs.get("trunk_axis_z").addPoint(
@@ -653,11 +674,11 @@ void QuinticWalk::buildTrajectories()
         _trunkAxisVelAtLast.z(),
         _trunkAxisAccAtLast.z());
     _trajs.get("trunk_axis_z").addPoint(
-        halfPeriod+phaseOffset, 
+        halfPeriod+timeShift, 
         axisAtSupport.z(),
         axisVel.z());
     _trajs.get("trunk_axis_z").addPoint(
-        period+phaseOffset, 
+        period+timeShift, 
         axisAtNext.z(),
         axisVel.z());
 }
