@@ -42,6 +42,7 @@ int main()
         //Plot
         plot.add({
             "t", t,
+            "isEnabled", walk.isEnabled(),
             "phase", walk.getPhase(),
             "trunk_x", model.get().position("trunk", "origin").x(),
             "trunk_y", model.get().position("trunk", "origin").y(),

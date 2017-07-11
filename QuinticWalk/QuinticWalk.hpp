@@ -137,6 +137,12 @@ class QuinticWalk
          */
         bool _isEnabled;
         bool _wasEnabled;
+
+        /**
+         * True if the current used 
+         * trajectories has oscillations
+         */
+        bool _isTrajsOscillating;
         
         /**
          * Trunk pose and orientation 
