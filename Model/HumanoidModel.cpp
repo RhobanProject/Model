@@ -36,7 +36,7 @@ HumanoidModel::HumanoidModel(
         tmpInertiaData = inertiaData;
         tmpInertiaName = inertiaName;
     }
-    
+
     //Check for overriden geometry
     bool isGeometryOverride = false;
     Eigen::MatrixXd tmpGeometryData;
@@ -53,7 +53,7 @@ HumanoidModel::HumanoidModel(
     //Load model from URDF file
     RBDL::Model modelOld;
     if (!RBDL::Addons::URDFReadFromFile(
-        urdfFile.c_str(), &modelOld, false, 
+        urdfFile.c_str(), &modelOld, false,
         &tmpInertiaData, &tmpInertiaName, isInertiaOverride,
         &tmpGeometryData, &tmpGeometryName, isGeometryOverride)
     ) {
@@ -71,10 +71,10 @@ HumanoidModel::HumanoidModel(
     }
 
     //Update old urdf model with new root frame
-    RBDL::Model modelNew = 
+    RBDL::Model modelNew =
         Leph::RBDLRootUpdate(modelOld, frameRootId, isFloatingBase);
     //Initialize base model
-    Model::initializeModel(modelNew, 
+    Model::initializeModel(modelNew,
         tmpInertiaData, tmpInertiaName,
         tmpGeometryData, tmpGeometryName);
 
@@ -90,7 +90,7 @@ HumanoidModel::HumanoidModel(
     _legHipToKnee = (hipPt-kneePt).norm();
     _legKneeToAnkle = (kneePt-anklePt).norm();
     _legAnkleToGround = (anklePt-footPt).norm();
-    //Compute standart translation 
+    //Compute standart translation
     //from trunk in zero position
     _trunkToHipLeft = Model::position("left_hip_roll", "trunk");
     _trunkToHipRight = Model::position("right_hip_roll", "trunk");
@@ -102,12 +102,12 @@ HumanoidModel::HumanoidModel(
     _headPitchToCameraZ = Model::position("camera", "head_pitch").z();
     _headPitchToCameraX = Model::position("camera", "head_pitch").x();
 }
-        
+
 HumanoidModel::~HumanoidModel()
 {
 }
-        
-void HumanoidModel::boundingBox(size_t frameIndex, 
+
+void HumanoidModel::boundingBox(size_t frameIndex,
     double& sizeX, double& sizeY, double& sizeZ,
     Eigen::Vector3d& center) const
 {
@@ -123,7 +123,7 @@ void HumanoidModel::boundingBox(size_t frameIndex,
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.000, -0.003, 0.01);
         } else {
-            Model::boundingBox(frameIndex, 
+            Model::boundingBox(frameIndex,
                 sizeX, sizeY, sizeZ, center);
         }
     } else if (_type == SigmabanPlusModel) {
@@ -138,7 +138,7 @@ void HumanoidModel::boundingBox(size_t frameIndex,
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.0244, -0.0135, 0.01);
         } else {
-            Model::boundingBox(frameIndex, 
+            Model::boundingBox(frameIndex,
                 sizeX, sizeY, sizeZ, center);
         }
     } else if (_type == GrosbanModel) {
@@ -153,21 +153,21 @@ void HumanoidModel::boundingBox(size_t frameIndex,
             sizeZ = 0.01;
             center = Eigen::Vector3d(0.0034, -0.036, 0.01);
         } else {
-            Model::boundingBox(frameIndex, 
+            Model::boundingBox(frameIndex,
                 sizeX, sizeY, sizeZ, center);
         }
     }
 }
 
 bool HumanoidModel::legIkLeft(const std::string& frame,
-    const Eigen::Vector3d& footPos, 
+    const Eigen::Vector3d& footPos,
     const Eigen::Matrix3d& rotation,
     double* boundIKDistance)
 {
     //LegIK initialization
-    LegIK::IK ik(_legHipToKnee, 
+    LegIK::IK ik(_legHipToKnee,
         _legKneeToAnkle, _legAnkleToGround);
-    //Convert foot position from given 
+    //Convert foot position from given
     //target to LegIK base
     LegIK::Vector3D legIKTarget = buildTargetPos(
         frame, footPos, true);
@@ -175,7 +175,7 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
         frame, rotation);
-    
+
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
@@ -185,19 +185,19 @@ bool HumanoidModel::legIkLeft(const std::string& frame,
     if (isSucess) {
         checkNaN(result, legIKTarget, legIKMatrix);
         setIKResult(result, true);
-    } 
+    }
 
     return isSucess;
 }
 bool HumanoidModel::legIkRight(const std::string& frame,
-    const Eigen::Vector3d& footPos, 
+    const Eigen::Vector3d& footPos,
     const Eigen::Matrix3d& rotation,
     double* boundIKDistance)
 {
     //LegIK initialization
-    LegIK::IK ik(_legHipToKnee, 
+    LegIK::IK ik(_legHipToKnee,
         _legKneeToAnkle, _legAnkleToGround);
-    //Convert foot position from given 
+    //Convert foot position from given
     //target to LegIK base
     LegIK::Vector3D legIKTarget = buildTargetPos(
         frame, footPos, false);
@@ -205,7 +205,7 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     //to LegIK base
     LegIK::Frame3D legIKMatrix = buildTargetOrientation(
         frame, rotation);
-    
+
     //Run inverse kinematics
     LegIK::Position result;
     bool isSucess = ik.compute(
@@ -215,21 +215,21 @@ bool HumanoidModel::legIkRight(const std::string& frame,
     if (isSucess) {
         checkNaN(result, legIKTarget, legIKMatrix);
         setIKResult(result, false);
-    } 
+    }
 
     return isSucess;
 }
-        
+
 double HumanoidModel::legsLength() const
 {
     return -_trunkToFootTipLeft.z();
 }
-        
+
 double HumanoidModel::feetDistance() const
 {
     return _trunkToHipLeft.y() - _trunkToHipRight.y();
 }
-        
+
 Eigen::Vector3d HumanoidModel::getPose()
 {
     Eigen::Vector3d pos = selfInFrame("origin");
@@ -239,7 +239,7 @@ Eigen::Vector3d HumanoidModel::getPose()
         orientationYaw("trunk", "origin")
     );
 }
-        
+
 Eigen::Vector3d HumanoidModel::trunkSelfOrientation()
 {
     Eigen::Matrix3d mat = selfFrameOrientation("trunk");
@@ -251,8 +251,8 @@ Eigen::Vector3d HumanoidModel::trunkSelfOrientation()
     //Roll
     angles(0) = atan2(mat(1, 2), mat(2, 2));
     //Pitch
-    angles(1) = atan2(-mat(0, 2), 
-        sqrt(mat(0, 0)*mat(0, 0) 
+    angles(1) = atan2(-mat(0, 2),
+        sqrt(mat(0, 0)*mat(0, 0)
             + mat(0, 1)*mat(0, 1)));
     //Yaw
     angles(2) = Model::orientationYaw("trunk", "origin");
@@ -266,8 +266,8 @@ Eigen::Matrix3d HumanoidModel::selfFrameOrientation(
     //Compute self frame to trunk pitch/roll rotation
     Eigen::Matrix3d originToTrunk = Model::orientation("trunk", "origin");
     double roll = atan2(originToTrunk(1, 2), originToTrunk(2, 2));
-    double pitch = atan2(-originToTrunk(0, 2), 
-        sqrt(originToTrunk(0, 0)*originToTrunk(0, 0) 
+    double pitch = atan2(-originToTrunk(0, 2),
+        sqrt(originToTrunk(0, 0)*originToTrunk(0, 0)
             + originToTrunk(0, 1)*originToTrunk(0, 1)));
     //double yaw = atan2(originToTrunk(0, 1), originToTrunk(0, 0));
 
@@ -278,7 +278,7 @@ Eigen::Matrix3d HumanoidModel::selfFrameOrientation(
     //by using pitch/roll trunk orientation
     Eigen::AngleAxisd pitchRot(-pitch, Eigen::Vector3d::UnitY());
     Eigen::AngleAxisd rollRot(-roll, Eigen::Vector3d::UnitX());
-    Eigen::Matrix3d baseToFrame = 
+    Eigen::Matrix3d baseToFrame =
         rollRot.toRotationMatrix() * pitchRot.toRotationMatrix();
     //Then adding trunk to frame orientation
     baseToFrame = trunkToFrame * baseToFrame;
@@ -299,7 +299,7 @@ Eigen::Vector3d HumanoidModel::selfFramePosition(
     //Compute translation vector in origin
     Eigen::Vector3d translationInOrigin = framePos - trunkPos;
     //Rotate the translation into self frame
-    Eigen::Vector3d translationInBase = 
+    Eigen::Vector3d translationInBase =
         Eigen::AngleAxisd(-yaw, Eigen::Vector3d::UnitZ())
         .toRotationMatrix() * translationInOrigin;
 
@@ -311,11 +311,11 @@ Eigen::Vector3d HumanoidModel::selfInFrame(
 {
     //In: self to target in self
     //Out: frame to target in frame
-    
+
     //Self to frame orientation
     Eigen::Matrix3d mat = selfFrameOrientation(name);
     //Self to frame in frame
-    Eigen::Vector3d selfToFrameVect = 
+    Eigen::Vector3d selfToFrameVect =
         mat*selfFramePosition(name);
 
     //Self to target in frame
@@ -363,13 +363,13 @@ Eigen::Vector3d HumanoidModel::cameraPixelToViewVector(
     double pixelHeightPos = pixel.y()*heightLen;
 
     //Pixel position in world frame
-    Eigen::Vector3d pixelPos = 
+    Eigen::Vector3d pixelPos =
         center
         + focalLength*orientation.col(0)
         - pixelWidthPos*orientation.col(1)
         - pixelHeightPos*orientation.col(2);
 
-    //Unnormalize forward pixel vector 
+    //Unnormalize forward pixel vector
     Eigen::Vector3d forward = pixelPos - center;
 
     return forward;
@@ -400,7 +400,7 @@ bool HumanoidModel::cameraViewVectorToWorld(
     Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
     orientation.transposeInPlace();
 
-    //Unnormalize forward pixel vector 
+    //Unnormalize forward pixel vector
     Eigen::Vector3d forward = viewVector;
 
     //Check if the asked point is above the horizon
@@ -433,7 +433,7 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
     std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>* bordersPixel,
     std::vector<Eigen::Vector3d>* borders)
 {
-    //Unnormalize forward pixel vector 
+    //Unnormalize forward pixel vector
     Eigen::Vector3d forward = viewVector;
 
     //Check if the asked point is above the horizon
@@ -442,7 +442,7 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
         forward.z() = -0.0001;
         isBelowHorizon = false;
     }
-    
+
     //Optical center
     Eigen::Vector3d center = Model::position("camera", "origin");
 
@@ -459,16 +459,16 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
     } else {
         ballCenterToPointDist = opticalCenterToPointDist*radius/height;
     }
-    ballCenter = 
-        center + 
+    ballCenter =
+        center +
         forward.normalized()
         *(opticalCenterToPointDist-ballCenterToPointDist);
 
     //Compute radial vector from ball center and parallel
-    //to projection frame 
-    Eigen::Vector3d radialVect1 = 
+    //to projection frame
+    Eigen::Vector3d radialVect1 =
         forward.cross(Eigen::Vector3d(0.0, 0.0, 1.0));
-    Eigen::Vector3d radialVect2 = 
+    Eigen::Vector3d radialVect2 =
         forward.cross(radialVect1);
     //Normalize them
     radialVect1.normalize();
@@ -504,7 +504,7 @@ bool HumanoidModel::cameraViewVectorToBallWorld(
 
     return isBelowHorizon;
 }
-        
+
 Eigen::Vector2d HumanoidModel::cameraViewVectorToPanTilt(
     const Eigen::Vector3d& viewVector)
 {
@@ -517,9 +517,9 @@ Eigen::Vector2d HumanoidModel::cameraViewVectorToPanTilt(
     //Conversion to yaw/pitch extrinsic euler angles
     double yaw = atan2(viewInSelf.y(), viewInSelf.x());
     double pitch = atan2(
-        -viewInSelf.z(), 
+        -viewInSelf.z(),
         sqrt(viewInSelf.x()*viewInSelf.x() + viewInSelf.y()*viewInSelf.y()));
-    
+
     return Eigen::Vector2d(yaw, pitch);
 }
 
@@ -543,13 +543,13 @@ Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
     double pixelHeightPos = pixel.y()*heightLen;
 
     //Pixel position in world frame
-    Eigen::Vector3d pixelPos = 
+    Eigen::Vector3d pixelPos =
         center
         + focalLength*orientation.col(0)
         - pixelWidthPos*orientation.col(1)
         - pixelHeightPos*orientation.col(2);
-    
-    //Compute pixel position and optical center in 
+
+    //Compute pixel position and optical center in
     //robot self frame
     Eigen::Vector3d centerInSelf = frameInSelf("origin", center);
     Eigen::Vector3d pixelInSelf = frameInSelf("origin", pixelPos);
@@ -560,7 +560,7 @@ Eigen::Vector2d HumanoidModel::cameraPixelToPanTilt(
     //Conversion to yaw/pitch extrinsic euler angles
     double yaw = atan2(viewInSelf.y(), viewInSelf.x());
     double pitch = atan2(
-        -viewInSelf.z(), 
+        -viewInSelf.z(),
         sqrt(viewInSelf.x()*viewInSelf.x() + viewInSelf.y()*viewInSelf.y()));
 
     //Assigning view vector
@@ -610,8 +610,8 @@ bool HumanoidModel::cameraWorldToPixel(
         pixel.x() = solution(1)/widthLen;
         pixel.y() = solution(2)/heightLen;
         //Check if the projection comes from backside
-        if (solution(0) < 0.0) {
-            return false;
+        if (solution(0) < 0.0 || fabs(pixel.x())>1.0 || fabs(pixel.y())>1.0) { //We also return false if the result is outside the image
+          return false;
         } else {
             return true;
         }
@@ -641,12 +641,12 @@ bool HumanoidModel::cameraPanTiltToPixel(
 
 bool HumanoidModel::cameraLookAt(
     const CameraParameters& params,
-    const Eigen::Vector3d& posTarget, 
+    const Eigen::Vector3d& posTarget,
     double offsetPixelTilt)
 {
     double panDOF;
     double tiltDOF;
-    bool isSucess = cameraLookAtNoUpdate(panDOF, tiltDOF, 
+    bool isSucess = cameraLookAtNoUpdate(panDOF, tiltDOF,
         params, posTarget, offsetPixelTilt);
     if (isSucess) {
         Model::setDOF("head_yaw", panDOF);
@@ -677,9 +677,9 @@ bool HumanoidModel::cameraLookAtNoUpdate(
 
     //Compute target in head_pitch frame fixed
     //to head_yaw frame orientation
-    Eigen::Vector3d targetInBase = 
+    Eigen::Vector3d targetInBase =
         Model::position("origin", "head_yaw", posTarget);
-    //Here, the head_yaw (no update) used is not 
+    //Here, the head_yaw (no update) used is not
     //aligned to the target point.
     //The missing yaw orientation is manually
     //computed to not update the model
@@ -719,7 +719,7 @@ bool HumanoidModel::cameraLookAtNoUpdate(
         return false;
     }
     double alpha = M_PI/2.0 - acos(cosAngle) - gamma;
-    //Apply (inverse) angular correction to pitch 
+    //Apply (inverse) angular correction to pitch
     alpha += -epsilon;
 
     //Assignement head pitch DOF
@@ -738,13 +738,13 @@ double HumanoidModel::cameraScreenHorizon(
     //Camera orientation
     Eigen::Matrix3d orientation = Model::orientation("camera", "origin");
     orientation.transposeInPlace();
-    
+
     //Half width and height aperture distance on focal plane
     double widthLen = focalLength*tan(params.widthAperture/2.0);
     double heightLen = focalLength*tan(params.heightAperture/2.0);
     //Pixel width distance from optical center
     double pixelWidthPos = screenPosWidth*widthLen;
-    
+
     //Position in world frame of asked width pixel line
     //at zero height
     Eigen::Vector3d pixelPos = center
@@ -759,16 +759,16 @@ double HumanoidModel::cameraScreenHorizon(
     Eigen::Vector3d horizonPos = pixelPos + t*orientation.col(2);
 
     //Conversion to optical plane vertical coordinate
-    double horizonScreenHeight = 
+    double horizonScreenHeight =
         (horizonPos-center).dot(orientation.col(2));
 
     //Convertion to screen normalized height coordinate
     return -horizonScreenHeight/heightLen;
 }
-        
+
 LegIK::Vector3D HumanoidModel::buildTargetPos(
     const std::string& frame,
-    const Eigen::Vector3d& footPos, 
+    const Eigen::Vector3d& footPos,
     bool isLeftLeg)
 {
     Eigen::Vector3d target;
@@ -777,10 +777,10 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
         target = footPos;
         if (isLeftLeg) {
             target += _trunkToFootTipLeft;
-            target -= _trunkToHipLeft; 
+            target -= _trunkToHipLeft;
         } else {
             target += _trunkToFootTipRight;
-            target -= _trunkToHipRight; 
+            target -= _trunkToHipRight;
         }
     } else if (frame == "LegIK") {
         target = footPos;
@@ -790,13 +790,13 @@ LegIK::Vector3D HumanoidModel::buildTargetPos(
         target = Model::position(
             frame, "trunk", footPos);
         if (isLeftLeg) {
-            target -= _trunkToHipLeft; 
+            target -= _trunkToHipLeft;
         } else {
-            target -= _trunkToHipRight; 
+            target -= _trunkToHipRight;
         }
     }
 
-    //Building LegIK input target position 
+    //Building LegIK input target position
     //data structure
     LegIK::Vector3D legIKTarget;
     legIKTarget[0] = target(0);
@@ -833,7 +833,7 @@ LegIK::Frame3D HumanoidModel::buildTargetOrientation(
     legIKMatrix[2][2] = rotMatrixTarget(2, 2);
     return legIKMatrix;
 }
-        
+
 void HumanoidModel::setIKResult(
     const LegIK::Position& result, bool isLeftLeg)
 {
@@ -855,7 +855,7 @@ void HumanoidModel::setIKResult(
 }
 
 void HumanoidModel::checkNaN(
-    const LegIK::Position& result, 
+    const LegIK::Position& result,
     const LegIK::Vector3D& pos,
     const LegIK::Frame3D& orientation) const
 {
@@ -869,30 +869,29 @@ void HumanoidModel::checkNaN(
         std::isnan(result.theta[5])
     ) {
         throw std::logic_error("LegIK NaN invalid result. "
-            + std::string("theta0=") 
-            + std::to_string(result.theta[0]) 
+            + std::string("theta0=")
+            + std::to_string(result.theta[0])
             + std::string(" ")
-            + std::string("theta1=") 
-            + std::to_string(result.theta[1]) 
-            + std::string(" ")
-            + std::string("theta2=") 
-            + std::to_string(result.theta[2]) 
-            + std::string(" ")
-            + std::string("theta3=") 
-            + std::to_string(result.theta[3]) 
-            + std::string(" ")
-            + std::string("theta4=") 
-            + std::to_string(result.theta[4]) 
-            + std::string(" ")
-            + std::string("theta5=") 
-            + std::to_string(result.theta[5]) 
-            + std::string(" pos=")
-            + pos.pp()
-            + std::string(" orientation=")
-            + orientation.pp()
+            + std::string("theta1=")
+            + std::to_string(result.theta[1])
+                               + std::string(" ")
+                               + std::string("theta2=")
+                               + std::to_string(result.theta[2])
+                               + std::string(" ")
+                               + std::string("theta3=")
+                               + std::to_string(result.theta[3])
+                               + std::string(" ")
+                               + std::string("theta4=")
+                               + std::to_string(result.theta[4])
+                               + std::string(" ")
+                               + std::string("theta5=")
+                               + std::to_string(result.theta[5])
+                               + std::string(" pos=")
+                               + pos.pp()
+                               + std::string(" orientation=")
+                               + orientation.pp()
         );
     }
 }
 
 }
-
