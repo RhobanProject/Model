@@ -13,6 +13,7 @@ QuinticWalk::QuinticWalk() :
     _orders(0.0, 0.0, 0.0),
     _isEnabled(false),
     _wasEnabled(false),
+    _isTrajsOscillating(false),
     _trunkPosAtLast(),
     _trunkVelAtLast(),
     _trunkAccAtLast(),
@@ -114,7 +115,7 @@ const Eigen::Vector3d& QuinticWalk::getOrders() const
         
 bool QuinticWalk::isEnabled() const
 {
-    return _isEnabled;
+    return _isTrajsOscillating;
 }
         
 void QuinticWalk::setParameters(const VectorLabel& params)
@@ -390,11 +391,13 @@ void QuinticWalk::buildTrajectories()
                 _params("footRise"));
             _trajs.get("foot_pos_z").addPoint(
                 halfPeriod, 0.0);
+            _isTrajsOscillating = true;
         } else {
             _trajs.get("foot_pos_z").addPoint(
                 0.0, 0.0);
             _trajs.get("foot_pos_z").addPoint(
                 halfPeriod, 0.0);
+            _isTrajsOscillating = false;
         }
         //Flying foot orientation
         _trajs.get("foot_axis_x").addPoint(
@@ -467,6 +470,7 @@ void QuinticWalk::buildTrajectories()
         doubleSupportLength = halfPeriod;
         singleSupportLength = 0.0;
     }
+    _isTrajsOscillating = true;
     
     //Set double support phase
     _trajs.get("is_double_support").addPoint(
