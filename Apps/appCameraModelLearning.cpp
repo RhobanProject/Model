@@ -11,13 +11,13 @@
 #include "Viewer/ModelViewer.hpp"
 #include <Eigen/Dense>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
 #include <ctime>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <map>
 
 /**
  * Number of sampling per parameters evaluation
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
   camParams.heightAperture = 52.47 * M_PI / 180.0;
   std::cout << "Using a camera width of " << camParams.widthAperture*180.0/M_PI << "°, and a camera height of " << camParams.heightAperture*180.0/M_PI << std::endl;
 
-  
+
   // Loading data
   Leph::MatrixLabel logs;
   logs.load(logPath);
@@ -587,17 +587,17 @@ int main(int argc, char **argv) {
   camParamsPath = "./cameraModel.params";
   std::cout << "Writing geometry and camera data to: " << camParamsPath
             << std::endl;
-  file = std::ofstream(camParamsPath);
+  std::ofstream camfile(camParamsPath);
   if (!file.is_open()) {
     throw std::runtime_error("Unable to open file: " + camParamsPath);
   }
 
-  Leph::WriteEigenVectorToStream(file, camApertures);
-  Leph::WriteEigenVectorToStream(file, imuOffsets);
-  Leph::WriteEigenMatrixToStream(file,
+  Leph::WriteEigenVectorToStream(camfile, camApertures);
+  Leph::WriteEigenVectorToStream(camfile, imuOffsets);
+  Leph::WriteEigenMatrixToStream(camfile,
                                  getGeometryDataFromParameters(bestParams));
-  Leph::WriteMapToStream(file, defaultGeometryName);
-  file.close();
+  Leph::WriteMapToStream(camfile, defaultGeometryName);
+  camfile.close();
 
   // Plot the convergence graphic
   plot.plot("iteration", "all").render();
