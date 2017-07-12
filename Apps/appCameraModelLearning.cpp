@@ -34,7 +34,7 @@ static const double learningDataRatio = 0.75;
  * CMA-ES optimization configuration
  */
 static const int cmaesElitismLevel = 0;
-static const unsigned int cmaesMaxIterations = 45;
+static const unsigned int cmaesMaxIterations = 40;
 static const unsigned int cmaesRestarts = 1;
 // Choses the number of points created when exploring (pop size)
 static const unsigned int cmaesLambda = 100;
@@ -352,6 +352,11 @@ void viewLog(const Leph::MatrixLabel &log, const Eigen::VectorXd &params) {
   for (unsigned int i = 0; i < log.size(); i++) {
     const Leph::VectorLabel &data = log[i];
     while (viewer.update()) {
+      if (viewer.isKeyPressed(sf::Keyboard::L)) {
+        // Leaving
+        i=log.size();
+        break;
+      }
       // Assign DOF state
       model.setSupportFoot(Leph::HumanoidFixedModel::LeftSupportFoot);
       for (const std::string &name : Leph::NamesDOF) {
@@ -567,6 +572,22 @@ int main(int argc, char **argv) {
   std::cout << "Writing geometry and camera data to: " << camParamsPath
             << std::endl;
   std::ofstream file(camParamsPath);
+  if (!file.is_open()) {
+    throw std::runtime_error("Unable to open file: " + camParamsPath);
+  }
+
+  Leph::WriteEigenVectorToStream(file, camApertures);
+  Leph::WriteEigenVectorToStream(file, imuOffsets);
+  Leph::WriteEigenMatrixToStream(file,
+                                 getGeometryDataFromParameters(bestParams));
+  Leph::WriteMapToStream(file, defaultGeometryName);
+  file.close();
+
+  // Writing to file a second time, for good measure
+  camParamsPath = "./cameraModel.params";
+  std::cout << "Writing geometry and camera data to: " << camParamsPath
+            << std::endl;
+  file = std::ofstream(camParamsPath);
   if (!file.is_open()) {
     throw std::runtime_error("Unable to open file: " + camParamsPath);
   }
