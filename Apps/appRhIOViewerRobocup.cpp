@@ -132,7 +132,7 @@ int main(int argc, char** argv)
         std::lock_guard<std::mutex> lock(mutexVar);
         ballQuality = val;
     };
-    streamedValues["localisation/goalQ"] = [&mutexVar, &fieldQuality](double val) {
+    streamedValues["localisation/fieldQ"] = [&mutexVar, &fieldQuality](double val) {
         std::lock_guard<std::mutex> lock(mutexVar);
         fieldQuality = val;
     };
