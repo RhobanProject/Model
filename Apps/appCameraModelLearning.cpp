@@ -19,6 +19,8 @@
 #include <sys/types.h>
 #include <map>
 
+// TODO actually remove the imu yaw and probably the 3 camera DoFs.
+
 /**
  * Number of sampling per parameters evaluation
  * for log likelyhood maximisation
@@ -106,36 +108,13 @@ void saveHumanParams(std::string & path, const Eigen::VectorXd & bestParams) {
             << "\n";
   file << "IMUOffsetPitch: " << bestParams(IMU_PITCH) * 180.0 / M_PI
             << "\n";
-  file << "IMUOffsetYaw:   " << bestParams(IMU_YAW) * 180.0 / M_PI
+  file << "IMUOffsetYaw:   " << 0.0
             << "\n";
   file << "NeckOffsetRoll:  " << bestParams(NECK_ROLL) * 180.0 / M_PI
             << "\n";
-  file << "NeckOffsetPitch: " << bestParams(NECK_PITCH) * 180.0 / M_PI
+  file << "NeckOffsetPitch: " << 0.0
             << "\n";
   file << "NeckOffsetYaw:   " << bestParams(NECK_YAW) * 180.0 / M_PI
-            << "\n";
-
-  // Best code EUW
-  std::cout << "(Angles in degrees, noisePixel in 640 pixel image)"
-            << "\n";
-  std::cout << "noisePixel:     " << bestParams(PIXEL_NOISE) * 320 << "\n";
-  std::cout << "CamOffsetRoll:  " << bestParams(CAMERA_ROLL) * 180.0 / M_PI
-            << "\n";
-  std::cout << "CamOffsetPitch: " << bestParams(CAMERA_PITCH) * 180.0 / M_PI
-            << "\n";
-  std::cout << "CamOffsetYaw:   " << bestParams(CAMERA_YAW) * 180.0 / M_PI
-            << "\n";
-  std::cout << "IMUOffsetRoll:  " << bestParams(IMU_ROLL) * 180.0 / M_PI
-            << "\n";
-  std::cout << "IMUOffsetPitch: " << bestParams(IMU_PITCH) * 180.0 / M_PI
-            << "\n";
-  std::cout << "IMUOffsetYaw:   " << bestParams(IMU_YAW) * 180.0 / M_PI
-            << "\n";
-  std::cout << "NeckOffsetRoll:  " << bestParams(NECK_ROLL) * 180.0 / M_PI
-            << "\n";
-  std::cout << "NeckOffsetPitch: " << bestParams(NECK_PITCH) * 180.0 / M_PI
-            << "\n";
-  std::cout << "NeckOffsetYaw:   " << bestParams(NECK_YAW) * 180.0 / M_PI
             << "\n";
   file.close();
 }
@@ -156,7 +135,7 @@ Eigen::MatrixXd getGeometryDataFromParameters(const Eigen::VectorXd &params) {
   // 9: neck angle offset roll (radian)
   double neckOffsetRoll = params(NECK_ROLL);
   // 10: neck angle offset pitch (radian)
-  double neckOffsetPitch = params(NECK_PITCH);
+  double neckOffsetPitch = 0.0;//params(NECK_PITCH);
   // 11: neck angle offset yaw (radian)
   double neckOffsetYaw = params(NECK_YAW);
 
@@ -562,7 +541,7 @@ int main(int argc, char **argv) {
   // Imu roll, pitch, yaw in radian
   Eigen::VectorXd imuOffsets(3);
   imuOffsets << bestParams(IMU_ROLL), bestParams(IMU_PITCH),
-      bestParams(IMU_YAW);
+    0.0;//bestParams(IMU_YAW);
   // Camera angular aperture width, height in radian
   Eigen::VectorXd camApertures(2);
   camApertures << camParams.widthAperture, camParams.heightAperture;
