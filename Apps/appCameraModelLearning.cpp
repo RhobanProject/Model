@@ -588,7 +588,7 @@ int main(int argc, char **argv) {
   std::cout << "Writing geometry and camera data to: " << camParamsPath
             << std::endl;
   std::ofstream camfile(camParamsPath);
-  if (!file.is_open()) {
+  if (!camfile.is_open()) {
     throw std::runtime_error("Unable to open file: " + camParamsPath);
   }
 
