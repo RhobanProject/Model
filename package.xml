@@ -26,6 +26,7 @@
   <run_depend>rbdl_urdfreader</run_depend>
   <run_depend>RhIO</run_depend>
   <run_depend>RhAL</run_depend>
+  <run_depend>RhIOClient</run_depend>
 
   <export>
   </export>
