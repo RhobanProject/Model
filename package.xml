@@ -16,7 +16,7 @@
   <build_depend>libgp</build_depend> <!-- rhobandeps/libgp -->
   <build_depend>libcmaes</build_depend> <!-- rhobandeps/libcmaes -->
   <build_depend>rbdl_urdfreader</build_depend> <!-- rhobandeps/rbdl -->
-  <build_depend>RhIO</build_depend> <!-- rhoban/rhio -->
+  <build_depend>RhIOClient</build_depend> <!-- rhoban/rhio -->
   <build_depend>RhAL</build_depend> <!-- rhoban/rhal -->
 
   <run_depend>Eigen</run_depend>
@@ -24,7 +24,6 @@
   <run_depend>libgp</run_depend>
   <run_depend>libcmaes</run_depend>
   <run_depend>rbdl_urdfreader</run_depend>
-  <run_depend>RhIO</run_depend>
   <run_depend>RhAL</run_depend>
   <run_depend>RhIOClient</run_depend>
 
