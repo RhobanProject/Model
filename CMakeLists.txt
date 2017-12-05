@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 2.8)
 project(model)
 
 find_package(catkin REQUIRED COMPONENTS
-  Eigen
+  eigen
   lwpr
   libgp
   libcmaes
@@ -21,7 +21,7 @@ find_package(RhAL)
 catkin_package(
   INCLUDE_DIRS .
   LIBRARIES model
-  CATKIN_DEPENDS Eigen lwpr libgp libcmaes rbdl_urdfreader
+  CATKIN_DEPENDS eigen lwpr libgp libcmaes rbdl_urdfreader
 )
 
 #Option for compiling the tests and apps
